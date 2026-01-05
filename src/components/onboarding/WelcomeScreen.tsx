@@ -55,19 +55,13 @@ export const WelcomeScreen = () => {
         </div>
 
         {/* CTA */}
-        <div className="space-y-3 pt-4">
+        <div className="pt-4">
           <Button
             onClick={() => navigate('/onboarding/quiz')}
             className="w-full h-14 text-lg font-medium rounded-2xl bg-gradient-olive hover:opacity-90 transition-all shadow-warm-lg"
           >
             {t('getStarted')}
           </Button>
-          <button
-            onClick={() => navigate('/login')}
-            className="text-muted-foreground hover:text-primary transition-colors text-sm"
-          >
-            {t('alreadyHaveAccount')} <span className="font-medium underline">{t('signIn')}</span>
-          </button>
         </div>
       </div>
     </div>
