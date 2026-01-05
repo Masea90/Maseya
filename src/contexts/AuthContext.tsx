@@ -7,6 +7,7 @@ export interface AuthUser {
   id: string;
   email: string;
   createdAt: string;
+  emailConfirmedAt: string | null;
 }
 
 interface AuthContextType {
@@ -51,6 +52,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     id: user.id,
     email: user.email || '',
     createdAt: user.created_at,
+    emailConfirmedAt: user.email_confirmed_at || null,
   } : null;
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {

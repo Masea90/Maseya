@@ -1,6 +1,7 @@
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useUser } from '@/contexts/UserContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useProfileCompleteness } from '@/hooks/useProfileCompleteness';
 import { languages } from '@/lib/i18n';
 import { 
   ChevronRight, 
@@ -18,6 +19,7 @@ import {
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { ProfileCompletenessCard } from '@/components/profile/ProfileCompletenessCard';
 
 const tierInfo = {
   bronze: { min: 0, max: 200, next: 'silver' },
@@ -35,10 +37,11 @@ const ProfilePage = () => {
   const { user, t } = useUser();
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
+  const { percentage, tier: profileTier, tierLabel, completedItems, missingItems } = useProfileCompleteness(user);
   
-  const tier = getTier(user.points);
-  const tierData = tierInfo[tier];
-  const progress = tier === 'gold' 
+  const pointsTier = getTier(user.points);
+  const tierData = tierInfo[pointsTier];
+  const progress = pointsTier === 'gold' 
     ? 100 
     : ((user.points - tierData.min) / (tierData.max - tierData.min)) * 100;
 
@@ -95,15 +98,24 @@ const ProfilePage = () => {
           </Link>
         </div>
 
+        {/* Profile Completeness */}
+        <ProfileCompletenessCard 
+          percentage={percentage}
+          tier={profileTier}
+          tierLabel={tierLabel}
+          completedItems={completedItems}
+          missingItems={missingItems}
+        />
+
         {/* Points & Tier */}
         <div className="bg-card rounded-2xl p-5 shadow-warm space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-maseya-gold/20 rounded-full flex items-center justify-center">
-                <Star className={cn('w-6 h-6', tierColors[tier])} />
+                <Star className={cn('w-6 h-6', tierColors[pointsTier])} />
               </div>
               <div>
-                <p className="font-semibold text-foreground capitalize">{t(tier)} {t('tier')}</p>
+                <p className="font-semibold text-foreground capitalize">{t(pointsTier)} {t('tier')}</p>
                 <p className="text-sm text-muted-foreground">{user.points} {t('points')}</p>
               </div>
             </div>
@@ -116,7 +128,7 @@ const ProfilePage = () => {
             </Link>
           </div>
 
-          {tier !== 'gold' && tierData.next && (
+          {pointsTier !== 'gold' && tierData.next && (
             <div className="space-y-2">
               <div className="flex justify-between text-xs text-muted-foreground">
                 <span>{user.points} pts</span>

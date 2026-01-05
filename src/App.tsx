@@ -7,6 +7,7 @@ import { BrowserRouter } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { UserProvider } from "@/contexts/UserContext";
 import { AppRoutes } from "@/components/AppRoutes";
+import { ConsentModal } from "@/components/consent/ConsentModal";
 
 /**
  * App - Root component with all providers
@@ -16,6 +17,16 @@ import { AppRoutes } from "@/components/AppRoutes";
 function App() {
   const [queryClient] = useState(() => new QueryClient());
 
+  const handleConsentAcceptAll = () => {
+    // Consent is saved in the modal itself
+    console.log('User accepted all data usage');
+  };
+
+  const handleConsentAcceptEssential = () => {
+    // Consent is saved in the modal itself
+    console.log('User accepted essential only');
+  };
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
@@ -23,6 +34,10 @@ function App() {
           <TooltipProvider>
             <Toaster />
             <Sonner />
+            <ConsentModal 
+              onAcceptAll={handleConsentAcceptAll}
+              onAcceptEssential={handleConsentAcceptEssential}
+            />
             <BrowserRouter>
               <AppRoutes />
             </BrowserRouter>

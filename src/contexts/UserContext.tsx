@@ -23,6 +23,19 @@ export interface UserProfile {
   guideCompleted: boolean;
   language: Language;
   routineCompletion: RoutineCompletion;
+  // Privacy-safe insight fields
+  ageRange: string;
+  sensitivities: string[];
+  country: string;
+  climateType: string;
+  // Completeness tracking
+  emailConfirmed: boolean;
+  hasProfilePhoto: boolean;
+  firstRoutineCompleted: boolean;
+  // Consent tracking
+  consentAnalytics: boolean;
+  consentPersonalization: boolean;
+  consentDate: string | null;
 }
 
 interface GlowScores {
@@ -66,6 +79,19 @@ const createDefaultUser = (email?: string): UserProfile => ({
     night: [],
     lastCompletedDate: null,
   },
+  // Privacy-safe insight fields
+  ageRange: '',
+  sensitivities: [],
+  country: '',
+  climateType: '',
+  // Completeness tracking
+  emailConfirmed: false,
+  hasProfilePhoto: false,
+  firstRoutineCompleted: false,
+  // Consent tracking
+  consentAnalytics: false,
+  consentPersonalization: false,
+  consentDate: null,
 });
 
 // Calculate dynamic glow scores based on user actions
@@ -155,6 +181,19 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
               night: [],
               lastCompletedDate: null,
             },
+            // Privacy-safe insight fields
+            ageRange: (data as Record<string, unknown>).age_range as string || '',
+            sensitivities: (data as Record<string, unknown>).sensitivities as string[] || [],
+            country: (data as Record<string, unknown>).country as string || '',
+            climateType: (data as Record<string, unknown>).climate_type as string || '',
+            // Completeness tracking
+            emailConfirmed: (data as Record<string, unknown>).email_confirmed as boolean || false,
+            hasProfilePhoto: (data as Record<string, unknown>).has_profile_photo as boolean || false,
+            firstRoutineCompleted: (data as Record<string, unknown>).first_routine_completed as boolean || false,
+            // Consent tracking
+            consentAnalytics: (data as Record<string, unknown>).consent_analytics as boolean || false,
+            consentPersonalization: (data as Record<string, unknown>).consent_personalization as boolean || false,
+            consentDate: (data as Record<string, unknown>).consent_date as string || null,
           };
           setUser(profile);
         } else {
@@ -192,6 +231,19 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       if (updates.onboardingComplete !== undefined) dbUpdates.onboarding_complete = updates.onboardingComplete;
       if (updates.guideCompleted !== undefined) dbUpdates.guide_completed = updates.guideCompleted;
       if (updates.language !== undefined) dbUpdates.language = updates.language;
+      // Privacy-safe insight fields
+      if (updates.ageRange !== undefined) dbUpdates.age_range = updates.ageRange;
+      if (updates.sensitivities !== undefined) dbUpdates.sensitivities = updates.sensitivities;
+      if (updates.country !== undefined) dbUpdates.country = updates.country;
+      if (updates.climateType !== undefined) dbUpdates.climate_type = updates.climateType;
+      // Completeness tracking
+      if (updates.emailConfirmed !== undefined) dbUpdates.email_confirmed = updates.emailConfirmed;
+      if (updates.hasProfilePhoto !== undefined) dbUpdates.has_profile_photo = updates.hasProfilePhoto;
+      if (updates.firstRoutineCompleted !== undefined) dbUpdates.first_routine_completed = updates.firstRoutineCompleted;
+      // Consent tracking
+      if (updates.consentAnalytics !== undefined) dbUpdates.consent_analytics = updates.consentAnalytics;
+      if (updates.consentPersonalization !== undefined) dbUpdates.consent_personalization = updates.consentPersonalization;
+      if (updates.consentDate !== undefined) dbUpdates.consent_date = updates.consentDate;
 
       if (Object.keys(dbUpdates).length > 0) {
         const { error } = await supabase
