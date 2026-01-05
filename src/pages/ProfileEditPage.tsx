@@ -8,37 +8,37 @@ import { toast } from 'sonner';
 import { BottomNav } from '@/components/layout/BottomNav';
 
 const skinConcernOptions = [
-  { id: 'acne', label: 'Acne', emoji: '🔴' },
-  { id: 'dryness', label: 'Dryness', emoji: '🏜️' },
-  { id: 'oiliness', label: 'Oiliness', emoji: '💧' },
-  { id: 'aging', label: 'Aging', emoji: '⏳' },
-  { id: 'sensitivity', label: 'Sensitivity', emoji: '🌸' },
-  { id: 'hyperpigmentation', label: 'Dark spots', emoji: '🎯' },
-];
+  { id: 'acne', labelKey: 'acne', emoji: '🔴' },
+  { id: 'dryness', labelKey: 'dryness', emoji: '🏜️' },
+  { id: 'oiliness', labelKey: 'oiliness', emoji: '💧' },
+  { id: 'aging', labelKey: 'aging', emoji: '⏳' },
+  { id: 'sensitivity', labelKey: 'sensitivity', emoji: '🌸' },
+  { id: 'hyperpigmentation', labelKey: 'hyperpigmentation', emoji: '🎯' },
+] as const;
 
 const hairTypeOptions = [
-  { id: 'straight', label: 'Straight', emoji: '➖' },
-  { id: 'wavy', label: 'Wavy', emoji: '〰️' },
-  { id: 'curly', label: 'Curly', emoji: '🌀' },
-  { id: 'coily', label: 'Coily', emoji: '➰' },
-];
+  { id: 'straight', labelKey: 'straight', emoji: '➖' },
+  { id: 'wavy', labelKey: 'wavy', emoji: '〰️' },
+  { id: 'curly', labelKey: 'curly', emoji: '🌀' },
+  { id: 'coily', labelKey: 'coily', emoji: '➰' },
+] as const;
 
 const hairConcernOptions = [
-  { id: 'dryness', label: 'Dryness', emoji: '🏜️' },
-  { id: 'frizz', label: 'Frizz', emoji: '💨' },
-  { id: 'thinning', label: 'Thinning', emoji: '📉' },
-  { id: 'dandruff', label: 'Dandruff', emoji: '❄️' },
-  { id: 'damage', label: 'Damage', emoji: '⚡' },
-];
+  { id: 'dryness', labelKey: 'dryness', emoji: '🏜️' },
+  { id: 'frizz', labelKey: 'frizz', emoji: '💨' },
+  { id: 'thinning', labelKey: 'thinning', emoji: '📉' },
+  { id: 'dandruff', labelKey: 'dandruff', emoji: '🏔️' },
+  { id: 'damage', labelKey: 'damage', emoji: '⚡' },
+] as const;
 
 const goalOptions = [
-  { id: 'clear-skin', label: 'Clear skin', emoji: '✨' },
-  { id: 'hydration', label: 'Deep hydration', emoji: '💦' },
-  { id: 'anti-aging', label: 'Anti-aging', emoji: '🌟' },
-  { id: 'hair-growth', label: 'Hair growth', emoji: '🌱' },
-  { id: 'natural-products', label: 'Go natural', emoji: '🌿' },
-  { id: 'routine', label: 'Build a routine', emoji: '📅' },
-];
+  { id: 'clear-skin', labelKey: 'clearSkin', emoji: '✨' },
+  { id: 'hydration', labelKey: 'hydration', emoji: '💦' },
+  { id: 'anti-aging', labelKey: 'antiAging', emoji: '🌟' },
+  { id: 'hair-growth', labelKey: 'hairGrowth', emoji: '🌱' },
+  { id: 'natural-products', labelKey: 'natural', emoji: '🌿' },
+  { id: 'routine', labelKey: 'routine', emoji: '📅' },
+] as const;
 
 interface SectionProps {
   title: string;
@@ -152,7 +152,7 @@ const ProfileEditPage = () => {
         <div className="px-4 py-6 space-y-4 animate-fade-in">
           {/* Skin Concerns */}
           <Section
-            title="🧴 Skin Concerns"
+            title={`🧴 ${t('skinConcernsTitle')}`}
             isOpen={openSection === 'skin'}
             onToggle={() => setOpenSection(openSection === 'skin' ? null : 'skin')}
           >
@@ -163,7 +163,7 @@ const ProfileEditPage = () => {
                   selected={skinConcerns.includes(option.id)}
                   onClick={() => toggleSkinConcern(option.id)}
                   emoji={option.emoji}
-                  label={option.label}
+                  label={t(option.labelKey)}
                 />
               ))}
             </div>
@@ -171,7 +171,7 @@ const ProfileEditPage = () => {
 
           {/* Hair Type */}
           <Section
-            title="💇 Hair Type"
+            title={`💇 ${t('hairTypeTitle')}`}
             isOpen={openSection === 'hairType'}
             onToggle={() => setOpenSection(openSection === 'hairType' ? null : 'hairType')}
           >
@@ -182,7 +182,7 @@ const ProfileEditPage = () => {
                   selected={hairType === option.id}
                   onClick={() => setHairType(option.id)}
                   emoji={option.emoji}
-                  label={option.label}
+                  label={t(option.labelKey)}
                 />
               ))}
             </div>
@@ -190,7 +190,7 @@ const ProfileEditPage = () => {
 
           {/* Hair Concerns */}
           <Section
-            title="✨ Hair Concerns"
+            title={`✨ ${t('hairConcernsTitle')}`}
             isOpen={openSection === 'hairConcerns'}
             onToggle={() => setOpenSection(openSection === 'hairConcerns' ? null : 'hairConcerns')}
           >
@@ -201,7 +201,7 @@ const ProfileEditPage = () => {
                   selected={hairConcerns.includes(option.id)}
                   onClick={() => toggleHairConcern(option.id)}
                   emoji={option.emoji}
-                  label={option.label}
+                  label={t(option.labelKey)}
                 />
               ))}
             </div>
@@ -209,7 +209,7 @@ const ProfileEditPage = () => {
 
           {/* Goals */}
           <Section
-            title="🎯 Your Goals"
+            title={`🎯 ${t('goalsTitle')}`}
             isOpen={openSection === 'goals'}
             onToggle={() => setOpenSection(openSection === 'goals' ? null : 'goals')}
           >
@@ -220,7 +220,7 @@ const ProfileEditPage = () => {
                   selected={goals.includes(option.id)}
                   onClick={() => toggleGoal(option.id)}
                   emoji={option.emoji}
-                  label={option.label}
+                  label={t(option.labelKey)}
                 />
               ))}
             </div>
