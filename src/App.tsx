@@ -26,6 +26,7 @@ import LoginPage from "@/pages/LoginPage";
 import LanguageSettingsPage from "@/pages/LanguageSettingsPage";
 import NotFound from "@/pages/NotFound";
 
+// AppRoutes component - needs UserProvider wrapper
 const AppRoutes = () => {
   const { user } = useUser();
 
