@@ -31,8 +31,11 @@ import NotFound from "@/pages/NotFound";
  * Must be rendered inside AuthProvider and UserProvider
  */
 export function AppRoutes() {
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
-  const { user, isLoading: userLoading } = useUser();
+  const authContext = useAuth();
+  const userContext = useUser();
+  
+  const { isAuthenticated, isLoading: authLoading } = authContext;
+  const { user, isLoading: userLoading } = userContext;
 
   // Show loading while auth or user data is being determined
   if (authLoading || userLoading) {
