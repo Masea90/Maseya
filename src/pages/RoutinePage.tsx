@@ -4,24 +4,33 @@ import { useUser } from '@/contexts/UserContext';
 import { Check, Sun, Moon, Flame, Gift } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
+import { TranslationKey } from '@/lib/i18n';
 
 type TimeOfDay = 'morning' | 'night';
 
-const routineData = {
+interface RoutineStep {
+  id: number;
+  stepKey: TranslationKey;
+  productKey: TranslationKey;
+  emoji: string;
+  durationKey: TranslationKey;
+}
+
+const routineData: Record<TimeOfDay, RoutineStep[]> = {
   morning: [
-    { id: 1, step: 'Cleanser', product: 'Gentle Hydrating Cleanser', emoji: '🧴', duration: '1 min' },
-    { id: 2, step: 'Toner', product: 'Rose Water Toner', emoji: '🌹', duration: '30 sec' },
-    { id: 3, step: 'Serum', product: 'Vitamin C Serum', emoji: '✨', duration: '1 min' },
-    { id: 4, step: 'Moisturizer', product: 'Daily Hydrating Cream', emoji: '💧', duration: '1 min' },
-    { id: 5, step: 'Sunscreen', product: 'SPF 50 Mineral', emoji: '☀️', duration: '1 min' },
+    { id: 1, stepKey: 'stepCleanser', productKey: 'productGentleCleanser', emoji: '🧴', durationKey: 'duration1Min' },
+    { id: 2, stepKey: 'stepToner', productKey: 'productRoseWaterToner', emoji: '🌹', durationKey: 'duration30Sec' },
+    { id: 3, stepKey: 'stepSerum', productKey: 'productVitaminCSerum', emoji: '✨', durationKey: 'duration1Min' },
+    { id: 4, stepKey: 'stepMoisturizer', productKey: 'productDailyHydratingCream', emoji: '💧', durationKey: 'duration1Min' },
+    { id: 5, stepKey: 'stepSunscreen', productKey: 'productSpf50Mineral', emoji: '☀️', durationKey: 'duration1Min' },
   ],
   night: [
-    { id: 1, step: 'Oil Cleanser', product: 'Cleansing Balm', emoji: '🫒', duration: '2 min' },
-    { id: 2, step: 'Water Cleanser', product: 'Gentle Foam Cleanser', emoji: '🧴', duration: '1 min' },
-    { id: 3, step: 'Toner', product: 'Hydrating Essence', emoji: '💫', duration: '30 sec' },
-    { id: 4, step: 'Treatment', product: 'Retinol Serum', emoji: '🔬', duration: '1 min' },
-    { id: 5, step: 'Eye Cream', product: 'Peptide Eye Cream', emoji: '👁️', duration: '30 sec' },
-    { id: 6, step: 'Night Cream', product: 'Repair Night Mask', emoji: '🌙', duration: '1 min' },
+    { id: 1, stepKey: 'stepOilCleanser', productKey: 'productCleansingBalm', emoji: '🫒', durationKey: 'duration2Min' },
+    { id: 2, stepKey: 'stepWaterCleanser', productKey: 'productGentleFoamCleanser', emoji: '🧴', durationKey: 'duration1Min' },
+    { id: 3, stepKey: 'stepToner', productKey: 'productHydratingEssence', emoji: '💫', durationKey: 'duration30Sec' },
+    { id: 4, stepKey: 'stepTreatment', productKey: 'productRetinolSerum', emoji: '🔬', durationKey: 'duration1Min' },
+    { id: 5, stepKey: 'stepEyeCream', productKey: 'productPeptideEyeCream', emoji: '👁️', durationKey: 'duration30Sec' },
+    { id: 6, stepKey: 'stepNightCream', productKey: 'productRepairNightMask', emoji: '🌙', durationKey: 'duration1Min' },
   ],
 };
 
@@ -115,7 +124,7 @@ const RoutinePage = () => {
           </h2>
           
           <div className="space-y-2">
-            {currentRoutine.map((step, index) => (
+            {currentRoutine.map((step) => (
               <button
                 key={step.id}
                 onClick={() => toggleStep(step.id)}
@@ -149,15 +158,15 @@ const RoutinePage = () => {
                     'font-medium transition-all',
                     isCompleted(step.id) && 'line-through text-muted-foreground'
                   )}>
-                    {step.step}
+                    {t(step.stepKey)}
                   </p>
                   <p className="text-sm text-muted-foreground truncate">
-                    {step.product}
+                    {t(step.productKey)}
                   </p>
                 </div>
 
                 {/* Duration */}
-                <span className="text-xs text-muted-foreground">{step.duration}</span>
+                <span className="text-xs text-muted-foreground">{t(step.durationKey)}</span>
               </button>
             ))}
           </div>

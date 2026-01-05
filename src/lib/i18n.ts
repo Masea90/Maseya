@@ -220,8 +220,57 @@ export const translations = {
     earnPointsPerStep: 'Earn points for each step',
     perStepBonus: '+5 per step, +15 bonus for completing all!',
     
+    // Routine steps - Morning
+    stepCleanser: 'Cleanser',
+    stepToner: 'Toner',
+    stepSerum: 'Serum',
+    stepMoisturizer: 'Moisturizer',
+    stepSunscreen: 'Sunscreen',
+    productGentleCleanser: 'Gentle Hydrating Cleanser',
+    productRoseWaterToner: 'Rose Water Toner',
+    productVitaminCSerum: 'Vitamin C Serum',
+    productDailyHydratingCream: 'Daily Hydrating Cream',
+    productSpf50Mineral: 'SPF 50 Mineral',
+    
+    // Routine steps - Night
+    stepOilCleanser: 'Oil Cleanser',
+    stepWaterCleanser: 'Water Cleanser',
+    stepTreatment: 'Treatment',
+    stepEyeCream: 'Eye Cream',
+    stepNightCream: 'Night Cream',
+    productCleansingBalm: 'Cleansing Balm',
+    productGentleFoamCleanser: 'Gentle Foam Cleanser',
+    productHydratingEssence: 'Hydrating Essence',
+    productRetinolSerum: 'Retinol Serum',
+    productPeptideEyeCream: 'Peptide Eye Cream',
+    productRepairNightMask: 'Repair Night Mask',
+    
+    // Duration
+    duration1Min: '1 min',
+    duration2Min: '2 min',
+    duration30Sec: '30 sec',
+    
     // Community page
     verified: 'verified',
+    communityPostPlaceholder: 'Share your beauty journey...',
+    like: 'Like',
+    comment: 'Comment',
+    share: 'Share',
+    
+    // Community post content
+    communityPost1: 'Finally found a routine that works for my sensitive skin! The key was switching to fragrance-free everything. 🌿',
+    communityPost2: 'Rice water rinse results after 4 weeks! My hair has never been shinier ✨',
+    communityPost3: 'PSA: Vitamin C serum should be applied BEFORE moisturizer, not after! Game changer for absorption 💡',
+    communityPost4: 'Made the honey oatmeal mask from the app today - my skin feels so soft! Highly recommend for dry winter skin 🍯',
+    
+    // Community tags
+    communitySensitiveSkin: 'sensitive skin',
+    communityHairCare: 'hair care',
+    communityRiceWater: 'rice water',
+    communityTips: 'tips',
+    communityVitaminC: 'vitamin c',
+    communityDiy: 'diy',
+    communityMask: 'mask',
     
     // Remedies page
     naturalRemedies: 'Natural Remedies',
@@ -500,8 +549,57 @@ export const translations = {
     earnPointsPerStep: 'Gana puntos por cada paso',
     perStepBonus: '+5 por paso, +15 de bonificación por completar todo',
     
+    // Routine steps - Morning
+    stepCleanser: 'Limpiador',
+    stepToner: 'Tónico',
+    stepSerum: 'Sérum',
+    stepMoisturizer: 'Hidratante',
+    stepSunscreen: 'Protector solar',
+    productGentleCleanser: 'Limpiador Hidratante Suave',
+    productRoseWaterToner: 'Tónico de Agua de Rosas',
+    productVitaminCSerum: 'Sérum de Vitamina C',
+    productDailyHydratingCream: 'Crema Hidratante Diaria',
+    productSpf50Mineral: 'SPF 50 Mineral',
+    
+    // Routine steps - Night
+    stepOilCleanser: 'Limpiador en aceite',
+    stepWaterCleanser: 'Limpiador al agua',
+    stepTreatment: 'Tratamiento',
+    stepEyeCream: 'Crema de ojos',
+    stepNightCream: 'Crema de noche',
+    productCleansingBalm: 'Bálsamo Limpiador',
+    productGentleFoamCleanser: 'Limpiador de Espuma Suave',
+    productHydratingEssence: 'Esencia Hidratante',
+    productRetinolSerum: 'Sérum de Retinol',
+    productPeptideEyeCream: 'Crema de Ojos con Péptidos',
+    productRepairNightMask: 'Mascarilla Reparadora de Noche',
+    
+    // Duration
+    duration1Min: '1 min',
+    duration2Min: '2 min',
+    duration30Sec: '30 seg',
+    
     // Community page
-    verified: 'verificado',
+    verified: 'verificada',
+    communityPostPlaceholder: 'Comparte tu experiencia de belleza...',
+    like: 'Me gusta',
+    comment: 'Comentar',
+    share: 'Compartir',
+    
+    // Community post content
+    communityPost1: '¡Por fin encontré una rutina que funciona para mi piel sensible! La clave fue cambiar a productos sin fragancia. 🌿',
+    communityPost2: '¡Resultados del enjuague de agua de arroz después de 4 semanas! Mi cabello nunca había brillado tanto ✨',
+    communityPost3: 'Consejo: ¡El sérum de vitamina C debe aplicarse ANTES de la crema hidratante, no después! Cambia todo para la absorción 💡',
+    communityPost4: 'Hice la mascarilla de miel y avena de la app hoy - ¡mi piel está súper suave! Muy recomendada para la piel seca del invierno 🍯',
+    
+    // Community tags
+    communitySensitiveSkin: 'piel sensible',
+    communityHairCare: 'cuidado capilar',
+    communityRiceWater: 'agua de arroz',
+    communityTips: 'consejos',
+    communityVitaminC: 'vitamina c',
+    communityDiy: 'hazlo tú misma',
+    communityMask: 'mascarilla',
     
     // Remedies page
     naturalRemedies: 'Remedios Naturales',
@@ -780,8 +878,57 @@ export const translations = {
     earnPointsPerStep: 'Gagnez des points pour chaque étape',
     perStepBonus: '+5 par étape, +15 bonus pour tout compléter !',
     
+    // Routine steps - Morning
+    stepCleanser: 'Nettoyant',
+    stepToner: 'Tonique',
+    stepSerum: 'Sérum',
+    stepMoisturizer: 'Hydratant',
+    stepSunscreen: 'Crème solaire',
+    productGentleCleanser: 'Nettoyant Hydratant Doux',
+    productRoseWaterToner: 'Tonique à l\'Eau de Rose',
+    productVitaminCSerum: 'Sérum Vitamine C',
+    productDailyHydratingCream: 'Crème Hydratante Quotidienne',
+    productSpf50Mineral: 'SPF 50 Minéral',
+    
+    // Routine steps - Night
+    stepOilCleanser: 'Nettoyant huileux',
+    stepWaterCleanser: 'Nettoyant aqueux',
+    stepTreatment: 'Traitement',
+    stepEyeCream: 'Crème contour des yeux',
+    stepNightCream: 'Crème de nuit',
+    productCleansingBalm: 'Baume Nettoyant',
+    productGentleFoamCleanser: 'Nettoyant Mousse Douce',
+    productHydratingEssence: 'Essence Hydratante',
+    productRetinolSerum: 'Sérum au Rétinol',
+    productPeptideEyeCream: 'Crème Yeux aux Peptides',
+    productRepairNightMask: 'Masque Réparateur de Nuit',
+    
+    // Duration
+    duration1Min: '1 min',
+    duration2Min: '2 min',
+    duration30Sec: '30 sec',
+    
     // Community page
-    verified: 'vérifié',
+    verified: 'vérifiée',
+    communityPostPlaceholder: 'Partagez votre parcours beauté...',
+    like: 'J\'aime',
+    comment: 'Commenter',
+    share: 'Partager',
+    
+    // Community post content
+    communityPost1: 'J\'ai enfin trouvé une routine qui fonctionne pour ma peau sensible ! La clé était de passer à des produits sans parfum. 🌿',
+    communityPost2: 'Résultats du rinçage à l\'eau de riz après 4 semaines ! Mes cheveux n\'ont jamais été aussi brillants ✨',
+    communityPost3: 'Astuce : Le sérum vitamine C doit être appliqué AVANT la crème hydratante, pas après ! Ça change tout pour l\'absorption 💡',
+    communityPost4: 'J\'ai fait le masque miel-flocons d\'avoine de l\'appli aujourd\'hui - ma peau est tellement douce ! Je recommande pour les peaux sèches en hiver 🍯',
+    
+    // Community tags
+    communitySensitiveSkin: 'peau sensible',
+    communityHairCare: 'soins capillaires',
+    communityRiceWater: 'eau de riz',
+    communityTips: 'astuces',
+    communityVitaminC: 'vitamine c',
+    communityDiy: 'fait maison',
+    communityMask: 'masque',
     
     // Remedies page
     naturalRemedies: 'Remèdes Naturels',

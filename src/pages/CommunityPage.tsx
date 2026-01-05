@@ -1,60 +1,74 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useUser } from '@/contexts/UserContext';
-import { Heart, MessageCircle, Share2, MoreHorizontal, Plus, Users, Lock, Globe, Image } from 'lucide-react';
+import { Heart, MessageCircle, Share2, MoreHorizontal, Plus, Users, Lock, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { TranslationKey } from '@/lib/i18n';
 
-const mockPosts = [
-  {
-    id: 1,
-    user: { name: 'Emma Wilson', avatar: '👩🏻', verified: true },
-    content: 'Finally found a routine that works for my sensitive skin! The key was switching to fragrance-free everything. 🌿',
-    image: null,
-    likes: 124,
-    comments: 18,
-    time: '2h',
-    privacy: 'everyone',
-    tags: ['sensitive skin', 'routine'],
-  },
-  {
-    id: 2,
-    user: { name: 'Aisha M.', avatar: '👩🏾', verified: false },
-    content: 'Rice water rinse results after 4 weeks! My hair has never been shinier ✨',
-    image: '💇🏾‍♀️',
-    likes: 287,
-    comments: 45,
-    time: '5h',
-    privacy: 'women',
-    tags: ['hair care', 'rice water'],
-  },
-  {
-    id: 3,
-    user: { name: 'Sophie L.', avatar: '👩🏼', verified: true },
-    content: 'PSA: Vitamin C serum should be applied BEFORE moisturizer, not after! Game changer for absorption 💡',
-    image: null,
-    likes: 456,
-    comments: 62,
-    time: '8h',
-    privacy: 'everyone',
-    tags: ['tips', 'vitamin c'],
-  },
-  {
-    id: 4,
-    user: { name: 'Maria G.', avatar: '👩🏽', verified: false },
-    content: 'Made the honey oatmeal mask from the app today - my skin feels so soft! Highly recommend for dry winter skin 🍯',
-    image: '🍯',
-    likes: 89,
-    comments: 12,
-    time: '1d',
-    privacy: 'women',
-    tags: ['diy', 'mask'],
-  },
-];
+interface MockPost {
+  id: number;
+  user: { name: string; avatar: string; verified: boolean };
+  contentKey: TranslationKey;
+  image: string | null;
+  likes: number;
+  comments: number;
+  time: string;
+  privacy: 'everyone' | 'women';
+  tagKeys: TranslationKey[];
+}
 
 const CommunityPage = () => {
   const { t } = useUser();
   const [likedPosts, setLikedPosts] = useState<number[]>([]);
+
+  // Define posts with translation keys
+  const mockPosts: MockPost[] = useMemo(() => [
+    {
+      id: 1,
+      user: { name: 'Emma Wilson', avatar: '👩🏻', verified: true },
+      contentKey: 'communityPost1' as TranslationKey,
+      image: null,
+      likes: 124,
+      comments: 18,
+      time: '2h',
+      privacy: 'everyone',
+      tagKeys: ['communitySensitiveSkin' as TranslationKey, 'routine' as TranslationKey],
+    },
+    {
+      id: 2,
+      user: { name: 'Aisha M.', avatar: '👩🏾', verified: false },
+      contentKey: 'communityPost2' as TranslationKey,
+      image: '💇🏾‍♀️',
+      likes: 287,
+      comments: 45,
+      time: '5h',
+      privacy: 'women',
+      tagKeys: ['communityHairCare' as TranslationKey, 'communityRiceWater' as TranslationKey],
+    },
+    {
+      id: 3,
+      user: { name: 'Sophie L.', avatar: '👩🏼', verified: true },
+      contentKey: 'communityPost3' as TranslationKey,
+      image: null,
+      likes: 456,
+      comments: 62,
+      time: '8h',
+      privacy: 'everyone',
+      tagKeys: ['communityTips' as TranslationKey, 'communityVitaminC' as TranslationKey],
+    },
+    {
+      id: 4,
+      user: { name: 'Maria G.', avatar: '👩🏽', verified: false },
+      contentKey: 'communityPost4' as TranslationKey,
+      image: '🍯',
+      likes: 89,
+      comments: 12,
+      time: '1d',
+      privacy: 'women',
+      tagKeys: ['communityDiy' as TranslationKey, 'communityMask' as TranslationKey],
+    },
+  ], []);
 
   const toggleLike = (postId: number) => {
     setLikedPosts(prev =>
@@ -120,7 +134,7 @@ const CommunityPage = () => {
               </div>
 
               {/* Content */}
-              <p className="text-foreground text-sm leading-relaxed">{post.content}</p>
+              <p className="text-foreground text-sm leading-relaxed">{t(post.contentKey)}</p>
 
               {/* Image */}
               {post.image && (
@@ -131,12 +145,12 @@ const CommunityPage = () => {
 
               {/* Tags */}
               <div className="flex flex-wrap gap-1">
-                {post.tags.map(tag => (
+                {post.tagKeys.map(tagKey => (
                   <span
-                    key={tag}
+                    key={tagKey}
                     className="text-xs px-2 py-1 bg-secondary text-muted-foreground rounded-full"
                   >
-                    #{tag}
+                    #{t(tagKey)}
                   </span>
                 ))}
               </div>
