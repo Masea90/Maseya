@@ -57,7 +57,7 @@ export const WelcomeScreen = () => {
         {/* CTA */}
         <div className="space-y-3 pt-4">
           <Button
-            onClick={() => navigate('/onboarding/language')}
+            onClick={() => navigate('/onboarding/quiz')}
             className="w-full h-14 text-lg font-medium rounded-2xl bg-gradient-olive hover:opacity-90 transition-all shadow-warm-lg"
           >
             {t('getStarted')}
