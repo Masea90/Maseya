@@ -1,3 +1,4 @@
+// Auth context for local user authentication
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 const AUTH_STORAGE_KEY = 'maseya-auth';

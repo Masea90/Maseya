@@ -78,6 +78,7 @@ function AppRoutes() {
 
 /**
  * App - Root component with all providers
+ * AuthProvider must wrap UserProvider since UserProvider uses useAuth
  */
 function App() {
   const [queryClient] = useState(() => new QueryClient());
