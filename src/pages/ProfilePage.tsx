@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useUser } from '@/contexts/UserContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -15,11 +16,15 @@ import {
   LogOut,
   Camera,
   Globe,
-  Mail
+  Mail,
+  Loader2
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { ProfileCompletenessCard } from '@/components/profile/ProfileCompletenessCard';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const tierInfo = {
   bronze: { min: 0, max: 200, next: 'silver' },
@@ -34,10 +39,13 @@ const getTier = (points: number) => {
 };
 
 const ProfilePage = () => {
-  const { user, t } = useUser();
+  const { user, t, updateUser } = useUser();
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
   const { percentage, tier: profileTier, tierLabel, completedItems, missingItems } = useProfileCompleteness(user);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const pointsTier = getTier(user.points);
   const tierData = tierInfo[pointsTier];
@@ -46,6 +54,84 @@ const ProfilePage = () => {
     : ((user.points - tierData.min) / (tierData.max - tierData.min)) * 100;
 
   const currentLang = languages.find(l => l.code === user.language);
+
+  // Load existing photo on mount
+  useEffect(() => {
+    const loadPhoto = async () => {
+      if (!currentUser) return;
+      
+      const { data: files } = await supabase.storage
+        .from('avatars')
+        .list(currentUser.id);
+      
+      if (files && files.length > 0) {
+        const { data: { publicUrl } } = supabase.storage
+          .from('avatars')
+          .getPublicUrl(`${currentUser.id}/${files[0].name}`);
+        setPhotoUrl(`${publicUrl}?t=${Date.now()}`);
+      }
+    };
+    loadPhoto();
+  }, [currentUser]);
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentUser) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be less than 5MB');
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${currentUser.id}/avatar.${fileExt}`;
+
+      // Delete existing
+      const { data: existingFiles } = await supabase.storage
+        .from('avatars')
+        .list(currentUser.id);
+      
+      if (existingFiles && existingFiles.length > 0) {
+        await supabase.storage
+          .from('avatars')
+          .remove(existingFiles.map(f => `${currentUser.id}/${f.name}`));
+      }
+
+      // Upload new
+      const { error } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+
+      if (error) throw error;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      const newUrl = `${publicUrl}?t=${Date.now()}`;
+      setPhotoUrl(newUrl);
+      await updateUser({ hasProfilePhoto: true });
+      toast.success('Photo updated!');
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Failed to upload photo');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const getInitials = () => {
+    if (user.nickname) return user.nickname.slice(0, 2).toUpperCase();
+    if (user.name) return user.name.slice(0, 2).toUpperCase();
+    return '👤';
+  };
 
   const tierColors = {
     bronze: 'text-amber-600',
@@ -75,9 +161,32 @@ const ProfilePage = () => {
             </div>
           )}
           
-          <div className="w-20 h-20 bg-secondary rounded-full flex items-center justify-center text-4xl mx-auto mb-3">
-            👩🏻
-          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handlePhotoUpload}
+            className="hidden"
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
+            className="relative w-24 h-24 mx-auto mb-3 group"
+          >
+            <Avatar className="w-24 h-24 border-4 border-primary/20">
+              <AvatarImage src={photoUrl || undefined} alt="Profile" />
+              <AvatarFallback className="bg-secondary text-3xl">
+                {getInitials()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="absolute inset-0 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              {isUploading ? (
+                <Loader2 className="w-6 h-6 text-white animate-spin" />
+              ) : (
+                <Camera className="w-6 h-6 text-white" />
+              )}
+            </div>
+          </button>
           <h1 className="font-display text-xl font-semibold">
             {user.nickname || user.name}
           </h1>
