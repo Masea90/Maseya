@@ -12,6 +12,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { ProfileBadge } from '@/components/profile/ProfileBadge';
 
 interface Post {
   id: string;
@@ -23,6 +24,8 @@ interface Post {
   comments_count: number;
   created_at: string;
   nickname?: string;
+  profileCompleteness?: number;
+  profileTier?: 'starter' | 'rising' | 'trusted' | 'verified';
 }
 
 interface Comment {
@@ -33,6 +36,31 @@ interface Comment {
   created_at: string;
   nickname?: string;
 }
+
+// Calculate profile completeness for community display
+const calculateProfileTier = (profile: Record<string, unknown>): { percentage: number; tier: 'starter' | 'rising' | 'trusted' | 'verified' } => {
+  let completed = 0;
+  const total = 8;
+  
+  if ((profile.skin_concerns as string[])?.length > 0) completed++;
+  if (profile.hair_type) completed++;
+  if ((profile.goals as string[])?.length > 0) completed++;
+  if ((profile.sensitivities as string[])?.length > 0) completed++;
+  if (profile.age_range) completed++;
+  if (profile.country && profile.climate_type) completed++;
+  if (profile.nickname) completed++;
+  if ((profile.hair_concerns as string[])?.length > 0) completed++;
+  
+  const percentage = Math.round((completed / total) * 100);
+  
+  let tier: 'starter' | 'rising' | 'trusted' | 'verified';
+  if (percentage >= 90) tier = 'verified';
+  else if (percentage >= 70) tier = 'trusted';
+  else if (percentage >= 40) tier = 'rising';
+  else tier = 'starter';
+  
+  return { percentage, tier };
+};
 
 const CommunityPage = () => {
   const { t, user } = useUser();
@@ -80,25 +108,35 @@ const CommunityPage = () => {
       // Get unique user IDs
       const userIds = [...new Set(postsData.map(p => p.user_id))];
       
-      // Fetch profiles for those users
+      // Fetch profiles for those users (include completeness fields)
       const { data: profilesData } = await supabase
         .from('profiles')
-        .select('user_id, nickname')
+        .select('user_id, nickname, skin_concerns, hair_type, hair_concerns, goals, sensitivities, age_range, country, climate_type')
         .in('user_id', userIds);
 
-      // Create a map of user_id to nickname
-      const nicknameMap = new Map<string, string>();
+      // Create maps for nickname and profile completeness
+      const profileMap = new Map<string, { nickname?: string; percentage: number; tier: 'starter' | 'rising' | 'trusted' | 'verified' }>();
       profilesData?.forEach(p => {
-        if (p.nickname) nicknameMap.set(p.user_id, p.nickname);
+        const { percentage, tier } = calculateProfileTier(p as unknown as Record<string, unknown>);
+        profileMap.set(p.user_id, {
+          nickname: p.nickname || undefined,
+          percentage,
+          tier,
+        });
       });
 
-      // Merge posts with nicknames
-      const postsWithNicknames: Post[] = postsData.map(post => ({
-        ...post,
-        nickname: nicknameMap.get(post.user_id) || undefined,
-      }));
+      // Merge posts with profile data
+      const postsWithProfiles: Post[] = postsData.map(post => {
+        const profile = profileMap.get(post.user_id);
+        return {
+          ...post,
+          nickname: profile?.nickname,
+          profileCompleteness: profile?.percentage || 0,
+          profileTier: profile?.tier || 'starter',
+        };
+      });
 
-      setPosts(postsWithNicknames);
+      setPosts(postsWithProfiles);
     } catch (error) {
       console.error('Error loading posts:', error);
     } finally {
@@ -425,8 +463,17 @@ const CommunityPage = () => {
                       👤
                     </div>
                     <div>
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-2">
                         <span className="font-medium text-foreground">{getUserDisplayName(post)}</span>
+                        {post.profileTier && post.profileCompleteness !== undefined && post.profileCompleteness > 0 && (
+                          <ProfileBadge
+                            percentage={post.profileCompleteness}
+                            tier={post.profileTier}
+                            tierLabel={post.profileTier.charAt(0).toUpperCase() + post.profileTier.slice(1)}
+                            size="sm"
+                            showPercentage={true}
+                          />
+                        )}
                       </div>
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         <span>{getTimeAgo(post.created_at)}</span>

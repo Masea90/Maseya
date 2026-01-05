@@ -149,51 +149,81 @@ export type Database = {
       }
       profiles: {
         Row: {
+          age_range: string | null
+          climate_type: string | null
+          consent_analytics: boolean | null
+          consent_date: string | null
+          consent_personalization: boolean | null
+          country: string | null
           created_at: string | null
+          email_confirmed: boolean | null
+          first_routine_completed: boolean | null
           goals: string[] | null
           guide_completed: boolean | null
           hair_concerns: string[] | null
           hair_type: string | null
+          has_profile_photo: boolean | null
           id: string
           is_premium: boolean | null
           language: string | null
           nickname: string | null
           onboarding_complete: boolean | null
           points: number | null
+          sensitivities: string[] | null
           skin_concerns: string[] | null
           streak: number | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          age_range?: string | null
+          climate_type?: string | null
+          consent_analytics?: boolean | null
+          consent_date?: string | null
+          consent_personalization?: boolean | null
+          country?: string | null
           created_at?: string | null
+          email_confirmed?: boolean | null
+          first_routine_completed?: boolean | null
           goals?: string[] | null
           guide_completed?: boolean | null
           hair_concerns?: string[] | null
           hair_type?: string | null
+          has_profile_photo?: boolean | null
           id?: string
           is_premium?: boolean | null
           language?: string | null
           nickname?: string | null
           onboarding_complete?: boolean | null
           points?: number | null
+          sensitivities?: string[] | null
           skin_concerns?: string[] | null
           streak?: number | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          age_range?: string | null
+          climate_type?: string | null
+          consent_analytics?: boolean | null
+          consent_date?: string | null
+          consent_personalization?: boolean | null
+          country?: string | null
           created_at?: string | null
+          email_confirmed?: boolean | null
+          first_routine_completed?: boolean | null
           goals?: string[] | null
           guide_completed?: boolean | null
           hair_concerns?: string[] | null
           hair_type?: string | null
+          has_profile_photo?: boolean | null
           id?: string
           is_premium?: boolean | null
           language?: string | null
           nickname?: string | null
           onboarding_complete?: boolean | null
           points?: number | null
+          sensitivities?: string[] | null
           skin_concerns?: string[] | null
           streak?: number | null
           updated_at?: string | null
