@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { useUser } from '@/contexts/UserContext';
 import { Clock, Leaf, Sparkles, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
-
-const categories = ['All', 'Skin', 'Hair', 'Nutrition'];
 
 const remedies = [
   {
@@ -90,38 +89,46 @@ const remedies = [
 ];
 
 const RemediesPage = () => {
+  const { t } = useUser();
   const [activeCategory, setActiveCategory] = useState('All');
+
+  const categories = [
+    { key: 'All', label: t('all') },
+    { key: 'Skin', label: t('skinCategory') },
+    { key: 'Hair', label: t('hairCategory') },
+    { key: 'Nutrition', label: t('nutritionCategory') },
+  ];
 
   const filteredRemedies = remedies.filter(
     remedy => activeCategory === 'All' || remedy.category === activeCategory
   );
 
   return (
-    <AppLayout title="Natural Remedies" showSearch>
+    <AppLayout title={t('naturalRemedies')} showSearch>
       <div className="px-4 py-6 space-y-4 animate-fade-in">
         {/* Categories */}
         <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
           {categories.map(cat => (
             <button
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
+              key={cat.key}
+              onClick={() => setActiveCategory(cat.key)}
               className={cn(
                 'px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all',
-                activeCategory === cat
+                activeCategory === cat.key
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
               )}
             >
-              {cat}
+              {cat.label}
             </button>
           ))}
         </div>
 
         {/* Info Banner */}
-        <div className="bg-zwina-sage/20 border border-zwina-sage/40 rounded-2xl p-4 flex items-center gap-3">
+        <div className="bg-maseya-sage/20 border border-maseya-sage/40 rounded-2xl p-4 flex items-center gap-3">
           <Leaf className="w-6 h-6 text-primary flex-shrink-0" />
           <p className="text-sm text-foreground">
-            All-natural remedies using ingredients you can find at home
+            {t('allNaturalRemedies')}
           </p>
         </div>
 
@@ -146,7 +153,7 @@ const RemediesPage = () => {
                     <Clock className="w-3 h-3" />
                     <span>{remedy.time}</span>
                     <span>•</span>
-                    <span>{remedy.category}</span>
+                    <span>{categories.find(c => c.key === remedy.category)?.label || remedy.category}</span>
                   </div>
                   <div className="flex flex-wrap gap-1">
                     {remedy.benefits.map(benefit => (

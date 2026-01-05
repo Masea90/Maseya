@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { useUser } from '@/contexts/UserContext';
 import { Heart, MessageCircle, Share2, MoreHorizontal, Plus, Users, Lock, Globe, Image } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -12,7 +13,7 @@ const mockPosts = [
     image: null,
     likes: 124,
     comments: 18,
-    time: '2h ago',
+    time: '2h',
     privacy: 'everyone',
     tags: ['sensitive skin', 'routine'],
   },
@@ -23,7 +24,7 @@ const mockPosts = [
     image: '💇🏾‍♀️',
     likes: 287,
     comments: 45,
-    time: '5h ago',
+    time: '5h',
     privacy: 'women',
     tags: ['hair care', 'rice water'],
   },
@@ -34,7 +35,7 @@ const mockPosts = [
     image: null,
     likes: 456,
     comments: 62,
-    time: '8h ago',
+    time: '8h',
     privacy: 'everyone',
     tags: ['tips', 'vitamin c'],
   },
@@ -45,13 +46,14 @@ const mockPosts = [
     image: '🍯',
     likes: 89,
     comments: 12,
-    time: '1d ago',
+    time: '1d',
     privacy: 'women',
     tags: ['diy', 'mask'],
   },
 ];
 
 const CommunityPage = () => {
+  const { t } = useUser();
   const [likedPosts, setLikedPosts] = useState<number[]>([]);
 
   const toggleLike = (postId: number) => {
@@ -61,17 +63,17 @@ const CommunityPage = () => {
   };
 
   return (
-    <AppLayout title="Community">
+    <AppLayout title={t('communityNav')}>
       <div className="px-4 py-6 space-y-4 animate-fade-in">
         {/* Header Actions */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Users className="w-5 h-5 text-primary" />
-            <span className="text-sm text-muted-foreground">12.5k members</span>
+            <span className="text-sm text-muted-foreground">12.5k {t('members')}</span>
           </div>
           <Button size="sm" className="rounded-full bg-gradient-olive">
             <Plus className="w-4 h-4 mr-1" />
-            Post
+            {t('post')}
           </Button>
         </div>
 
@@ -102,11 +104,11 @@ const CommunityPage = () => {
                       <span>•</span>
                       {post.privacy === 'women' ? (
                         <span className="flex items-center gap-0.5">
-                          <Lock className="w-3 h-3" /> Women only
+                          <Lock className="w-3 h-3" /> {t('womenOnly')}
                         </span>
                       ) : (
                         <span className="flex items-center gap-0.5">
-                          <Globe className="w-3 h-3" /> Everyone
+                          <Globe className="w-3 h-3" /> {t('everyone')}
                         </span>
                       )}
                     </div>
@@ -148,7 +150,7 @@ const CommunityPage = () => {
                   <Heart
                     className={cn(
                       'w-5 h-5 transition-colors',
-                      likedPosts.includes(post.id) && 'fill-zwina-rose text-zwina-rose'
+                      likedPosts.includes(post.id) && 'fill-maseya-rose text-maseya-rose'
                     )}
                   />
                   <span>{post.likes + (likedPosts.includes(post.id) ? 1 : 0)}</span>

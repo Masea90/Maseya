@@ -1,5 +1,32 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Language, getTranslation, TranslationKey } from '@/lib/i18n';
+
+const LANGUAGE_STORAGE_KEY = 'maseya-language';
+const USER_STORAGE_KEY = 'maseya-user';
+
+const getStoredLanguage = (): Language => {
+  try {
+    const stored = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+    if (stored && ['en', 'es', 'fr'].includes(stored)) {
+      return stored as Language;
+    }
+  } catch (e) {
+    console.warn('Failed to read language from localStorage');
+  }
+  return 'en';
+};
+
+const getStoredUser = (): Partial<UserProfile> => {
+  try {
+    const stored = localStorage.getItem(USER_STORAGE_KEY);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (e) {
+    console.warn('Failed to read user from localStorage');
+  }
+  return {};
+};
 
 export interface UserProfile {
   name: string;
@@ -27,7 +54,7 @@ interface UserContextType {
   setLanguage: (lang: Language) => void;
 }
 
-const defaultUser: UserProfile = {
+const createDefaultUser = (): UserProfile => ({
   name: 'Asmae',
   skinConcerns: [],
   hairType: '',
@@ -42,13 +69,27 @@ const defaultUser: UserProfile = {
     nutrition: 62,
   },
   onboardingComplete: false,
-  language: 'en',
-};
+  language: getStoredLanguage(),
+});
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export const UserProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<UserProfile>(defaultUser);
+  const [user, setUser] = useState<UserProfile>(() => {
+    const defaultUser = createDefaultUser();
+    const storedUser = getStoredUser();
+    return { ...defaultUser, ...storedUser };
+  });
+
+  // Persist user data to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
+      localStorage.setItem(LANGUAGE_STORAGE_KEY, user.language);
+    } catch (e) {
+      console.warn('Failed to save user to localStorage');
+    }
+  }, [user]);
 
   const updateUser = (updates: Partial<UserProfile>) => {
     setUser(prev => ({ ...prev, ...updates }));

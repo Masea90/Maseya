@@ -26,7 +26,7 @@ const routineData = {
 };
 
 const RoutinePage = () => {
-  const { user, updateUser } = useUser();
+  const { user, updateUser, t } = useUser();
   const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>('morning');
   const [completed, setCompleted] = useState<Record<TimeOfDay, number[]>>({
     morning: [],
@@ -58,7 +58,7 @@ const RoutinePage = () => {
   const allCompleted = completedCount === totalSteps;
 
   return (
-    <AppLayout title="Routine">
+    <AppLayout title={t('routineNav')}>
       <div className="px-4 py-6 space-y-6 animate-fade-in">
         {/* Toggle */}
         <div className="bg-card rounded-2xl p-1.5 flex shadow-warm">
@@ -67,12 +67,12 @@ const RoutinePage = () => {
             className={cn(
               'flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-medium transition-all',
               timeOfDay === 'morning'
-                ? 'bg-zwina-gold/20 text-zwina-gold'
+                ? 'bg-maseya-gold/20 text-maseya-gold'
                 : 'text-muted-foreground'
             )}
           >
             <Sun className="w-5 h-5" />
-            Morning
+            {t('morning')}
           </button>
           <button
             onClick={() => setTimeOfDay('night')}
@@ -84,7 +84,7 @@ const RoutinePage = () => {
             )}
           >
             <Moon className="w-5 h-5" />
-            Night
+            {t('night')}
           </button>
         </div>
 
@@ -92,18 +92,18 @@ const RoutinePage = () => {
         <div className="bg-card rounded-2xl p-4 shadow-warm space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Flame className="w-5 h-5 text-zwina-terracotta" />
-              <span className="font-medium">{user.streak}-day streak</span>
+              <Flame className="w-5 h-5 text-maseya-terracotta" />
+              <span className="font-medium">{user.streak} {t('dayStreak')}</span>
             </div>
             <span className="text-sm text-muted-foreground">
-              {completedCount}/{totalSteps} steps
+              {completedCount}/{totalSteps} {t('steps')}
             </span>
           </div>
           <Progress value={progress} className="h-3" />
           {allCompleted && (
             <div className="flex items-center gap-2 text-sm text-glow-hair bg-glow-hair/10 rounded-xl p-3">
               <Gift className="w-4 h-4" />
-              <span>+15 points earned! Great job completing your routine ✨</span>
+              <span>+15 {t('pointsEarned')} ✨</span>
             </div>
           )}
         </div>
@@ -111,7 +111,7 @@ const RoutinePage = () => {
         {/* Steps */}
         <div className="space-y-3">
           <h2 className="font-display text-lg font-semibold">
-            {timeOfDay === 'morning' ? '☀️' : '🌙'} {timeOfDay.charAt(0).toUpperCase() + timeOfDay.slice(1)} Routine
+            {timeOfDay === 'morning' ? '☀️' : '🌙'} {timeOfDay === 'morning' ? t('morningRoutine') : t('nightRoutine')}
           </h2>
           
           <div className="space-y-2">
@@ -164,12 +164,12 @@ const RoutinePage = () => {
         </div>
 
         {/* Points Info */}
-        <div className="bg-zwina-gold/10 border border-zwina-gold/30 rounded-2xl p-4 flex items-center gap-3">
+        <div className="bg-maseya-gold/10 border border-maseya-gold/30 rounded-2xl p-4 flex items-center gap-3">
           <span className="text-2xl">⭐</span>
           <div>
-            <p className="font-medium text-foreground">Earn points for each step</p>
+            <p className="font-medium text-foreground">{t('earnPointsPerStep')}</p>
             <p className="text-sm text-muted-foreground">
-              +5 per step, +15 bonus for completing all!
+              {t('perStepBonus')}
             </p>
           </div>
         </div>

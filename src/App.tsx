@@ -22,6 +22,7 @@ import ScanPage from "@/pages/ScanPage";
 import SearchPage from "@/pages/SearchPage";
 import RewardsPage from "@/pages/RewardsPage";
 import LoginPage from "@/pages/LoginPage";
+import LanguageSettingsPage from "@/pages/LanguageSettingsPage";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -51,6 +52,7 @@ const AppRoutes = () => {
         <Route path="/search" element={<SearchPage />} />
         <Route path="/rewards" element={<RewardsPage />} />
         <Route path="/premium" element={<PremiumScreen />} />
+        <Route path="/settings/language" element={<LanguageSettingsPage />} />
         
         {/* Catch-all */}
         <Route path="*" element={<NotFound />} />
