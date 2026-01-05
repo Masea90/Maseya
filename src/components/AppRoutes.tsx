@@ -23,6 +23,7 @@ import LoginPage from "@/pages/LoginPage";
 import LanguageSettingsPage from "@/pages/LanguageSettingsPage";
 import ProfileEditPage from "@/pages/ProfileEditPage";
 import NotificationSettingsPage from "@/pages/NotificationSettingsPage";
+import InstallPage from "@/pages/InstallPage";
 import NotFound from "@/pages/NotFound";
 
 /**
@@ -83,6 +84,7 @@ export function AppRoutes() {
         <Route path="/premium" element={<PremiumScreen />} />
         <Route path="/settings/language" element={<LanguageSettingsPage />} />
         <Route path="/settings/notifications" element={<NotificationSettingsPage />} />
+        <Route path="/install" element={<InstallPage />} />
         
         {/* Catch-all */}
         <Route path="*" element={<NotFound />} />
