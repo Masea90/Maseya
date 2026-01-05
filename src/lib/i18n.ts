@@ -359,6 +359,48 @@ export const translations = {
     renTonicDesc: 'Daily AHA tonic with lactic acid and willow bark. Gently exfoliates for brighter, more radiant skin.',
     moroccanoilDesc: 'The original argan oil-infused hair treatment. Conditions, detangles, and speeds up drying time.',
     realProductNote: 'This is a real product available on the market.',
+    
+    // Profile edit - additional
+    profilePhoto: 'Profile Photo',
+    addPhotoHint: 'Add a photo to personalize your profile',
+    ageRange: 'Age Range',
+    ageRangeHint: 'Helps us recommend age-appropriate products',
+    sensitivitiesExclusions: 'Sensitivities & Exclusions',
+    sensitivitiesHint: 'We\'ll filter out products with these ingredients',
+    locationClimate: 'Location & Climate',
+    climateHint: 'Climate affects skin and hair care needs',
+    detectMyLocation: 'Detect My Location',
+    detecting: 'Detecting...',
+    orSelectManually: 'or select manually',
+    countryLabel: 'Country',
+    countryPlaceholder: 'e.g. France, USA, Morocco',
+    climateTypeLabel: 'Climate Type',
+    locationDetected: 'Location detected!',
+    locationFailed: 'Could not detect location. Please select manually.',
+    profileComplete: 'Complete',
+    completeProfileForRecommendations: 'Complete your profile for better personalized recommendations',
+    maxGoalsAllowed: 'Maximum 3 goals allowed',
+    
+    // Sensitivities
+    fragranceFree: 'Fragrance-free',
+    sulfateFree: 'Sulfate-free',
+    parabenFree: 'Paraben-free',
+    vegan: 'Vegan',
+    crueltyFree: 'Cruelty-free',
+    alcoholFree: 'Alcohol-free',
+    siliconeFree: 'Silicone-free',
+    
+    // Climate options
+    climateTropical: 'Tropical (hot & humid)',
+    climateDry: 'Dry / Arid',
+    climateTemperate: 'Temperate (mild)',
+    climateContinental: 'Continental (hot summers, cold winters)',
+    climateMediterranean: 'Mediterranean',
+    
+    // Community translation
+    seeOriginal: 'See original',
+    seeTranslation: 'See translation',
+    translatedFrom: 'Translated from',
   },
   es: {
     // Brand
@@ -712,6 +754,48 @@ export const translations = {
     renTonicDesc: 'Tónico AHA diario con ácido láctico y corteza de sauce. Exfolia suavemente para una piel más luminosa.',
     moroccanoilDesc: 'El tratamiento capilar original con aceite de argán. Acondiciona, desenreda y acelera el secado.',
     realProductNote: 'Este es un producto real disponible en el mercado.',
+    
+    // Profile edit - additional
+    profilePhoto: 'Foto de Perfil',
+    addPhotoHint: 'Añade una foto para personalizar tu perfil',
+    ageRange: 'Rango de Edad',
+    ageRangeHint: 'Nos ayuda a recomendar productos adecuados para tu edad',
+    sensitivitiesExclusions: 'Sensibilidades y Exclusiones',
+    sensitivitiesHint: 'Filtraremos productos con estos ingredientes',
+    locationClimate: 'Ubicación y Clima',
+    climateHint: 'El clima afecta las necesidades de cuidado de piel y cabello',
+    detectMyLocation: 'Detectar mi ubicación',
+    detecting: 'Detectando...',
+    orSelectManually: 'o selecciona manualmente',
+    countryLabel: 'País',
+    countryPlaceholder: 'ej. España, México, Argentina',
+    climateTypeLabel: 'Tipo de Clima',
+    locationDetected: '¡Ubicación detectada!',
+    locationFailed: 'No se pudo detectar la ubicación. Por favor, selecciona manualmente.',
+    profileComplete: 'Completo',
+    completeProfileForRecommendations: 'Completa tu perfil para mejores recomendaciones personalizadas',
+    maxGoalsAllowed: 'Máximo 3 objetivos permitidos',
+    
+    // Sensitivities
+    fragranceFree: 'Sin fragancia',
+    sulfateFree: 'Sin sulfatos',
+    parabenFree: 'Sin parabenos',
+    vegan: 'Vegano',
+    crueltyFree: 'Sin crueldad',
+    alcoholFree: 'Sin alcohol',
+    siliconeFree: 'Sin siliconas',
+    
+    // Climate options
+    climateTropical: 'Tropical (caliente y húmedo)',
+    climateDry: 'Seco / Árido',
+    climateTemperate: 'Templado (suave)',
+    climateContinental: 'Continental (veranos calientes, inviernos fríos)',
+    climateMediterranean: 'Mediterráneo',
+    
+    // Community translation
+    seeOriginal: 'Ver original',
+    seeTranslation: 'Ver traducción',
+    translatedFrom: 'Traducido de',
   },
   fr: {
     // Brand
@@ -1065,6 +1149,48 @@ export const translations = {
     renTonicDesc: 'Tonique AHA quotidien à l\'acide lactique et écorce de saule. Exfolie en douceur pour une peau plus lumineuse.',
     moroccanoilDesc: 'Le soin capillaire original à l\'huile d\'argan. Conditionne, démêle et accélère le séchage.',
     realProductNote: 'Ceci est un produit réel disponible sur le marché.',
+    
+    // Profile edit - additional
+    profilePhoto: 'Photo de profil',
+    addPhotoHint: 'Ajoutez une photo pour personnaliser votre profil',
+    ageRange: 'Tranche d\'âge',
+    ageRangeHint: 'Nous aide à recommander des produits adaptés à votre âge',
+    sensitivitiesExclusions: 'Sensibilités et exclusions',
+    sensitivitiesHint: 'Nous filtrerons les produits contenant ces ingrédients',
+    locationClimate: 'Localisation et climat',
+    climateHint: 'Le climat affecte les besoins de soins peau et cheveux',
+    detectMyLocation: 'Détecter ma position',
+    detecting: 'Détection...',
+    orSelectManually: 'ou sélectionnez manuellement',
+    countryLabel: 'Pays',
+    countryPlaceholder: 'ex. France, Maroc, Canada',
+    climateTypeLabel: 'Type de climat',
+    locationDetected: 'Position détectée !',
+    locationFailed: 'Impossible de détecter la position. Veuillez sélectionner manuellement.',
+    profileComplete: 'Complété',
+    completeProfileForRecommendations: 'Complétez votre profil pour de meilleures recommandations personnalisées',
+    maxGoalsAllowed: 'Maximum 3 objectifs autorisés',
+    
+    // Sensitivities
+    fragranceFree: 'Sans parfum',
+    sulfateFree: 'Sans sulfates',
+    parabenFree: 'Sans parabènes',
+    vegan: 'Végan',
+    crueltyFree: 'Sans cruauté',
+    alcoholFree: 'Sans alcool',
+    siliconeFree: 'Sans silicones',
+    
+    // Climate options
+    climateTropical: 'Tropical (chaud et humide)',
+    climateDry: 'Sec / Aride',
+    climateTemperate: 'Tempéré (doux)',
+    climateContinental: 'Continental (étés chauds, hivers froids)',
+    climateMediterranean: 'Méditerranéen',
+    
+    // Community translation
+    seeOriginal: 'Voir l\'original',
+    seeTranslation: 'Voir la traduction',
+    translatedFrom: 'Traduit de',
   },
 };
 

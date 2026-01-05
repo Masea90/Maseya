@@ -3,7 +3,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { useUser } from '@/contexts/UserContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
-import { Heart, MessageCircle, Share2, MoreHorizontal, Plus, Users, Lock, Globe, Send, X, Loader2, Pencil, Trash2 } from 'lucide-react';
+import { Heart, MessageCircle, Share2, MoreHorizontal, Plus, Users, Lock, Globe, Send, X, Loader2, Pencil, Trash2, Languages } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -81,7 +81,8 @@ const CommunityPage = () => {
   const [editContent, setEditContent] = useState('');
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
-
+  const [showOriginal, setShowOriginal] = useState<Set<string>>(new Set());
+  const [translatedPosts, setTranslatedPosts] = useState<Map<string, string>>(new Map());
   // Load posts
   useEffect(() => {
     loadPosts();
@@ -404,6 +405,42 @@ const CommunityPage = () => {
     setEditContent(post.content);
   };
 
+  // Simple language detection - checks if text contains non-ASCII characters typical of other languages
+  const detectNonUserLanguage = (text: string): boolean => {
+    const userLang = user.language;
+    // Check for French-specific characters if user is not French
+    if (userLang !== 'fr' && /[àâäéèêëïîôùûüÿœæç]/i.test(text)) return true;
+    // Check for Spanish-specific characters if user is not Spanish
+    if (userLang !== 'es' && /[áéíóúüñ¿¡]/i.test(text)) return true;
+    return false;
+  };
+
+  // Mock translation function - in production, use an AI translation API
+  const getTranslatedContent = async (postId: string, content: string): Promise<string> => {
+    // Check if already translated
+    if (translatedPosts.has(postId)) {
+      return translatedPosts.get(postId)!;
+    }
+    
+    // For demo purposes, just add a note - in production use real translation
+    // This would call your AI gateway or translation service
+    const translated = `[${t('translatedFrom')} ${detectNonUserLanguage(content) ? 'autre langue' : 'English'}]\n\n${content}`;
+    setTranslatedPosts(prev => new Map(prev).set(postId, translated));
+    return translated;
+  };
+
+  const toggleTranslation = (postId: string) => {
+    setShowOriginal(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(postId)) {
+        newSet.delete(postId);
+      } else {
+        newSet.add(postId);
+      }
+      return newSet;
+    });
+  };
+
   const getTimeAgo = (date: string) => {
     const now = new Date();
     const posted = new Date(date);
@@ -521,7 +558,25 @@ const CommunityPage = () => {
                 </div>
 
                 {/* Content */}
-                <p className="text-foreground text-sm leading-relaxed whitespace-pre-wrap">{post.content}</p>
+                <div className="space-y-2">
+                  <p className="text-foreground text-sm leading-relaxed whitespace-pre-wrap">
+                    {showOriginal.has(post.id) ? post.content : (translatedPosts.get(post.id) || post.content)}
+                  </p>
+                  
+                  {/* Translation toggle - show for all posts to allow translation */}
+                  <button
+                    onClick={() => {
+                      if (!translatedPosts.has(post.id) && !showOriginal.has(post.id)) {
+                        getTranslatedContent(post.id, post.content);
+                      }
+                      toggleTranslation(post.id);
+                    }}
+                    className="flex items-center gap-1 text-xs text-primary hover:underline"
+                  >
+                    <Languages className="w-3 h-3" />
+                    {showOriginal.has(post.id) ? t('seeTranslation') : t('seeOriginal')}
+                  </button>
+                </div>
 
                 {/* Tags */}
                 {post.tags && post.tags.length > 0 && (

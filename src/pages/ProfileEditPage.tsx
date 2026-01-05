@@ -49,29 +49,29 @@ const goalOptions = [
 ] as const;
 
 const ageRangeOptions = [
-  { id: '18-24', label: '18-24', emoji: '🌱' },
-  { id: '25-34', label: '25-34', emoji: '🌿' },
-  { id: '35-44', label: '35-44', emoji: '🌳' },
-  { id: '45-54', label: '45-54', emoji: '🍂' },
-  { id: '55+', label: '55+', emoji: '🌺' },
+  { id: '18-24', labelKey: 'age1824', emoji: '🌱' },
+  { id: '25-34', labelKey: 'age2534', emoji: '🌿' },
+  { id: '35-44', labelKey: 'age3544', emoji: '🌳' },
+  { id: '45-54', labelKey: 'age4554', emoji: '🍂' },
+  { id: '55+', labelKey: 'age55plus', emoji: '🌺' },
 ] as const;
 
 const sensitivityOptions = [
-  { id: 'fragrance-free', label: 'Fragrance-free', emoji: '🚫' },
-  { id: 'sulfate-free', label: 'Sulfate-free', emoji: '💧' },
-  { id: 'paraben-free', label: 'Paraben-free', emoji: '🧪' },
-  { id: 'vegan', label: 'Vegan', emoji: '🌱' },
-  { id: 'cruelty-free', label: 'Cruelty-free', emoji: '🐰' },
-  { id: 'alcohol-free', label: 'Alcohol-free', emoji: '🍷' },
-  { id: 'silicone-free', label: 'Silicone-free', emoji: '✨' },
+  { id: 'fragrance-free', labelKey: 'fragranceFree', emoji: '🚫' },
+  { id: 'sulfate-free', labelKey: 'sulfateFree', emoji: '💧' },
+  { id: 'paraben-free', labelKey: 'parabenFree', emoji: '🧪' },
+  { id: 'vegan', labelKey: 'vegan', emoji: '🌱' },
+  { id: 'cruelty-free', labelKey: 'crueltyFree', emoji: '🐰' },
+  { id: 'alcohol-free', labelKey: 'alcoholFree', emoji: '🍷' },
+  { id: 'silicone-free', labelKey: 'siliconeFree', emoji: '✨' },
 ] as const;
 
 const climateOptions = [
-  { id: 'tropical', label: 'Tropical (hot & humid)', emoji: '🌴' },
-  { id: 'dry', label: 'Dry / Arid', emoji: '🏜️' },
-  { id: 'temperate', label: 'Temperate (mild)', emoji: '🌤️' },
-  { id: 'continental', label: 'Continental (hot summers, cold winters)', emoji: '❄️' },
-  { id: 'mediterranean', label: 'Mediterranean', emoji: '🌊' },
+  { id: 'tropical', labelKey: 'climateTropical', emoji: '🌴' },
+  { id: 'dry', labelKey: 'climateDry', emoji: '🏜️' },
+  { id: 'temperate', labelKey: 'climateTemperate', emoji: '🌤️' },
+  { id: 'continental', labelKey: 'climateContinental', emoji: '❄️' },
+  { id: 'mediterranean', labelKey: 'climateMediterranean', emoji: '🌊' },
 ] as const;
 
 interface SectionProps {
@@ -184,9 +184,9 @@ const ProfileEditPage = () => {
     if (result) {
       if (result.country) setCountry(result.country);
       if (result.climateType) setClimateType(result.climateType);
-      toast.success('Location detected!');
+      toast.success(t('locationDetected'));
     } else {
-      toast.error('Could not detect location. Please select manually.');
+      toast.error(t('locationFailed'));
     }
   };
 
@@ -214,7 +214,7 @@ const ProfileEditPage = () => {
       }
       // Max 3 goals
       if (prev.length >= 3) {
-        toast.info('Maximum 3 goals allowed');
+        toast.info(t('maxGoalsAllowed'));
         return prev;
       }
       return [...prev, id];
@@ -283,12 +283,12 @@ const ProfileEditPage = () => {
                 size="md"
                 showPercentage={false}
               />
-              <span className="text-sm font-medium">{percentage}% Complete</span>
+              <span className="text-sm font-medium">{percentage}% {t('profileComplete')}</span>
             </div>
           </div>
           <Progress value={percentage} className="h-2" />
           <p className="text-xs text-muted-foreground text-center">
-            Complete your profile for better personalized recommendations
+            {t('completeProfileForRecommendations')}
           </p>
         </div>
       </div>
@@ -297,10 +297,10 @@ const ProfileEditPage = () => {
         <div className="px-4 py-6 space-y-4 animate-fade-in">
           {/* Profile Photo */}
           <Section
-            title="📷 Profile Photo"
+            title={`📷 ${t('profilePhoto')}`}
             isOpen={openSection === 'photo'}
             onToggle={() => setOpenSection(openSection === 'photo' ? null : 'photo')}
-            hint="Add a photo to personalize your profile"
+            hint={t('addPhotoHint')}
           >
             <ProfilePhotoUpload
               currentPhotoUrl={photoUrl}
@@ -327,10 +327,10 @@ const ProfileEditPage = () => {
 
           {/* Age Range */}
           <Section
-            title="🎂 Age Range"
+            title={`🎂 ${t('ageRange')}`}
             isOpen={openSection === 'age'}
             onToggle={() => setOpenSection(openSection === 'age' ? null : 'age')}
-            hint="Helps us recommend age-appropriate products"
+            hint={t('ageRangeHint')}
           >
             <div className="grid grid-cols-3 gap-2">
               {ageRangeOptions.map(option => (
@@ -339,7 +339,7 @@ const ProfileEditPage = () => {
                   selected={ageRange === option.id}
                   onClick={() => setAgeRange(option.id)}
                   emoji={option.emoji}
-                  label={option.label}
+                  label={option.id}
                 />
               ))}
             </div>
@@ -424,10 +424,10 @@ const ProfileEditPage = () => {
 
           {/* Sensitivities */}
           <Section
-            title="🚫 Sensitivities & Exclusions"
+            title={`🚫 ${t('sensitivitiesExclusions')}`}
             isOpen={openSection === 'sensitivities'}
             onToggle={() => setOpenSection(openSection === 'sensitivities' ? null : 'sensitivities')}
-            hint="We'll filter out products with these ingredients"
+            hint={t('sensitivitiesHint')}
           >
             <div className="grid grid-cols-2 gap-2">
               {sensitivityOptions.map(option => (
@@ -436,7 +436,7 @@ const ProfileEditPage = () => {
                   selected={sensitivities.includes(option.id)}
                   onClick={() => toggleSensitivity(option.id)}
                   emoji={option.emoji}
-                  label={option.label}
+                  label={t(option.labelKey)}
                 />
               ))}
             </div>
@@ -444,10 +444,10 @@ const ProfileEditPage = () => {
 
           {/* Location & Climate */}
           <Section
-            title="🌍 Location & Climate"
+            title={`🌍 ${t('locationClimate')}`}
             isOpen={openSection === 'climate'}
             onToggle={() => setOpenSection(openSection === 'climate' ? null : 'climate')}
-            hint="Climate affects skin and hair care needs"
+            hint={t('climateHint')}
           >
             <div className="space-y-4">
               {/* Auto-detect button */}
@@ -461,12 +461,12 @@ const ProfileEditPage = () => {
                 {isDetectingLocation ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Detecting...
+                    {t('detecting')}
                   </>
                 ) : (
                   <>
                     <MapPin className="w-4 h-4" />
-                    Detect My Location
+                    {t('detectMyLocation')}
                   </>
                 )}
               </Button>
@@ -476,23 +476,23 @@ const ProfileEditPage = () => {
                   <span className="w-full border-t" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-card px-2 text-muted-foreground">or select manually</span>
+                  <span className="bg-card px-2 text-muted-foreground">{t('orSelectManually')}</span>
                 </div>
               </div>
 
               <div>
-                <label className="text-sm text-muted-foreground mb-2 block">Country</label>
+                <label className="text-sm text-muted-foreground mb-2 block">{t('countryLabel')}</label>
                 <input
                   type="text"
                   value={country}
                   onChange={(e) => setCountry(e.target.value)}
-                  placeholder="e.g. France, USA, Morocco"
+                  placeholder={t('countryPlaceholder')}
                   maxLength={50}
                   className="w-full px-4 py-3 rounded-xl border-2 border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
                 />
               </div>
               <div>
-                <label className="text-sm text-muted-foreground mb-2 block">Climate Type</label>
+                <label className="text-sm text-muted-foreground mb-2 block">{t('climateTypeLabel')}</label>
                 <div className="grid grid-cols-1 gap-2">
                   {climateOptions.map(option => (
                     <OptionButton
@@ -500,7 +500,7 @@ const ProfileEditPage = () => {
                       selected={climateType === option.id}
                       onClick={() => setClimateType(option.id)}
                       emoji={option.emoji}
-                      label={option.label}
+                      label={t(option.labelKey)}
                     />
                   ))}
                 </div>
