@@ -72,6 +72,7 @@ export const translations = {
     dandruff: 'Dandruff',
     oilyScalp: 'Oily Scalp',
     thinning: 'Thinning',
+    damage: 'Damage',
     
     // Goals
     clearSkin: 'Clear, Glowing Skin',
@@ -80,6 +81,9 @@ export const translations = {
     nutrition: 'Better Nutrition',
     routine: 'Simple Routines',
     community: 'Community Support',
+    hydration: 'Deep Hydration',
+    antiAging: 'Anti-Aging',
+    hairGrowth: 'Hair Growth',
     
     // Premium
     choosePlan: 'Choose Your Plan',
@@ -406,6 +410,7 @@ export const translations = {
     dandruff: 'Caspa',
     oilyScalp: 'Cuero cabelludo graso',
     thinning: 'Adelgazamiento',
+    damage: 'Daño',
     
     // Goals
     clearSkin: 'Piel clara y radiante',
@@ -414,6 +419,9 @@ export const translations = {
     nutrition: 'Mejor nutrición',
     routine: 'Rutinas simples',
     community: 'Apoyo de la comunidad',
+    hydration: 'Hidratación profunda',
+    antiAging: 'Antienvejecimiento',
+    hairGrowth: 'Crecimiento capilar',
     
     // Premium
     choosePlan: 'Elige tu plan',
@@ -740,6 +748,7 @@ export const translations = {
     dandruff: 'Pellicules',
     oilyScalp: 'Cuir chevelu gras',
     thinning: 'Affinement',
+    damage: 'Dommages',
     
     // Goals
     clearSkin: 'Peau nette et éclatante',
@@ -748,6 +757,9 @@ export const translations = {
     nutrition: 'Meilleure nutrition',
     routine: 'Routines simples',
     community: 'Soutien de la communauté',
+    hydration: 'Hydratation profonde',
+    antiAging: 'Anti-âge',
+    hairGrowth: 'Croissance capillaire',
     
     // Premium
     choosePlan: 'Choisissez votre plan',
