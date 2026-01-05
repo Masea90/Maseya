@@ -25,6 +25,7 @@ import SearchPage from "@/pages/SearchPage";
 import RewardsPage from "@/pages/RewardsPage";
 import LoginPage from "@/pages/LoginPage";
 import LanguageSettingsPage from "@/pages/LanguageSettingsPage";
+import ProfileEditPage from "@/pages/ProfileEditPage";
 import NotFound from "@/pages/NotFound";
 
 /**
@@ -63,6 +64,7 @@ function AppRoutes() {
         <Route path="/remedies" element={<RemediesPage />} />
         <Route path="/community" element={<CommunityPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/profile/edit" element={<ProfileEditPage />} />
         <Route path="/scan" element={<ScanPage />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/rewards" element={<RewardsPage />} />
