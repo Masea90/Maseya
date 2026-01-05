@@ -26,8 +26,11 @@ import LoginPage from "@/pages/LoginPage";
 import LanguageSettingsPage from "@/pages/LanguageSettingsPage";
 import NotFound from "@/pages/NotFound";
 
-// AppRoutes component - needs UserProvider wrapper
-const AppRoutes = () => {
+/**
+ * AppRoutes - Contains all route definitions
+ * Must be rendered inside UserProvider
+ */
+function AppRoutes() {
   const { user } = useUser();
 
   return (
@@ -60,9 +63,12 @@ const AppRoutes = () => {
       {user.onboardingComplete && <Chatbot />}
     </>
   );
-};
+}
 
-const App = () => {
+/**
+ * App - Root component with all providers
+ */
+function App() {
   const [queryClient] = useState(() => new QueryClient());
 
   return (
@@ -78,6 +84,6 @@ const App = () => {
       </UserProvider>
     </QueryClientProvider>
   );
-};
+}
 
 export default App;
