@@ -17,6 +17,42 @@ function getClimateFromLatitude(lat: number): string {
   return 'continental';
 }
 
+// Try multiple geocoding APIs for reliability
+async function reverseGeocode(latitude: number, longitude: number): Promise<string> {
+  // Try primary API first
+  try {
+    const response = await fetch(
+      `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`,
+      { signal: AbortSignal.timeout(5000) }
+    );
+    if (response.ok) {
+      const data = await response.json();
+      if (data.countryName) return data.countryName;
+    }
+  } catch {
+    console.log('Primary geocoding failed, trying fallback...');
+  }
+
+  // Fallback to Nominatim (OpenStreetMap)
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=3`,
+      { 
+        signal: AbortSignal.timeout(5000),
+        headers: { 'Accept-Language': 'en' }
+      }
+    );
+    if (response.ok) {
+      const data = await response.json();
+      if (data.address?.country) return data.address.country;
+    }
+  } catch {
+    console.log('Fallback geocoding also failed');
+  }
+
+  return '';
+}
+
 export function useGeolocation() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,29 +72,19 @@ export function useGeolocation() {
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const { latitude, longitude } = position.coords;
+          console.log('Got coordinates:', latitude, longitude);
           
-          try {
-            // Use a free reverse geocoding API
-            const response = await fetch(
-              `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
-            );
-            
-            if (!response.ok) throw new Error('Geocoding failed');
-            
-            const data = await response.json();
-            const country = data.countryName || '';
-            const climateType = getClimateFromLatitude(latitude);
-            
-            setIsLoading(false);
-            resolve({ country, climateType });
-          } catch (err) {
-            // Fallback: just use climate from latitude
-            const climateType = getClimateFromLatitude(latitude);
-            setIsLoading(false);
-            resolve({ country: '', climateType });
-          }
+          const climateType = getClimateFromLatitude(latitude);
+          const country = await reverseGeocode(latitude, longitude);
+          
+          console.log('Detected:', { country, climateType });
+          setIsLoading(false);
+          
+          // Return result even if country is empty - climate is still useful
+          resolve({ country, climateType });
         },
         (err) => {
+          console.error('Geolocation error:', err);
           let errorMessage = 'Failed to get location';
           switch (err.code) {
             case err.PERMISSION_DENIED:
@@ -77,7 +103,7 @@ export function useGeolocation() {
         },
         {
           enableHighAccuracy: false,
-          timeout: 10000,
+          timeout: 15000,
           maximumAge: 600000, // Cache for 10 minutes
         }
       );
