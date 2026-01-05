@@ -11,6 +11,7 @@ import { AppRoutes } from "@/components/AppRoutes";
 /**
  * App - Root component with all providers
  * Provider order: QueryClient > Auth > User > Tooltip > Router
+ * Updated to ensure proper context initialization
  */
 function App() {
   const [queryClient] = useState(() => new QueryClient());
