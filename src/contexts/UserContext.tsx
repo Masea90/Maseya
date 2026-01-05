@@ -41,6 +41,7 @@ export interface RoutineCompletion {
 
 export interface UserProfile {
   name: string;
+  nickname: string;
   skinConcerns: string[];
   hairType: string;
   hairConcerns: string[];
@@ -77,6 +78,7 @@ const getTodayDateString = (): string => {
 
 const createDefaultUser = (email?: string): UserProfile => ({
   name: email?.split('@')[0] || 'Guest',
+  nickname: '',
   skinConcerns: [],
   hairType: '',
   hairConcerns: [],

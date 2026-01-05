@@ -172,6 +172,8 @@ export const translations = {
     helpSupport: 'Help & Support',
     language: 'Language',
     logOut: 'Log Out',
+    nickname: 'Nickname',
+    enterNickname: 'Enter your nickname',
     
     // Tiers
     bronze: 'Bronze',
@@ -510,6 +512,8 @@ export const translations = {
     helpSupport: 'Ayuda y soporte',
     language: 'Idioma',
     logOut: 'Cerrar sesión',
+    nickname: 'Apodo',
+    enterNickname: 'Escribe tu apodo',
     
     // Tiers
     bronze: 'Bronce',
@@ -848,6 +852,8 @@ export const translations = {
     helpSupport: 'Aide et support',
     language: 'Langue',
     logOut: 'Déconnexion',
+    nickname: 'Surnom',
+    enterNickname: 'Entrez votre surnom',
     
     // Tiers
     bronze: 'Bronze',

@@ -75,7 +75,9 @@ const ProfilePage = () => {
           <div className="w-20 h-20 bg-secondary rounded-full flex items-center justify-center text-4xl mx-auto mb-3">
             👩🏻
           </div>
-          <h1 className="font-display text-xl font-semibold">{user.name}</h1>
+          <h1 className="font-display text-xl font-semibold">
+            {user.nickname || user.name}
+          </h1>
           {currentUser && (
             <p className="text-sm text-muted-foreground flex items-center justify-center gap-1 mt-1">
               <Mail className="w-3 h-3" />

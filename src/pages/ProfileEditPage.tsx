@@ -91,12 +91,13 @@ const ProfileEditPage = () => {
   const navigate = useNavigate();
   const { user, updateUser, t } = useUser();
   
+  const [nickname, setNickname] = useState(user.nickname || '');
   const [skinConcerns, setSkinConcerns] = useState<string[]>(user.skinConcerns);
   const [hairType, setHairType] = useState(user.hairType);
   const [hairConcerns, setHairConcerns] = useState<string[]>(user.hairConcerns);
   const [goals, setGoals] = useState<string[]>(user.goals);
   
-  const [openSection, setOpenSection] = useState<string | null>('skin');
+  const [openSection, setOpenSection] = useState<string | null>('nickname');
 
   const toggleSkinConcern = (id: string) => {
     setSkinConcerns(prev =>
@@ -118,16 +119,18 @@ const ProfileEditPage = () => {
 
   const handleSave = () => {
     updateUser({
+      nickname: nickname.trim(),
       skinConcerns,
       hairType,
       hairConcerns,
       goals,
     });
-    toast.success('Profile updated!');
+    toast.success(t('save') + ' ✓');
     navigate('/profile');
   };
 
   const hasChanges =
+    nickname.trim() !== (user.nickname || '') ||
     JSON.stringify(skinConcerns) !== JSON.stringify(user.skinConcerns) ||
     hairType !== user.hairType ||
     JSON.stringify(hairConcerns) !== JSON.stringify(user.hairConcerns) ||
@@ -150,6 +153,22 @@ const ProfileEditPage = () => {
 
       <main className="flex-1 pb-36 overflow-y-auto">
         <div className="px-4 py-6 space-y-4 animate-fade-in">
+          {/* Nickname */}
+          <Section
+            title={`👤 ${t('nickname')}`}
+            isOpen={openSection === 'nickname'}
+            onToggle={() => setOpenSection(openSection === 'nickname' ? null : 'nickname')}
+          >
+            <input
+              type="text"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              placeholder={t('enterNickname')}
+              maxLength={30}
+              className="w-full px-4 py-3 rounded-xl border-2 border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
+            />
+          </Section>
+
           {/* Skin Concerns */}
           <Section
             title={`🧴 ${t('skinConcernsTitle')}`}
