@@ -61,7 +61,7 @@ const AppRoutes = () => {
   );
 };
 
-function App() {
+const App = () => {
   const [queryClient] = useState(() => new QueryClient());
 
   return (
