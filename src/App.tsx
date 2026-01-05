@@ -48,9 +48,10 @@ function AppRoutes() {
   return (
     <>
       <Routes>
-        {/* Onboarding */}
-        <Route path="/" element={user.onboardingComplete ? <Navigate to="/home" /> : <WelcomeScreen />} />
+        {/* Onboarding - Language first, then welcome */}
+        <Route path="/" element={user.onboardingComplete ? <Navigate to="/home" /> : <Navigate to="/onboarding/language" />} />
         <Route path="/onboarding/language" element={<LanguageSelect />} />
+        <Route path="/onboarding/welcome" element={<WelcomeScreen />} />
         <Route path="/onboarding/quiz" element={<OnboardingQuiz />} />
         <Route path="/onboarding/premium" element={<PremiumScreen />} />
         
