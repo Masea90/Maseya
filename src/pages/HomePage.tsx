@@ -36,7 +36,7 @@ const HomePage = () => {
       subtitle: t('boostYourGlow'),
       description: t('nutritionTipDesc'),
       color: 'nutrition' as const,
-      linkTo: '/discover?category=nutrition',
+      linkTo: '/remedies?category=nutrition',
     },
   ];
 
