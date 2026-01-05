@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useUser } from '@/contexts/UserContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { Heart, MessageCircle, Share2, MoreHorizontal, Plus, Users, Lock, Globe, Send, X, Loader2 } from 'lucide-react';
+import { Heart, MessageCircle, Share2, MoreHorizontal, Plus, Users, Lock, Globe, Send, X, Loader2, Pencil, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -45,6 +47,9 @@ const CommunityPage = () => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [loadingComments, setLoadingComments] = useState(false);
+  const [editingPost, setEditingPost] = useState<Post | null>(null);
+  const [editContent, setEditContent] = useState('');
+  const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
 
   // Load posts
   useEffect(() => {
@@ -276,6 +281,60 @@ const CommunityPage = () => {
     }
   };
 
+  const handleEditPost = async () => {
+    if (!editingPost || !editContent.trim()) return;
+    
+    const trimmedContent = editContent.trim();
+    if (trimmedContent.length > MAX_POST_LENGTH) {
+      toast.error(`Post must be ${MAX_POST_LENGTH} characters or less`);
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('community_posts')
+        .update({ content: trimmedContent })
+        .eq('id', editingPost.id)
+        .eq('user_id', currentUser?.id);
+
+      if (error) throw error;
+      
+      toast.success('Post updated! ✨');
+      setEditingPost(null);
+      setEditContent('');
+      loadPosts();
+    } catch (error) {
+      console.error('Error updating post:', error);
+      toast.error('Failed to update post');
+    }
+  };
+
+  const handleDeletePost = async () => {
+    if (!deletingPostId) return;
+
+    try {
+      const { error } = await supabase
+        .from('community_posts')
+        .delete()
+        .eq('id', deletingPostId)
+        .eq('user_id', currentUser?.id);
+
+      if (error) throw error;
+      
+      toast.success('Post deleted');
+      setDeletingPostId(null);
+      loadPosts();
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      toast.error('Failed to delete post');
+    }
+  };
+
+  const openEditDialog = (post: Post) => {
+    setEditingPost(post);
+    setEditContent(post.content);
+  };
+
   const getTimeAgo = (date: string) => {
     const now = new Date();
     const posted = new Date(date);
@@ -353,9 +412,32 @@ const CommunityPage = () => {
                       </div>
                     </div>
                   </div>
-                  <button className="p-2 rounded-full hover:bg-secondary transition-colors">
-                    <MoreHorizontal className="w-5 h-5 text-muted-foreground" />
-                  </button>
+                  {post.user_id === currentUser?.id ? (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="p-2 rounded-full hover:bg-secondary transition-colors">
+                          <MoreHorizontal className="w-5 h-5 text-muted-foreground" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => openEditDialog(post)}>
+                          <Pencil className="w-4 h-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => setDeletingPostId(post.id)}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  ) : (
+                    <button className="p-2 rounded-full hover:bg-secondary transition-colors">
+                      <MoreHorizontal className="w-5 h-5 text-muted-foreground" />
+                    </button>
+                  )}
                 </div>
 
                 {/* Content */}
@@ -517,6 +599,63 @@ const CommunityPage = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Post Dialog */}
+      <Dialog open={!!editingPost} onOpenChange={() => setEditingPost(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Post</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Textarea
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+              maxLength={MAX_POST_LENGTH}
+              className="min-h-[120px] resize-none"
+            />
+            <p className="text-xs text-muted-foreground text-right">
+              {editContent.length}/{MAX_POST_LENGTH}
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setEditingPost(null)}
+                className="flex-1 rounded-full"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleEditPost}
+                disabled={!editContent.trim()}
+                className="flex-1 rounded-full bg-gradient-olive"
+              >
+                Save Changes
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deletingPostId} onOpenChange={() => setDeletingPostId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Post?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete your post and all its comments.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeletePost}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 };
