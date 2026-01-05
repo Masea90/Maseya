@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useUser } from '@/contexts/UserContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { Heart, MessageCircle, Share2, MoreHorizontal, Plus, Users, Lock, Globe, Send, X, Loader2, Pencil, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -36,6 +37,7 @@ interface Comment {
 const CommunityPage = () => {
   const { t, user } = useUser();
   const { currentUser } = useAuth();
+  const { isAdmin } = useIsAdmin();
   const [posts, setPosts] = useState<Post[]>([]);
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
@@ -50,6 +52,7 @@ const CommunityPage = () => {
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [editContent, setEditContent] = useState('');
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
+  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
 
   // Load posts
   useEffect(() => {
@@ -313,11 +316,18 @@ const CommunityPage = () => {
     if (!deletingPostId) return;
 
     try {
-      const { error } = await supabase
+      // Admin can delete any post, regular users only their own
+      const query = supabase
         .from('community_posts')
         .delete()
-        .eq('id', deletingPostId)
-        .eq('user_id', currentUser?.id);
+        .eq('id', deletingPostId);
+      
+      // If not admin, also filter by user_id
+      if (!isAdmin) {
+        query.eq('user_id', currentUser?.id);
+      }
+
+      const { error } = await query;
 
       if (error) throw error;
       
@@ -327,6 +337,27 @@ const CommunityPage = () => {
     } catch (error) {
       console.error('Error deleting post:', error);
       toast.error('Failed to delete post');
+    }
+  };
+
+  const handleDeleteComment = async () => {
+    if (!deletingCommentId || !showComments) return;
+
+    try {
+      const { error } = await supabase
+        .from('post_comments')
+        .delete()
+        .eq('id', deletingCommentId);
+
+      if (error) throw error;
+      
+      toast.success('Comment deleted');
+      setDeletingCommentId(null);
+      loadComments(showComments);
+      loadPosts(); // Refresh comment count
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+      toast.error('Failed to delete comment');
     }
   };
 
@@ -412,7 +443,7 @@ const CommunityPage = () => {
                       </div>
                     </div>
                   </div>
-                  {post.user_id === currentUser?.id ? (
+                  {(post.user_id === currentUser?.id || isAdmin) ? (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button className="p-2 rounded-full hover:bg-secondary transition-colors">
@@ -420,16 +451,18 @@ const CommunityPage = () => {
                         </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => openEditDialog(post)}>
-                          <Pencil className="w-4 h-4 mr-2" />
-                          Edit
-                        </DropdownMenuItem>
+                        {post.user_id === currentUser?.id && (
+                          <DropdownMenuItem onClick={() => openEditDialog(post)}>
+                            <Pencil className="w-4 h-4 mr-2" />
+                            Edit
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem 
                           onClick={() => setDeletingPostId(post.id)}
                           className="text-destructive focus:text-destructive"
                         >
                           <Trash2 className="w-4 h-4 mr-2" />
-                          Delete
+                          {isAdmin && post.user_id !== currentUser?.id ? 'Delete (Admin)' : 'Delete'}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -558,7 +591,7 @@ const CommunityPage = () => {
               <p className="text-center text-muted-foreground py-4">No comments yet</p>
             ) : (
               comments.map(comment => (
-                <div key={comment.id} className="flex gap-3">
+                <div key={comment.id} className="flex gap-3 group">
                   <div className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center text-sm">
                     👤
                   </div>
@@ -571,6 +604,15 @@ const CommunityPage = () => {
                       {getTimeAgo(comment.created_at)}
                     </p>
                   </div>
+                  {(comment.user_id === currentUser?.id || isAdmin) && (
+                    <button
+                      onClick={() => setDeletingCommentId(comment.id)}
+                      className="opacity-0 group-hover:opacity-100 p-1 rounded-full hover:bg-destructive/10 transition-all"
+                      title="Delete comment"
+                    >
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    </button>
+                  )}
                 </div>
               ))
             )}
@@ -649,6 +691,27 @@ const CommunityPage = () => {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDeletePost}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Comment Confirmation Dialog */}
+      <AlertDialog open={!!deletingCommentId} onOpenChange={() => setDeletingCommentId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Comment?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteComment}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete
