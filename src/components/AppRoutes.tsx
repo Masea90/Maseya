@@ -6,6 +6,7 @@ import { Chatbot } from "@/components/chat/Chatbot";
 // Pages
 import { WelcomeScreen } from "@/components/onboarding/WelcomeScreen";
 import { LanguageSelect } from "@/components/onboarding/LanguageSelect";
+import { OnboardingGuide } from "@/components/onboarding/OnboardingGuide";
 import { OnboardingQuiz } from "@/components/onboarding/OnboardingQuiz";
 import { PremiumScreen } from "@/components/onboarding/PremiumScreen";
 import HomePage from "@/pages/HomePage";
@@ -44,9 +45,10 @@ export function AppRoutes() {
   return (
     <>
       <Routes>
-        {/* Onboarding - Language first, then welcome */}
+        {/* Onboarding - Language first, then guide (for first-time users), then welcome */}
         <Route path="/" element={user.onboardingComplete ? <Navigate to="/home" /> : <Navigate to="/onboarding/language" />} />
         <Route path="/onboarding/language" element={<LanguageSelect />} />
+        <Route path="/onboarding/guide" element={<OnboardingGuide />} />
         <Route path="/onboarding/welcome" element={<WelcomeScreen />} />
         <Route path="/onboarding/quiz" element={<OnboardingQuiz />} />
         <Route path="/onboarding/premium" element={<PremiumScreen />} />

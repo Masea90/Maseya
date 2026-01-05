@@ -15,7 +15,12 @@ export const LanguageSelect = () => {
     setLanguage(lang);
     // Small delay to let the selection feel intentional
     setTimeout(() => {
-      navigate('/onboarding/welcome');
+      // Show guide only for first-time users (guideCompleted is false)
+      if (!user.guideCompleted) {
+        navigate('/onboarding/guide');
+      } else {
+        navigate('/onboarding/welcome');
+      }
     }, 300);
   };
 

@@ -335,6 +335,17 @@ export const translations = {
     completeProfileDesc: 'Complete your profile to get personalized product recommendations based on your skin type, hair type, and beauty goals.',
     completeProfile: 'Complete My Profile',
     
+    // Onboarding guide
+    guideStep1Title: 'What is MASEYA',
+    guideStep1Desc: 'MASEYA is your personal guide for natural skin, hair and self-care.',
+    guideStep2Title: 'How it works',
+    guideStep2Desc: 'We personalize recommendations based on your skin, hair and goals.',
+    guideStep3Title: 'What to do first',
+    guideStep3Desc: 'Complete your profile, follow your routine and discover products made for you.',
+    guideStart: 'Start my journey',
+    guideNext: 'Next',
+    guideSkip: 'Skip',
+    
     // Product descriptions - Real products
     weledaSkinFoodDesc: 'Iconic intensive moisturizer with plant extracts and essential oils. Nourishes and protects very dry, rough skin.',
     paiRosehipDesc: 'Award-winning organic rosehip oil with CO2 extraction. Reduces scars, fine lines, and evens skin tone naturally.',
@@ -675,6 +686,17 @@ export const translations = {
     completeProfileDesc: 'Completa tu perfil para obtener recomendaciones personalizadas basadas en tu tipo de piel, cabello y objetivos de belleza.',
     completeProfile: 'Completar mi perfil',
     
+    // Onboarding guide
+    guideStep1Title: '¿Qué es MASEYA?',
+    guideStep1Desc: 'MASEYA es tu guía personal para el cuidado natural de tu piel, cabello y bienestar.',
+    guideStep2Title: 'Cómo funciona',
+    guideStep2Desc: 'Personalizamos las recomendaciones según tu piel, cabello y objetivos.',
+    guideStep3Title: 'Por dónde empezar',
+    guideStep3Desc: 'Completa tu perfil, sigue tu rutina y descubre productos hechos para ti.',
+    guideStart: 'Comenzar mi viaje',
+    guideNext: 'Siguiente',
+    guideSkip: 'Omitir',
+    
     // Product descriptions - Real products
     weledaSkinFoodDesc: 'Hidratante intensivo icónico con extractos vegetales y aceites esenciales. Nutre y protege la piel muy seca.',
     paiRosehipDesc: 'Aceite de rosa mosqueta orgánico premiado con extracción CO2. Reduce cicatrices, líneas finas y unifica el tono.',
@@ -1014,6 +1036,17 @@ export const translations = {
     completeProfileTitle: 'Parlez-nous de vous',
     completeProfileDesc: 'Complétez votre profil pour obtenir des recommandations personnalisées basées sur votre type de peau, cheveux et objectifs beauté.',
     completeProfile: 'Compléter mon profil',
+    
+    // Onboarding guide
+    guideStep1Title: 'Qu\'est-ce que MASEYA',
+    guideStep1Desc: 'MASEYA est votre guide personnel pour le soin naturel de la peau, des cheveux et du bien-être.',
+    guideStep2Title: 'Comment ça marche',
+    guideStep2Desc: 'Nous personnalisons les recommandations selon votre peau, vos cheveux et vos objectifs.',
+    guideStep3Title: 'Par où commencer',
+    guideStep3Desc: 'Complétez votre profil, suivez votre routine et découvrez des produits faits pour vous.',
+    guideStart: 'Commencer mon voyage',
+    guideNext: 'Suivant',
+    guideSkip: 'Passer',
     
     // Product descriptions - Real products
     weledaSkinFoodDesc: 'Hydratant intensif emblématique aux extraits de plantes et huiles essentielles. Nourrit et protège les peaux très sèches.',

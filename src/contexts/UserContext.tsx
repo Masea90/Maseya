@@ -51,6 +51,7 @@ export interface UserProfile {
   streak: number;
   // Glow score is now computed dynamically
   onboardingComplete: boolean;
+  guideCompleted: boolean;
   language: Language;
   routineCompletion: RoutineCompletion;
 }
@@ -66,6 +67,7 @@ interface UserContextType {
   user: UserProfile;
   updateUser: (updates: Partial<UserProfile>) => void;
   completeOnboarding: () => void;
+  setGuideCompleted: (completed: boolean) => void;
   t: (key: TranslationKey) => string;
   setLanguage: (lang: Language) => void;
   updateRoutineCompletion: (completion: RoutineCompletion) => void;
@@ -87,6 +89,7 @@ const createDefaultUser = (email?: string): UserProfile => ({
   points: 0,
   streak: 0,
   onboardingComplete: false,
+  guideCompleted: false,
   language: 'en',
   routineCompletion: {
     morning: [],
@@ -201,6 +204,10 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     setUser(prev => ({ ...prev, onboardingComplete: true }));
   };
 
+  const setGuideCompleted = (completed: boolean) => {
+    setUser(prev => ({ ...prev, guideCompleted: completed }));
+  };
+
   const t = (key: TranslationKey): string => {
     return getTranslation(user.language, key);
   };
@@ -227,6 +234,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       user, 
       updateUser, 
       completeOnboarding,
+      setGuideCompleted,
       t, 
       setLanguage,
       updateRoutineCompletion,
