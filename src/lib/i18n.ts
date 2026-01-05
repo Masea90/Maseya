@@ -233,6 +233,48 @@ export const translations = {
     // Language settings
     languageSettings: 'Language',
     selectYourLanguage: 'Select your preferred language',
+    
+    // Product recommendations
+    recommendedForYou: 'Recommended for You',
+    basedOnProfile: 'Based on your profile',
+    viewProduct: 'View Product',
+    usersLikeYouAlsoUse: 'Users with a similar profile also use this.',
+    whyThisMatches: 'Why This Matches You',
+    buyNow: 'Buy Now',
+    about: 'About',
+    keyIngredients: 'Key Ingredients',
+    
+    // Product tags
+    tagBio: 'Bio',
+    tagNatural: 'Natural',
+    tagVegan: 'Vegan',
+    tagCrueltyFree: 'Cruelty-Free',
+    tagOrganic: 'Organic',
+    
+    // Match reasons
+    reasonGoodForSensitive: 'Good for sensitive skin',
+    reasonHydratesDrySkin: 'Hydrates dry skin',
+    reasonControlsOil: 'Controls excess oil',
+    reasonHelpsWithAcne: 'Helps with acne-prone skin',
+    reasonAntiAging: 'Anti-aging benefits',
+    reasonPerfectForCurls: 'Perfect for curly hair',
+    reasonEnhancesWaves: 'Enhances natural waves',
+    reasonMatchesHairType: 'Matches your hair type',
+    reasonNourishesHair: 'Nourishes and repairs hair',
+    reasonAllNatural: 'All-natural ingredients',
+    reasonGentleFormula: 'Gentle, clean formula',
+    
+    // Product descriptions
+    aloeCleanserDesc: 'A gentle, hydrating cleanser with pure aloe vera that soothes and refreshes sensitive skin.',
+    rosehipOilDesc: 'Cold-pressed organic rosehip oil rich in vitamins A and C to reduce fine lines and even skin tone.',
+    arganMaskDesc: 'Deep conditioning hair mask with pure argan oil to restore moisture and shine to dry, damaged hair.',
+    chamomileSerumDesc: 'Calming serum with chamomile extract that reduces redness and soothes irritated skin.',
+    coconutScalpDesc: 'Nourishing scalp treatment with organic coconut oil to promote healthy hair growth.',
+    hyaluronicSerumDesc: 'Lightweight hyaluronic acid serum that provides intense hydration for plump, dewy skin.',
+    moringaOilDesc: 'Lightweight moringa oil that deeply nourishes curly and coily hair without weighing it down.',
+    clayMaskDesc: 'Purifying clay mask that draws out impurities and minimizes pores for clearer skin.',
+    quinoaShampooDesc: 'Gentle shampoo with quinoa protein that strengthens and repairs damaged hair.',
+    calendulaBalm: 'Multi-purpose healing balm with calendula for dry skin and hair ends.',
   },
   es: {
     // Brand
@@ -460,6 +502,48 @@ export const translations = {
     // Language settings
     languageSettings: 'Idioma',
     selectYourLanguage: 'Selecciona tu idioma preferido',
+    
+    // Product recommendations
+    recommendedForYou: 'Recomendado para ti',
+    basedOnProfile: 'Basado en tu perfil',
+    viewProduct: 'Ver producto',
+    usersLikeYouAlsoUse: 'Usuarias con un perfil similar también usan esto.',
+    whyThisMatches: 'Por qué te encaja',
+    buyNow: 'Comprar ahora',
+    about: 'Acerca de',
+    keyIngredients: 'Ingredientes clave',
+    
+    // Product tags
+    tagBio: 'Bio',
+    tagNatural: 'Natural',
+    tagVegan: 'Vegano',
+    tagCrueltyFree: 'Sin crueldad',
+    tagOrganic: 'Orgánico',
+    
+    // Match reasons
+    reasonGoodForSensitive: 'Bueno para pieles sensibles',
+    reasonHydratesDrySkin: 'Hidrata la piel seca',
+    reasonControlsOil: 'Controla el exceso de grasa',
+    reasonHelpsWithAcne: 'Ayuda con la piel con acné',
+    reasonAntiAging: 'Beneficios antienvejecimiento',
+    reasonPerfectForCurls: 'Perfecto para rizos',
+    reasonEnhancesWaves: 'Realza las ondas naturales',
+    reasonMatchesHairType: 'Se adapta a tu tipo de cabello',
+    reasonNourishesHair: 'Nutre y repara el cabello',
+    reasonAllNatural: 'Ingredientes 100% naturales',
+    reasonGentleFormula: 'Fórmula suave y limpia',
+    
+    // Product descriptions
+    aloeCleanserDesc: 'Un limpiador suave e hidratante con aloe vera puro que calma y refresca la piel sensible.',
+    rosehipOilDesc: 'Aceite de rosa mosqueta orgánico prensado en frío, rico en vitaminas A y C para reducir líneas finas.',
+    arganMaskDesc: 'Mascarilla capilar nutritiva con aceite de argán puro para restaurar la humedad del cabello seco.',
+    chamomileSerumDesc: 'Sérum calmante con extracto de manzanilla que reduce el enrojecimiento y calma la piel irritada.',
+    coconutScalpDesc: 'Tratamiento nutritivo del cuero cabelludo con aceite de coco orgánico para un cabello sano.',
+    hyaluronicSerumDesc: 'Sérum ligero de ácido hialurónico que proporciona hidratación intensa para una piel luminosa.',
+    moringaOilDesc: 'Aceite de moringa ligero que nutre profundamente el cabello rizado sin apelmazarlo.',
+    clayMaskDesc: 'Mascarilla purificante de arcilla que elimina impurezas y minimiza los poros.',
+    quinoaShampooDesc: 'Champú suave con proteína de quinoa que fortalece y repara el cabello dañado.',
+    calendulaBalm: 'Bálsamo reparador multiusos con caléndula para piel seca y puntas del cabello.',
   },
   fr: {
     // Brand
@@ -687,6 +771,48 @@ export const translations = {
     // Language settings
     languageSettings: 'Langue',
     selectYourLanguage: 'Sélectionnez votre langue préférée',
+    
+    // Product recommendations
+    recommendedForYou: 'Recommandé pour vous',
+    basedOnProfile: 'Basé sur votre profil',
+    viewProduct: 'Voir le produit',
+    usersLikeYouAlsoUse: 'Les utilisatrices avec un profil similaire utilisent aussi ceci.',
+    whyThisMatches: 'Pourquoi ça vous correspond',
+    buyNow: 'Acheter',
+    about: 'À propos',
+    keyIngredients: 'Ingrédients clés',
+    
+    // Product tags
+    tagBio: 'Bio',
+    tagNatural: 'Naturel',
+    tagVegan: 'Végan',
+    tagCrueltyFree: 'Sans cruauté',
+    tagOrganic: 'Biologique',
+    
+    // Match reasons
+    reasonGoodForSensitive: 'Bon pour les peaux sensibles',
+    reasonHydratesDrySkin: 'Hydrate les peaux sèches',
+    reasonControlsOil: 'Contrôle l\'excès de sébum',
+    reasonHelpsWithAcne: 'Aide les peaux à tendance acnéique',
+    reasonAntiAging: 'Bienfaits anti-âge',
+    reasonPerfectForCurls: 'Parfait pour les boucles',
+    reasonEnhancesWaves: 'Sublime les ondulations naturelles',
+    reasonMatchesHairType: 'Correspond à votre type de cheveux',
+    reasonNourishesHair: 'Nourrit et répare les cheveux',
+    reasonAllNatural: 'Ingrédients 100% naturels',
+    reasonGentleFormula: 'Formule douce et clean',
+    
+    // Product descriptions
+    aloeCleanserDesc: 'Un nettoyant doux et hydratant à l\'aloe vera pur qui apaise et rafraîchit les peaux sensibles.',
+    rosehipOilDesc: 'Huile de rose musquée bio pressée à froid, riche en vitamines A et C pour réduire les ridules.',
+    arganMaskDesc: 'Masque capillaire nourrissant à l\'huile d\'argan pure pour restaurer l\'hydratation des cheveux secs.',
+    chamomileSerumDesc: 'Sérum apaisant à l\'extrait de camomille qui réduit les rougeurs et calme les peaux irritées.',
+    coconutScalpDesc: 'Soin nourrissant du cuir chevelu à l\'huile de coco bio pour des cheveux en bonne santé.',
+    hyaluronicSerumDesc: 'Sérum léger à l\'acide hyaluronique pour une hydratation intense et une peau repulpée.',
+    moringaOilDesc: 'Huile de moringa légère qui nourrit les cheveux bouclés et crépus sans les alourdir.',
+    clayMaskDesc: 'Masque purifiant à l\'argile qui élimine les impuretés et resserre les pores.',
+    quinoaShampooDesc: 'Shampooing doux à la protéine de quinoa qui fortifie et répare les cheveux abîmés.',
+    calendulaBalm: 'Baume réparateur multi-usage au calendula pour les peaux sèches et les pointes.',
   },
 };
 
