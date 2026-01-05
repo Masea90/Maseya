@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { useUser } from '@/contexts/UserContext';
 import { Search, Heart, Filter, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
-
-const categories = ['All', 'Skin', 'Hair', 'Sensitive', 'Hydration'];
 
 const mockProducts = [
   {
@@ -70,9 +69,18 @@ const mockProducts = [
 ];
 
 const DiscoverPage = () => {
+  const { t } = useUser();
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [favorites, setFavorites] = useState<number[]>([]);
+
+  const categories = [
+    { key: 'All', label: t('all') },
+    { key: 'Skin', label: t('skinCategory') },
+    { key: 'Hair', label: t('hairCategory') },
+    { key: 'Sensitive', label: t('sensitivity') },
+    { key: 'Hydration', label: t('hydrationFocus') },
+  ];
 
   const filteredProducts = mockProducts.filter(product => {
     const matchesCategory = activeCategory === 'All' || product.category === activeCategory;
@@ -86,14 +94,14 @@ const DiscoverPage = () => {
   };
 
   return (
-    <AppLayout title="Discover">
+    <AppLayout title={t('discover')}>
       <div className="px-4 py-6 space-y-4 animate-fade-in">
         {/* Search */}
         <div className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Search products, ingredients..."
+            placeholder={t('searchPlaceholder')}
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             className="w-full h-12 pl-12 pr-12 rounded-2xl bg-card border border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
@@ -107,16 +115,16 @@ const DiscoverPage = () => {
         <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
           {categories.map(cat => (
             <button
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
+              key={cat.key}
+              onClick={() => setActiveCategory(cat.key)}
               className={cn(
                 'px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all',
-                activeCategory === cat
+                activeCategory === cat.key
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
               )}
             >
-              {cat}
+              {cat.label}
             </button>
           ))}
         </div>
@@ -147,7 +155,7 @@ const DiscoverPage = () => {
                   className={cn(
                     'w-4 h-4 transition-colors',
                     favorites.includes(product.id)
-                      ? 'fill-zwina-rose text-zwina-rose'
+                      ? 'fill-maseya-rose text-maseya-rose'
                       : 'text-muted-foreground'
                   )}
                 />
@@ -169,7 +177,7 @@ const DiscoverPage = () => {
                 {product.tags.slice(0, 2).map(tag => (
                   <span
                     key={tag}
-                    className="text-[10px] px-2 py-0.5 bg-zwina-sage/30 text-foreground rounded-full"
+                    className="text-[10px] px-2 py-0.5 bg-maseya-sage/30 text-foreground rounded-full"
                   >
                     {tag}
                   </span>

@@ -18,6 +18,12 @@ export const translations = {
     save: 'Save',
     back: 'Back',
     of: 'of',
+    all: 'All',
+    search: 'Search',
+    post: 'Post',
+    members: 'members',
+    womenOnly: 'Women only',
+    everyone: 'Everyone',
     
     // Greetings
     goodMorning: 'Good morning',
@@ -198,6 +204,35 @@ export const translations = {
     quote2: 'Your skin is a reflection of your inner health ✨',
     quote3: 'Nature knows best — trust the process 🌿',
     quote4: 'Small steps today, radiant tomorrow 💫',
+    
+    // Discover page
+    searchPlaceholder: 'Search products, ingredients...',
+    match: 'match',
+    
+    // Routine page
+    morning: 'Morning',
+    night: 'Night',
+    dayStreak: 'day streak',
+    steps: 'steps',
+    pointsEarned: 'points earned! Great job completing your routine',
+    morningRoutine: 'Morning Routine',
+    nightRoutine: 'Night Routine',
+    earnPointsPerStep: 'Earn points for each step',
+    perStepBonus: '+5 per step, +15 bonus for completing all!',
+    
+    // Community page
+    verified: 'verified',
+    
+    // Remedies page
+    naturalRemedies: 'Natural Remedies',
+    allNaturalRemedies: 'All-natural remedies using ingredients you can find at home',
+    skinCategory: 'Skin',
+    hairCategory: 'Hair',
+    nutritionCategory: 'Nutrition',
+    
+    // Language settings
+    languageSettings: 'Language',
+    selectYourLanguage: 'Select your preferred language',
   },
   es: {
     // Brand
@@ -210,6 +245,12 @@ export const translations = {
     save: 'Guardar',
     back: 'Atrás',
     of: 'de',
+    all: 'Todo',
+    search: 'Buscar',
+    post: 'Publicar',
+    members: 'miembros',
+    womenOnly: 'Solo mujeres',
+    everyone: 'Todos',
     
     // Greetings
     goodMorning: 'Buenos días',
@@ -390,6 +431,35 @@ export const translations = {
     quote2: 'Tu piel es el reflejo de tu salud interior ✨',
     quote3: 'La naturaleza sabe — confía en el proceso 🌿',
     quote4: 'Pequeños pasos hoy, radiante mañana 💫',
+    
+    // Discover page
+    searchPlaceholder: 'Buscar productos, ingredientes...',
+    match: 'coincidencia',
+    
+    // Routine page
+    morning: 'Mañana',
+    night: 'Noche',
+    dayStreak: 'días de racha',
+    steps: 'pasos',
+    pointsEarned: '¡puntos ganados! Excelente trabajo completando tu rutina',
+    morningRoutine: 'Rutina de Mañana',
+    nightRoutine: 'Rutina de Noche',
+    earnPointsPerStep: 'Gana puntos por cada paso',
+    perStepBonus: '+5 por paso, +15 de bonificación por completar todo',
+    
+    // Community page
+    verified: 'verificado',
+    
+    // Remedies page
+    naturalRemedies: 'Remedios Naturales',
+    allNaturalRemedies: 'Remedios naturales con ingredientes que puedes encontrar en casa',
+    skinCategory: 'Piel',
+    hairCategory: 'Cabello',
+    nutritionCategory: 'Nutrición',
+    
+    // Language settings
+    languageSettings: 'Idioma',
+    selectYourLanguage: 'Selecciona tu idioma preferido',
   },
   fr: {
     // Brand
@@ -402,6 +472,12 @@ export const translations = {
     save: 'Enregistrer',
     back: 'Retour',
     of: 'sur',
+    all: 'Tout',
+    search: 'Rechercher',
+    post: 'Publier',
+    members: 'membres',
+    womenOnly: 'Femmes uniquement',
+    everyone: 'Tout le monde',
     
     // Greetings
     goodMorning: 'Bonjour',
@@ -582,11 +658,50 @@ export const translations = {
     quote2: 'Votre peau est le reflet de votre santé intérieure ✨',
     quote3: 'La nature sait mieux — faites confiance au processus 🌿',
     quote4: 'Petits pas aujourd\'hui, radieuse demain 💫',
+    
+    // Discover page
+    searchPlaceholder: 'Rechercher produits, ingrédients...',
+    match: 'correspondance',
+    
+    // Routine page
+    morning: 'Matin',
+    night: 'Nuit',
+    dayStreak: 'jours consécutifs',
+    steps: 'étapes',
+    pointsEarned: 'points gagnés ! Excellent travail pour avoir terminé votre routine',
+    morningRoutine: 'Routine du Matin',
+    nightRoutine: 'Routine du Soir',
+    earnPointsPerStep: 'Gagnez des points pour chaque étape',
+    perStepBonus: '+5 par étape, +15 bonus pour tout compléter !',
+    
+    // Community page
+    verified: 'vérifié',
+    
+    // Remedies page
+    naturalRemedies: 'Remèdes Naturels',
+    allNaturalRemedies: 'Remèdes naturels avec des ingrédients que vous pouvez trouver chez vous',
+    skinCategory: 'Peau',
+    hairCategory: 'Cheveux',
+    nutritionCategory: 'Nutrition',
+    
+    // Language settings
+    languageSettings: 'Langue',
+    selectYourLanguage: 'Sélectionnez votre langue préférée',
   },
 };
 
 export type TranslationKey = keyof typeof translations.en;
 
 export const getTranslation = (lang: Language, key: TranslationKey): string => {
-  return translations[lang][key] || translations.en[key] || key;
+  // First try the selected language
+  const translation = translations[lang]?.[key];
+  if (translation) return translation;
+  
+  // For Spanish, don't fall back to English immediately - this ensures Spanish stays consistent
+  if (lang === 'es') {
+    return translations.es[key] || key;
+  }
+  
+  // Fall back to English, then to the key itself
+  return translations.en[key] || key;
 };
