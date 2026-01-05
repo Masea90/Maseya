@@ -1,33 +1,56 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useUser } from '@/contexts/UserContext';
-import { Search, Heart, Filter, Star, Sparkles } from 'lucide-react';
+import { Search, Heart, Star, Sparkles, Crown, Users, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
-import { getRecommendations, tagTranslations, RecommendedProduct } from '@/lib/recommendations';
+import { 
+  getTopRecommendation, 
+  getProfileRecommendations, 
+  getCommunityPopular,
+  tagTranslations, 
+  RecommendedProduct 
+} from '@/lib/recommendations';
 import { TranslationKey } from '@/lib/i18n';
 
 const DiscoverPage = () => {
   const { t, user } = useUser();
-  const [activeCategory, setActiveCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [favorites, setFavorites] = useState<number[]>([]);
 
-  // Get personalized recommendations
-  const recommendations = getRecommendations(user, 8);
+  // Get personalized recommendations with rotation
+  const topPick = useMemo(() => getTopRecommendation(user), [user]);
+  const profilePicks = useMemo(() => getProfileRecommendations(user, 3), [user]);
+  
+  // Get IDs of products already shown to exclude from community section
+  const shownIds = useMemo(() => {
+    const ids: number[] = [];
+    if (topPick) ids.push(topPick.id);
+    profilePicks.forEach(p => ids.push(p.id));
+    return ids;
+  }, [topPick, profilePicks]);
+  
+  const communityPopular = useMemo(() => getCommunityPopular(2, shownIds), [shownIds]);
 
-  const categories = [
-    { key: 'All', label: t('all') },
-    { key: 'skin', label: t('skinCategory') },
-    { key: 'hair', label: t('hairCategory') },
-  ];
+  // Filter by search
+  const filterBySearch = (products: RecommendedProduct[]) => {
+    if (!searchQuery) return products;
+    return products.filter(p => 
+      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.brand.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  };
 
-  const filteredProducts = recommendations.filter(product => {
-    const matchesCategory = activeCategory === 'All' || product.category === activeCategory || product.category === 'both';
-    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.brand.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  const filteredTopPick = topPick && (
+    topPick.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    topPick.brand.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    !searchQuery
+  ) ? topPick : null;
+
+  const filteredProfilePicks = filterBySearch(profilePicks);
+  const filteredCommunityPicks = filterBySearch(communityPopular);
+
+  const hasResults = filteredTopPick || filteredProfilePicks.length > 0 || filteredCommunityPicks.length > 0;
 
   const toggleFavorite = (id: number) => {
     setFavorites(prev => prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]);
@@ -38,9 +61,17 @@ const DiscoverPage = () => {
     return translationKey ? t(translationKey) : tag;
   };
 
+  // Get the main concern this product solves for the user
+  const getSolvesText = (product: RecommendedProduct): string => {
+    if (product.matchReasons.length > 0) {
+      return t(product.matchReasons[0]);
+    }
+    return '';
+  };
+
   return (
     <AppLayout title={t('discover')}>
-      <div className="px-4 py-6 space-y-5 animate-fade-in">
+      <div className="px-4 py-6 space-y-6 animate-fade-in">
         {/* Search */}
         <div className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
@@ -49,61 +80,113 @@ const DiscoverPage = () => {
             placeholder={t('searchPlaceholder')}
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="w-full h-12 pl-12 pr-12 rounded-2xl bg-card border border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+            className="w-full h-12 pl-12 pr-4 rounded-2xl bg-card border border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
           />
-          <button className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-xl bg-secondary">
-            <Filter className="w-4 h-4 text-muted-foreground" />
-          </button>
         </div>
 
-        {/* Personalized Header */}
-        <div className="bg-gradient-to-r from-maseya-sage/20 to-maseya-cream/40 rounded-2xl p-4 border border-maseya-sage/30">
-          <div className="flex items-center gap-2 mb-1">
-            <Sparkles className="w-5 h-5 text-primary" />
-            <h2 className="font-display text-lg font-semibold text-foreground">
-              {t('recommendedForYou')}
-            </h2>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            {t('basedOnProfile')}
-          </p>
-        </div>
-
-        {/* Categories */}
-        <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
-          {categories.map(cat => (
-            <button
-              key={cat.key}
-              onClick={() => setActiveCategory(cat.key)}
-              className={cn(
-                'px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all',
-                activeCategory === cat.key
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
-              )}
-            >
-              {cat.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Products Grid */}
-        <div className="grid grid-cols-2 gap-3">
-          {filteredProducts.map(product => (
-            <ProductCard 
-              key={product.id}
-              product={product}
-              isFavorite={favorites.includes(product.id)}
-              onToggleFavorite={() => toggleFavorite(product.id)}
+        {/* Top Pick - Hero Section */}
+        {filteredTopPick && (
+          <section className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Crown className="w-5 h-5 text-amber-500" />
+                <h2 className="font-display text-lg font-semibold text-foreground">
+                  {t('topPickForYou')}
+                </h2>
+              </div>
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                {t('refreshesDaily')}
+              </span>
+            </div>
+            <p className="text-sm text-muted-foreground -mt-1">
+              {t('topPickSubtitle')}
+            </p>
+            
+            <TopPickCard 
+              product={filteredTopPick}
+              isFavorite={favorites.includes(filteredTopPick.id)}
+              onToggleFavorite={() => toggleFavorite(filteredTopPick.id)}
               t={t}
               getTagLabel={getTagLabel}
+              getSolvesText={getSolvesText}
             />
-          ))}
-        </div>
+          </section>
+        )}
 
-        {filteredProducts.length === 0 && (
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">{t('searchPlaceholder')}</p>
+        {/* Because of Your Profile Section */}
+        {filteredProfilePicks.length > 0 && (
+          <section className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-primary" />
+                <h2 className="font-display text-lg font-semibold text-foreground">
+                  {t('becauseOfProfile')}
+                </h2>
+              </div>
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                {t('refreshesDaily')}
+              </span>
+            </div>
+            <p className="text-sm text-muted-foreground -mt-1">
+              {t('becauseOfProfileSubtitle')}
+            </p>
+            
+            <div className="space-y-3">
+              {filteredProfilePicks.map(product => (
+                <ProfilePickCard 
+                  key={product.id}
+                  product={product}
+                  isFavorite={favorites.includes(product.id)}
+                  onToggleFavorite={() => toggleFavorite(product.id)}
+                  t={t}
+                  getTagLabel={getTagLabel}
+                  getSolvesText={getSolvesText}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Popular in Community Section */}
+        {filteredCommunityPicks.length > 0 && (
+          <section className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-maseya-rose" />
+                <h2 className="font-display text-lg font-semibold text-foreground">
+                  {t('popularInCommunity')}
+                </h2>
+              </div>
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                {t('refreshesWeekly')}
+              </span>
+            </div>
+            <p className="text-sm text-muted-foreground -mt-1">
+              {t('popularSubtitle')}
+            </p>
+            
+            <div className="grid grid-cols-2 gap-3">
+              {filteredCommunityPicks.map(product => (
+                <CommunityCard 
+                  key={product.id}
+                  product={product}
+                  isFavorite={favorites.includes(product.id)}
+                  onToggleFavorite={() => toggleFavorite(product.id)}
+                  t={t}
+                  getTagLabel={getTagLabel}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {!hasResults && (
+          <div className="text-center py-12">
+            <Search className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+            <p className="text-muted-foreground">{t('noProductsFound')}</p>
           </div>
         )}
       </div>
@@ -111,49 +194,197 @@ const DiscoverPage = () => {
   );
 };
 
-interface ProductCardProps {
+// Top Pick - Large hero card
+interface TopPickCardProps {
   product: RecommendedProduct;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
+  t: (key: TranslationKey) => string;
+  getTagLabel: (tag: string) => string;
+  getSolvesText: (product: RecommendedProduct) => string;
+}
+
+const TopPickCard = ({ product, isFavorite, onToggleFavorite, t, getTagLabel, getSolvesText }: TopPickCardProps) => {
+  const solvesText = getSolvesText(product);
+
+  return (
+    <Link
+      to={`/product/${product.id}`}
+      className="block bg-gradient-to-br from-maseya-cream to-maseya-sage/20 rounded-2xl overflow-hidden shadow-warm transition-all hover:shadow-warm-lg border border-maseya-sage/30"
+    >
+      <div className="flex gap-4 p-4">
+        {/* Product Image */}
+        <div className="w-28 h-28 flex-shrink-0 bg-white rounded-xl overflow-hidden">
+          <img 
+            src={product.image} 
+            alt={product.name}
+            className="w-full h-full object-cover"
+          />
+        </div>
+        
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="text-xs text-muted-foreground font-medium">{product.brand}</p>
+              <h3 className="font-display font-semibold text-foreground line-clamp-2">
+                {product.name}
+              </h3>
+            </div>
+            <button
+              onClick={e => {
+                e.preventDefault();
+                onToggleFavorite();
+              }}
+              className="p-2 rounded-full bg-background/80 backdrop-blur-sm transition-all flex-shrink-0"
+            >
+              <Heart
+                className={cn(
+                  'w-5 h-5 transition-colors',
+                  isFavorite ? 'fill-maseya-rose text-maseya-rose' : 'text-muted-foreground'
+                )}
+              />
+            </button>
+          </div>
+          
+          {/* Match Score */}
+          <div className="flex items-center gap-2 mt-2">
+            <div className="bg-primary text-primary-foreground text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1">
+              <Star className="w-3 h-3" />
+              {product.matchScore}% match
+            </div>
+            <span className="text-sm font-medium text-foreground">{product.price}</span>
+          </div>
+          
+          {/* Solves concern */}
+          {solvesText && (
+            <p className="text-sm text-primary mt-2 font-medium">
+              ✨ {solvesText}
+            </p>
+          )}
+          
+          {/* Tags */}
+          <div className="flex flex-wrap gap-1 mt-2">
+            {product.tags.slice(0, 3).map(tag => (
+              <span
+                key={tag}
+                className="text-[10px] px-2 py-0.5 bg-maseya-sage/40 text-foreground rounded-full"
+              >
+                {getTagLabel(tag)}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+};
+
+// Profile-based pick - Horizontal list card
+interface ProfilePickCardProps {
+  product: RecommendedProduct;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
+  t: (key: TranslationKey) => string;
+  getTagLabel: (tag: string) => string;
+  getSolvesText: (product: RecommendedProduct) => string;
+}
+
+const ProfilePickCard = ({ product, isFavorite, onToggleFavorite, t, getTagLabel, getSolvesText }: ProfilePickCardProps) => {
+  const solvesText = getSolvesText(product);
+
+  return (
+    <Link
+      to={`/product/${product.id}`}
+      className="flex gap-3 bg-card rounded-xl p-3 shadow-warm transition-all hover:shadow-warm-lg border border-border"
+    >
+      {/* Product Image */}
+      <div className="w-20 h-20 flex-shrink-0 bg-white rounded-lg overflow-hidden">
+        <img 
+          src={product.image} 
+          alt={product.name}
+          className="w-full h-full object-cover"
+        />
+      </div>
+      
+      {/* Content */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-xs text-muted-foreground">{product.brand}</p>
+            <h3 className="font-medium text-sm text-foreground line-clamp-1">
+              {product.name}
+            </h3>
+          </div>
+          <button
+            onClick={e => {
+              e.preventDefault();
+              onToggleFavorite();
+            }}
+            className="p-1.5 rounded-full bg-secondary transition-all flex-shrink-0"
+          >
+            <Heart
+              className={cn(
+                'w-4 h-4 transition-colors',
+                isFavorite ? 'fill-maseya-rose text-maseya-rose' : 'text-muted-foreground'
+              )}
+            />
+          </button>
+        </div>
+        
+        {/* Solves concern - the key selling point */}
+        {solvesText && (
+          <p className="text-xs text-primary mt-1 font-medium line-clamp-1">
+            ✨ {solvesText}
+          </p>
+        )}
+        
+        {/* Price and match */}
+        <div className="flex items-center justify-between mt-2">
+          <div className="flex items-center gap-1.5">
+            <Star className="w-3 h-3 text-primary" />
+            <span className="text-xs text-muted-foreground">{product.matchScore}%</span>
+          </div>
+          <span className="text-sm font-semibold text-foreground">{product.price}</span>
+        </div>
+      </div>
+    </Link>
+  );
+};
+
+// Community popular - Grid card
+interface CommunityCardProps {
+  product: RecommendedProduct & { communityUsers?: number };
   isFavorite: boolean;
   onToggleFavorite: () => void;
   t: (key: TranslationKey) => string;
   getTagLabel: (tag: string) => string;
 }
 
-const ProductCard = ({ product, isFavorite, onToggleFavorite, t, getTagLabel }: ProductCardProps) => {
-  // Get the first match reason as the card subtitle
-  const mainReason = product.matchReasons[0] ? t(product.matchReasons[0]) : '';
-
+const CommunityCard = ({ product, isFavorite, onToggleFavorite, t, getTagLabel }: CommunityCardProps) => {
   return (
     <Link
       to={`/product/${product.id}`}
-      className="bg-card rounded-2xl p-4 shadow-warm transition-all hover:shadow-warm-lg relative group"
+      className="bg-card rounded-2xl p-3 shadow-warm transition-all hover:shadow-warm-lg relative border border-border"
     >
-      {/* Match Badge */}
-      <div className="absolute top-3 left-3 bg-primary text-primary-foreground text-xs font-medium px-2 py-1 rounded-full flex items-center gap-1">
-        <Star className="w-3 h-3" />
-        {product.matchScore}%
-      </div>
-
       {/* Favorite Button */}
       <button
         onClick={e => {
           e.preventDefault();
           onToggleFavorite();
         }}
-        className="absolute top-3 right-3 p-1.5 rounded-full bg-background/80 backdrop-blur-sm transition-all"
+        className="absolute top-2 right-2 p-1.5 rounded-full bg-background/80 backdrop-blur-sm transition-all z-10"
       >
         <Heart
           className={cn(
             'w-4 h-4 transition-colors',
-            isFavorite
-              ? 'fill-maseya-rose text-maseya-rose'
-              : 'text-muted-foreground'
+            isFavorite ? 'fill-maseya-rose text-maseya-rose' : 'text-muted-foreground'
           )}
         />
       </button>
 
       {/* Product Image */}
-      <div className="w-full aspect-square bg-white rounded-xl flex items-center justify-center overflow-hidden mb-3">
+      <div className="w-full aspect-square bg-white rounded-xl flex items-center justify-center overflow-hidden mb-2">
         <img 
           src={product.image} 
           alt={product.name}
@@ -167,23 +398,20 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite, t, getTagLabel }: 
         {product.name}
       </h3>
 
-      {/* Match Reason */}
-      {mainReason && (
-        <p className="text-xs text-primary mb-2 line-clamp-1">
-          ✨ {mainReason}
-        </p>
-      )}
+      {/* Community social proof */}
+      <div className="flex items-center gap-1 text-xs text-maseya-rose mb-2">
+        <Users className="w-3 h-3" />
+        <span>{product.communityUsers || 200}+ {t('usersUsing')}</span>
+      </div>
 
-      {/* Tags */}
-      <div className="flex flex-wrap gap-1">
-        {product.tags.slice(0, 2).map(tag => (
-          <span
-            key={tag}
-            className="text-[10px] px-2 py-0.5 bg-maseya-sage/30 text-foreground rounded-full"
-          >
-            {getTagLabel(tag)}
+      {/* Price and tags */}
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-semibold text-foreground">{product.price}</span>
+        {product.tags[0] && (
+          <span className="text-[10px] px-2 py-0.5 bg-maseya-sage/30 text-foreground rounded-full">
+            {getTagLabel(product.tags[0])}
           </span>
-        ))}
+        )}
       </div>
     </Link>
   );

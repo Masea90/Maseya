@@ -299,6 +299,59 @@ export const getRecommendations = (user: UserProfile, limit: number = 6): Recomm
   return recommendations;
 };
 
+// Get top recommendation (highest match)
+export const getTopRecommendation = (user: UserProfile): RecommendedProduct | null => {
+  const recommendations = getRecommendations(user, 1);
+  return recommendations[0] || null;
+};
+
+// Get profile-based recommendations (skin/hair specific, rotates daily)
+export const getProfileRecommendations = (user: UserProfile, limit: number = 3): RecommendedProduct[] => {
+  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
+  
+  const allRecs = productCatalog
+    .map(product => ({
+      ...product,
+      matchScore: calculateMatchScore(product, user),
+      matchReasons: getMatchReasons(product, user),
+    }))
+    .filter(p => p.matchScore >= 50 && p.matchReasons.length > 0)
+    .sort((a, b) => b.matchScore - a.matchScore);
+
+  // Skip top pick and rotate based on day
+  const offset = dayOfYear % Math.max(1, allRecs.length - 1);
+  const pool = allRecs.slice(1);
+  const rotated = [...pool.slice(offset), ...pool.slice(0, offset)];
+  
+  return rotated.slice(0, limit);
+};
+
+// Get community popular products (rotates weekly, excludes provided IDs)
+export const getCommunityPopular = (limit: number = 2, excludeIds: number[] = []): RecommendedProduct[] => {
+  const weekOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 604800000);
+  
+  // Deterministic community user counts based on product ID
+  const communityUserCounts: Record<number, number> = {
+    1: 486, 2: 312, 3: 528, 4: 445, 5: 367, 6: 289, 7: 412, 8: 234, 9: 378
+  };
+
+  // Filter out excluded products and simulate community popularity
+  const popularProducts = productCatalog
+    .filter(p => !excludeIds.includes(p.id))
+    .map((product, index) => ({
+      ...product,
+      matchScore: 85 - (index * 5), // Simulated popularity
+      matchReasons: [] as TranslationKey[],
+      communityUsers: communityUserCounts[product.id] || 200,
+    }));
+
+  // Rotate based on week
+  const offset = weekOfYear % Math.max(1, popularProducts.length);
+  const rotated = [...popularProducts.slice(offset), ...popularProducts.slice(0, offset)];
+  
+  return rotated.slice(0, limit);
+};
+
 // Get product by ID with user-specific match info
 export const getProductWithMatch = (productId: number, user: UserProfile): RecommendedProduct | null => {
   const product = productCatalog.find(p => p.id === productId);
