@@ -1,14 +1,18 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Language, getTranslation, TranslationKey } from '@/lib/i18n';
+import { useAuth } from './AuthContext';
 
-const LANGUAGE_STORAGE_KEY = 'maseya-language';
-const USER_STORAGE_KEY = 'maseya-user';
+const getUserStorageKey = (userId: string) => `maseya-user-${userId}`;
 
-const getStoredLanguage = (): Language => {
+const getStoredLanguage = (userId: string | null): Language => {
+  if (!userId) return 'en';
   try {
-    const stored = localStorage.getItem(LANGUAGE_STORAGE_KEY);
-    if (stored && ['en', 'es', 'fr'].includes(stored)) {
-      return stored as Language;
+    const stored = localStorage.getItem(getUserStorageKey(userId));
+    if (stored) {
+      const user = JSON.parse(stored);
+      if (user.language && ['en', 'es', 'fr'].includes(user.language)) {
+        return user.language;
+      }
     }
   } catch (e) {
     console.warn('Failed to read language from localStorage');
@@ -16,9 +20,10 @@ const getStoredLanguage = (): Language => {
   return 'en';
 };
 
-const getStoredUser = (): Partial<UserProfile> => {
+const getStoredUser = (userId: string | null): Partial<UserProfile> => {
+  if (!userId) return {};
   try {
-    const stored = localStorage.getItem(USER_STORAGE_KEY);
+    const stored = localStorage.getItem(getUserStorageKey(userId));
     if (stored) {
       return JSON.parse(stored);
     }
@@ -70,17 +75,17 @@ const getTodayDateString = (): string => {
   return new Date().toISOString().split('T')[0];
 };
 
-const createDefaultUser = (): UserProfile => ({
-  name: 'Asmae',
+const createDefaultUser = (email?: string): UserProfile => ({
+  name: email?.split('@')[0] || 'Guest',
   skinConcerns: [],
   hairType: '',
   hairConcerns: [],
   goals: [],
   isPremium: false,
-  points: 245,
-  streak: 5,
+  points: 0,
+  streak: 0,
   onboardingComplete: false,
-  language: getStoredLanguage(),
+  language: 'en',
   routineCompletion: {
     morning: [],
     night: [],
@@ -138,9 +143,12 @@ const calculateGlowScores = (user: UserProfile): GlowScores => {
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export const UserProvider = ({ children }: { children: ReactNode }) => {
+  const { currentUser } = useAuth();
+  const userId = currentUser?.id || null;
+
   const [user, setUser] = useState<UserProfile>(() => {
-    const defaultUser = createDefaultUser();
-    const storedUser = getStoredUser();
+    const defaultUser = createDefaultUser(currentUser?.email);
+    const storedUser = getStoredUser(userId);
     const mergedUser = { ...defaultUser, ...storedUser };
     
     // Reset routine completion if it's a new day
@@ -155,15 +163,33 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     return mergedUser;
   });
 
-  // Persist user data to localStorage
+  // Reload user data when auth user changes
   useEffect(() => {
+    const defaultUser = createDefaultUser(currentUser?.email);
+    const storedUser = getStoredUser(userId);
+    const mergedUser = { ...defaultUser, ...storedUser };
+    
+    // Reset routine completion if it's a new day
+    if (mergedUser.routineCompletion?.lastCompletedDate !== getTodayDateString()) {
+      mergedUser.routineCompletion = {
+        morning: [],
+        night: [],
+        lastCompletedDate: null,
+      };
+    }
+    
+    setUser(mergedUser);
+  }, [userId, currentUser?.email]);
+
+  // Persist user data to localStorage (per user)
+  useEffect(() => {
+    if (!userId) return;
     try {
-      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
-      localStorage.setItem(LANGUAGE_STORAGE_KEY, user.language);
+      localStorage.setItem(getUserStorageKey(userId), JSON.stringify(user));
     } catch (e) {
       console.warn('Failed to save user to localStorage');
     }
-  }, [user]);
+  }, [user, userId]);
 
   const updateUser = (updates: Partial<UserProfile>) => {
     setUser(prev => ({ ...prev, ...updates }));

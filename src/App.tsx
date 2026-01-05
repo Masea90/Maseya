@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { UserProvider, useUser } from "@/contexts/UserContext";
 import { Chatbot } from "@/components/chat/Chatbot";
 
@@ -31,7 +32,18 @@ import NotFound from "@/pages/NotFound";
  * Must be rendered inside UserProvider
  */
 function AppRoutes() {
+  const { isAuthenticated } = useAuth();
   const { user } = useUser();
+
+  // Not authenticated -> show login
+  if (!isAuthenticated) {
+    return (
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    );
+  }
 
   return (
     <>
@@ -41,7 +53,6 @@ function AppRoutes() {
         <Route path="/onboarding/language" element={<LanguageSelect />} />
         <Route path="/onboarding/quiz" element={<OnboardingQuiz />} />
         <Route path="/onboarding/premium" element={<PremiumScreen />} />
-        <Route path="/login" element={<LoginPage />} />
         
         {/* Main App */}
         <Route path="/home" element={<HomePage />} />
@@ -73,15 +84,17 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <UserProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <AppRoutes />
-          </BrowserRouter>
-        </TooltipProvider>
-      </UserProvider>
+      <AuthProvider>
+        <UserProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <AppRoutes />
+            </BrowserRouter>
+          </TooltipProvider>
+        </UserProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

@@ -1,5 +1,6 @@
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useUser } from '@/contexts/UserContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { languages } from '@/lib/i18n';
 import { 
   ChevronRight, 
@@ -12,9 +13,10 @@ import {
   HelpCircle,
   LogOut,
   Camera,
-  Globe
+  Globe,
+  Mail
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
 const tierInfo = {
@@ -31,6 +33,9 @@ const getTier = (points: number) => {
 
 const ProfilePage = () => {
   const { user, t } = useUser();
+  const { currentUser, logout } = useAuth();
+  const navigate = useNavigate();
+  
   const tier = getTier(user.points);
   const tierData = tierInfo[tier];
   const progress = tier === 'gold' 
@@ -71,7 +76,13 @@ const ProfilePage = () => {
             👩🏻
           </div>
           <h1 className="font-display text-xl font-semibold">{user.name}</h1>
-          <p className="text-sm text-muted-foreground">{t('memberSince')} 2024</p>
+          {currentUser && (
+            <p className="text-sm text-muted-foreground flex items-center justify-center gap-1 mt-1">
+              <Mail className="w-3 h-3" />
+              {currentUser.email}
+            </p>
+          )}
+          <p className="text-xs text-muted-foreground mt-1">{t('memberSince')} 2024</p>
           
           <Link
             to="/profile/edit"
@@ -161,7 +172,13 @@ const ProfilePage = () => {
         </div>
 
         {/* Logout */}
-        <button className="w-full flex items-center justify-center gap-2 p-4 text-destructive hover:bg-destructive/10 rounded-2xl transition-colors">
+        <button 
+          onClick={() => {
+            logout();
+            navigate('/login');
+          }}
+          className="w-full flex items-center justify-center gap-2 p-4 text-destructive hover:bg-destructive/10 rounded-2xl transition-colors"
+        >
           <LogOut className="w-5 h-5" />
           <span className="font-medium">{t('logOut')}</span>
         </button>
