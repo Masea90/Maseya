@@ -83,6 +83,7 @@ function AppRoutes() {
  * App - Root component with all providers
  * AuthProvider must wrap UserProvider since UserProvider uses useAuth
  */
+// Main App component - providers must be in this exact order
 function App() {
   const [queryClient] = useState(() => new QueryClient());
 

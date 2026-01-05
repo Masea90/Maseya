@@ -235,6 +235,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
+// Hook to access user context - must be used within UserProvider
 export const useUser = () => {
   const context = useContext(UserContext);
   if (!context) {
