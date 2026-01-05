@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Sparkles, Target, Compass } from "lucide-react";
+import { Sparkles, Target, Compass, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/contexts/UserContext";
 import { cn } from "@/lib/utils";
@@ -22,9 +22,14 @@ const steps: {
     descriptionKey: "guideStep2Desc",
   },
   {
-    icon: Compass,
+    icon: Users,
     titleKey: "guideStep3Title",
     descriptionKey: "guideStep3Desc",
+  },
+  {
+    icon: Compass,
+    titleKey: "guideStep4Title",
+    descriptionKey: "guideStep4Desc",
   },
 ];
 
