@@ -28,6 +28,12 @@ const getStoredUser = (): Partial<UserProfile> => {
   return {};
 };
 
+export interface RoutineCompletion {
+  morning: number[];
+  night: number[];
+  lastCompletedDate: string | null;
+}
+
 export interface UserProfile {
   name: string;
   skinConcerns: string[];
@@ -44,6 +50,7 @@ export interface UserProfile {
   };
   onboardingComplete: boolean;
   language: Language;
+  routineCompletion: RoutineCompletion;
 }
 
 interface UserContextType {
@@ -52,7 +59,12 @@ interface UserContextType {
   completeOnboarding: () => void;
   t: (key: TranslationKey) => string;
   setLanguage: (lang: Language) => void;
+  updateRoutineCompletion: (completion: RoutineCompletion) => void;
 }
+
+const getTodayDateString = (): string => {
+  return new Date().toISOString().split('T')[0];
+};
 
 const createDefaultUser = (): UserProfile => ({
   name: 'Asmae',
@@ -70,6 +82,11 @@ const createDefaultUser = (): UserProfile => ({
   },
   onboardingComplete: false,
   language: getStoredLanguage(),
+  routineCompletion: {
+    morning: [],
+    night: [],
+    lastCompletedDate: null,
+  },
 });
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -78,7 +95,18 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<UserProfile>(() => {
     const defaultUser = createDefaultUser();
     const storedUser = getStoredUser();
-    return { ...defaultUser, ...storedUser };
+    const mergedUser = { ...defaultUser, ...storedUser };
+    
+    // Reset routine completion if it's a new day
+    if (mergedUser.routineCompletion?.lastCompletedDate !== getTodayDateString()) {
+      mergedUser.routineCompletion = {
+        morning: [],
+        night: [],
+        lastCompletedDate: null,
+      };
+    }
+    
+    return mergedUser;
   });
 
   // Persist user data to localStorage
@@ -107,8 +135,25 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     setUser(prev => ({ ...prev, language: lang }));
   };
 
+  const updateRoutineCompletion = (completion: RoutineCompletion) => {
+    setUser(prev => ({
+      ...prev,
+      routineCompletion: {
+        ...completion,
+        lastCompletedDate: getTodayDateString(),
+      },
+    }));
+  };
+
   return (
-    <UserContext.Provider value={{ user, updateUser, completeOnboarding, t, setLanguage }}>
+    <UserContext.Provider value={{ 
+      user, 
+      updateUser, 
+      completeOnboarding, 
+      t, 
+      setLanguage,
+      updateRoutineCompletion,
+    }}>
       {children}
     </UserContext.Provider>
   );

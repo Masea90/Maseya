@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { useUser } from '@/contexts/UserContext';
+import { useUser, RoutineCompletion } from '@/contexts/UserContext';
 import { Check, Sun, Moon, Flame, Gift } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { TranslationKey } from '@/lib/i18n';
+import { useState } from 'react';
 
 type TimeOfDay = 'morning' | 'night';
 
@@ -35,35 +36,40 @@ const routineData: Record<TimeOfDay, RoutineStep[]> = {
 };
 
 const RoutinePage = () => {
-  const { user, updateUser, t } = useUser();
+  const { user, updateUser, updateRoutineCompletion, t } = useUser();
   const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>('morning');
-  const [completed, setCompleted] = useState<Record<TimeOfDay, number[]>>({
-    morning: [],
-    night: [],
-  });
+  
+  // Use persisted routine completion from user context
+  const completed = user.routineCompletion || { morning: [], night: [], lastCompletedDate: null };
 
   const currentRoutine = routineData[timeOfDay];
-  const completedCount = completed[timeOfDay].length;
+  const completedCount = completed[timeOfDay]?.length || 0;
   const totalSteps = currentRoutine.length;
   const progress = (completedCount / totalSteps) * 100;
 
   const toggleStep = (stepId: number) => {
-    setCompleted(prev => {
-      const current = prev[timeOfDay];
-      const updated = current.includes(stepId)
-        ? current.filter(id => id !== stepId)
-        : [...current, stepId];
-      
-      // Award points when completing a step
-      if (!current.includes(stepId)) {
-        updateUser({ points: user.points + 5 });
-      }
-      
-      return { ...prev, [timeOfDay]: updated };
-    });
+    const current = completed[timeOfDay] || [];
+    const isCurrentlyCompleted = current.includes(stepId);
+    
+    const updatedTimeOfDay = isCurrentlyCompleted
+      ? current.filter(id => id !== stepId)
+      : [...current, stepId];
+    
+    const newCompletion: RoutineCompletion = {
+      ...completed,
+      [timeOfDay]: updatedTimeOfDay,
+      lastCompletedDate: completed.lastCompletedDate,
+    };
+    
+    // Award points when completing a step (not when uncompleting)
+    if (!isCurrentlyCompleted) {
+      updateUser({ points: user.points + 5 });
+    }
+    
+    updateRoutineCompletion(newCompletion);
   };
 
-  const isCompleted = (stepId: number) => completed[timeOfDay].includes(stepId);
+  const isCompleted = (stepId: number) => (completed[timeOfDay] || []).includes(stepId);
   const allCompleted = completedCount === totalSteps;
 
   return (
