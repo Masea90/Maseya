@@ -1,15 +1,16 @@
-import { useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useUser, RoutineCompletion } from '@/contexts/UserContext';
-import { Check, Sun, Moon, Flame, Gift } from 'lucide-react';
+import { Check, Sun, Moon, Flame, Gift, RotateCcw } from 'lucide-react';
+import type { TranslationKey } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
-import { TranslationKey } from '@/lib/i18n';
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
+import { RoutineEditor, CustomStep } from '@/components/routine/RoutineEditor';
+import { toast } from 'sonner';
 
 type TimeOfDay = 'morning' | 'night';
 
-interface RoutineStep {
+interface DefaultRoutineStep {
   id: number;
   stepKey: TranslationKey;
   productKey: TranslationKey;
@@ -17,7 +18,7 @@ interface RoutineStep {
   durationKey: TranslationKey;
 }
 
-const routineData: Record<TimeOfDay, RoutineStep[]> = {
+const defaultRoutineData: Record<TimeOfDay, DefaultRoutineStep[]> = {
   morning: [
     { id: 1, stepKey: 'stepCleanser', productKey: 'productGentleCleanser', emoji: '🧴', durationKey: 'duration1Min' },
     { id: 2, stepKey: 'stepToner', productKey: 'productRoseWaterToner', emoji: '🌹', durationKey: 'duration30Sec' },
@@ -35,42 +36,117 @@ const routineData: Record<TimeOfDay, RoutineStep[]> = {
   ],
 };
 
+// Convert default steps to CustomStep format
+const defaultToCustomSteps = (defaults: DefaultRoutineStep[]): CustomStep[] =>
+  defaults.map(step => ({
+    id: `default-${step.id}`,
+    label: '',
+    product: '',
+    emoji: step.emoji,
+    duration: '',
+    isDefault: true,
+    defaultStepKey: step.stepKey,
+    defaultProductKey: step.productKey,
+    defaultDurationKey: step.durationKey,
+  }));
+
 const RoutinePage = () => {
-  const { user, updateUser, updateRoutineCompletion, t } = useUser();
+  const { user, updateUser, updateRoutineCompletion, saveCustomRoutine, t } = useUser();
   const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>('morning');
-  
-  // Use persisted routine completion from user context
+
   const completed = user.routineCompletion || { morning: [], night: [], lastCompletedDate: null };
 
-  const currentRoutine = routineData[timeOfDay];
-  const completedCount = completed[timeOfDay]?.length || 0;
-  const totalSteps = currentRoutine.length;
-  const progress = (completedCount / totalSteps) * 100;
+  // Get the current steps (custom or default)
+  const currentSteps = useMemo((): CustomStep[] => {
+    const customRoutine = user.customRoutine;
+    if (customRoutine && customRoutine[timeOfDay] && customRoutine[timeOfDay].length > 0) {
+      return customRoutine[timeOfDay];
+    }
+    return defaultToCustomSteps(defaultRoutineData[timeOfDay]);
+  }, [user.customRoutine, timeOfDay]);
 
-  const toggleStep = (stepId: number) => {
-    const current = completed[timeOfDay] || [];
+  const isCustomized = useMemo(() => {
+    const customRoutine = user.customRoutine;
+    return !!(customRoutine && customRoutine[timeOfDay] && customRoutine[timeOfDay].length > 0);
+  }, [user.customRoutine, timeOfDay]);
+
+  const completedCount = completed[timeOfDay]?.length || 0;
+  const totalSteps = currentSteps.length;
+  const progress = totalSteps > 0 ? (completedCount / totalSteps) * 100 : 0;
+
+  const toggleStep = (stepId: string) => {
+    const current = (completed[timeOfDay] || []) as unknown as string[];
     const isCurrentlyCompleted = current.includes(stepId);
-    
+
     const updatedTimeOfDay = isCurrentlyCompleted
       ? current.filter(id => id !== stepId)
       : [...current, stepId];
-    
+
     const newCompletion: RoutineCompletion = {
       ...completed,
-      [timeOfDay]: updatedTimeOfDay,
+      [timeOfDay]: updatedTimeOfDay as unknown as number[],
       lastCompletedDate: completed.lastCompletedDate,
     };
-    
-    // Award points when completing a step (not when uncompleting)
+
     if (!isCurrentlyCompleted) {
       updateUser({ points: user.points + 5 });
     }
-    
+
     updateRoutineCompletion(newCompletion);
   };
 
-  const isCompleted = (stepId: number) => (completed[timeOfDay] || []).includes(stepId);
-  const allCompleted = completedCount === totalSteps;
+  const isCompleted = (stepId: string) => {
+    const current = (completed[timeOfDay] || []) as unknown as string[];
+    return current.includes(stepId);
+  };
+
+  const allCompleted = completedCount === totalSteps && totalSteps > 0;
+
+  const handleSaveRoutine = useCallback((steps: CustomStep[]) => {
+    const currentCustom = user.customRoutine || { morning: [], night: [] };
+    const updatedRoutine = {
+      ...currentCustom,
+      [timeOfDay]: steps,
+    };
+    saveCustomRoutine(updatedRoutine);
+
+    // Reset completion for this time of day since steps changed
+    const newCompletion: RoutineCompletion = {
+      ...completed,
+      [timeOfDay]: [],
+      lastCompletedDate: completed.lastCompletedDate,
+    };
+    updateRoutineCompletion(newCompletion);
+
+    toast.success(t('customRoutineSaved'));
+  }, [user.customRoutine, timeOfDay, completed, saveCustomRoutine, updateRoutineCompletion, t]);
+
+  const handleResetToDefault = useCallback(() => {
+    const currentCustom = user.customRoutine || { morning: [], night: [] };
+    const updatedRoutine = {
+      ...currentCustom,
+      [timeOfDay]: [],
+    };
+    saveCustomRoutine(updatedRoutine);
+
+    const newCompletion: RoutineCompletion = {
+      ...completed,
+      [timeOfDay]: [],
+      lastCompletedDate: completed.lastCompletedDate,
+    };
+    updateRoutineCompletion(newCompletion);
+
+    toast.success(t('customRoutineSaved'));
+  }, [user.customRoutine, timeOfDay, completed, saveCustomRoutine, updateRoutineCompletion, t]);
+
+  const getStepLabel = (step: CustomStep) =>
+    step.isDefault && step.defaultStepKey ? t(step.defaultStepKey as TranslationKey) : step.label;
+
+  const getStepProduct = (step: CustomStep) =>
+    step.isDefault && step.defaultProductKey ? t(step.defaultProductKey as TranslationKey) : step.product;
+
+  const getStepDuration = (step: CustomStep) =>
+    step.isDefault && step.defaultDurationKey ? t(step.defaultDurationKey as TranslationKey) : step.duration;
 
   return (
     <AppLayout title={t('routineNav')}>
@@ -123,59 +199,76 @@ const RoutinePage = () => {
           )}
         </div>
 
-        {/* Steps */}
-        <div className="space-y-3">
+        {/* Steps Header + Edit */}
+        <div className="flex items-center justify-between">
           <h2 className="font-display text-lg font-semibold">
             {timeOfDay === 'morning' ? '☀️' : '🌙'} {timeOfDay === 'morning' ? t('morningRoutine') : t('nightRoutine')}
           </h2>
-          
-          <div className="space-y-2">
-            {currentRoutine.map((step) => (
+          <div className="flex items-center gap-2">
+            {isCustomized && (
               <button
-                key={step.id}
-                onClick={() => toggleStep(step.id)}
+                onClick={handleResetToDefault}
+                className="p-2 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
+                title={t('resetToDefault')}
+              >
+                <RotateCcw className="w-4 h-4 text-muted-foreground" />
+              </button>
+            )}
+            <RoutineEditor
+              timeOfDay={timeOfDay}
+              steps={currentSteps}
+              onSave={handleSaveRoutine}
+            />
+          </div>
+        </div>
+
+        {/* Steps */}
+        <div className="space-y-2">
+          {currentSteps.map((step) => (
+            <button
+              key={step.id}
+              onClick={() => toggleStep(step.id)}
+              className={cn(
+                'w-full flex items-center gap-4 p-4 rounded-2xl border transition-all text-left',
+                isCompleted(step.id)
+                  ? 'bg-glow-hair/10 border-glow-hair/30'
+                  : 'bg-card border-border hover:border-primary/50'
+              )}
+            >
+              {/* Checkbox */}
+              <div
                 className={cn(
-                  'w-full flex items-center gap-4 p-4 rounded-2xl border transition-all text-left',
+                  'w-7 h-7 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all',
                   isCompleted(step.id)
-                    ? 'bg-glow-hair/10 border-glow-hair/30'
-                    : 'bg-card border-border hover:border-primary/50'
+                    ? 'bg-glow-hair border-glow-hair'
+                    : 'border-muted-foreground/30'
                 )}
               >
-                {/* Checkbox */}
-                <div
-                  className={cn(
-                    'w-7 h-7 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all',
-                    isCompleted(step.id)
-                      ? 'bg-glow-hair border-glow-hair'
-                      : 'border-muted-foreground/30'
-                  )}
-                >
-                  {isCompleted(step.id) && (
-                    <Check className="w-4 h-4 text-white" />
-                  )}
-                </div>
+                {isCompleted(step.id) && (
+                  <Check className="w-4 h-4 text-white" />
+                )}
+              </div>
 
-                {/* Icon */}
-                <span className="text-2xl">{step.emoji}</span>
+              {/* Icon */}
+              <span className="text-2xl">{step.emoji}</span>
 
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <p className={cn(
-                    'font-medium transition-all',
-                    isCompleted(step.id) && 'line-through text-muted-foreground'
-                  )}>
-                    {t(step.stepKey)}
-                  </p>
-                  <p className="text-sm text-muted-foreground truncate">
-                    {t(step.productKey)}
-                  </p>
-                </div>
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <p className={cn(
+                  'font-medium transition-all',
+                  isCompleted(step.id) && 'line-through text-muted-foreground'
+                )}>
+                  {getStepLabel(step)}
+                </p>
+                <p className="text-sm text-muted-foreground truncate">
+                  {getStepProduct(step)}
+                </p>
+              </div>
 
-                {/* Duration */}
-                <span className="text-xs text-muted-foreground">{t(step.durationKey)}</span>
-              </button>
-            ))}
-          </div>
+              {/* Duration */}
+              <span className="text-xs text-muted-foreground">{getStepDuration(step)}</span>
+            </button>
+          ))}
         </div>
 
         {/* Points Info */}

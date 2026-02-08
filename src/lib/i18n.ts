@@ -227,6 +227,15 @@ export const translations = {
     earnPointsPerStep: 'Earn points for each step',
     perStepBonus: '+5 per step, +15 bonus for completing all!',
     
+    // Routine customization
+    editRoutine: 'Edit Routine',
+    addStep: 'Add Step',
+    saveRoutine: 'Save Routine',
+    stepName: 'Step name (e.g. Mask)',
+    productName: 'Product name (optional)',
+    customRoutineSaved: 'Routine saved!',
+    resetToDefault: 'Reset to default',
+    
     // Routine steps - Morning
     stepCleanser: 'Cleanser',
     stepToner: 'Toner',
@@ -707,6 +716,15 @@ export const translations = {
     earnPointsPerStep: 'Gana puntos por cada paso',
     perStepBonus: '+5 por paso, +15 de bonificación por completar todo',
     
+    // Routine customization
+    editRoutine: 'Editar rutina',
+    addStep: 'Añadir paso',
+    saveRoutine: 'Guardar rutina',
+    stepName: 'Nombre del paso (ej. Mascarilla)',
+    productName: 'Nombre del producto (opcional)',
+    customRoutineSaved: '¡Rutina guardada!',
+    resetToDefault: 'Restablecer por defecto',
+    
     // Routine steps - Morning
     stepCleanser: 'Limpiador',
     stepToner: 'Tónico',
@@ -1186,6 +1204,15 @@ export const translations = {
     nightRoutine: 'Routine du Soir',
     earnPointsPerStep: 'Gagnez des points pour chaque étape',
     perStepBonus: '+5 par étape, +15 bonus pour tout compléter !',
+    
+    // Routine customization
+    editRoutine: 'Modifier la routine',
+    addStep: 'Ajouter une étape',
+    saveRoutine: 'Enregistrer la routine',
+    stepName: 'Nom de l\'étape (ex. Masque)',
+    productName: 'Nom du produit (optionnel)',
+    customRoutineSaved: 'Routine enregistrée !',
+    resetToDefault: 'Réinitialiser par défaut',
     
     // Routine steps - Morning
     stepCleanser: 'Nettoyant',

@@ -192,6 +192,7 @@ export type Database = {
           consent_personalization: boolean | null
           country: string | null
           created_at: string | null
+          custom_routine: Json | null
           email_confirmed: boolean | null
           first_routine_completed: boolean | null
           goals: string[] | null
@@ -220,6 +221,7 @@ export type Database = {
           consent_personalization?: boolean | null
           country?: string | null
           created_at?: string | null
+          custom_routine?: Json | null
           email_confirmed?: boolean | null
           first_routine_completed?: boolean | null
           goals?: string[] | null
@@ -248,6 +250,7 @@ export type Database = {
           consent_personalization?: boolean | null
           country?: string | null
           created_at?: string | null
+          custom_routine?: Json | null
           email_confirmed?: boolean | null
           first_routine_completed?: boolean | null
           goals?: string[] | null

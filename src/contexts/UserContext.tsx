@@ -9,6 +9,23 @@ export interface RoutineCompletion {
   lastCompletedDate: string | null;
 }
 
+export interface CustomRoutineStep {
+  id: string;
+  label: string;
+  product: string;
+  emoji: string;
+  duration: string;
+  isDefault?: boolean;
+  defaultStepKey?: string;
+  defaultProductKey?: string;
+  defaultDurationKey?: string;
+}
+
+export interface CustomRoutineData {
+  morning: CustomRoutineStep[];
+  night: CustomRoutineStep[];
+}
+
 export interface UserProfile {
   name: string;
   nickname: string;
@@ -37,6 +54,8 @@ export interface UserProfile {
   consentAnalytics: boolean;
   consentPersonalization: boolean;
   consentDate: string | null;
+  // Custom routine
+  customRoutine: CustomRoutineData | null;
 }
 
 interface GlowScores {
@@ -54,6 +73,7 @@ interface UserContextType {
   t: (key: TranslationKey) => string;
   setLanguage: (lang: Language) => void;
   updateRoutineCompletion: (completion: RoutineCompletion) => void;
+  saveCustomRoutine: (routine: CustomRoutineData) => void;
   glowScore: GlowScores;
   isLoading: boolean;
 }
@@ -94,6 +114,8 @@ const createDefaultUser = (email?: string): UserProfile => ({
   consentAnalytics: false,
   consentPersonalization: false,
   consentDate: null,
+  // Custom routine
+  customRoutine: null,
 });
 
 // Calculate dynamic glow scores based on user actions
@@ -197,6 +219,8 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
             consentAnalytics: (data as Record<string, unknown>).consent_analytics as boolean || false,
             consentPersonalization: (data as Record<string, unknown>).consent_personalization as boolean || false,
             consentDate: (data as Record<string, unknown>).consent_date as string || null,
+            // Custom routine
+            customRoutine: (data as Record<string, unknown>).custom_routine as CustomRoutineData || null,
           };
           setUser(profile);
         } else {
@@ -294,7 +318,19 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         lastCompletedDate: getTodayDateString(),
       },
     }));
-    // Note: Routine completion is not persisted to DB yet (could be added later)
+  };
+
+  const saveCustomRoutine = async (routine: CustomRoutineData) => {
+    setUser(prev => ({ ...prev, customRoutine: routine }));
+    if (!userId) return;
+    try {
+      await supabase
+        .from('profiles')
+        .update({ custom_routine: JSON.parse(JSON.stringify(routine)) })
+        .eq('user_id', userId);
+    } catch (e) {
+      console.error('Error saving custom routine:', e);
+    }
   };
 
   const glowScore = calculateGlowScores(user);
@@ -308,6 +344,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       t, 
       setLanguage,
       updateRoutineCompletion,
+      saveCustomRoutine,
       glowScore,
       isLoading: isLoading || authLoading,
     }}>
