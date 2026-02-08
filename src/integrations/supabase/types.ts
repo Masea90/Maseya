@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      affiliate_clicks: {
+        Row: {
+          clicked_at: string | null
+          id: string
+          link_id: string | null
+          product_id: number
+          retailer_name: string
+          user_id: string | null
+        }
+        Insert: {
+          clicked_at?: string | null
+          id?: string
+          link_id?: string | null
+          product_id: number
+          retailer_name: string
+          user_id?: string | null
+        }
+        Update: {
+          clicked_at?: string | null
+          id?: string
+          link_id?: string | null
+          product_id?: number
+          retailer_name?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_clicks_link_id_fkey"
+            columns: ["link_id"]
+            isOneToOne: false
+            referencedRelation: "product_affiliate_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       community_posts: {
         Row: {
           category: string | null
@@ -184,6 +219,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      product_affiliate_links: {
+        Row: {
+          affiliate_url: string
+          click_count: number | null
+          created_at: string | null
+          id: string
+          is_primary: boolean | null
+          product_id: number
+          retailer_icon: string | null
+          retailer_name: string
+          sort_order: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          affiliate_url: string
+          click_count?: number | null
+          created_at?: string | null
+          id?: string
+          is_primary?: boolean | null
+          product_id: number
+          retailer_icon?: string | null
+          retailer_name: string
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          affiliate_url?: string
+          click_count?: number | null
+          created_at?: string | null
+          id?: string
+          is_primary?: boolean | null
+          product_id?: number
+          retailer_icon?: string | null
+          retailer_name?: string
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
