@@ -8,7 +8,7 @@ export interface Badge {
   name: string;
   description: string;
   emoji: string;
-  category: 'routine' | 'community' | 'profile' | 'streak';
+  category: 'routine' | 'community' | 'profile' | 'streak' | 'shopping';
   requiredPoints?: number;
   condition?: string;
 }
@@ -42,6 +42,9 @@ export const ALL_BADGES: Badge[] = [
   // Profile badges
   { id: 'profile_complete', name: 'Profile Complete', description: 'Complete your profile 100%', emoji: '✅', category: 'profile' },
   { id: 'photo_ready', name: 'Photo Ready', description: 'Upload a profile photo', emoji: '🤳', category: 'profile' },
+
+  // Shopping badges
+  { id: 'smart_shopper', name: 'Smart Shopper', description: 'Explore your first product recommendation', emoji: '🛍️', category: 'shopping' },
 ];
 
 // Level thresholds

@@ -1,12 +1,14 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Heart, Users, Check, Leaf, ShoppingBag, ExternalLink, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { useUser } from '@/contexts/UserContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRewards } from '@/hooks/useRewards';
 import { getProductWithMatch, tagTranslations } from '@/lib/recommendations';
 import { useAffiliateLinks } from '@/hooks/useAffiliateLinks';
-
+import { supabase } from '@/integrations/supabase/client';
 // Real ingredient data for products
 const productIngredients: Record<number, { name: string; safe: boolean; note: string }[]> = {
   1: [
@@ -65,7 +67,7 @@ const productUserCounts: Record<number, number> = {
 const ProductDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { t, user } = useUser();
+  const { t, user, updateUser } = useUser();
   const [isFavorite, setIsFavorite] = useState(false);
   const [showAllRetailers, setShowAllRetailers] = useState(false);
 
@@ -74,6 +76,40 @@ const ProductDetailPage = () => {
   const ingredients = productIngredients[productId] || productIngredients[1];
   const usersLikeYou = productUserCounts[productId] || 500;
   const { links, primaryLink, isLoading: linksLoading, trackClick } = useAffiliateLinks(productId);
+  const { currentUser } = useAuth();
+  const { awardBadge, recordPoints } = useRewards();
+
+  // Track affiliate click with reward (max 1/product/day)
+  const handleAffiliateClick = useCallback(async (link: typeof primaryLink) => {
+    if (!link) return;
+    
+    // Award points (check daily limit per product)
+    if (currentUser?.id) {
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        const { data: existing } = await supabase
+          .from('point_transactions')
+          .select('id')
+          .eq('user_id', currentUser.id)
+          .eq('reason', 'affiliate_click')
+          .eq('badge_id', `product_${productId}`)
+          .gte('created_at', `${today}T00:00:00`)
+          .limit(1);
+        
+        if (!existing || existing.length === 0) {
+          updateUser({ points: user.points + 3 });
+          recordPoints(3, 'affiliate_click', `product_${productId}`);
+        }
+        
+        // Badge: first affiliate click ever
+        awardBadge('smart_shopper');
+      } catch (e) {
+        console.error('Error awarding affiliate points:', e);
+      }
+    }
+    
+    trackClick(link);
+  }, [currentUser?.id, productId, user.points, updateUser, recordPoints, awardBadge, trackClick]);
 
   if (!product) {
     return (
@@ -171,7 +207,7 @@ const ProductDetailPage = () => {
               {/* Primary retailer - prominent */}
               {primaryLink && (
                 <button
-                  onClick={() => trackClick(primaryLink)}
+                  onClick={() => handleAffiliateClick(primaryLink)}
                   className="w-full flex items-center justify-between p-4 rounded-2xl bg-gradient-to-r from-primary/10 to-primary/5 border-2 border-primary/30 hover:border-primary/50 transition-all group"
                 >
                   <div className="flex items-center gap-3">
@@ -192,7 +228,7 @@ const ProductDetailPage = () => {
               {visibleSecondaryLinks.map(link => (
                 <button
                   key={link.id}
-                  onClick={() => trackClick(link)}
+                  onClick={() => handleAffiliateClick(link)}
                   className="w-full flex items-center justify-between p-3.5 rounded-xl bg-card border border-border hover:border-primary/30 transition-all group"
                 >
                   <div className="flex items-center gap-3">
@@ -286,7 +322,7 @@ const ProductDetailPage = () => {
             disabled={linksLoading || !primaryLink}
             onClick={() => {
               if (primaryLink) {
-                trackClick(primaryLink);
+                handleAffiliateClick(primaryLink);
               }
             }}
           >

@@ -18,6 +18,7 @@ const RewardsPage = () => {
     { key: 'routine' as const, label: t('routineNav'), emoji: '🧴' },
     { key: 'streak' as const, label: t('streak'), emoji: '🔥' },
     { key: 'community' as const, label: t('communityNav'), emoji: '💬' },
+    { key: 'shopping' as const, label: t('discover'), emoji: '🛍️' },
     { key: 'profile' as const, label: t('profile'), emoji: '👤' },
   ];
 
@@ -26,6 +27,7 @@ const RewardsPage = () => {
       routine_step: t('earnPointsPerStep'),
       routine_complete: t('pointsEarned'),
       community_post: t('post'),
+      affiliate_click: t('discover'),
       badge_earned: 'Badge',
     };
     return map[reason] || reason;
@@ -106,15 +108,19 @@ const RewardsPage = () => {
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">{t('stepCleanser')}, {t('stepToner')}...</span>
-              <span className="font-medium text-primary">+5 pts</span>
+              <span className="font-medium text-primary">+2 pts</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">{t('morningRoutine')} / {t('nightRoutine')}</span>
-              <span className="font-medium text-primary">+15 pts</span>
+              <span className="font-medium text-primary">+5 pts</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">{t('post')} ({t('communityNav')})</span>
-              <span className="font-medium text-primary">+5 pts</span>
+              <span className="font-medium text-primary">+3 pts</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">🛍️ {t('discover')}</span>
+              <span className="font-medium text-primary">+3 pts</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">7-day streak</span>

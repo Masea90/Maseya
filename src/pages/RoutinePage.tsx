@@ -93,16 +93,16 @@ const RoutinePage = () => {
     };
 
     if (!isCurrentlyCompleted) {
-      updateUser({ points: user.points + 5 });
-      recordPoints(5, 'routine_step');
+      updateUser({ points: user.points + 2 });
+      recordPoints(2, 'routine_step');
 
       // Badge: first step ever
       awardBadge('first_step');
 
       // Check if full routine completed
       if (updatedTimeOfDay.length === totalSteps) {
-        updateUser({ points: user.points + 5 + 15 }); // 5 for step + 15 bonus
-        recordPoints(15, 'routine_complete');
+        updateUser({ points: user.points + 2 + 5 }); // 2 for step + 5 bonus
+        recordPoints(5, 'routine_complete');
         if (timeOfDay === 'morning') awardBadge('morning_star');
         if (timeOfDay === 'night') awardBadge('night_owl');
       }
@@ -213,7 +213,7 @@ const RoutinePage = () => {
           {allCompleted && (
             <div className="flex items-center gap-2 text-sm text-glow-hair bg-glow-hair/10 rounded-xl p-3">
               <Gift className="w-4 h-4" />
-              <span>+15 {t('pointsEarned')} ✨</span>
+              <span>+5 {t('pointsEarned')} ✨</span>
             </div>
           )}
         </div>
