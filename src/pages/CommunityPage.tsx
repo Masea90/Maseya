@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
+import { getAuthHeaders } from '@/lib/authHeaders';
 import { toast } from 'sonner';
 import { PostReactions, ReactionType } from '@/components/community/PostReactions';
 import { GuidedPostTemplates, PostCategory } from '@/components/community/GuidedPostTemplates';
@@ -350,12 +351,10 @@ const CommunityPage = () => {
       let moderationStatus = 'approved';
       let moderationReason: string | null = null;
       try {
+        const modHeaders = await getAuthHeaders();
         const modResp = await fetch(MODERATE_URL, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
+          headers: modHeaders,
           body: JSON.stringify({ content: trimmedContent, category: selectedCategory }),
         });
         if (modResp.ok) {
@@ -552,9 +551,10 @@ const CommunityPage = () => {
     if (translatedPosts.has(postId)) return translatedPosts.get(postId)!;
     setTranslatingPosts(prev => new Set(prev).add(postId));
     try {
+      const transHeaders = await getAuthHeaders();
       const resp = await fetch(TRANSLATE_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+        headers: transHeaders,
         body: JSON.stringify({ text: content, targetLanguage: user.language }),
       });
       if (!resp.ok) throw new Error('Translation failed');

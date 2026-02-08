@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import { cn } from '@/lib/utils';
 import { useUser } from '@/contexts/UserContext';
 import { useChatHistory } from '@/hooks/useChatHistory';
+import { getAuthHeaders } from '@/lib/authHeaders';
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
@@ -72,12 +73,10 @@ export const Chatbot = () => {
     const botMessageId = Date.now() + 1;
 
     try {
+      const headers = await getAuthHeaders();
       const resp = await fetch(CHAT_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
+        headers,
         body: JSON.stringify({ messages: aiMessages, userProfile }),
       });
 
