@@ -209,9 +209,11 @@ export type Database = {
           nickname: string | null
           onboarding_complete: boolean | null
           points: number | null
+          routine_reminders_enabled: boolean | null
           sensitivities: string[] | null
           skin_concerns: string[] | null
           streak: number | null
+          timezone: string | null
           updated_at: string | null
           user_id: string
         }
@@ -238,9 +240,11 @@ export type Database = {
           nickname?: string | null
           onboarding_complete?: boolean | null
           points?: number | null
+          routine_reminders_enabled?: boolean | null
           sensitivities?: string[] | null
           skin_concerns?: string[] | null
           streak?: number | null
+          timezone?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -267,9 +271,11 @@ export type Database = {
           nickname?: string | null
           onboarding_complete?: boolean | null
           points?: number | null
+          routine_reminders_enabled?: boolean | null
           sensitivities?: string[] | null
           skin_concerns?: string[] | null
           streak?: number | null
+          timezone?: string | null
           updated_at?: string | null
           user_id?: string
         }
@@ -298,6 +304,42 @@ export type Database = {
           endpoint?: string
           id?: string
           p256dh?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      routine_completions: {
+        Row: {
+          completed_steps: string[] | null
+          completion_date: string
+          created_at: string | null
+          id: string
+          is_fully_completed: boolean | null
+          time_of_day: string
+          total_steps: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          completed_steps?: string[] | null
+          completion_date?: string
+          created_at?: string | null
+          id?: string
+          is_fully_completed?: boolean | null
+          time_of_day: string
+          total_steps?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          completed_steps?: string[] | null
+          completion_date?: string
+          created_at?: string | null
+          id?: string
+          is_fully_completed?: boolean | null
+          time_of_day?: string
+          total_steps?: number | null
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []
