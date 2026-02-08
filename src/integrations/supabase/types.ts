@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       community_posts: {
         Row: {
+          category: string | null
           comments_count: number | null
           content: string
           created_at: string | null
@@ -27,6 +28,7 @@ export type Database = {
           visibility: string | null
         }
         Insert: {
+          category?: string | null
           comments_count?: number | null
           content: string
           created_at?: string | null
@@ -38,6 +40,7 @@ export type Database = {
           visibility?: string | null
         }
         Update: {
+          category?: string | null
           comments_count?: number | null
           content?: string
           created_at?: string | null
@@ -140,6 +143,38 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "post_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_reactions: {
+        Row: {
+          created_at: string | null
+          id: string
+          post_id: string
+          reaction_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          post_id: string
+          reaction_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          post_id?: string
+          reaction_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_reactions_post_id_fkey"
             columns: ["post_id"]
             isOneToOne: false
             referencedRelation: "community_posts"
@@ -284,6 +319,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_post_reaction_counts: { Args: { p_post_id: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
