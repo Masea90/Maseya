@@ -3,7 +3,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { useUser } from '@/contexts/UserContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
-import { MessageCircle, MoreHorizontal, Plus, Users, Lock, Globe, Send, Loader2, Pencil, Trash2, Languages, Sparkles } from 'lucide-react';
+import { MessageCircle, MoreHorizontal, Plus, Users, Lock, Globe, Send, Loader2, Pencil, Trash2, Languages, Sparkles, Star } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -27,6 +27,7 @@ interface Post {
   comments_count: number;
   created_at: string;
   category?: string;
+  is_staff_pick?: boolean;
   nickname?: string;
   avatarUrl?: string | null;
   profileCompleteness?: number;
@@ -137,7 +138,7 @@ const CommunityPage = () => {
   const [userReactions, setUserReactions] = useState<Map<string, Set<ReactionType>>>(new Map());
   
   // Feed tabs
-  const [activeTab, setActiveTab] = useState<'similar' | 'all'>('similar');
+  const [activeTab, setActiveTab] = useState<'similar' | 'all' | 'staff_picks'>('similar');
 
   useEffect(() => {
     loadPosts();
@@ -192,6 +193,7 @@ const CommunityPage = () => {
         const profile = profileMap.get(post.user_id);
         return {
           ...post,
+          is_staff_pick: (post as Record<string, unknown>).is_staff_pick as boolean || false,
           nickname: profile?.nickname,
           avatarUrl: profile?.avatar_url || null,
           profileCompleteness: profile?.percentage || 0,
@@ -231,11 +233,29 @@ const CommunityPage = () => {
     }
   };
 
-  // Similarity-based sorting
+  // Similarity-based sorting with staff picks promotion
   const sortedPosts = useMemo(() => {
-    if (activeTab === 'all') return posts;
+    let filtered = posts;
     
-    return [...posts].sort((a, b) => {
+    if (activeTab === 'staff_picks') {
+      return posts.filter(p => p.is_staff_pick);
+    }
+    
+    if (activeTab === 'all') {
+      // Staff picks float to top in "all" tab
+      return [...filtered].sort((a, b) => {
+        if (a.is_staff_pick && !b.is_staff_pick) return -1;
+        if (!a.is_staff_pick && b.is_staff_pick) return 1;
+        return 0;
+      });
+    }
+    
+    // "Similar to you" tab: sort by similarity, staff picks first within each tier
+    return [...filtered].sort((a, b) => {
+      // Staff picks always come first
+      if (a.is_staff_pick && !b.is_staff_pick) return -1;
+      if (!a.is_staff_pick && b.is_staff_pick) return 1;
+      
       const simA = calculateSimilarity(
         { skinConcerns: user.skinConcerns, hairType: user.hairType, ageRange: user.ageRange },
         { skinConcerns: a.authorSkinConcerns, hairType: a.authorHairType, ageRange: a.authorAgeRange }
@@ -484,11 +504,11 @@ const CommunityPage = () => {
         </div>
 
         {/* Feed Tabs */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
           <button
             onClick={() => setActiveTab('similar')}
             className={cn(
-              'flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all',
+              'flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap',
               activeTab === 'similar'
                 ? 'bg-primary text-primary-foreground'
                 : 'bg-secondary text-muted-foreground hover:text-foreground'
@@ -498,9 +518,21 @@ const CommunityPage = () => {
             {t('similarToYou')}
           </button>
           <button
+            onClick={() => setActiveTab('staff_picks')}
+            className={cn(
+              'flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap',
+              activeTab === 'staff_picks'
+                ? 'bg-maseya-gold text-white'
+                : 'bg-secondary text-muted-foreground hover:text-foreground'
+            )}
+          >
+            <Star className="w-3.5 h-3.5" />
+            {t('staffPicks')}
+          </button>
+          <button
             onClick={() => setActiveTab('all')}
             className={cn(
-              'flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all',
+              'flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap',
               activeTab === 'all'
                 ? 'bg-primary text-primary-foreground'
                 : 'bg-secondary text-muted-foreground hover:text-foreground'
@@ -546,7 +578,17 @@ const CommunityPage = () => {
             {sortedPosts.map(post => {
               const categoryLabel = getCategoryLabel(post.category);
               return (
-                <div key={post.id} className="bg-card rounded-2xl p-4 shadow-warm space-y-3">
+                <div key={post.id} className={cn(
+                  'bg-card rounded-2xl p-4 shadow-warm space-y-3',
+                  post.is_staff_pick && 'ring-1 ring-maseya-gold/30'
+                )}>
+                  {/* Staff Pick Badge */}
+                  {post.is_staff_pick && (
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-maseya-gold/10 border border-maseya-gold/25 text-xs font-medium text-maseya-gold">
+                      <Star className="w-3 h-3 fill-maseya-gold" />
+                      {t('staffPick')}
+                    </div>
+                  )}
                   {/* Post Header */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">

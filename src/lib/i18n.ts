@@ -495,6 +495,11 @@ export const translations = {
     communityWelcomeTip1: 'Share a product or habit that worked for you',
     communityWelcomeTip2: 'Ask for advice from people with a similar profile',
     communityWelcomeTip3: 'React to posts that helped you',
+    
+    // Staff picks
+    staffPicks: 'Staff Picks',
+    staffPick: 'MASEYA Team',
+    staffPicksEmpty: 'No staff picks yet — stay tuned!',
   },
   es: {
     // Brand
@@ -984,6 +989,11 @@ export const translations = {
     communityWelcomeTip1: 'Comparte un producto o hábito que te funcionó',
     communityWelcomeTip2: 'Pide consejo a personas con un perfil similar',
     communityWelcomeTip3: 'Reacciona a publicaciones que te ayudaron',
+    
+    // Staff picks
+    staffPicks: 'Selección del equipo',
+    staffPick: 'Equipo MASEYA',
+    staffPicksEmpty: 'Aún no hay selecciones del equipo — ¡pronto!',
   },
   fr: {
     // Brand
@@ -1473,6 +1483,11 @@ export const translations = {
     communityWelcomeTip1: 'Partagez un produit ou une habitude qui a fonctionné pour vous',
     communityWelcomeTip2: 'Demandez conseil à des personnes avec un profil similaire',
     communityWelcomeTip3: 'Réagissez aux publications qui vous ont aidée',
+    
+    // Staff picks
+    staffPicks: 'Sélection de l\'équipe',
+    staffPick: 'Équipe MASEYA',
+    staffPicksEmpty: 'Pas encore de sélections de l\'équipe — restez à l\'écoute !',
   },
 };
 
