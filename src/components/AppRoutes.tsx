@@ -24,6 +24,7 @@ import LanguageSettingsPage from "@/pages/LanguageSettingsPage";
 import ProfileEditPage from "@/pages/ProfileEditPage";
 import NotificationSettingsPage from "@/pages/NotificationSettingsPage";
 import InstallPage from "@/pages/InstallPage";
+import AdminAffiliatePage from "@/pages/AdminAffiliatePage";
 import NotFound from "@/pages/NotFound";
 
 /**
@@ -88,6 +89,7 @@ export function AppRoutes() {
         <Route path="/settings/language" element={<LanguageSettingsPage />} />
         <Route path="/settings/notifications" element={<NotificationSettingsPage />} />
         <Route path="/install" element={<InstallPage />} />
+        <Route path="/admin/affiliates" element={<AdminAffiliatePage />} />
         
         {/* Catch-all */}
         <Route path="*" element={<NotFound />} />
