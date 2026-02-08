@@ -517,11 +517,29 @@ const CommunityPage = () => {
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
         ) : sortedPosts.length === 0 ? (
-          <div className="text-center py-12 space-y-2">
-            <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mx-auto">
-              <Users className="w-8 h-8 text-muted-foreground" />
+          <div className="text-center py-10 space-y-5 bg-card rounded-2xl p-6 shadow-warm">
+            <div className="w-20 h-20 bg-gradient-to-br from-primary/10 to-accent/10 rounded-full flex items-center justify-center mx-auto">
+              <span className="text-4xl">🌿</span>
             </div>
-            <p className="text-muted-foreground text-sm">{t('noSimilarPosts')}</p>
+            <div className="space-y-2">
+              <h3 className="font-display text-lg font-semibold text-foreground">{t('communityWelcomeTitle')}</h3>
+              <p className="text-muted-foreground text-sm max-w-xs mx-auto leading-relaxed">{t('communityWelcomeDesc')}</p>
+            </div>
+            <div className="space-y-2 text-left max-w-xs mx-auto">
+              {[t('communityWelcomeTip1'), t('communityWelcomeTip2'), t('communityWelcomeTip3')].map((tip, i) => (
+                <div key={i} className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                  <span className="text-primary mt-0.5">✦</span>
+                  <span>{tip}</span>
+                </div>
+              ))}
+            </div>
+            <Button
+              onClick={() => { setShowNewPost(true); setPostStep('template'); }}
+              className="rounded-full bg-gradient-olive px-6"
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              {t('communityWelcomeCta')}
+            </Button>
           </div>
         ) : (
           <div className="space-y-4">

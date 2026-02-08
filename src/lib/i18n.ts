@@ -429,6 +429,63 @@ export const translations = {
     seeOriginal: 'See original',
     seeTranslation: 'See translation',
     translatedFrom: 'Translated from',
+
+    // Consent modal
+    consentTitle: 'Your Privacy Matters',
+    consentDescription: 'We collect minimal data to personalize your beauty experience. Here\'s what you should know:',
+    consentLearnMore: 'Learn more about our data practices',
+    consentPersonalizationTitle: 'Personalization',
+    consentPersonalizationDesc: 'We use your profile data to recommend products and routines tailored just for you.',
+    consentImprovementTitle: 'App Improvement',
+    consentImprovementDesc: 'Anonymized usage patterns help us make the app better for everyone.',
+    consentPrivacyTitle: 'Privacy Protected',
+    consentPrivacyDesc: 'Your personal data is NEVER sold. No individual user is ever identifiable.',
+    consentAcceptAll: 'Accept All',
+    consentAcceptEssential: 'Accept Essential Only',
+    consentChangeAnytime: 'You can change your preferences anytime in Settings → Privacy',
+
+    // Login page
+    loginTitle: 'Maseya',
+    loginSubtitle: 'Your glow journey awaits',
+    loginCreateAccount: 'Create Account',
+    loginWelcomeBack: 'Welcome Back',
+    loginSignUpDesc: 'Start your personalized skincare journey',
+    loginSignInDesc: 'Sign in to continue your glow journey',
+    loginEmail: 'Email',
+    loginPassword: 'Password',
+    loginMinChars: 'Min 6 characters',
+    loginOr: 'or',
+    loginContinueGoogle: 'Continue with Google',
+    loginAlreadyHaveAccount: 'Already have an account?',
+    loginDontHaveAccount: "Don't have an account?",
+    loginSignIn: 'Sign In',
+    loginSignUp: 'Sign Up',
+
+    // Permission requests
+    permCameraTitle: 'Camera Access',
+    permCameraDesc: 'We need camera access to scan products and analyze your skin & hair.',
+    permCameraBenefit: 'Get personalized product analysis and skin/hair assessments in seconds.',
+    permCameraPrivacy: 'Photos are processed locally and never stored on our servers.',
+    permNotifTitle: 'Enable Notifications',
+    permNotifDesc: 'Stay updated with personalized beauty tips and routine reminders.',
+    permNotifBenefit: 'Never miss your skincare routine and get timely product recommendations.',
+    permNotifPrivacy: 'You can customize which notifications you receive in settings.',
+    permWhyHelps: 'Why this helps you',
+    permYourPrivacy: 'Your privacy',
+    permAllow: 'Allow Access',
+    permRequesting: 'Requesting...',
+    permMaybeLater: 'Maybe Later',
+
+    // Recommendation explanations
+    recommendedBecause: 'Recommended because you selected',
+
+    // Community empty state (welcome)
+    communityWelcomeTitle: 'Welcome to the MASEYA community',
+    communityWelcomeDesc: 'This is a safe space to share what works, ask questions, and support each other on your natural beauty journey.',
+    communityWelcomeCta: 'Be the first to share',
+    communityWelcomeTip1: 'Share a product or habit that worked for you',
+    communityWelcomeTip2: 'Ask for advice from people with a similar profile',
+    communityWelcomeTip3: 'React to posts that helped you',
   },
   es: {
     // Brand
@@ -852,6 +909,63 @@ export const translations = {
     seeOriginal: 'Ver original',
     seeTranslation: 'Ver traducción',
     translatedFrom: 'Traducido de',
+
+    // Consent modal
+    consentTitle: 'Tu privacidad importa',
+    consentDescription: 'Recopilamos datos mínimos para personalizar tu experiencia de belleza. Esto es lo que debes saber:',
+    consentLearnMore: 'Más información sobre el uso de tus datos',
+    consentPersonalizationTitle: 'Personalización',
+    consentPersonalizationDesc: 'Usamos tu perfil para recomendar productos y rutinas hechos para ti.',
+    consentImprovementTitle: 'Mejora de la app',
+    consentImprovementDesc: 'Los patrones de uso anónimos nos ayudan a mejorar la app para todas.',
+    consentPrivacyTitle: 'Privacidad protegida',
+    consentPrivacyDesc: 'Tus datos personales NUNCA se venden. Ninguna usuaria es identificable.',
+    consentAcceptAll: 'Aceptar todo',
+    consentAcceptEssential: 'Solo lo esencial',
+    consentChangeAnytime: 'Puedes cambiar tus preferencias en cualquier momento en Ajustes → Privacidad',
+
+    // Login page
+    loginTitle: 'Maseya',
+    loginSubtitle: 'Tu viaje de belleza te espera',
+    loginCreateAccount: 'Crear cuenta',
+    loginWelcomeBack: 'Bienvenida de nuevo',
+    loginSignUpDesc: 'Comienza tu camino personalizado de cuidado de la piel',
+    loginSignInDesc: 'Inicia sesión para continuar tu camino',
+    loginEmail: 'Correo electrónico',
+    loginPassword: 'Contraseña',
+    loginMinChars: 'Mín. 6 caracteres',
+    loginOr: 'o',
+    loginContinueGoogle: 'Continuar con Google',
+    loginAlreadyHaveAccount: '¿Ya tienes una cuenta?',
+    loginDontHaveAccount: '¿No tienes una cuenta?',
+    loginSignIn: 'Iniciar sesión',
+    loginSignUp: 'Registrarse',
+
+    // Permission requests
+    permCameraTitle: 'Acceso a la cámara',
+    permCameraDesc: 'Necesitamos acceso a la cámara para escanear productos y analizar tu piel y cabello.',
+    permCameraBenefit: 'Obtén análisis personalizado de productos y evaluaciones de piel/cabello en segundos.',
+    permCameraPrivacy: 'Las fotos se procesan localmente y nunca se almacenan en nuestros servidores.',
+    permNotifTitle: 'Activar notificaciones',
+    permNotifDesc: 'Mantente al día con consejos de belleza personalizados y recordatorios de rutina.',
+    permNotifBenefit: 'No te pierdas tu rutina de cuidado y recibe recomendaciones de productos a tiempo.',
+    permNotifPrivacy: 'Puedes personalizar qué notificaciones recibes en ajustes.',
+    permWhyHelps: 'Por qué te ayuda',
+    permYourPrivacy: 'Tu privacidad',
+    permAllow: 'Permitir acceso',
+    permRequesting: 'Solicitando...',
+    permMaybeLater: 'Quizás luego',
+
+    // Recommendation explanations
+    recommendedBecause: 'Recomendado porque seleccionaste',
+
+    // Community empty state (welcome)
+    communityWelcomeTitle: 'Bienvenida a la comunidad MASEYA',
+    communityWelcomeDesc: 'Este es un espacio seguro para compartir lo que funciona, hacer preguntas y apoyarnos mutuamente en tu camino de belleza natural.',
+    communityWelcomeCta: 'Sé la primera en compartir',
+    communityWelcomeTip1: 'Comparte un producto o hábito que te funcionó',
+    communityWelcomeTip2: 'Pide consejo a personas con un perfil similar',
+    communityWelcomeTip3: 'Reacciona a publicaciones que te ayudaron',
   },
   fr: {
     // Brand
@@ -1275,6 +1389,63 @@ export const translations = {
     seeOriginal: 'Voir l\'original',
     seeTranslation: 'Voir la traduction',
     translatedFrom: 'Traduit de',
+
+    // Consent modal
+    consentTitle: 'Votre vie privée compte',
+    consentDescription: 'Nous collectons un minimum de données pour personnaliser votre expérience beauté. Voici ce que vous devez savoir :',
+    consentLearnMore: 'En savoir plus sur l\'utilisation de vos données',
+    consentPersonalizationTitle: 'Personnalisation',
+    consentPersonalizationDesc: 'Nous utilisons votre profil pour vous recommander des produits et routines sur mesure.',
+    consentImprovementTitle: 'Amélioration de l\'app',
+    consentImprovementDesc: 'Les données d\'utilisation anonymisées nous aident à améliorer l\'app pour toutes.',
+    consentPrivacyTitle: 'Vie privée protégée',
+    consentPrivacyDesc: 'Vos données personnelles ne sont JAMAIS vendues. Aucune utilisatrice n\'est identifiable.',
+    consentAcceptAll: 'Tout accepter',
+    consentAcceptEssential: 'Accepter l\'essentiel uniquement',
+    consentChangeAnytime: 'Vous pouvez modifier vos préférences à tout moment dans Paramètres → Confidentialité',
+
+    // Login page
+    loginTitle: 'Maseya',
+    loginSubtitle: 'Votre parcours éclat vous attend',
+    loginCreateAccount: 'Créer un compte',
+    loginWelcomeBack: 'Bon retour',
+    loginSignUpDesc: 'Commencez votre parcours de soins personnalisé',
+    loginSignInDesc: 'Connectez-vous pour continuer votre parcours',
+    loginEmail: 'E-mail',
+    loginPassword: 'Mot de passe',
+    loginMinChars: 'Min. 6 caractères',
+    loginOr: 'ou',
+    loginContinueGoogle: 'Continuer avec Google',
+    loginAlreadyHaveAccount: 'Vous avez déjà un compte ?',
+    loginDontHaveAccount: 'Vous n\'avez pas de compte ?',
+    loginSignIn: 'Se connecter',
+    loginSignUp: 'S\'inscrire',
+
+    // Permission requests
+    permCameraTitle: 'Accès à la caméra',
+    permCameraDesc: 'Nous avons besoin de l\'accès caméra pour scanner les produits et analyser votre peau et vos cheveux.',
+    permCameraBenefit: 'Obtenez une analyse personnalisée de produits et des évaluations peau/cheveux en quelques secondes.',
+    permCameraPrivacy: 'Les photos sont traitées localement et ne sont jamais stockées sur nos serveurs.',
+    permNotifTitle: 'Activer les notifications',
+    permNotifDesc: 'Restez informée avec des conseils beauté personnalisés et des rappels de routine.',
+    permNotifBenefit: 'Ne manquez jamais votre routine de soins et recevez des recommandations produits au bon moment.',
+    permNotifPrivacy: 'Vous pouvez personnaliser les notifications reçues dans les paramètres.',
+    permWhyHelps: 'Pourquoi c\'est utile',
+    permYourPrivacy: 'Votre vie privée',
+    permAllow: 'Autoriser l\'accès',
+    permRequesting: 'En cours...',
+    permMaybeLater: 'Peut-être plus tard',
+
+    // Recommendation explanations
+    recommendedBecause: 'Recommandé parce que vous avez sélectionné',
+
+    // Community empty state (welcome)
+    communityWelcomeTitle: 'Bienvenue dans la communauté MASEYA',
+    communityWelcomeDesc: 'C\'est un espace bienveillant pour partager ce qui fonctionne, poser des questions et se soutenir mutuellement dans votre parcours beauté naturelle.',
+    communityWelcomeCta: 'Soyez la première à partager',
+    communityWelcomeTip1: 'Partagez un produit ou une habitude qui a fonctionné pour vous',
+    communityWelcomeTip2: 'Demandez conseil à des personnes avec un profil similaire',
+    communityWelcomeTip3: 'Réagissez aux publications qui vous ont aidée',
   },
 };
 

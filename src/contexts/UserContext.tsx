@@ -281,6 +281,8 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const setLanguage = (lang: Language) => {
+    // Persist to localStorage so login page can read it before auth
+    localStorage.setItem('maseya_language', lang);
     updateUser({ language: lang });
   };
 

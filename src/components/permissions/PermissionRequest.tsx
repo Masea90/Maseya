@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Camera, Bell, Shield, X } from 'lucide-react';
+import { Camera, Bell, Shield } from 'lucide-react';
+import { useUser } from '@/contexts/UserContext';
+import { TranslationKey } from '@/lib/i18n';
 
 type PermissionType = 'camera' | 'notifications';
 
@@ -12,20 +14,26 @@ interface PermissionRequestProps {
   onRequestPermission: () => Promise<boolean>;
 }
 
-const permissionConfig = {
+const permissionConfig: Record<PermissionType, {
+  icon: typeof Camera;
+  titleKey: TranslationKey;
+  descriptionKey: TranslationKey;
+  benefitKey: TranslationKey;
+  privacyKey: TranslationKey;
+}> = {
   camera: {
     icon: Camera,
-    title: 'Camera Access',
-    description: 'We need camera access to scan products and analyze your skin & hair.',
-    benefit: 'Get personalized product analysis and skin/hair assessments in seconds.',
-    privacyNote: 'Photos are processed locally and never stored on our servers.',
+    titleKey: 'permCameraTitle',
+    descriptionKey: 'permCameraDesc',
+    benefitKey: 'permCameraBenefit',
+    privacyKey: 'permCameraPrivacy',
   },
   notifications: {
     icon: Bell,
-    title: 'Enable Notifications',
-    description: 'Stay updated with personalized beauty tips and routine reminders.',
-    benefit: 'Never miss your skincare routine and get timely product recommendations.',
-    privacyNote: 'You can customize which notifications you receive in settings.',
+    titleKey: 'permNotifTitle',
+    descriptionKey: 'permNotifDesc',
+    benefitKey: 'permNotifBenefit',
+    privacyKey: 'permNotifPrivacy',
   },
 };
 
@@ -36,6 +44,7 @@ export const PermissionRequest = ({
   onRequestPermission,
 }: PermissionRequestProps) => {
   const [isRequesting, setIsRequesting] = useState(false);
+  const { t } = useUser();
   const config = permissionConfig[type];
   const Icon = config.icon;
 
@@ -61,13 +70,13 @@ export const PermissionRequest = ({
             </div>
           </div>
           <DialogTitle className="text-center text-xl font-display">
-            {config.title}
+            {t(config.titleKey)}
           </DialogTitle>
         </DialogHeader>
 
         <div className="p-6 space-y-4">
           <p className="text-center text-muted-foreground text-sm">
-            {config.description}
+            {t(config.descriptionKey)}
           </p>
 
           <div className="bg-secondary/50 rounded-2xl p-4 space-y-3">
@@ -76,8 +85,8 @@ export const PermissionRequest = ({
                 ✨
               </div>
               <div>
-                <p className="text-sm font-medium">Why this helps you</p>
-                <p className="text-xs text-muted-foreground">{config.benefit}</p>
+                <p className="text-sm font-medium">{t('permWhyHelps')}</p>
+                <p className="text-xs text-muted-foreground">{t(config.benefitKey)}</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
@@ -85,8 +94,8 @@ export const PermissionRequest = ({
                 <Shield className="w-4 h-4 text-primary" />
               </div>
               <div>
-                <p className="text-sm font-medium">Your privacy</p>
-                <p className="text-xs text-muted-foreground">{config.privacyNote}</p>
+                <p className="text-sm font-medium">{t('permYourPrivacy')}</p>
+                <p className="text-xs text-muted-foreground">{t(config.privacyKey)}</p>
               </div>
             </div>
           </div>
@@ -97,14 +106,14 @@ export const PermissionRequest = ({
               disabled={isRequesting}
               className="w-full h-12 rounded-2xl bg-gradient-olive"
             >
-              {isRequesting ? 'Requesting...' : 'Allow Access'}
+              {isRequesting ? t('permRequesting') : t('permAllow')}
             </Button>
             <Button
               onClick={onClose}
               variant="ghost"
               className="w-full h-10 rounded-xl"
             >
-              Maybe Later
+              {t('permMaybeLater')}
             </Button>
           </div>
         </div>
@@ -127,11 +136,7 @@ export const usePermissionRequest = () => {
 
   const requestPermission = (type: PermissionType): Promise<boolean> => {
     return new Promise((resolve) => {
-      setPermissionState({
-        type,
-        isOpen: true,
-        resolver: resolve,
-      });
+      setPermissionState({ type, isOpen: true, resolver: resolve });
     });
   };
 
@@ -144,27 +149,20 @@ export const usePermissionRequest = () => {
 
   const handleRequest = async (): Promise<boolean> => {
     if (!permissionState.type) return false;
-
     try {
       if (permissionState.type === 'camera') {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
         stream.getTracks().forEach(track => track.stop());
-        if (permissionState.resolver) {
-          permissionState.resolver(true);
-        }
+        permissionState.resolver?.(true);
         return true;
       } else if (permissionState.type === 'notifications') {
         const permission = await Notification.requestPermission();
         const granted = permission === 'granted';
-        if (permissionState.resolver) {
-          permissionState.resolver(granted);
-        }
+        permissionState.resolver?.(granted);
         return granted;
       }
     } catch {
-      if (permissionState.resolver) {
-        permissionState.resolver(false);
-      }
+      permissionState.resolver?.(false);
     }
     return false;
   };

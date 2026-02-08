@@ -67,7 +67,7 @@ const DiscoverPage = () => {
   // Get the "Recommended because you selected X" text
   const getRecommendedBecauseText = (product: RecommendedProduct): string => {
     if (product.recommendedBecause && product.recommendedBecause.length > 0) {
-      return `Recommended because you selected ${product.recommendedBecause.join(' & ')}`;
+      return `${t('recommendedBecause')} ${product.recommendedBecause.join(' & ')}`;
     }
     return '';
   };
