@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { MessageCircle, Send, X, Sparkles, User, Loader2 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import { cn } from '@/lib/utils';
 import { useUser } from '@/contexts/UserContext';
 
@@ -285,13 +286,21 @@ export const Chatbot = () => {
             </div>
             <div
               className={cn(
-                'max-w-[80%] p-3 rounded-2xl text-sm whitespace-pre-wrap',
+                'max-w-[80%] p-3 rounded-2xl text-sm',
                 message.type === 'user'
-                  ? 'bg-primary text-primary-foreground rounded-br-none'
+                  ? 'bg-primary text-primary-foreground rounded-br-none whitespace-pre-wrap'
                   : 'bg-card border border-border rounded-bl-none'
               )}
             >
-              {message.content || (
+              {message.content ? (
+                message.type === 'bot' ? (
+                  <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:my-1 [&>ul]:my-1 [&>ol]:my-1 [&>li]:my-0.5 [&>h1]:text-sm [&>h2]:text-sm [&>h3]:text-sm [&_a]:text-primary [&_a]:underline">
+                    <ReactMarkdown>{message.content}</ReactMarkdown>
+                  </div>
+                ) : (
+                  message.content
+                )
+              ) : (
                 <span className="flex items-center gap-1 text-muted-foreground">
                   <Loader2 className="w-3 h-3 animate-spin" />
                   {t('chatbotTyping')}
