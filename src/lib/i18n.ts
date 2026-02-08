@@ -294,6 +294,8 @@ export const translations = {
     writingPromptWorked: 'What product or habit worked for you and why?',
     writingPromptRoutine: 'Describe your routine step by step...',
     writingPromptProduct: 'Which product helped you and what did it improve?',
+    addPhoto: 'Add a photo',
+    postUnderReview: 'Under review',
     
     // Community post content
     communityPost1: 'Finally found a routine that works for my sensitive skin! The key was switching to fragrance-free everything. 🌿',
@@ -801,6 +803,8 @@ export const translations = {
     writingPromptWorked: '¿Qué producto o hábito te funcionó y por qué?',
     writingPromptRoutine: 'Describe tu rutina paso a paso...',
     writingPromptProduct: '¿Qué producto te ayudó y qué mejoró?',
+    addPhoto: 'Añadir una foto',
+    postUnderReview: 'En revisión',
     
     // Community post content
     communityPost1: '¡Por fin encontré una rutina que funciona para mi piel sensible! La clave fue cambiar a productos sin fragancia. 🌿',
@@ -1308,6 +1312,8 @@ export const translations = {
     writingPromptWorked: 'Quel produit ou habitude a fonctionné pour vous et pourquoi ?',
     writingPromptRoutine: 'Décrivez votre routine étape par étape...',
     writingPromptProduct: 'Quel produit vous a aidée et qu\'a-t-il amélioré ?',
+    addPhoto: 'Ajouter une photo',
+    postUnderReview: 'En cours de révision',
     
     // Community post content
     communityPost1: 'J\'ai enfin trouvé une routine qui fonctionne pour ma peau sensible ! La clé était de passer à des produits sans parfum. 🌿',

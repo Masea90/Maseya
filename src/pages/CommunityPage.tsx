@@ -1,9 +1,9 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useUser } from '@/contexts/UserContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
-import { MessageCircle, MoreHorizontal, Plus, Users, Lock, Globe, Send, Loader2, Pencil, Trash2, Languages, Sparkles, Star } from 'lucide-react';
+import { MessageCircle, MoreHorizontal, Plus, Users, Lock, Globe, Send, Loader2, Pencil, Trash2, Languages, Sparkles, Star, ImagePlus, X } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -28,6 +28,8 @@ interface Post {
   created_at: string;
   category?: string;
   is_staff_pick?: boolean;
+  image_url?: string | null;
+  moderation_status?: string;
   nickname?: string;
   avatarUrl?: string | null;
   profileCompleteness?: number;
@@ -117,6 +119,11 @@ const CommunityPage = () => {
   const [newPostVisibility, setNewPostVisibility] = useState<'everyone' | 'women_only'>('everyone');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
+  // Image upload
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   // Comments
   const [showComments, setShowComments] = useState<string | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -150,6 +157,7 @@ const CommunityPage = () => {
       const { data: postsData, error: postsError } = await supabase
         .from('community_posts')
         .select('*')
+        .in('moderation_status', ['approved', 'pending_review'])
         .order('created_at', { ascending: false })
         .limit(50);
 
@@ -160,7 +168,14 @@ const CommunityPage = () => {
         return;
       }
 
-      const userIds = [...new Set(postsData.map(p => p.user_id))];
+      // Filter: show pending_review only to the post author and admins
+      const visiblePosts = postsData.filter(p => {
+        if ((p as any).moderation_status === 'approved') return true;
+        if ((p as any).moderation_status === 'pending_review' && (p.user_id === currentUser?.id || isAdmin)) return true;
+        return false;
+      });
+
+      const userIds = [...new Set(visiblePosts.map(p => p.user_id))];
       const { data: profilesData } = await supabase
         .from('profiles')
         .select('user_id, nickname, avatar_url, has_profile_photo, skin_concerns, hair_type, hair_concerns, goals, sensitivities, age_range, country, climate_type')
@@ -177,7 +192,7 @@ const CommunityPage = () => {
       const { data: reactionsData } = await supabase
         .from('post_reactions')
         .select('post_id, reaction_type')
-        .in('post_id', postsData.map(p => p.id));
+        .in('post_id', visiblePosts.map(p => p.id));
       
       if (reactionsData) {
         for (const r of reactionsData) {
@@ -189,11 +204,13 @@ const CommunityPage = () => {
         }
       }
 
-      const postsWithProfiles: Post[] = postsData.map(post => {
+      const postsWithProfiles: Post[] = visiblePosts.map(post => {
         const profile = profileMap.get(post.user_id);
         return {
           ...post,
           is_staff_pick: (post as Record<string, unknown>).is_staff_pick as boolean || false,
+          image_url: (post as any).image_url || null,
+          moderation_status: (post as any).moderation_status || 'approved',
           nickname: profile?.nickname,
           avatarUrl: profile?.avatar_url || null,
           profileCompleteness: profile?.percentage || 0,
@@ -294,6 +311,30 @@ const CommunityPage = () => {
     setPostStep('write');
   };
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be under 5MB');
+      return;
+    }
+    setSelectedImage(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  const clearImage = () => {
+    setSelectedImage(null);
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImagePreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const MODERATE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/moderate-post`;
+
   const handleCreatePost = async () => {
     const trimmedContent = newPostContent.trim();
     if (!trimmedContent || !currentUser?.id) return;
@@ -303,6 +344,43 @@ const CommunityPage = () => {
     }
     setIsSubmitting(true);
     try {
+      // 1. AI moderation check
+      let moderationStatus = 'approved';
+      let moderationReason: string | null = null;
+      try {
+        const modResp = await fetch(MODERATE_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ content: trimmedContent, category: selectedCategory }),
+        });
+        if (modResp.ok) {
+          const modData = await modResp.json();
+          if (!modData.approved) {
+            moderationStatus = 'pending_review';
+            moderationReason = modData.reason || 'Flagged by AI moderation';
+          }
+        }
+      } catch (modError) {
+        console.error('Moderation check failed, proceeding as approved:', modError);
+      }
+
+      // 2. Upload image if selected
+      let imageUrl: string | null = null;
+      if (selectedImage) {
+        const fileExt = selectedImage.name.split('.').pop();
+        const filePath = `${currentUser.id}/${Date.now()}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from('post-images')
+          .upload(filePath, selectedImage, { upsert: false });
+        if (uploadError) throw uploadError;
+        const { data: urlData } = supabase.storage.from('post-images').getPublicUrl(filePath);
+        imageUrl = urlData.publicUrl;
+      }
+
+      // 3. Create post
       const { error } = await supabase
         .from('community_posts')
         .insert({
@@ -311,10 +389,19 @@ const CommunityPage = () => {
           visibility: newPostVisibility,
           tags: [],
           category: selectedCategory,
-        });
+          image_url: imageUrl,
+          moderation_status: moderationStatus,
+          moderation_reason: moderationReason,
+        } as any);
       if (error) throw error;
-      toast.success('Post shared! 🌿');
+
+      if (moderationStatus === 'pending_review') {
+        toast.info('Your post is under review and will be visible once approved 🔍');
+      } else {
+        toast.success('Post shared! 🌿');
+      }
       setNewPostContent('');
+      clearImage();
       setShowNewPost(false);
       setPostStep('template');
       setSelectedCategory('general');
@@ -644,6 +731,20 @@ const CommunityPage = () => {
                     </div>
                   )}
 
+                  {/* Pending review badge */}
+                  {post.moderation_status === 'pending_review' && (
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/25 text-xs font-medium text-amber-600">
+                      🔍 {t('postUnderReview')}
+                    </div>
+                  )}
+
+                  {/* Post Image */}
+                  {post.image_url && (
+                    <div className="rounded-xl overflow-hidden border border-border">
+                      <img src={post.image_url} alt="Post" className="w-full max-h-72 object-cover" loading="lazy" />
+                    </div>
+                  )}
+
                   {/* Content */}
                   <div className="space-y-2">
                     <p className="text-foreground text-sm leading-relaxed whitespace-pre-wrap">
@@ -686,7 +787,7 @@ const CommunityPage = () => {
       </div>
 
       {/* New Post Dialog — Guided */}
-      <Dialog open={showNewPost} onOpenChange={(open) => { setShowNewPost(open); if (!open) { setPostStep('template'); setSelectedCategory('general'); setNewPostContent(''); } }}>
+      <Dialog open={showNewPost} onOpenChange={(open) => { setShowNewPost(open); if (!open) { setPostStep('template'); setSelectedCategory('general'); setNewPostContent(''); clearImage(); } }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{t('shareWithCommunity')}</DialogTitle>
@@ -711,6 +812,35 @@ const CommunityPage = () => {
                 className="min-h-[120px] resize-none"
               />
               <p className="text-xs text-muted-foreground text-right">{newPostContent.length}/{MAX_POST_LENGTH}</p>
+              
+              {/* Image upload */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageSelect}
+                className="hidden"
+              />
+              {imagePreview ? (
+                <div className="relative rounded-xl overflow-hidden border border-border">
+                  <img src={imagePreview} alt="Preview" className="w-full max-h-48 object-cover" />
+                  <button
+                    onClick={clearImage}
+                    className="absolute top-2 right-2 p-1.5 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl border border-dashed border-border hover:border-primary/50 hover:bg-primary/5 transition-colors text-sm text-muted-foreground"
+                >
+                  <ImagePlus className="w-4 h-4" />
+                  {t('addPhoto') || 'Add a photo'}
+                </button>
+              )}
+
               <div className="flex gap-2">
                 <Button variant={newPostVisibility === 'everyone' ? 'default' : 'outline'} size="sm" onClick={() => setNewPostVisibility('everyone')} className="rounded-full">
                   <Globe className="w-4 h-4 mr-1" /> {t('everyone')}

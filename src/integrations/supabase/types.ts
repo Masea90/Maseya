@@ -56,8 +56,11 @@ export type Database = {
           content: string
           created_at: string | null
           id: string
+          image_url: string | null
           is_staff_pick: boolean | null
           likes_count: number | null
+          moderation_reason: string | null
+          moderation_status: string | null
           tags: string[] | null
           updated_at: string | null
           user_id: string
@@ -69,8 +72,11 @@ export type Database = {
           content: string
           created_at?: string | null
           id?: string
+          image_url?: string | null
           is_staff_pick?: boolean | null
           likes_count?: number | null
+          moderation_reason?: string | null
+          moderation_status?: string | null
           tags?: string[] | null
           updated_at?: string | null
           user_id: string
@@ -82,8 +88,11 @@ export type Database = {
           content?: string
           created_at?: string | null
           id?: string
+          image_url?: string | null
           is_staff_pick?: boolean | null
           likes_count?: number | null
+          moderation_reason?: string | null
+          moderation_status?: string | null
           tags?: string[] | null
           updated_at?: string | null
           user_id?: string

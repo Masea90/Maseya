@@ -23,6 +23,9 @@ export interface AdminPost {
   comments_count: number;
   created_at: string;
   tags: string[];
+  image_url?: string | null;
+  moderation_status?: string;
+  moderation_reason?: string | null;
   nickname?: string;
 }
 
@@ -85,6 +88,9 @@ export const useAdminDashboard = () => {
         ...p,
         is_staff_pick: p.is_staff_pick || false,
         category: p.category || null,
+        image_url: (p as any).image_url || null,
+        moderation_status: (p as any).moderation_status || 'approved',
+        moderation_reason: (p as any).moderation_reason || null,
         nickname: (p as AdminPost).nickname,
       })));
 
@@ -186,5 +192,20 @@ export const useAdminDashboard = () => {
     }
   };
 
-  return { stats, posts, users, isLoading, deletePost, toggleStaffPick, refetch: fetchAll };
+  const approvePost = async (postId: string) => {
+    try {
+      const { error } = await supabase
+        .from('community_posts')
+        .update({ moderation_status: 'approved', moderation_reason: null } as any)
+        .eq('id', postId);
+      if (error) throw error;
+      await fetchAll();
+      return true;
+    } catch (e) {
+      console.error('Error approving post:', e);
+      return false;
+    }
+  };
+
+  return { stats, posts, users, isLoading, deletePost, toggleStaffPick, approvePost, refetch: fetchAll };
 };

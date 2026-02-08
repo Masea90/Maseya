@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Star, Trash2, Eye, Clock, MessageCircle, Search } from 'lucide-react';
+import { Star, Trash2, Eye, Clock, MessageCircle, Search, CheckCircle, AlertTriangle, Image } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -21,19 +21,27 @@ interface AdminPostModerationProps {
   posts: AdminPost[];
   onDelete: (postId: string) => Promise<boolean>;
   onToggleStaffPick: (postId: string, current: boolean) => Promise<boolean>;
+  onApprove?: (postId: string) => Promise<boolean>;
 }
 
-const AdminPostModeration = ({ posts, onDelete, onToggleStaffPick }: AdminPostModerationProps) => {
+const AdminPostModeration = ({ posts, onDelete, onToggleStaffPick, onApprove }: AdminPostModerationProps) => {
   const [search, setSearch] = useState('');
+  const [filterMode, setFilterMode] = useState<'all' | 'flagged'>('all');
 
   const filteredPosts = posts.filter(p => {
     const q = search.toLowerCase();
-    return (
+    const matchesSearch = (
       p.content.toLowerCase().includes(q) ||
       p.nickname?.toLowerCase().includes(q) ||
       p.category?.toLowerCase().includes(q)
     );
+    if (filterMode === 'flagged') {
+      return matchesSearch && p.moderation_status === 'pending_review';
+    }
+    return matchesSearch;
   });
+
+  const flaggedCount = posts.filter(p => p.moderation_status === 'pending_review').length;
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
@@ -57,8 +65,36 @@ const AdminPostModeration = ({ posts, onDelete, onToggleStaffPick }: AdminPostMo
     else toast.error('Failed to update');
   };
 
+  const handleApprove = async (postId: string) => {
+    if (!onApprove) return;
+    const ok = await onApprove(postId);
+    if (ok) toast.success('Post approved ✅');
+    else toast.error('Failed to approve');
+  };
+
   return (
     <div className="space-y-3">
+      {/* Filter tabs */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => setFilterMode('all')}
+          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+            filterMode === 'all' ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground'
+          }`}
+        >
+          All Posts
+        </button>
+        <button
+          onClick={() => setFilterMode('flagged')}
+          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-1 ${
+            filterMode === 'flagged' ? 'bg-amber-500 text-white' : 'bg-secondary text-muted-foreground'
+          }`}
+        >
+          <AlertTriangle className="w-3 h-3" />
+          Flagged {flaggedCount > 0 && `(${flaggedCount})`}
+        </button>
+      </div>
+
       {/* Search */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -74,12 +110,18 @@ const AdminPostModeration = ({ posts, onDelete, onToggleStaffPick }: AdminPostMo
       {/* Post List */}
       <div className="space-y-2">
         {filteredPosts.length === 0 && (
-          <p className="text-center text-muted-foreground text-sm py-6">No posts found</p>
+          <p className="text-center text-muted-foreground text-sm py-6">
+            {filterMode === 'flagged' ? 'No flagged posts 🎉' : 'No posts found'}
+          </p>
         )}
         {filteredPosts.map(post => (
           <div
             key={post.id}
-            className="border border-border rounded-xl p-3 space-y-2 hover:bg-secondary/20 transition-colors"
+            className={`border rounded-xl p-3 space-y-2 hover:bg-secondary/20 transition-colors ${
+              post.moderation_status === 'pending_review'
+                ? 'border-amber-500/50 bg-amber-500/5'
+                : 'border-border'
+            }`}
           >
             {/* Header */}
             <div className="flex items-center justify-between">
@@ -87,9 +129,19 @@ const AdminPostModeration = ({ posts, onDelete, onToggleStaffPick }: AdminPostMo
                 <span className="font-medium text-sm truncate">
                   {post.nickname || 'Anonymous'}
                 </span>
+                {post.moderation_status === 'pending_review' && (
+                  <Badge variant="secondary" className="text-[10px] gap-0.5 px-1.5 py-0 bg-amber-500/15 text-amber-600 border-amber-500/25">
+                    <AlertTriangle className="w-2.5 h-2.5" /> Flagged
+                  </Badge>
+                )}
                 {post.is_staff_pick && (
                   <Badge variant="secondary" className="text-[10px] gap-0.5 px-1.5 py-0">
                     <Star className="w-2.5 h-2.5 fill-primary text-primary" /> Pick
+                  </Badge>
+                )}
+                {post.image_url && (
+                  <Badge variant="outline" className="text-[10px] gap-0.5 px-1.5 py-0">
+                    <Image className="w-2.5 h-2.5" /> Photo
                   </Badge>
                 )}
                 {post.category && post.category !== 'general' && (
@@ -105,8 +157,22 @@ const AdminPostModeration = ({ posts, onDelete, onToggleStaffPick }: AdminPostMo
               </div>
             </div>
 
+            {/* Moderation reason */}
+            {post.moderation_status === 'pending_review' && post.moderation_reason && (
+              <p className="text-xs text-amber-600 bg-amber-500/10 px-2.5 py-1.5 rounded-lg">
+                🤖 AI reason: {post.moderation_reason}
+              </p>
+            )}
+
             {/* Content preview */}
-            <p className="text-sm text-foreground line-clamp-2">{post.content}</p>
+            <p className="text-sm text-foreground line-clamp-3">{post.content}</p>
+
+            {/* Image preview */}
+            {post.image_url && (
+              <div className="rounded-lg overflow-hidden border border-border max-w-[200px]">
+                <img src={post.image_url} alt="Post" className="w-full h-24 object-cover" />
+              </div>
+            )}
 
             {/* Actions */}
             <div className="flex items-center justify-between pt-1">
@@ -117,6 +183,17 @@ const AdminPostModeration = ({ posts, onDelete, onToggleStaffPick }: AdminPostMo
                 <span>❤️ {post.likes_count}</span>
               </div>
               <div className="flex items-center gap-1">
+                {post.moderation_status === 'pending_review' && onApprove && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs gap-1 text-green-600 hover:text-green-700"
+                    onClick={() => handleApprove(post.id)}
+                  >
+                    <CheckCircle className="w-3.5 h-3.5" />
+                    Approve
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   size="sm"

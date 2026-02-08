@@ -13,7 +13,7 @@ import AdminUserManagement from '@/components/admin/AdminUserManagement';
 const AdminDashboardPage = () => {
   const navigate = useNavigate();
   const { isAdmin, isLoading: adminLoading } = useIsAdmin();
-  const { stats, posts, users, isLoading, deletePost, toggleStaffPick, refetch } = useAdminDashboard();
+  const { stats, posts, users, isLoading, deletePost, toggleStaffPick, approvePost, refetch } = useAdminDashboard();
 
   // Access guard
   if (adminLoading) {
@@ -106,6 +106,7 @@ const AdminDashboardPage = () => {
                 posts={posts}
                 onDelete={deletePost}
                 onToggleStaffPick={toggleStaffPick}
+                onApprove={approvePost}
               />
             )}
           </TabsContent>
