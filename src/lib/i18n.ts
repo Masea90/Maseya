@@ -500,6 +500,13 @@ export const translations = {
     staffPicks: 'Staff Picks',
     staffPick: 'MASEYA Team',
     staffPicksEmpty: 'No staff picks yet — stay tuned!',
+
+    // Routine reminders
+    routineReminders: 'Routine Reminders',
+    routineRemindersDesc: 'Get nudged if you haven\'t completed your routine by midday or evening.',
+    routineRemindersEnabled: 'Smart nudges enabled',
+    routineRemindersDisabled: 'Smart nudges disabled',
+    routineRemindersSaved: 'Reminder preferences saved!',
   },
   es: {
     // Brand
@@ -994,6 +1001,13 @@ export const translations = {
     staffPicks: 'Selección del equipo',
     staffPick: 'Equipo MASEYA',
     staffPicksEmpty: 'Aún no hay selecciones del equipo — ¡pronto!',
+
+    // Routine reminders
+    routineReminders: 'Recordatorios de rutina',
+    routineRemindersDesc: 'Recibe un aviso si no has completado tu rutina al mediodía o por la noche.',
+    routineRemindersEnabled: 'Avisos inteligentes activados',
+    routineRemindersDisabled: 'Avisos inteligentes desactivados',
+    routineRemindersSaved: '¡Preferencias de recordatorio guardadas!',
   },
   fr: {
     // Brand
@@ -1488,6 +1502,13 @@ export const translations = {
     staffPicks: 'Sélection de l\'équipe',
     staffPick: 'Équipe MASEYA',
     staffPicksEmpty: 'Pas encore de sélections de l\'équipe — restez à l\'écoute !',
+
+    // Routine reminders
+    routineReminders: 'Rappels de routine',
+    routineRemindersDesc: 'Recevez un rappel si vous n\'avez pas terminé votre routine à midi ou le soir.',
+    routineRemindersEnabled: 'Rappels intelligents activés',
+    routineRemindersDisabled: 'Rappels intelligents désactivés',
+    routineRemindersSaved: 'Préférences de rappel enregistrées !',
   },
 };
 

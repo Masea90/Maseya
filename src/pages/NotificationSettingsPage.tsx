@@ -1,5 +1,6 @@
 import { AppLayout } from '@/components/layout/AppLayout';
 import { NotificationSettings } from '@/components/notifications/NotificationSettings';
+import { RoutineReminderSettings } from '@/components/notifications/RoutineReminderSettings';
 import { useUser } from '@/contexts/UserContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -20,6 +21,9 @@ const NotificationSettingsPage = () => {
       <div className="px-4 py-6 space-y-6 animate-fade-in">
         {/* Push Notifications */}
         <NotificationSettings />
+
+        {/* Routine Reminders */}
+        <RoutineReminderSettings />
 
         {/* In-App Notification Preferences */}
         <Card>

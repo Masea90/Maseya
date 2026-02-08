@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { useState, useMemo, useCallback } from 'react';
 import { RoutineEditor, CustomStep } from '@/components/routine/RoutineEditor';
+import { useRoutineCompletionSync } from '@/hooks/useRoutineCompletionSync';
 import { toast } from 'sonner';
 
 type TimeOfDay = 'morning' | 'night';
@@ -52,6 +53,7 @@ const defaultToCustomSteps = (defaults: DefaultRoutineStep[]): CustomStep[] =>
 
 const RoutinePage = () => {
   const { user, updateUser, updateRoutineCompletion, saveCustomRoutine, t } = useUser();
+  const { syncCompletion } = useRoutineCompletionSync();
   const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>('morning');
 
   const completed = user.routineCompletion || { morning: [], night: [], lastCompletedDate: null };
@@ -93,6 +95,9 @@ const RoutinePage = () => {
     }
 
     updateRoutineCompletion(newCompletion);
+
+    // Sync to database for smart nudges
+    syncCompletion(timeOfDay, updatedTimeOfDay, totalSteps);
   };
 
   const isCompleted = (stepId: string) => {
