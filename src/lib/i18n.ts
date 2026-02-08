@@ -507,6 +507,12 @@ export const translations = {
     routineRemindersEnabled: 'Smart nudges enabled',
     routineRemindersDisabled: 'Smart nudges disabled',
     routineRemindersSaved: 'Reminder preferences saved!',
+
+    // Affiliate links
+    whereToBy: 'Where to Buy',
+    visitStore: 'Visit Store',
+    moreOptions: 'More purchase options',
+    officialStore: 'Official Store',
   },
   es: {
     // Brand
@@ -1008,6 +1014,12 @@ export const translations = {
     routineRemindersEnabled: 'Avisos inteligentes activados',
     routineRemindersDisabled: 'Avisos inteligentes desactivados',
     routineRemindersSaved: '¡Preferencias de recordatorio guardadas!',
+
+    // Affiliate links
+    whereToBy: 'Dónde Comprar',
+    visitStore: 'Visitar Tienda',
+    moreOptions: 'Más opciones de compra',
+    officialStore: 'Tienda Oficial',
   },
   fr: {
     // Brand
@@ -1509,6 +1521,12 @@ export const translations = {
     routineRemindersEnabled: 'Rappels intelligents activés',
     routineRemindersDisabled: 'Rappels intelligents désactivés',
     routineRemindersSaved: 'Préférences de rappel enregistrées !',
+
+    // Affiliate links
+    whereToBy: 'Où Acheter',
+    visitStore: 'Visiter la Boutique',
+    moreOptions: 'Plus d\'options d\'achat',
+    officialStore: 'Boutique Officielle',
   },
 };
 

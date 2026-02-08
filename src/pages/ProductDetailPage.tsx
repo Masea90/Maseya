@@ -1,10 +1,11 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Heart, ExternalLink, Users, Check, Leaf, ShoppingBag } from 'lucide-react';
+import { ChevronLeft, Heart, Users, Check, Leaf, ShoppingBag, ExternalLink, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useUser } from '@/contexts/UserContext';
 import { getProductWithMatch, tagTranslations } from '@/lib/recommendations';
+import { useAffiliateLinks } from '@/hooks/useAffiliateLinks';
 
 // Real ingredient data for products
 const productIngredients: Record<number, { name: string; safe: boolean; note: string }[]> = {
@@ -58,16 +59,7 @@ const productIngredients: Record<number, { name: string; safe: boolean; note: st
 
 // User counts for social proof
 const productUserCounts: Record<number, number> = {
-  1: 892,
-  2: 654,
-  3: 743,
-  4: 521,
-  5: 612,
-  6: 987,
-  7: 423,
-  8: 567,
-  9: 389,
-  10: 456,
+  1: 892, 2: 654, 3: 743, 4: 521, 5: 612, 6: 987, 7: 423, 8: 567, 9: 389,
 };
 
 const ProductDetailPage = () => {
@@ -75,11 +67,13 @@ const ProductDetailPage = () => {
   const navigate = useNavigate();
   const { t, user } = useUser();
   const [isFavorite, setIsFavorite] = useState(false);
+  const [showAllRetailers, setShowAllRetailers] = useState(false);
 
   const productId = Number(id) || 1;
   const product = getProductWithMatch(productId, user);
   const ingredients = productIngredients[productId] || productIngredients[1];
   const usersLikeYou = productUserCounts[productId] || 500;
+  const { links, primaryLink, isLoading: linksLoading, trackClick } = useAffiliateLinks(productId);
 
   if (!product) {
     return (
@@ -93,6 +87,9 @@ const ProductDetailPage = () => {
     const translationKey = tagTranslations[tag];
     return translationKey ? t(translationKey) : tag;
   };
+
+  const secondaryLinks = links.filter(l => !l.is_primary);
+  const visibleSecondaryLinks = showAllRetailers ? secondaryLinks : secondaryLinks.slice(0, 2);
 
   return (
     <div className="min-h-screen bg-background">
@@ -122,7 +119,6 @@ const ProductDetailPage = () => {
       <div className="px-4 py-6 space-y-6 animate-fade-in pb-28">
         {/* Product Hero */}
         <div className="bg-card rounded-3xl shadow-warm flex flex-col items-center overflow-hidden">
-          {/* Product Image */}
           <div className="w-full aspect-square bg-white">
             <img 
               src={product.image} 
@@ -141,7 +137,6 @@ const ProductDetailPage = () => {
               <span className="text-lg font-semibold text-primary">{product.price}</span>
             </div>
             
-            {/* Product Tags */}
             <div className="flex flex-wrap justify-center gap-2 mt-4">
               {product.tags.map(tag => (
                 <span
@@ -163,6 +158,67 @@ const ProductDetailPage = () => {
             {t('realProductNote')}
           </p>
         </div>
+
+        {/* Where to Buy - Multi-retailer */}
+        {links.length > 0 && (
+          <div className="space-y-3">
+            <h2 className="font-display text-lg font-semibold flex items-center gap-2">
+              <ShoppingBag className="w-5 h-5 text-primary" />
+              {t('whereToBy')}
+            </h2>
+
+            <div className="space-y-2">
+              {/* Primary retailer - prominent */}
+              {primaryLink && (
+                <button
+                  onClick={() => trackClick(primaryLink)}
+                  className="w-full flex items-center justify-between p-4 rounded-2xl bg-gradient-to-r from-primary/10 to-primary/5 border-2 border-primary/30 hover:border-primary/50 transition-all group"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{primaryLink.retailer_icon}</span>
+                    <div className="text-left">
+                      <p className="font-semibold text-foreground">{primaryLink.retailer_name}</p>
+                      <p className="text-xs text-muted-foreground">{t('officialStore')}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-primary">{product.price}</span>
+                    <ExternalLink className="w-4 h-4 text-primary group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                  </div>
+                </button>
+              )}
+
+              {/* Secondary retailers */}
+              {visibleSecondaryLinks.map(link => (
+                <button
+                  key={link.id}
+                  onClick={() => trackClick(link)}
+                  className="w-full flex items-center justify-between p-3.5 rounded-xl bg-card border border-border hover:border-primary/30 transition-all group"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">{link.retailer_icon}</span>
+                    <p className="font-medium text-foreground text-sm">{link.retailer_name}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">{t('visitStore')}</span>
+                    <ExternalLink className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
+                  </div>
+                </button>
+              ))}
+
+              {/* Show more toggle */}
+              {secondaryLinks.length > 2 && !showAllRetailers && (
+                <button
+                  onClick={() => setShowAllRetailers(true)}
+                  className="w-full flex items-center justify-center gap-1 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <ChevronDown className="w-4 h-4" />
+                  {t('moreOptions')}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Description */}
         <div className="space-y-2">
@@ -222,14 +278,16 @@ const ProductDetailPage = () => {
         </div>
       </div>
 
-      {/* Fixed CTA */}
+      {/* Fixed CTA - Primary affiliate link */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-md border-t border-border">
         <div className="max-w-lg mx-auto">
           <Button 
             className="w-full h-14 rounded-2xl text-lg font-medium bg-gradient-olive"
+            disabled={linksLoading || !primaryLink}
             onClick={() => {
-              // Placeholder for affiliate link
-              window.open('#', '_blank');
+              if (primaryLink) {
+                trackClick(primaryLink);
+              }
             }}
           >
             <ShoppingBag className="w-5 h-5 mr-2" />
