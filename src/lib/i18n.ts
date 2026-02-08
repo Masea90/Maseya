@@ -397,6 +397,11 @@ export const translations = {
     climateContinental: 'Continental (hot summers, cold winters)',
     climateMediterranean: 'Mediterranean',
     
+    // Chatbot AI
+    chatbotError: 'Sorry, I couldn\'t connect right now. Please try again in a moment. 🌸',
+    chatbotRateLimit: 'I\'m getting a lot of questions right now! Please wait a moment before sending another message. 💫',
+    chatbotTyping: 'Thinking...',
+
     // Community translation
     seeOriginal: 'See original',
     seeTranslation: 'See translation',
@@ -792,6 +797,11 @@ export const translations = {
     climateContinental: 'Continental (veranos calientes, inviernos fríos)',
     climateMediterranean: 'Mediterráneo',
     
+    // Chatbot AI
+    chatbotError: 'Lo siento, no pude conectar en este momento. Inténtalo de nuevo en un momento. 🌸',
+    chatbotRateLimit: '¡Estoy recibiendo muchas preguntas ahora mismo! Espera un momento antes de enviar otro mensaje. 💫',
+    chatbotTyping: 'Pensando...',
+
     // Community translation
     seeOriginal: 'Ver original',
     seeTranslation: 'Ver traducción',
@@ -1187,6 +1197,11 @@ export const translations = {
     climateContinental: 'Continental (étés chauds, hivers froids)',
     climateMediterranean: 'Méditerranéen',
     
+    // Chatbot AI
+    chatbotError: 'Désolée, je n\'ai pas pu me connecter pour le moment. Réessayez dans un instant. 🌸',
+    chatbotRateLimit: 'Je reçois beaucoup de questions en ce moment ! Veuillez patienter un instant avant d\'envoyer un autre message. 💫',
+    chatbotTyping: 'Réflexion...',
+
     // Community translation
     seeOriginal: 'Voir l\'original',
     seeTranslation: 'Voir la traduction',
