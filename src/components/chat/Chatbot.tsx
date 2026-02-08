@@ -1,31 +1,23 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { MessageCircle, Send, X, Sparkles, User, Loader2 } from 'lucide-react';
+import { MessageCircle, Send, X, Sparkles, User, Loader2, Trash2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '@/lib/utils';
 import { useUser } from '@/contexts/UserContext';
+import { useChatHistory } from '@/hooks/useChatHistory';
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
-
-interface Message {
-  id: number;
-  type: 'bot' | 'user';
-  content: string;
-  time: string;
-}
-
-type AiMessage = { role: 'user' | 'assistant'; content: string };
 
 export const Chatbot = () => {
   const { user, t } = useUser();
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 1,
-      type: 'bot',
-      content: t('chatbotGreeting'),
-      time: 'Just now',
-    },
-  ]);
+  const {
+    messages,
+    setMessages,
+    addMessage,
+    updateMessage,
+    clearHistory,
+    buildConversationHistory,
+  } = useChatHistory();
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -46,22 +38,13 @@ export const Chatbot = () => {
     scrollToBottom();
   }, [messages, scrollToBottom]);
 
-  const buildConversationHistory = (msgs: Message[]): AiMessage[] => {
-    return msgs
-      .filter(m => m.id !== 1) // skip the initial greeting
-      .map(m => ({
-        role: m.type === 'user' ? 'user' as const : 'assistant' as const,
-        content: m.content,
-      }));
-  };
-
   const handleSend = async (text?: string) => {
     const messageText = text || input;
     if (!messageText.trim() || isLoading) return;
 
-    const userMessage: Message = {
+    const userMessage = {
       id: Date.now(),
-      type: 'user',
+      type: 'user' as const,
       content: messageText,
       time: 'Just now',
     };
@@ -71,9 +54,7 @@ export const Chatbot = () => {
     setInput('');
     setIsLoading(true);
 
-    const aiMessages: AiMessage[] = [
-      ...buildConversationHistory(updatedMessages),
-    ];
+    const aiMessages = buildConversationHistory(updatedMessages);
 
     const userProfile = {
       skinConcerns: user.skinConcerns,
@@ -254,12 +235,23 @@ export const Chatbot = () => {
             <p className="text-xs opacity-80">{t('chatbotSubtitle')}</p>
           </div>
         </div>
-        <button
-          onClick={() => setIsOpen(false)}
-          className="p-2 rounded-full hover:bg-primary-foreground/20 transition-colors"
-        >
-          <X className="w-5 h-5" />
-        </button>
+        <div className="flex items-center gap-1">
+          {messages.length > 1 && (
+            <button
+              onClick={clearHistory}
+              className="p-2 rounded-full hover:bg-primary-foreground/20 transition-colors"
+              title={t('clearChat') || 'Clear chat'}
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
+          <button
+            onClick={() => setIsOpen(false)}
+            className="p-2 rounded-full hover:bg-primary-foreground/20 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       {/* Messages */}

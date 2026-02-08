@@ -186,6 +186,7 @@ export const translations = {
     chatbotSubtitle: 'Your beauty assistant',
     chatbotGreeting: "Hi there! 👋 I'm Mira, your personal beauty assistant. How can I help you today?",
     askAnything: 'Ask me anything...',
+    clearChat: 'Clear chat',
     
     // Quick replies
     bestForDrySkin: 'Best products for dry skin',
@@ -586,6 +587,7 @@ export const translations = {
     chatbotSubtitle: 'Tu asistente de belleza',
     chatbotGreeting: '¡Hola! 👋 Soy Mira, tu asistente personal de belleza. ¿En qué puedo ayudarte hoy?',
     askAnything: 'Pregúntame lo que quieras...',
+    clearChat: 'Borrar chat',
     
     // Quick replies
     bestForDrySkin: 'Mejores productos para piel seca',
@@ -986,6 +988,7 @@ export const translations = {
     chatbotSubtitle: 'Votre assistante beauté',
     chatbotGreeting: 'Bonjour ! 👋 Je suis Mira, votre assistante beauté personnelle. Comment puis-je vous aider aujourd\'hui ?',
     askAnything: 'Posez-moi vos questions...',
+    clearChat: 'Effacer le chat',
     
     // Quick replies
     bestForDrySkin: 'Meilleurs produits pour peau sèche',
