@@ -3,6 +3,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { useUser } from '@/contexts/UserContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfileCompleteness } from '@/hooks/useProfileCompleteness';
+import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { languages } from '@/lib/i18n';
 import { 
   ChevronRight, 
@@ -17,7 +18,8 @@ import {
   Camera,
   Globe,
   Mail,
-  Loader2
+  Loader2,
+  LayoutDashboard
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -42,6 +44,7 @@ const ProfilePage = () => {
   const { user, t, updateUser } = useUser();
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
+  const { isAdmin } = useIsAdmin();
   const { percentage, tier: profileTier, tierLabel, completedItems, missingItems } = useProfileCompleteness(user);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -266,6 +269,25 @@ const ProfilePage = () => {
               <div className="flex-1">
                 <p className="font-semibold text-foreground">{t('upgradeToPremium')}</p>
                 <p className="text-sm text-muted-foreground">{t('unlockAiScans')}</p>
+              </div>
+              <ChevronRight className="w-5 h-5 text-muted-foreground" />
+            </div>
+          </Link>
+        )}
+
+        {/* Admin Dashboard Link */}
+        {isAdmin && (
+          <Link
+            to="/admin"
+            className="block bg-gradient-to-r from-destructive/10 to-destructive/5 border-2 border-destructive/20 rounded-2xl p-4 shadow-warm"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-destructive/20 rounded-full flex items-center justify-center">
+                <LayoutDashboard className="w-6 h-6 text-destructive" />
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-foreground">Admin Dashboard</p>
+                <p className="text-sm text-muted-foreground">Manage content, users & affiliates</p>
               </div>
               <ChevronRight className="w-5 h-5 text-muted-foreground" />
             </div>
