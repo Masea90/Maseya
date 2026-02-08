@@ -185,6 +185,7 @@ export type Database = {
       profiles: {
         Row: {
           age_range: string | null
+          avatar_url: string | null
           climate_type: string | null
           consent_analytics: boolean | null
           consent_date: string | null
@@ -212,6 +213,7 @@ export type Database = {
         }
         Insert: {
           age_range?: string | null
+          avatar_url?: string | null
           climate_type?: string | null
           consent_analytics?: boolean | null
           consent_date?: string | null
@@ -239,6 +241,7 @@ export type Database = {
         }
         Update: {
           age_range?: string | null
+          avatar_url?: string | null
           climate_type?: string | null
           consent_analytics?: boolean | null
           consent_date?: string | null

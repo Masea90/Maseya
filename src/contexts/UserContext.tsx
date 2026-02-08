@@ -25,6 +25,7 @@ export interface UserProfile {
   routineCompletion: RoutineCompletion;
   // Privacy-safe insight fields
   ageRange: string;
+  avatarUrl: string | null;
   sensitivities: string[];
   country: string;
   climateType: string;
@@ -81,6 +82,7 @@ const createDefaultUser = (email?: string): UserProfile => ({
   },
   // Privacy-safe insight fields
   ageRange: '',
+  avatarUrl: null,
   sensitivities: [],
   country: '',
   climateType: '',
@@ -183,6 +185,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
             },
             // Privacy-safe insight fields
             ageRange: (data as Record<string, unknown>).age_range as string || '',
+            avatarUrl: (data as Record<string, unknown>).avatar_url as string || null,
             sensitivities: (data as Record<string, unknown>).sensitivities as string[] || [],
             country: (data as Record<string, unknown>).country as string || '',
             climateType: (data as Record<string, unknown>).climate_type as string || '',

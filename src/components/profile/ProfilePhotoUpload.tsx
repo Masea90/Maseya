@@ -59,6 +59,12 @@ export function ProfilePhotoUpload({ currentPhotoUrl, onPhotoChange, nickname }:
       // Add cache buster
       const urlWithCacheBuster = `${publicUrl}?t=${Date.now()}`;
       
+      // Persist avatar URL to profile
+      await supabase
+        .from('profiles')
+        .update({ avatar_url: urlWithCacheBuster } as Record<string, unknown>)
+        .eq('user_id', currentUser.id);
+
       setPreviewUrl(urlWithCacheBuster);
       onPhotoChange(urlWithCacheBuster, true);
       toast.success('Photo uploaded!');
@@ -84,6 +90,12 @@ export function ProfilePhotoUpload({ currentPhotoUrl, onPhotoChange, nickname }:
         const filesToRemove = files.map(f => `${currentUser.id}/${f.name}`);
         await supabase.storage.from('avatars').remove(filesToRemove);
       }
+
+      // Clear avatar URL from profile
+      await supabase
+        .from('profiles')
+        .update({ avatar_url: null } as Record<string, unknown>)
+        .eq('user_id', currentUser.id);
 
       setPreviewUrl(null);
       onPhotoChange(null, false);

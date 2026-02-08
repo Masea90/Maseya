@@ -4,6 +4,7 @@ import { useUser } from '@/contexts/UserContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { MessageCircle, MoreHorizontal, Plus, Users, Lock, Globe, Send, Loader2, Pencil, Trash2, Languages, Sparkles } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -27,6 +28,7 @@ interface Post {
   created_at: string;
   category?: string;
   nickname?: string;
+  avatarUrl?: string | null;
   profileCompleteness?: number;
   profileTier?: 'starter' | 'rising' | 'trusted' | 'verified';
   // Similarity matching fields from post author's profile
@@ -44,6 +46,7 @@ interface Comment {
   content: string;
   created_at: string;
   nickname?: string;
+  avatarUrl?: string | null;
 }
 
 // Calculate profile completeness for community display
@@ -159,7 +162,7 @@ const CommunityPage = () => {
       const userIds = [...new Set(postsData.map(p => p.user_id))];
       const { data: profilesData } = await supabase
         .from('profiles')
-        .select('user_id, nickname, skin_concerns, hair_type, hair_concerns, goals, sensitivities, age_range, country, climate_type')
+        .select('user_id, nickname, avatar_url, has_profile_photo, skin_concerns, hair_type, hair_concerns, goals, sensitivities, age_range, country, climate_type')
         .in('user_id', userIds);
 
       const profileMap = new Map<string, any>();
@@ -190,6 +193,7 @@ const CommunityPage = () => {
         return {
           ...post,
           nickname: profile?.nickname,
+          avatarUrl: profile?.avatar_url || null,
           profileCompleteness: profile?.percentage || 0,
           profileTier: profile?.tier || 'starter',
           authorSkinConcerns: profile?.skin_concerns || [],
@@ -360,11 +364,11 @@ const CommunityPage = () => {
       const userIds = [...new Set(commentsData.map(c => c.user_id))];
       const { data: profilesData } = await supabase
         .from('profiles')
-        .select('user_id, nickname')
+        .select('user_id, nickname, avatar_url')
         .in('user_id', userIds);
-      const nicknameMap = new Map<string, string>();
-      profilesData?.forEach(p => { if (p.nickname) nicknameMap.set(p.user_id, p.nickname); });
-      setComments(commentsData.map(c => ({ ...c, nickname: nicknameMap.get(c.user_id) || undefined })));
+      const profileMap = new Map<string, { nickname?: string; avatar_url?: string }>();
+      profilesData?.forEach(p => { profileMap.set(p.user_id, { nickname: p.nickname || undefined, avatar_url: (p as Record<string, unknown>).avatar_url as string || undefined }); });
+      setComments(commentsData.map(c => ({ ...c, nickname: profileMap.get(c.user_id)?.nickname || undefined, avatarUrl: profileMap.get(c.user_id)?.avatar_url || null })));
     } catch (error) { console.error('Error loading comments:', error); }
     finally { setLoadingComments(false); }
   };
@@ -528,7 +532,12 @@ const CommunityPage = () => {
                   {/* Post Header */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-secondary rounded-full flex items-center justify-center text-xl">👤</div>
+                      <Avatar className="w-10 h-10">
+                        <AvatarImage src={post.avatarUrl || undefined} alt={post.nickname || 'User'} />
+                        <AvatarFallback className="bg-secondary text-sm font-medium">
+                          {post.nickname ? post.nickname.slice(0, 2).toUpperCase() : '👤'}
+                        </AvatarFallback>
+                      </Avatar>
                       <div className="space-y-0.5">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-medium text-foreground text-sm">{post.nickname || 'Anonymous'}</span>
@@ -670,7 +679,12 @@ const CommunityPage = () => {
             ) : (
               comments.map(comment => (
                 <div key={comment.id} className="flex gap-3 group">
-                  <div className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center text-sm">👤</div>
+                  <Avatar className="w-8 h-8">
+                    <AvatarImage src={comment.avatarUrl || undefined} alt={comment.nickname || 'User'} />
+                    <AvatarFallback className="bg-secondary text-xs font-medium">
+                      {comment.nickname ? comment.nickname.slice(0, 2).toUpperCase() : '👤'}
+                    </AvatarFallback>
+                  </Avatar>
                   <div className="flex-1">
                     <p className="text-sm font-medium">{comment.nickname || 'Anonymous'}</p>
                     <p className="text-sm text-foreground">{comment.content}</p>
