@@ -118,12 +118,8 @@ export const usePushNotifications = () => {
         return false;
       }
 
-      // Register service worker if not already registered
-      let registration = await navigator.serviceWorker.getRegistration();
-      if (!registration) {
-        registration = await navigator.serviceWorker.register('/sw.js');
-        await navigator.serviceWorker.ready;
-      }
+      // Use the PWA plugin's registered service worker (includes push handler via importScripts)
+      const registration = await navigator.serviceWorker.ready;
 
       if (!registration.pushManager) {
         toast({
@@ -187,7 +183,8 @@ export const usePushNotifications = () => {
           await supabase
             .from('push_subscriptions')
             .delete()
-            .eq('endpoint', subscription.endpoint);
+            .eq('endpoint', subscription.endpoint)
+            .eq('user_id', currentUser.id);
 
           await subscription.unsubscribe();
         }
