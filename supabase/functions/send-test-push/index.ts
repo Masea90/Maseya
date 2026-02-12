@@ -3,9 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // Allowed origins — add your custom domain here if needed
 const ALLOWED_ORIGINS = [
-  "https://maseya.lovable.app",
-  "https://id-preview--4c87b8bb-bac6-4dc7-8ca6-47c5c2ca3f60.lovable.app",
-  "http://localhost:8080",
+  "https://www.maseya.es",
+  "https://maseya.es",
 ];
 
 function getCorsHeaders(req: Request) {
