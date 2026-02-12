@@ -4,7 +4,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // Allowed origins — add your custom domain here if needed
 const ALLOWED_ORIGINS = [
   "https://www.maseya.es",
-  "https://maseya.es",
 ];
 
 function getCorsHeaders(req: Request) {
