@@ -1,13 +1,31 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+// Allowed origins — add your custom domain here if needed
+const ALLOWED_ORIGINS = [
+  "https://maseya.lovable.app",
+  "https://id-preview--4c87b8bb-bac6-4dc7-8ca6-47c5c2ca3f60.lovable.app",
+  "http://localhost:8080",
+];
+
+function getCorsHeaders(req: Request) {
+  const origin = req.headers.get("Origin") || "";
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Headers":
+      "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+    "Vary": "Origin",
+  };
+}
+
+// In-memory per-user rate limit: 1 request per 30 seconds
+const rateLimitMap = new Map<string, number>();
+const RATE_LIMIT_MS = 30_000;
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -39,6 +57,22 @@ serve(async (req) => {
     }
     const userId = claimsData.claims.sub as string;
 
+    // ── Rate limit (per-user, 30s cooldown) ──
+    const now = Date.now();
+    const lastCall = rateLimitMap.get(userId);
+    if (lastCall && now - lastCall < RATE_LIMIT_MS) {
+      const waitSec = Math.ceil((RATE_LIMIT_MS - (now - lastCall)) / 1000);
+      return json({ error: `Rate limited. Try again in ${waitSec}s.` }, 429);
+    }
+    rateLimitMap.set(userId, now);
+
+    // Evict stale entries to prevent memory growth
+    if (rateLimitMap.size > 500) {
+      for (const [key, ts] of rateLimitMap) {
+        if (now - ts > RATE_LIMIT_MS * 2) rateLimitMap.delete(key);
+      }
+    }
+
     // ── Fetch subscriptions ──
     const { data: subscriptions, error: subError } = await supabase
       .from("push_subscriptions")
@@ -61,9 +95,8 @@ serve(async (req) => {
     if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
       return json(
         {
-          error:
-            "VAPID keys not configured. Set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY secrets.",
-          setup: "Generate keys with: npx web-push generate-vapid-keys",
+          error: "VAPID keys not configured.",
+          setup: "Set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY secrets.",
         },
         500,
       );
