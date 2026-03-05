@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { buildAmazonAffiliateUrl } from '@/lib/amazonAffiliate';
 
 export interface AffiliateLink {
   id: string;
@@ -44,6 +45,13 @@ export const useAffiliateLinks = (productId: number) => {
   }, [productId]);
 
   const trackClick = async (link: AffiliateLink) => {
+    // Build the affiliate URL with tag
+    const affiliateUrl = buildAmazonAffiliateUrl(link.affiliate_url);
+
+    // Open immediately — don't block on tracking
+    window.open(affiliateUrl, '_blank', 'noopener,noreferrer');
+
+    // Fire-and-forget tracking
     try {
       await supabase.from('affiliate_clicks').insert({
         link_id: link.id,
@@ -54,9 +62,6 @@ export const useAffiliateLinks = (productId: number) => {
     } catch (e) {
       console.error('Error tracking click:', e);
     }
-
-    // Open link
-    window.open(link.affiliate_url, '_blank', 'noopener,noreferrer');
   };
 
   const primaryLink = links.find(l => l.is_primary) || links[0];
