@@ -145,6 +145,14 @@ const LoginPage = () => {
             </div>
           </div>
 
+          {!isSignUp && (
+            <div className="text-right">
+              <Link to="/reset-password" className="text-sm text-primary font-medium hover:underline">
+                Forgot password?
+              </Link>
+            </div>
+          )}
+
           <Button
             type="submit"
             className="w-full h-14 rounded-2xl text-lg font-medium bg-gradient-olive"
