@@ -14,7 +14,7 @@ export interface Product {
   brand: string;
   image: string;
   category: 'skin' | 'hair' | 'both';
-  tags: ('bio' | 'natural' | 'vegan' | 'cruelty-free' | 'organic')[];
+  tags: string[];
   targetConcerns: string[];
   targetHairTypes: string[];
   targetGoals: string[];
@@ -22,6 +22,16 @@ export interface Product {
   harshIngredients: string[];
   affiliateUrl?: string;
   description: TranslationKey;
+
+  // MASEYA-safe flags
+  isVegan?: boolean;
+  isOrganic?: boolean;
+  noFragrance?: boolean;
+  noEssentialOils?: boolean;
+  noDryingAlcohols?: boolean;
+  noSulfates?: boolean;
+  noSilicones?: boolean;
+  sensitiveSafe?: boolean;
 }
 
 export interface RecommendedProduct extends Product {
