@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Heart, Users, Check, Leaf, ShoppingBag, ExternalLink, ChevronDown } from 'lucide-react';
+import { buildAmazonAffiliateUrl } from '@/lib/amazonAffiliate';
 import { Button } from '@/components/ui/button';
 import { useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
@@ -169,7 +170,6 @@ const ProductDetailPage = () => {
               <span className="bg-primary text-primary-foreground text-sm font-medium px-3 py-1 rounded-full">
                 {product.matchScore}% {t('match')}
               </span>
-              <span className="text-lg font-semibold text-primary">{product.price}</span>
             </div>
             
             <div className="flex flex-wrap justify-center gap-2 mt-4">
@@ -217,7 +217,7 @@ const ProductDetailPage = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-primary">{product.price}</span>
+                    <span className="text-sm font-medium text-primary">{t('openOnAmazon')}</span>
                     <ExternalLink className="w-4 h-4 text-primary group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                   </div>
                 </button>
@@ -326,7 +326,7 @@ const ProductDetailPage = () => {
             }}
           >
             <ShoppingBag className="w-5 h-5 mr-2" />
-            {t('buyNow')} · {product.price}
+            {t('openOnAmazon')}
           </Button>
         </div>
       </div>
