@@ -108,6 +108,8 @@ const CommunityPage = () => {
     loadPosts();
     loadUserReactions();
     loadFollowing();
+    loadSavedPosts();
+    loadTrendingTags();
   }, [currentUser?.id]);
 
   const loadFollowing = async () => {
@@ -120,6 +122,98 @@ const CommunityPage = () => {
       setFollowedUserIds(new Set(data?.map(d => d.following_id) || []));
     } catch (e) {
       console.error('Error loading following:', e);
+    }
+  };
+
+  const loadSavedPosts = async () => {
+    if (!currentUser?.id) return;
+    try {
+      const { data } = await supabase
+        .from('user_saved_posts')
+        .select('post_id')
+        .eq('user_id', currentUser.id);
+      setSavedPostIds(new Set(data?.map(d => d.post_id) || []));
+    } catch (e) {
+      console.error('Error loading saved posts:', e);
+    }
+  };
+
+  const loadTrendingTags = async () => {
+    try {
+      const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+      const { data } = await supabase
+        .from('community_posts')
+        .select('content')
+        .eq('visibility', 'everyone')
+        .eq('moderation_status', 'approved')
+        .gte('created_at', sevenDaysAgo)
+        .limit(100);
+
+      if (data && data.length > 0) {
+        const tagCounts = new Map<string, number>();
+        data.forEach(p => {
+          extractHashtags(p.content).forEach(tag => {
+            tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
+          });
+        });
+        const sorted = [...tagCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
+        setTrendingTags(sorted.map(([tag]) => tag));
+      }
+      if (trendingTags.length === 0) {
+        setTrendingTags(['skincare', 'curly', 'natural', 'glowup', 'dryskin']);
+      }
+    } catch (e) {
+      console.error('Error loading trending tags:', e);
+      setTrendingTags(['skincare', 'curly', 'natural', 'glowup', 'dryskin']);
+    }
+  };
+
+  const toggleSavePost = async (postId: string) => {
+    if (!currentUser?.id) return;
+    const isSaved = savedPostIds.has(postId);
+    // Optimistic
+    setSavedPostIds(prev => {
+      const next = new Set(prev);
+      isSaved ? next.delete(postId) : next.add(postId);
+      return next;
+    });
+    try {
+      if (isSaved) {
+        await supabase.from('user_saved_posts').delete().eq('user_id', currentUser.id).eq('post_id', postId);
+      } else {
+        await supabase.from('user_saved_posts').insert({ user_id: currentUser.id, post_id: postId });
+      }
+    } catch (e) {
+      console.error('Error toggling save:', e);
+      setSavedPostIds(prev => {
+        const next = new Set(prev);
+        isSaved ? next.add(postId) : next.delete(postId);
+        return next;
+      });
+    }
+  };
+
+  const toggleFollowUser = async (userId: string) => {
+    if (!currentUser?.id || userId === currentUser.id) return;
+    const isFollowed = followedUserIds.has(userId);
+    setFollowedUserIds(prev => {
+      const next = new Set(prev);
+      isFollowed ? next.delete(userId) : next.add(userId);
+      return next;
+    });
+    try {
+      if (isFollowed) {
+        await supabase.from('user_follows').delete().eq('follower_id', currentUser.id).eq('following_id', userId);
+      } else {
+        await supabase.from('user_follows').insert({ follower_id: currentUser.id, following_id: userId });
+      }
+    } catch (e) {
+      console.error('Error toggling follow:', e);
+      setFollowedUserIds(prev => {
+        const next = new Set(prev);
+        isFollowed ? next.add(userId) : next.delete(userId);
+        return next;
+      });
     }
   };
 
