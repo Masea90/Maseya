@@ -71,10 +71,11 @@ const ProductDetailPage = () => {
   const navigate = useNavigate();
   const { t, user, updateUser } = useUser();
   const [showAllRetailers, setShowAllRetailers] = useState(false);
+  const productId = Number(id) || 1;
   const { isInWishlist, toggleWishlist } = useWishlist();
   const isFavorite = isInWishlist(productId);
 
-  const productId = Number(id) || 1;
+
   const product = getProductWithMatch(productId, user);
   const ingredients = productIngredients[productId] || productIngredients[1];
   const usersLikeYou = productUserCounts[productId] || 500;
