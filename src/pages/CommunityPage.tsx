@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useUser } from '@/contexts/UserContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -111,6 +112,7 @@ const CommunityPage = () => {
   const { currentUser } = useAuth();
   const { isAdmin } = useIsAdmin();
   const { awardBadge, recordPoints } = useRewards();
+  const navigate = useNavigate();
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -689,15 +691,22 @@ const CommunityPage = () => {
                   {/* Post Header */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <Avatar className="w-10 h-10">
-                        <AvatarImage src={post.avatarUrl || undefined} alt={post.nickname || 'User'} />
-                        <AvatarFallback className="bg-secondary text-sm font-medium">
-                          {post.nickname ? post.nickname.slice(0, 2).toUpperCase() : '👤'}
-                        </AvatarFallback>
-                      </Avatar>
+                      <button onClick={() => navigate(`/user/${post.user_id}`)} className="focus:outline-none">
+                        <Avatar className="w-10 h-10 hover:ring-2 hover:ring-primary/40 transition-all">
+                          <AvatarImage src={post.avatarUrl || undefined} alt={post.nickname || 'User'} />
+                          <AvatarFallback className="bg-secondary text-sm font-medium">
+                            {post.nickname ? post.nickname.slice(0, 2).toUpperCase() : '👤'}
+                          </AvatarFallback>
+                        </Avatar>
+                      </button>
                       <div className="space-y-0.5">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-medium text-foreground text-sm">{post.nickname || 'Anonymous'}</span>
+                          <button
+                            onClick={() => navigate(`/user/${post.user_id}`)}
+                            className="font-medium text-foreground text-sm hover:text-primary transition-colors"
+                          >
+                            {post.nickname || 'Anonymous'}
+                          </button>
                           {post.profileTier && post.profileCompleteness !== undefined && post.profileCompleteness > 0 && (
                             <SimilarityBadge percentage={post.profileCompleteness} tier={post.profileTier} />
                           )}
@@ -879,14 +888,21 @@ const CommunityPage = () => {
             ) : (
               comments.map(comment => (
                 <div key={comment.id} className="flex gap-3 group">
-                  <Avatar className="w-8 h-8">
-                    <AvatarImage src={comment.avatarUrl || undefined} alt={comment.nickname || 'User'} />
-                    <AvatarFallback className="bg-secondary text-xs font-medium">
-                      {comment.nickname ? comment.nickname.slice(0, 2).toUpperCase() : '👤'}
-                    </AvatarFallback>
-                  </Avatar>
+                  <button onClick={() => navigate(`/user/${comment.user_id}`)} className="focus:outline-none">
+                    <Avatar className="w-8 h-8 hover:ring-2 hover:ring-primary/40 transition-all">
+                      <AvatarImage src={comment.avatarUrl || undefined} alt={comment.nickname || 'User'} />
+                      <AvatarFallback className="bg-secondary text-xs font-medium">
+                        {comment.nickname ? comment.nickname.slice(0, 2).toUpperCase() : '👤'}
+                      </AvatarFallback>
+                    </Avatar>
+                  </button>
                   <div className="flex-1">
-                    <p className="text-sm font-medium">{comment.nickname || 'Anonymous'}</p>
+                    <button
+                      onClick={() => navigate(`/user/${comment.user_id}`)}
+                      className="text-sm font-medium hover:text-primary transition-colors"
+                    >
+                      {comment.nickname || 'Anonymous'}
+                    </button>
                     <p className="text-sm text-foreground">{comment.content}</p>
                     <p className="text-xs text-muted-foreground mt-1">{getTimeAgo(comment.created_at)}</p>
                   </div>

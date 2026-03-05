@@ -33,6 +33,7 @@ import HelpPage from "@/pages/HelpPage";
 import ScanHistoryPage from "@/pages/ScanHistoryPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import UpdatePasswordPage from "@/pages/UpdatePasswordPage";
+import UserProfilePage from "@/pages/UserProfilePage";
 import NotFound from "@/pages/NotFound";
 
 /**
@@ -107,6 +108,7 @@ export function AppRoutes() {
         <Route path="/install" element={<InstallPage />} />
         <Route path="/admin" element={<AdminDashboardPage />} />
         <Route path="/admin/affiliates" element={<AdminAffiliatePage />} />
+        <Route path="/user/:userId" element={<UserProfilePage />} />
         
         {/* Catch-all */}
         <Route path="*" element={<NotFound />} />
