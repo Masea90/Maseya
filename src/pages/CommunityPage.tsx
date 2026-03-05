@@ -558,7 +558,7 @@ const CommunityPage = () => {
             )}
           >
             <Clock className="w-3.5 h-3.5" />
-            {t('newest') || 'Newest'}
+            {'Newest'}
           </button>
           <button
             onClick={() => setActiveTab('trending')}
@@ -570,7 +570,7 @@ const CommunityPage = () => {
             )}
           >
             <TrendingUp className="w-3.5 h-3.5" />
-            {t('trending') || 'Trending'}
+            {'Trending'}
           </button>
           <button
             onClick={() => setActiveTab('following')}
@@ -582,7 +582,7 @@ const CommunityPage = () => {
             )}
           >
             <UserCheck className="w-3.5 h-3.5" />
-            {t('following') || 'Following'}
+            {'Following'}
           </button>
           <button
             onClick={() => setActiveTab('staff_picks')}
