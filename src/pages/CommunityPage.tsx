@@ -277,6 +277,7 @@ const CommunityPage = () => {
           moderation_status: (post as any).moderation_status || 'approved',
           nickname: profile?.nickname,
           avatarUrl: profile?.avatar_url || null,
+          product_id: (post as any).product_id || null,
           reactionCounts: reactionCountsMap.get(post.id) || { helped_me: 0, i_relate: 0, great_tip: 0 },
         };
       });
