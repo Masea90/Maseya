@@ -888,14 +888,21 @@ const CommunityPage = () => {
             ) : (
               comments.map(comment => (
                 <div key={comment.id} className="flex gap-3 group">
-                  <Avatar className="w-8 h-8">
-                    <AvatarImage src={comment.avatarUrl || undefined} alt={comment.nickname || 'User'} />
-                    <AvatarFallback className="bg-secondary text-xs font-medium">
-                      {comment.nickname ? comment.nickname.slice(0, 2).toUpperCase() : '👤'}
-                    </AvatarFallback>
-                  </Avatar>
+                  <button onClick={() => navigate(`/user/${comment.user_id}`)} className="focus:outline-none">
+                    <Avatar className="w-8 h-8 hover:ring-2 hover:ring-primary/40 transition-all">
+                      <AvatarImage src={comment.avatarUrl || undefined} alt={comment.nickname || 'User'} />
+                      <AvatarFallback className="bg-secondary text-xs font-medium">
+                        {comment.nickname ? comment.nickname.slice(0, 2).toUpperCase() : '👤'}
+                      </AvatarFallback>
+                    </Avatar>
+                  </button>
                   <div className="flex-1">
-                    <p className="text-sm font-medium">{comment.nickname || 'Anonymous'}</p>
+                    <button
+                      onClick={() => navigate(`/user/${comment.user_id}`)}
+                      className="text-sm font-medium hover:text-primary transition-colors"
+                    >
+                      {comment.nickname || 'Anonymous'}
+                    </button>
                     <p className="text-sm text-foreground">{comment.content}</p>
                     <p className="text-xs text-muted-foreground mt-1">{getTimeAgo(comment.created_at)}</p>
                   </div>
