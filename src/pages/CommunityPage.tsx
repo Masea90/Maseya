@@ -93,9 +93,16 @@ const CommunityPage = () => {
   // Reactions
   const [userReactions, setUserReactions] = useState<Map<string, Set<ReactionType>>>(new Map());
   
-  // Feed tabs
+  // Feed tabs & follow/save state
   const [followedUserIds, setFollowedUserIds] = useState<Set<string>>(new Set());
-  const [activeTab, setActiveTab] = useState<'newest' | 'trending' | 'following' | 'staff_picks'>('newest');
+  const [savedPostIds, setSavedPostIds] = useState<Set<string>>(new Set());
+  const [trendingTags, setTrendingTags] = useState<string[]>([]);
+  const [activeTab, setActiveTab] = useState<'newest' | 'trending' | 'following' | 'staff_picks' | 'saved'>('newest');
+
+  // Product attachment
+  const [attachedProductId, setAttachedProductId] = useState<number | null>(null);
+  const [showProductPicker, setShowProductPicker] = useState(false);
+  const [productSearch, setProductSearch] = useState('');
 
   useEffect(() => {
     loadPosts();
