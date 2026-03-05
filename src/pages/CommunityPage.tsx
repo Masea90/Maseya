@@ -174,11 +174,6 @@ const CommunityPage = () => {
           moderation_status: (post as any).moderation_status || 'approved',
           nickname: profile?.nickname,
           avatarUrl: profile?.avatar_url || null,
-          profileCompleteness: 0,
-          profileTier: 'starter' as const,
-          authorSkinConcerns: [],
-          authorHairType: undefined,
-          authorAgeRange: undefined,
           reactionCounts: reactionCountsMap.get(post.id) || { helped_me: 0, i_relate: 0, great_tip: 0 },
         };
       });
@@ -211,40 +206,33 @@ const CommunityPage = () => {
     }
   };
 
-  // Similarity-based sorting with staff picks promotion
+  // Feed sorting
   const sortedPosts = useMemo(() => {
-    let filtered = posts;
-    
     if (activeTab === 'staff_picks') {
       return posts.filter(p => p.is_staff_pick);
     }
-    
-    if (activeTab === 'all') {
-      // Staff picks float to top in "all" tab
-      return [...filtered].sort((a, b) => {
+
+    if (activeTab === 'following') {
+      return posts.filter(p => followedUserIds.has(p.user_id));
+    }
+
+    if (activeTab === 'trending') {
+      return [...posts].sort((a, b) => {
+        const scoreA = (a.likes_count || 0) + (a.comments_count || 0) * 2;
+        const scoreB = (b.likes_count || 0) + (b.comments_count || 0) * 2;
         if (a.is_staff_pick && !b.is_staff_pick) return -1;
         if (!a.is_staff_pick && b.is_staff_pick) return 1;
-        return 0;
+        return scoreB - scoreA;
       });
     }
-    
-    // "Similar to you" tab: sort by similarity, staff picks first within each tier
-    return [...filtered].sort((a, b) => {
-      // Staff picks always come first
+
+    // 'newest' — already sorted by created_at desc from the query
+    return [...posts].sort((a, b) => {
       if (a.is_staff_pick && !b.is_staff_pick) return -1;
       if (!a.is_staff_pick && b.is_staff_pick) return 1;
-      
-      const simA = calculateSimilarity(
-        { skinConcerns: user.skinConcerns, hairType: user.hairType, ageRange: user.ageRange },
-        { skinConcerns: a.authorSkinConcerns, hairType: a.authorHairType, ageRange: a.authorAgeRange }
-      );
-      const simB = calculateSimilarity(
-        { skinConcerns: user.skinConcerns, hairType: user.hairType, ageRange: user.ageRange },
-        { skinConcerns: b.authorSkinConcerns, hairType: b.authorHairType, ageRange: b.authorAgeRange }
-      );
-      return simB - simA;
+      return 0;
     });
-  }, [posts, activeTab, user.skinConcerns, user.hairType, user.ageRange]);
+  }, [posts, activeTab, followedUserIds]);
 
   const MAX_POST_LENGTH = 5000;
   const MAX_COMMENT_LENGTH = 1000;
@@ -561,40 +549,52 @@ const CommunityPage = () => {
         {/* Feed Tabs */}
         <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
           <button
-            onClick={() => setActiveTab('similar')}
+            onClick={() => setActiveTab('newest')}
             className={cn(
               'flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap',
-              activeTab === 'similar'
+              activeTab === 'newest'
                 ? 'bg-primary text-primary-foreground'
                 : 'bg-secondary text-muted-foreground hover:text-foreground'
             )}
           >
-            <Sparkles className="w-3.5 h-3.5" />
-            {t('similarToYou')}
+            <Clock className="w-3.5 h-3.5" />
+            {t('newest') || 'Newest'}
+          </button>
+          <button
+            onClick={() => setActiveTab('trending')}
+            className={cn(
+              'flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap',
+              activeTab === 'trending'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-secondary text-muted-foreground hover:text-foreground'
+            )}
+          >
+            <TrendingUp className="w-3.5 h-3.5" />
+            {t('trending') || 'Trending'}
+          </button>
+          <button
+            onClick={() => setActiveTab('following')}
+            className={cn(
+              'flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap',
+              activeTab === 'following'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-secondary text-muted-foreground hover:text-foreground'
+            )}
+          >
+            <UserCheck className="w-3.5 h-3.5" />
+            {t('following') || 'Following'}
           </button>
           <button
             onClick={() => setActiveTab('staff_picks')}
             className={cn(
               'flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap',
               activeTab === 'staff_picks'
-                ? 'bg-maseya-gold text-white'
+                ? 'bg-maseya-gold text-primary-foreground'
                 : 'bg-secondary text-muted-foreground hover:text-foreground'
             )}
           >
             <Star className="w-3.5 h-3.5" />
             {t('staffPicks')}
-          </button>
-          <button
-            onClick={() => setActiveTab('all')}
-            className={cn(
-              'flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap',
-              activeTab === 'all'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-secondary text-muted-foreground hover:text-foreground'
-            )}
-          >
-            <Globe className="w-3.5 h-3.5" />
-            {t('fromCommunity')}
           </button>
         </div>
 
@@ -663,8 +663,10 @@ const CommunityPage = () => {
                           >
                             {post.nickname || 'Anonymous'}
                           </button>
-                          {post.profileTier && post.profileCompleteness !== undefined && post.profileCompleteness > 0 && (
-                            <SimilarityBadge percentage={post.profileCompleteness} tier={post.profileTier} />
+                          {post.is_staff_pick && (
+                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-maseya-gold/15 text-[10px] font-semibold text-maseya-gold">
+                              ✓ MASEYA
+                            </span>
                           )}
                         </div>
                         <div className="flex items-center gap-1 text-xs text-muted-foreground">
