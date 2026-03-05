@@ -27,6 +27,12 @@ import InstallPage from "@/pages/InstallPage";
 import AdminAffiliatePage from "@/pages/AdminAffiliatePage";
 import AdminDashboardPage from "@/pages/AdminDashboardPage";
 import SettingsPage from "@/pages/SettingsPage";
+import RemedyDetailPage from "@/pages/RemedyDetailPage";
+import PrivacySettingsPage from "@/pages/PrivacySettingsPage";
+import HelpPage from "@/pages/HelpPage";
+import ScanHistoryPage from "@/pages/ScanHistoryPage";
+import ResetPasswordPage from "@/pages/ResetPasswordPage";
+import UpdatePasswordPage from "@/pages/UpdatePasswordPage";
 import NotFound from "@/pages/NotFound";
 
 /**
@@ -59,6 +65,8 @@ export function AppRoutes() {
     return (
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/update-password" element={<UpdatePasswordPage />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     );
