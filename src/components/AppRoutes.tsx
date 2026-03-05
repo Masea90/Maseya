@@ -89,16 +89,21 @@ export function AppRoutes() {
         <Route path="/product/:id" element={<ProductDetailPage />} />
         <Route path="/routine" element={<RoutinePage />} />
         <Route path="/remedies" element={<RemediesPage />} />
+        <Route path="/remedy/:id" element={<RemedyDetailPage />} />
         <Route path="/community" element={<CommunityPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/profile/edit" element={<ProfileEditPage />} />
         <Route path="/scan" element={<ScanPage />} />
+        <Route path="/scan/history" element={<ScanHistoryPage />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/rewards" element={<RewardsPage />} />
         <Route path="/premium" element={<PremiumScreen />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/settings/language" element={<LanguageSettingsPage />} />
         <Route path="/settings/notifications" element={<NotificationSettingsPage />} />
+        <Route path="/settings/privacy" element={<PrivacySettingsPage />} />
+        <Route path="/help" element={<HelpPage />} />
+        <Route path="/update-password" element={<UpdatePasswordPage />} />
         <Route path="/install" element={<InstallPage />} />
         <Route path="/admin" element={<AdminDashboardPage />} />
         <Route path="/admin/affiliates" element={<AdminAffiliatePage />} />
