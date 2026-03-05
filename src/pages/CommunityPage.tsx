@@ -368,6 +368,8 @@ const CommunityPage = () => {
     setPostStep('write');
   };
 
+  const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -375,8 +377,9 @@ const CommunityPage = () => {
       toast.error('Please select an image file');
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image must be under 5MB');
+    if (file.size > MAX_IMAGE_SIZE) {
+      const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+      toast.error(`${t('imageTooLarge')}: ${t('imageSizeLimit')} ${sizeMB} MB. ${t('compressSuggestion')}`, { duration: 5000 });
       return;
     }
     setSelectedImage(file);
@@ -435,18 +438,20 @@ const CommunityPage = () => {
         imageUrl = urlData.publicUrl;
       }
 
-      // 3. Create post
+      // 3. Extract hashtags and create post
+      const hashtags = extractHashtags(trimmedContent);
       const { error } = await supabase
         .from('community_posts')
         .insert({
           user_id: currentUser.id,
           content: trimmedContent,
           visibility: newPostVisibility,
-          tags: [],
+          tags: hashtags,
           category: selectedCategory,
           image_url: imageUrl,
           moderation_status: moderationStatus,
           moderation_reason: moderationReason,
+          product_id: attachedProductId,
         } as any);
       if (error) throw error;
 
