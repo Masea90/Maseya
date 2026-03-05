@@ -217,9 +217,9 @@ const CommunityPage = () => {
     );
   }, [productSearch]);
 
+  const toggleSavePost = async (postId: string) => {
     if (!currentUser?.id) return;
     const isSaved = savedPostIds.has(postId);
-    // Optimistic
     setSavedPostIds(prev => {
       const next = new Set(prev);
       isSaved ? next.delete(postId) : next.add(postId);
@@ -240,6 +240,7 @@ const CommunityPage = () => {
       });
     }
   };
+
 
   const toggleFollowUser = async (userId: string) => {
     if (!currentUser?.id || userId === currentUser.id) return;
