@@ -108,6 +108,7 @@ export function AppRoutes() {
         <Route path="/install" element={<InstallPage />} />
         <Route path="/admin" element={<AdminDashboardPage />} />
         <Route path="/admin/affiliates" element={<AdminAffiliatePage />} />
+        <Route path="/user/:userId" element={<UserProfilePage />} />
         
         {/* Catch-all */}
         <Route path="*" element={<NotFound />} />
