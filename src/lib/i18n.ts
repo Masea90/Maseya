@@ -556,8 +556,8 @@ export const translations = {
     clearRecent: 'Clear',
     searchNoResults: 'No results found',
     searchNoResultsDesc: 'Try a different term or browse categories',
-    searchProducts: 'Products',
-    searchRemedies: 'Remedies',
+    searchTabProducts: 'Products',
+    searchTabRemedies: 'Remedies',
     searchResultsFor: 'Results for',
 
     // Help page i18n
