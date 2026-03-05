@@ -98,6 +98,7 @@ const CommunityPage = () => {
   const [savedPostIds, setSavedPostIds] = useState<Set<string>>(new Set());
   const [trendingTags, setTrendingTags] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'newest' | 'trending' | 'following' | 'staff_picks' | 'saved'>('newest');
+  const [wishlistIds, setWishlistIds] = useState<Set<number>>(new Set());
 
   // Product attachment
   const [attachedProductId, setAttachedProductId] = useState<number | null>(null);
