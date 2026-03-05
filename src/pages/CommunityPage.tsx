@@ -5,7 +5,7 @@ import { useUser } from '@/contexts/UserContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { useRewards } from '@/hooks/useRewards';
-import { MessageCircle, MoreHorizontal, Plus, Users, Lock, Globe, Send, Loader2, Pencil, Trash2, Languages, Star, ImagePlus, X, TrendingUp, Clock, UserCheck } from 'lucide-react';
+import { MessageCircle, MoreHorizontal, Plus, Users, Lock, Globe, Send, Loader2, Pencil, Trash2, Languages, Star, ImagePlus, X, TrendingUp, Clock, UserCheck, Bookmark, BookmarkCheck, UserPlus, Hash, Package } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,8 @@ import { getAuthHeaders } from '@/lib/authHeaders';
 import { toast } from 'sonner';
 import { PostReactions, ReactionType } from '@/components/community/PostReactions';
 import { GuidedPostTemplates, PostCategory } from '@/components/community/GuidedPostTemplates';
-
+import { HashtagText, extractHashtags } from '@/components/community/HashtagText';
+import { productCatalog, Product } from '@/lib/recommendations';
 
 interface Post {
   id: string;
@@ -36,6 +37,7 @@ interface Post {
   nickname?: string;
   avatarUrl?: string | null;
   reactionCounts?: Record<ReactionType, number>;
+  product_id?: number | null;
 }
 
 interface Comment {
@@ -91,14 +93,23 @@ const CommunityPage = () => {
   // Reactions
   const [userReactions, setUserReactions] = useState<Map<string, Set<ReactionType>>>(new Map());
   
-  // Feed tabs
+  // Feed tabs & follow/save state
   const [followedUserIds, setFollowedUserIds] = useState<Set<string>>(new Set());
-  const [activeTab, setActiveTab] = useState<'newest' | 'trending' | 'following' | 'staff_picks'>('newest');
+  const [savedPostIds, setSavedPostIds] = useState<Set<string>>(new Set());
+  const [trendingTags, setTrendingTags] = useState<string[]>([]);
+  const [activeTab, setActiveTab] = useState<'newest' | 'trending' | 'following' | 'staff_picks' | 'saved'>('newest');
+
+  // Product attachment
+  const [attachedProductId, setAttachedProductId] = useState<number | null>(null);
+  const [showProductPicker, setShowProductPicker] = useState(false);
+  const [productSearch, setProductSearch] = useState('');
 
   useEffect(() => {
     loadPosts();
     loadUserReactions();
     loadFollowing();
+    loadSavedPosts();
+    loadTrendingTags();
   }, [currentUser?.id]);
 
   const loadFollowing = async () => {
@@ -111,6 +122,98 @@ const CommunityPage = () => {
       setFollowedUserIds(new Set(data?.map(d => d.following_id) || []));
     } catch (e) {
       console.error('Error loading following:', e);
+    }
+  };
+
+  const loadSavedPosts = async () => {
+    if (!currentUser?.id) return;
+    try {
+      const { data } = await supabase
+        .from('user_saved_posts')
+        .select('post_id')
+        .eq('user_id', currentUser.id);
+      setSavedPostIds(new Set(data?.map(d => d.post_id) || []));
+    } catch (e) {
+      console.error('Error loading saved posts:', e);
+    }
+  };
+
+  const loadTrendingTags = async () => {
+    try {
+      const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+      const { data } = await supabase
+        .from('community_posts')
+        .select('content')
+        .eq('visibility', 'everyone')
+        .eq('moderation_status', 'approved')
+        .gte('created_at', sevenDaysAgo)
+        .limit(100);
+
+      if (data && data.length > 0) {
+        const tagCounts = new Map<string, number>();
+        data.forEach(p => {
+          extractHashtags(p.content).forEach(tag => {
+            tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
+          });
+        });
+        const sorted = [...tagCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
+        setTrendingTags(sorted.map(([tag]) => tag));
+      }
+      if (trendingTags.length === 0) {
+        setTrendingTags(['skincare', 'curly', 'natural', 'glowup', 'dryskin']);
+      }
+    } catch (e) {
+      console.error('Error loading trending tags:', e);
+      setTrendingTags(['skincare', 'curly', 'natural', 'glowup', 'dryskin']);
+    }
+  };
+
+  const toggleSavePost = async (postId: string) => {
+    if (!currentUser?.id) return;
+    const isSaved = savedPostIds.has(postId);
+    // Optimistic
+    setSavedPostIds(prev => {
+      const next = new Set(prev);
+      isSaved ? next.delete(postId) : next.add(postId);
+      return next;
+    });
+    try {
+      if (isSaved) {
+        await supabase.from('user_saved_posts').delete().eq('user_id', currentUser.id).eq('post_id', postId);
+      } else {
+        await supabase.from('user_saved_posts').insert({ user_id: currentUser.id, post_id: postId });
+      }
+    } catch (e) {
+      console.error('Error toggling save:', e);
+      setSavedPostIds(prev => {
+        const next = new Set(prev);
+        isSaved ? next.add(postId) : next.delete(postId);
+        return next;
+      });
+    }
+  };
+
+  const toggleFollowUser = async (userId: string) => {
+    if (!currentUser?.id || userId === currentUser.id) return;
+    const isFollowed = followedUserIds.has(userId);
+    setFollowedUserIds(prev => {
+      const next = new Set(prev);
+      isFollowed ? next.delete(userId) : next.add(userId);
+      return next;
+    });
+    try {
+      if (isFollowed) {
+        await supabase.from('user_follows').delete().eq('follower_id', currentUser.id).eq('following_id', userId);
+      } else {
+        await supabase.from('user_follows').insert({ follower_id: currentUser.id, following_id: userId });
+      }
+    } catch (e) {
+      console.error('Error toggling follow:', e);
+      setFollowedUserIds(prev => {
+        const next = new Set(prev);
+        isFollowed ? next.add(userId) : next.delete(userId);
+        return next;
+      });
     }
   };
 
@@ -174,6 +277,7 @@ const CommunityPage = () => {
           moderation_status: (post as any).moderation_status || 'approved',
           nickname: profile?.nickname,
           avatarUrl: profile?.avatar_url || null,
+          product_id: (post as any).product_id || null,
           reactionCounts: reactionCountsMap.get(post.id) || { helped_me: 0, i_relate: 0, great_tip: 0 },
         };
       });
@@ -216,6 +320,10 @@ const CommunityPage = () => {
       return posts.filter(p => followedUserIds.has(p.user_id));
     }
 
+    if (activeTab === 'saved') {
+      return posts.filter(p => savedPostIds.has(p.id));
+    }
+
     if (activeTab === 'trending') {
       return [...posts].sort((a, b) => {
         const scoreA = (a.likes_count || 0) + (a.comments_count || 0) * 2;
@@ -226,13 +334,13 @@ const CommunityPage = () => {
       });
     }
 
-    // 'newest' — already sorted by created_at desc from the query
+    // 'newest'
     return [...posts].sort((a, b) => {
       if (a.is_staff_pick && !b.is_staff_pick) return -1;
       if (!a.is_staff_pick && b.is_staff_pick) return 1;
       return 0;
     });
-  }, [posts, activeTab, followedUserIds]);
+  }, [posts, activeTab, followedUserIds, savedPostIds]);
 
   const MAX_POST_LENGTH = 5000;
   const MAX_COMMENT_LENGTH = 1000;
@@ -260,6 +368,8 @@ const CommunityPage = () => {
     setPostStep('write');
   };
 
+  const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -267,8 +377,9 @@ const CommunityPage = () => {
       toast.error('Please select an image file');
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image must be under 5MB');
+    if (file.size > MAX_IMAGE_SIZE) {
+      const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+      toast.error(`${t('imageTooLarge')}: ${t('imageSizeLimit')} ${sizeMB} MB. ${t('compressSuggestion')}`, { duration: 5000 });
       return;
     }
     setSelectedImage(file);
@@ -327,18 +438,20 @@ const CommunityPage = () => {
         imageUrl = urlData.publicUrl;
       }
 
-      // 3. Create post
+      // 3. Extract hashtags and create post
+      const hashtags = extractHashtags(trimmedContent);
       const { error } = await supabase
         .from('community_posts')
         .insert({
           user_id: currentUser.id,
           content: trimmedContent,
           visibility: newPostVisibility,
-          tags: [],
+          tags: hashtags,
           category: selectedCategory,
           image_url: imageUrl,
           moderation_status: moderationStatus,
           moderation_reason: moderationReason,
+          product_id: attachedProductId,
         } as any);
       if (error) throw error;
 
@@ -357,6 +470,7 @@ const CommunityPage = () => {
       }
       setNewPostContent('');
       clearImage();
+      setAttachedProductId(null);
       setShowNewPost(false);
       setPostStep('template');
       setSelectedCategory('general');
@@ -548,55 +662,48 @@ const CommunityPage = () => {
 
         {/* Feed Tabs */}
         <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-          <button
-            onClick={() => setActiveTab('newest')}
-            className={cn(
-              'flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap',
-              activeTab === 'newest'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-secondary text-muted-foreground hover:text-foreground'
-            )}
-          >
-            <Clock className="w-3.5 h-3.5" />
-            {'Newest'}
-          </button>
-          <button
-            onClick={() => setActiveTab('trending')}
-            className={cn(
-              'flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap',
-              activeTab === 'trending'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-secondary text-muted-foreground hover:text-foreground'
-            )}
-          >
-            <TrendingUp className="w-3.5 h-3.5" />
-            {'Trending'}
-          </button>
-          <button
-            onClick={() => setActiveTab('following')}
-            className={cn(
-              'flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap',
-              activeTab === 'following'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-secondary text-muted-foreground hover:text-foreground'
-            )}
-          >
-            <UserCheck className="w-3.5 h-3.5" />
-            {'Following'}
-          </button>
-          <button
-            onClick={() => setActiveTab('staff_picks')}
-            className={cn(
-              'flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap',
-              activeTab === 'staff_picks'
-                ? 'bg-maseya-gold text-primary-foreground'
-                : 'bg-secondary text-muted-foreground hover:text-foreground'
-            )}
-          >
-            <Star className="w-3.5 h-3.5" />
-            {t('staffPicks')}
-          </button>
+          {([
+            { key: 'newest' as const, icon: Clock, label: t('communityNewest') },
+            { key: 'trending' as const, icon: TrendingUp, label: t('communityTrending') },
+            { key: 'following' as const, icon: UserCheck, label: t('communityFollowing') },
+            { key: 'saved' as const, icon: Bookmark, label: t('communitySaved') },
+            { key: 'staff_picks' as const, icon: Star, label: t('staffPicks') },
+          ]).map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={cn(
+                'flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap',
+                activeTab === tab.key
+                  ? tab.key === 'staff_picks' ? 'bg-maseya-gold text-primary-foreground' : 'bg-primary text-primary-foreground'
+                  : 'bg-secondary text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <tab.icon className="w-3.5 h-3.5" />
+              {tab.label}
+            </button>
+          ))}
         </div>
+
+        {/* Trending Tags */}
+        {trendingTags.length > 0 && activeTab === 'newest' && (
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+              <Hash className="w-3 h-3" /> {t('communityTrendingTags')}
+            </p>
+            <div className="flex gap-1.5 overflow-x-auto pb-1">
+              {trendingTags.map(tag => (
+                <button
+                  key={tag}
+                  onClick={() => navigate(`/community/tag/${tag}`)}
+                  className="px-3 py-1 rounded-full bg-secondary text-xs font-medium text-foreground hover:bg-primary/10 hover:text-primary transition-colors whitespace-nowrap"
+                >
+                  #{tag}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Posts Feed */}
         {isLoading ? (
@@ -668,6 +775,19 @@ const CommunityPage = () => {
                               ✓ MASEYA
                             </span>
                           )}
+                          {post.user_id !== currentUser?.id && (
+                            <button
+                              onClick={() => toggleFollowUser(post.user_id)}
+                              className={cn(
+                                'text-[11px] px-2 py-0.5 rounded-full font-medium transition-colors',
+                                followedUserIds.has(post.user_id)
+                                  ? 'bg-secondary text-muted-foreground'
+                                  : 'bg-primary/10 text-primary hover:bg-primary/20'
+                              )}
+                            >
+                              {followedUserIds.has(post.user_id) ? t('unfollowUser') : t('followUser')}
+                            </button>
+                          )}
                         </div>
                         <div className="flex items-center gap-1 text-xs text-muted-foreground">
                           <span>{getTimeAgo(post.created_at)}</span>
@@ -722,10 +842,10 @@ const CommunityPage = () => {
                     </div>
                   )}
 
-                  {/* Content */}
+                  {/* Content with hashtags */}
                   <div className="space-y-2">
                     <p className="text-foreground text-sm leading-relaxed whitespace-pre-wrap">
-                      {showOriginal.has(post.id) ? (translatedPosts.get(post.id) || post.content) : post.content}
+                      <HashtagText text={showOriginal.has(post.id) ? (translatedPosts.get(post.id) || post.content) : post.content} />
                     </p>
                     <button
                       onClick={() => toggleTranslation(post.id, post.content)}
@@ -740,7 +860,25 @@ const CommunityPage = () => {
                     </button>
                   </div>
 
-                  {/* Reactions + Comment button */}
+                  {/* Product Preview */}
+                  {post.product_id && (() => {
+                    const product = productCatalog.find(p => p.id === post.product_id);
+                    if (!product) return null;
+                    return (
+                      <div className="flex items-center gap-3 p-3 rounded-xl bg-secondary/50 border border-border">
+                        <img src={product.image} alt={product.name} className="w-12 h-12 rounded-lg object-cover" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-foreground truncate">{product.name}</p>
+                          <p className="text-[10px] text-muted-foreground">{product.brand}</p>
+                        </div>
+                        <Button size="sm" variant="outline" className="rounded-full text-xs h-7" onClick={() => navigate(`/product/${product.id}`)}>
+                          {t('viewProduct')}
+                        </Button>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Reactions + Comment + Bookmark */}
                   <div className="pt-2 border-t border-border space-y-2">
                     <PostReactions
                       postId={post.id}
@@ -748,13 +886,25 @@ const CommunityPage = () => {
                       userReactions={userReactions.get(post.id) || new Set()}
                       onToggleReaction={toggleReaction}
                     />
-                    <button
-                      onClick={() => handleOpenComments(post.id)}
-                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      <MessageCircle className="w-3.5 h-3.5" />
-                      <span>{post.comments_count} {t('comment')}</span>
-                    </button>
+                    <div className="flex items-center justify-between">
+                      <button
+                        onClick={() => handleOpenComments(post.id)}
+                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <MessageCircle className="w-3.5 h-3.5" />
+                        <span>{post.comments_count} {t('comment')}</span>
+                      </button>
+                      <button
+                        onClick={() => toggleSavePost(post.id)}
+                        className={cn(
+                          'flex items-center gap-1 text-xs transition-colors',
+                          savedPostIds.has(post.id) ? 'text-primary font-medium' : 'text-muted-foreground hover:text-foreground'
+                        )}
+                      >
+                        {savedPostIds.has(post.id) ? <BookmarkCheck className="w-3.5 h-3.5" /> : <Bookmark className="w-3.5 h-3.5" />}
+                        {savedPostIds.has(post.id) ? t('unsavePost') : t('savePost')}
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
