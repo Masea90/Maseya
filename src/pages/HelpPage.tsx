@@ -15,7 +15,7 @@ const faqs = [
   },
   {
     q: 'What is the Glow Score?',
-    a: 'Your Glow Score reflects how consistently you follow your skin and hair care routines. It's calculated from your profile completeness, routine activity, and streak.',
+    a: 'Your Glow Score reflects how consistently you follow your skin and hair care routines. It is calculated from your profile completeness, routine activity, and streak.',
   },
   {
     q: 'Can I customize my routine?',
