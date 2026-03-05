@@ -775,6 +775,19 @@ const CommunityPage = () => {
                               ✓ MASEYA
                             </span>
                           )}
+                          {post.user_id !== currentUser?.id && (
+                            <button
+                              onClick={() => toggleFollowUser(post.user_id)}
+                              className={cn(
+                                'text-[11px] px-2 py-0.5 rounded-full font-medium transition-colors',
+                                followedUserIds.has(post.user_id)
+                                  ? 'bg-secondary text-muted-foreground'
+                                  : 'bg-primary/10 text-primary hover:bg-primary/20'
+                              )}
+                            >
+                              {followedUserIds.has(post.user_id) ? t('unfollowUser') : t('followUser')}
+                            </button>
+                          )}
                         </div>
                         <div className="flex items-center gap-1 text-xs text-muted-foreground">
                           <span>{getTimeAgo(post.created_at)}</span>
