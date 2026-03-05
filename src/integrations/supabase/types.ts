@@ -526,6 +526,34 @@ export type Database = {
     }
     Functions: {
       get_post_reaction_counts: { Args: { p_post_id: string }; Returns: Json }
+      get_public_profile: {
+        Args: { p_user_id: string }
+        Returns: {
+          avatar_url: string
+          bio: string
+          created_at: string
+          nickname: string
+          user_id: string
+        }[]
+      }
+      get_public_profiles: {
+        Args: { p_user_ids: string[] }
+        Returns: {
+          age_range: string
+          avatar_url: string
+          bio: string
+          climate_type: string
+          country: string
+          goals: string[]
+          hair_concerns: string[]
+          hair_type: string
+          has_profile_photo: boolean
+          nickname: string
+          sensitivities: string[]
+          skin_concerns: string[]
+          user_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

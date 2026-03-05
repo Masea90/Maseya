@@ -181,13 +181,13 @@ const CommunityPage = () => {
       });
 
       const userIds = [...new Set(visiblePosts.map(p => p.user_id))];
-      const { data: profilesData } = await supabase
-        .from('profiles')
-        .select('user_id, nickname, avatar_url, has_profile_photo, skin_concerns, hair_type, hair_concerns, goals, sensitivities, age_range, country, climate_type')
-        .in('user_id', userIds);
+      // Use SECURITY DEFINER function to get public profiles (avoids RLS bypass)
+      const { data: profilesData } = await supabase.rpc('get_public_profiles', {
+        p_user_ids: userIds,
+      });
 
       const profileMap = new Map<string, any>();
-      profilesData?.forEach(p => {
+      (profilesData as any[])?.forEach((p: any) => {
         const { percentage, tier } = calculateProfileTier(p as unknown as Record<string, unknown>);
         profileMap.set(p.user_id, { ...p, percentage, tier });
       });
@@ -480,12 +480,12 @@ const CommunityPage = () => {
       if (!commentsData?.length) { setComments([]); setLoadingComments(false); return; }
 
       const userIds = [...new Set(commentsData.map(c => c.user_id))];
-      const { data: profilesData } = await supabase
-        .from('profiles')
-        .select('user_id, nickname, avatar_url')
-        .in('user_id', userIds);
+      // Use SECURITY DEFINER function for comment author profiles
+      const { data: profilesData } = await supabase.rpc('get_public_profiles', {
+        p_user_ids: userIds,
+      });
       const profileMap = new Map<string, { nickname?: string; avatar_url?: string }>();
-      profilesData?.forEach(p => { profileMap.set(p.user_id, { nickname: p.nickname || undefined, avatar_url: (p as Record<string, unknown>).avatar_url as string || undefined }); });
+      (profilesData as any[])?.forEach((p: any) => { profileMap.set(p.user_id, { nickname: p.nickname || undefined, avatar_url: p.avatar_url || undefined }); });
       setComments(commentsData.map(c => ({ ...c, nickname: profileMap.get(c.user_id)?.nickname || undefined, avatarUrl: profileMap.get(c.user_id)?.avatar_url || null })));
     } catch (error) { console.error('Error loading comments:', error); }
     finally { setLoadingComments(false); }

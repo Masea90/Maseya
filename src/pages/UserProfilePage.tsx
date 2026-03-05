@@ -9,21 +9,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, UserPlus, UserMinus, ArrowLeft, Sparkles, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
 
 interface PublicProfile {
   user_id: string;
   nickname: string | null;
   bio: string | null;
   avatar_url: string | null;
-  skin_concerns: string[] | null;
-  hair_type: string | null;
-  hair_concerns: string[] | null;
-  goals: string[] | null;
-  streak: number | null;
-  points: number | null;
   created_at: string | null;
-  custom_routine: any | null;
 }
 
 interface PublicPost {
@@ -62,14 +54,15 @@ const UserProfilePage = () => {
 
   const loadProfile = async () => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('user_id, nickname, bio, avatar_url, skin_concerns, hair_type, hair_concerns, goals, streak, points, created_at, custom_routine')
-        .eq('user_id', userId!)
-        .maybeSingle();
+      // Use SECURITY DEFINER function — only returns safe public fields
+      const { data, error } = await supabase.rpc('get_public_profile', {
+        p_user_id: userId!,
+      });
 
       if (error) throw error;
-      setProfile(data as PublicProfile);
+      // rpc returns an array; take first row
+      const row = Array.isArray(data) ? data[0] : data;
+      setProfile(row as PublicProfile ?? null);
     } catch (e) {
       console.error('Error loading profile:', e);
     } finally {
@@ -151,17 +144,6 @@ const UserProfilePage = () => {
       setFollowLoading(false);
     }
   };
-
-  // Simple glow score calc from public data
-  const glowScore = useMemo(() => {
-    if (!profile) return 0;
-    let score = 30;
-    if ((profile.skin_concerns?.length || 0) > 0) score += 15;
-    if (profile.hair_type) score += 10;
-    if ((profile.goals?.length || 0) > 0) score += 15;
-    score += Math.min((profile.streak || 0) * 2, 20);
-    return Math.min(100, score);
-  }, [profile]);
 
   const getTimeAgo = (date: string) => {
     const diff = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
@@ -279,62 +261,6 @@ const UserProfilePage = () => {
             )}
           </CardContent>
         </Card>
-
-        {/* Glow Score */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <Sparkles className="w-6 h-6 text-primary" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-foreground">Glow Score</p>
-                <div className="flex items-center gap-2 mt-1">
-                  <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-primary rounded-full transition-all duration-700"
-                      style={{ width: `${glowScore}%` }}
-                    />
-                  </div>
-                  <span className="text-sm font-semibold text-primary">{glowScore}</span>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Routine preview */}
-        {profile.custom_routine && (
-          <Card>
-            <CardContent className="p-4 space-y-2">
-              <h3 className="font-semibold text-foreground text-sm">🌿 Routine</h3>
-              {(profile.custom_routine as any)?.morning?.length > 0 && (
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Morning</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {(profile.custom_routine as any).morning.map((step: any, i: number) => (
-                      <span key={i} className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-secondary text-xs">
-                        {step.emoji} {step.label}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {(profile.custom_routine as any)?.night?.length > 0 && (
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Night</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {(profile.custom_routine as any).night.map((step: any, i: number) => (
-                      <span key={i} className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-secondary text-xs">
-                        {step.emoji} {step.label}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
 
         {/* User Posts */}
         <div className="space-y-3">
