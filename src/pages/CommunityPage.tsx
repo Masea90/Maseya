@@ -662,55 +662,48 @@ const CommunityPage = () => {
 
         {/* Feed Tabs */}
         <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-          <button
-            onClick={() => setActiveTab('newest')}
-            className={cn(
-              'flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap',
-              activeTab === 'newest'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-secondary text-muted-foreground hover:text-foreground'
-            )}
-          >
-            <Clock className="w-3.5 h-3.5" />
-            {'Newest'}
-          </button>
-          <button
-            onClick={() => setActiveTab('trending')}
-            className={cn(
-              'flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap',
-              activeTab === 'trending'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-secondary text-muted-foreground hover:text-foreground'
-            )}
-          >
-            <TrendingUp className="w-3.5 h-3.5" />
-            {'Trending'}
-          </button>
-          <button
-            onClick={() => setActiveTab('following')}
-            className={cn(
-              'flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap',
-              activeTab === 'following'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-secondary text-muted-foreground hover:text-foreground'
-            )}
-          >
-            <UserCheck className="w-3.5 h-3.5" />
-            {'Following'}
-          </button>
-          <button
-            onClick={() => setActiveTab('staff_picks')}
-            className={cn(
-              'flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap',
-              activeTab === 'staff_picks'
-                ? 'bg-maseya-gold text-primary-foreground'
-                : 'bg-secondary text-muted-foreground hover:text-foreground'
-            )}
-          >
-            <Star className="w-3.5 h-3.5" />
-            {t('staffPicks')}
-          </button>
+          {([
+            { key: 'newest' as const, icon: Clock, label: t('communityNewest') },
+            { key: 'trending' as const, icon: TrendingUp, label: t('communityTrending') },
+            { key: 'following' as const, icon: UserCheck, label: t('communityFollowing') },
+            { key: 'saved' as const, icon: Bookmark, label: t('communitySaved') },
+            { key: 'staff_picks' as const, icon: Star, label: t('staffPicks') },
+          ]).map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={cn(
+                'flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap',
+                activeTab === tab.key
+                  ? tab.key === 'staff_picks' ? 'bg-maseya-gold text-primary-foreground' : 'bg-primary text-primary-foreground'
+                  : 'bg-secondary text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <tab.icon className="w-3.5 h-3.5" />
+              {tab.label}
+            </button>
+          ))}
         </div>
+
+        {/* Trending Tags */}
+        {trendingTags.length > 0 && activeTab === 'newest' && (
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+              <Hash className="w-3 h-3" /> {t('communityTrendingTags')}
+            </p>
+            <div className="flex gap-1.5 overflow-x-auto pb-1">
+              {trendingTags.map(tag => (
+                <button
+                  key={tag}
+                  onClick={() => navigate(`/community/tag/${tag}`)}
+                  className="px-3 py-1 rounded-full bg-secondary text-xs font-medium text-foreground hover:bg-primary/10 hover:text-primary transition-colors whitespace-nowrap"
+                >
+                  #{tag}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Posts Feed */}
         {isLoading ? (
