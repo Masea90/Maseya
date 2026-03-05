@@ -188,8 +188,7 @@ const CommunityPage = () => {
 
       const profileMap = new Map<string, any>();
       (profilesData as any[])?.forEach((p: any) => {
-        const { percentage, tier } = calculateProfileTier(p as unknown as Record<string, unknown>);
-        profileMap.set(p.user_id, { ...p, percentage, tier });
+        profileMap.set(p.user_id, { nickname: p.nickname, avatar_url: p.avatar_url });
       });
 
       // Load reaction counts for all posts
@@ -218,11 +217,11 @@ const CommunityPage = () => {
           moderation_status: (post as any).moderation_status || 'approved',
           nickname: profile?.nickname,
           avatarUrl: profile?.avatar_url || null,
-          profileCompleteness: profile?.percentage || 0,
-          profileTier: profile?.tier || 'starter',
-          authorSkinConcerns: profile?.skin_concerns || [],
-          authorHairType: profile?.hair_type || undefined,
-          authorAgeRange: profile?.age_range || undefined,
+          profileCompleteness: 0,
+          profileTier: 'starter' as const,
+          authorSkinConcerns: [],
+          authorHairType: undefined,
+          authorAgeRange: undefined,
           reactionCounts: reactionCountsMap.get(post.id) || { helped_me: 0, i_relate: 0, great_tip: 0 },
         };
       });
