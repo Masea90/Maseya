@@ -5,7 +5,7 @@ import { useUser } from '@/contexts/UserContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { useRewards } from '@/hooks/useRewards';
-import { MessageCircle, MoreHorizontal, Plus, Users, Lock, Globe, Send, Loader2, Pencil, Trash2, Languages, Sparkles, Star, ImagePlus, X } from 'lucide-react';
+import { MessageCircle, MoreHorizontal, Plus, Users, Lock, Globe, Send, Loader2, Pencil, Trash2, Languages, Star, ImagePlus, X, TrendingUp, Clock, UserCheck } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,7 @@ import { getAuthHeaders } from '@/lib/authHeaders';
 import { toast } from 'sonner';
 import { PostReactions, ReactionType } from '@/components/community/PostReactions';
 import { GuidedPostTemplates, PostCategory } from '@/components/community/GuidedPostTemplates';
-import { SimilarityBadge } from '@/components/community/SimilarityBadge';
+
 
 interface Post {
   id: string;
@@ -35,13 +35,6 @@ interface Post {
   moderation_status?: string;
   nickname?: string;
   avatarUrl?: string | null;
-  profileCompleteness?: number;
-  profileTier?: 'starter' | 'rising' | 'trusted' | 'verified';
-  // Similarity matching fields from post author's profile
-  authorSkinConcerns?: string[];
-  authorHairType?: string;
-  authorAgeRange?: string;
-  // Reaction counts
   reactionCounts?: Record<ReactionType, number>;
 }
 
@@ -55,57 +48,6 @@ interface Comment {
   avatarUrl?: string | null;
 }
 
-// Calculate profile completeness for community display
-const calculateProfileTier = (profile: Record<string, unknown>): { percentage: number; tier: 'starter' | 'rising' | 'trusted' | 'verified' } => {
-  let completed = 0;
-  const total = 8;
-  if ((profile.skin_concerns as string[])?.length > 0) completed++;
-  if (profile.hair_type) completed++;
-  if ((profile.goals as string[])?.length > 0) completed++;
-  if ((profile.sensitivities as string[])?.length > 0) completed++;
-  if (profile.age_range) completed++;
-  if (profile.country && profile.climate_type) completed++;
-  if (profile.nickname) completed++;
-  if ((profile.hair_concerns as string[])?.length > 0) completed++;
-  const percentage = Math.round((completed / total) * 100);
-  let tier: 'starter' | 'rising' | 'trusted' | 'verified';
-  if (percentage >= 90) tier = 'verified';
-  else if (percentage >= 70) tier = 'trusted';
-  else if (percentage >= 40) tier = 'rising';
-  else tier = 'starter';
-  return { percentage, tier };
-};
-
-// Calculate similarity score between current user and post author
-const calculateSimilarity = (
-  currentUser: { skinConcerns: string[]; hairType: string; ageRange: string },
-  author: { skinConcerns?: string[]; hairType?: string; ageRange?: string }
-): number => {
-  let score = 0;
-  let factors = 0;
-
-  // Skin concerns overlap
-  if (currentUser.skinConcerns.length > 0 && author.skinConcerns?.length) {
-    factors++;
-    const overlap = currentUser.skinConcerns.filter(c => author.skinConcerns!.includes(c)).length;
-    const total = new Set([...currentUser.skinConcerns, ...author.skinConcerns!]).size;
-    score += total > 0 ? overlap / total : 0;
-  }
-
-  // Hair type match
-  if (currentUser.hairType && author.hairType) {
-    factors++;
-    score += currentUser.hairType === author.hairType ? 1 : 0;
-  }
-
-  // Age range match
-  if (currentUser.ageRange && author.ageRange) {
-    factors++;
-    score += currentUser.ageRange === author.ageRange ? 1 : 0;
-  }
-
-  return factors > 0 ? score / factors : 0;
-};
 
 const CommunityPage = () => {
   const { t, user, updateUser } = useUser();
@@ -150,12 +92,27 @@ const CommunityPage = () => {
   const [userReactions, setUserReactions] = useState<Map<string, Set<ReactionType>>>(new Map());
   
   // Feed tabs
-  const [activeTab, setActiveTab] = useState<'similar' | 'all' | 'staff_picks'>('similar');
+  const [followedUserIds, setFollowedUserIds] = useState<Set<string>>(new Set());
+  const [activeTab, setActiveTab] = useState<'newest' | 'trending' | 'following' | 'staff_picks'>('newest');
 
   useEffect(() => {
     loadPosts();
     loadUserReactions();
+    loadFollowing();
   }, [currentUser?.id]);
+
+  const loadFollowing = async () => {
+    if (!currentUser?.id) return;
+    try {
+      const { data } = await supabase
+        .from('user_follows')
+        .select('following_id')
+        .eq('follower_id', currentUser.id);
+      setFollowedUserIds(new Set(data?.map(d => d.following_id) || []));
+    } catch (e) {
+      console.error('Error loading following:', e);
+    }
+  };
 
   const loadPosts = async () => {
     try {
