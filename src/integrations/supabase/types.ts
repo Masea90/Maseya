@@ -539,18 +539,8 @@ export type Database = {
       get_public_profiles: {
         Args: { p_user_ids: string[] }
         Returns: {
-          age_range: string
           avatar_url: string
-          bio: string
-          climate_type: string
-          country: string
-          goals: string[]
-          hair_concerns: string[]
-          hair_type: string
-          has_profile_photo: boolean
           nickname: string
-          sensitivities: string[]
-          skin_concerns: string[]
           user_id: string
         }[]
       }
