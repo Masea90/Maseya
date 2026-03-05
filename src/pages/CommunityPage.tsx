@@ -5,7 +5,7 @@ import { useUser } from '@/contexts/UserContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { useRewards } from '@/hooks/useRewards';
-import { MessageCircle, MoreHorizontal, Plus, Users, Lock, Globe, Send, Loader2, Pencil, Trash2, Languages, Sparkles, Star, ImagePlus, X } from 'lucide-react';
+import { MessageCircle, MoreHorizontal, Plus, Users, Lock, Globe, Send, Loader2, Pencil, Trash2, Languages, Star, ImagePlus, X, TrendingUp, Clock, UserCheck } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,7 @@ import { getAuthHeaders } from '@/lib/authHeaders';
 import { toast } from 'sonner';
 import { PostReactions, ReactionType } from '@/components/community/PostReactions';
 import { GuidedPostTemplates, PostCategory } from '@/components/community/GuidedPostTemplates';
-import { SimilarityBadge } from '@/components/community/SimilarityBadge';
+
 
 interface Post {
   id: string;
@@ -35,13 +35,6 @@ interface Post {
   moderation_status?: string;
   nickname?: string;
   avatarUrl?: string | null;
-  profileCompleteness?: number;
-  profileTier?: 'starter' | 'rising' | 'trusted' | 'verified';
-  // Similarity matching fields from post author's profile
-  authorSkinConcerns?: string[];
-  authorHairType?: string;
-  authorAgeRange?: string;
-  // Reaction counts
   reactionCounts?: Record<ReactionType, number>;
 }
 
@@ -55,57 +48,6 @@ interface Comment {
   avatarUrl?: string | null;
 }
 
-// Calculate profile completeness for community display
-const calculateProfileTier = (profile: Record<string, unknown>): { percentage: number; tier: 'starter' | 'rising' | 'trusted' | 'verified' } => {
-  let completed = 0;
-  const total = 8;
-  if ((profile.skin_concerns as string[])?.length > 0) completed++;
-  if (profile.hair_type) completed++;
-  if ((profile.goals as string[])?.length > 0) completed++;
-  if ((profile.sensitivities as string[])?.length > 0) completed++;
-  if (profile.age_range) completed++;
-  if (profile.country && profile.climate_type) completed++;
-  if (profile.nickname) completed++;
-  if ((profile.hair_concerns as string[])?.length > 0) completed++;
-  const percentage = Math.round((completed / total) * 100);
-  let tier: 'starter' | 'rising' | 'trusted' | 'verified';
-  if (percentage >= 90) tier = 'verified';
-  else if (percentage >= 70) tier = 'trusted';
-  else if (percentage >= 40) tier = 'rising';
-  else tier = 'starter';
-  return { percentage, tier };
-};
-
-// Calculate similarity score between current user and post author
-const calculateSimilarity = (
-  currentUser: { skinConcerns: string[]; hairType: string; ageRange: string },
-  author: { skinConcerns?: string[]; hairType?: string; ageRange?: string }
-): number => {
-  let score = 0;
-  let factors = 0;
-
-  // Skin concerns overlap
-  if (currentUser.skinConcerns.length > 0 && author.skinConcerns?.length) {
-    factors++;
-    const overlap = currentUser.skinConcerns.filter(c => author.skinConcerns!.includes(c)).length;
-    const total = new Set([...currentUser.skinConcerns, ...author.skinConcerns!]).size;
-    score += total > 0 ? overlap / total : 0;
-  }
-
-  // Hair type match
-  if (currentUser.hairType && author.hairType) {
-    factors++;
-    score += currentUser.hairType === author.hairType ? 1 : 0;
-  }
-
-  // Age range match
-  if (currentUser.ageRange && author.ageRange) {
-    factors++;
-    score += currentUser.ageRange === author.ageRange ? 1 : 0;
-  }
-
-  return factors > 0 ? score / factors : 0;
-};
 
 const CommunityPage = () => {
   const { t, user, updateUser } = useUser();
@@ -150,12 +92,27 @@ const CommunityPage = () => {
   const [userReactions, setUserReactions] = useState<Map<string, Set<ReactionType>>>(new Map());
   
   // Feed tabs
-  const [activeTab, setActiveTab] = useState<'similar' | 'all' | 'staff_picks'>('similar');
+  const [followedUserIds, setFollowedUserIds] = useState<Set<string>>(new Set());
+  const [activeTab, setActiveTab] = useState<'newest' | 'trending' | 'following' | 'staff_picks'>('newest');
 
   useEffect(() => {
     loadPosts();
     loadUserReactions();
+    loadFollowing();
   }, [currentUser?.id]);
+
+  const loadFollowing = async () => {
+    if (!currentUser?.id) return;
+    try {
+      const { data } = await supabase
+        .from('user_follows')
+        .select('following_id')
+        .eq('follower_id', currentUser.id);
+      setFollowedUserIds(new Set(data?.map(d => d.following_id) || []));
+    } catch (e) {
+      console.error('Error loading following:', e);
+    }
+  };
 
   const loadPosts = async () => {
     try {
@@ -217,11 +174,6 @@ const CommunityPage = () => {
           moderation_status: (post as any).moderation_status || 'approved',
           nickname: profile?.nickname,
           avatarUrl: profile?.avatar_url || null,
-          profileCompleteness: 0,
-          profileTier: 'starter' as const,
-          authorSkinConcerns: [],
-          authorHairType: undefined,
-          authorAgeRange: undefined,
           reactionCounts: reactionCountsMap.get(post.id) || { helped_me: 0, i_relate: 0, great_tip: 0 },
         };
       });
@@ -254,40 +206,33 @@ const CommunityPage = () => {
     }
   };
 
-  // Similarity-based sorting with staff picks promotion
+  // Feed sorting
   const sortedPosts = useMemo(() => {
-    let filtered = posts;
-    
     if (activeTab === 'staff_picks') {
       return posts.filter(p => p.is_staff_pick);
     }
-    
-    if (activeTab === 'all') {
-      // Staff picks float to top in "all" tab
-      return [...filtered].sort((a, b) => {
+
+    if (activeTab === 'following') {
+      return posts.filter(p => followedUserIds.has(p.user_id));
+    }
+
+    if (activeTab === 'trending') {
+      return [...posts].sort((a, b) => {
+        const scoreA = (a.likes_count || 0) + (a.comments_count || 0) * 2;
+        const scoreB = (b.likes_count || 0) + (b.comments_count || 0) * 2;
         if (a.is_staff_pick && !b.is_staff_pick) return -1;
         if (!a.is_staff_pick && b.is_staff_pick) return 1;
-        return 0;
+        return scoreB - scoreA;
       });
     }
-    
-    // "Similar to you" tab: sort by similarity, staff picks first within each tier
-    return [...filtered].sort((a, b) => {
-      // Staff picks always come first
+
+    // 'newest' — already sorted by created_at desc from the query
+    return [...posts].sort((a, b) => {
       if (a.is_staff_pick && !b.is_staff_pick) return -1;
       if (!a.is_staff_pick && b.is_staff_pick) return 1;
-      
-      const simA = calculateSimilarity(
-        { skinConcerns: user.skinConcerns, hairType: user.hairType, ageRange: user.ageRange },
-        { skinConcerns: a.authorSkinConcerns, hairType: a.authorHairType, ageRange: a.authorAgeRange }
-      );
-      const simB = calculateSimilarity(
-        { skinConcerns: user.skinConcerns, hairType: user.hairType, ageRange: user.ageRange },
-        { skinConcerns: b.authorSkinConcerns, hairType: b.authorHairType, ageRange: b.authorAgeRange }
-      );
-      return simB - simA;
+      return 0;
     });
-  }, [posts, activeTab, user.skinConcerns, user.hairType, user.ageRange]);
+  }, [posts, activeTab, followedUserIds]);
 
   const MAX_POST_LENGTH = 5000;
   const MAX_COMMENT_LENGTH = 1000;
@@ -604,40 +549,52 @@ const CommunityPage = () => {
         {/* Feed Tabs */}
         <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
           <button
-            onClick={() => setActiveTab('similar')}
+            onClick={() => setActiveTab('newest')}
             className={cn(
               'flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap',
-              activeTab === 'similar'
+              activeTab === 'newest'
                 ? 'bg-primary text-primary-foreground'
                 : 'bg-secondary text-muted-foreground hover:text-foreground'
             )}
           >
-            <Sparkles className="w-3.5 h-3.5" />
-            {t('similarToYou')}
+            <Clock className="w-3.5 h-3.5" />
+            {'Newest'}
+          </button>
+          <button
+            onClick={() => setActiveTab('trending')}
+            className={cn(
+              'flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap',
+              activeTab === 'trending'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-secondary text-muted-foreground hover:text-foreground'
+            )}
+          >
+            <TrendingUp className="w-3.5 h-3.5" />
+            {'Trending'}
+          </button>
+          <button
+            onClick={() => setActiveTab('following')}
+            className={cn(
+              'flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap',
+              activeTab === 'following'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-secondary text-muted-foreground hover:text-foreground'
+            )}
+          >
+            <UserCheck className="w-3.5 h-3.5" />
+            {'Following'}
           </button>
           <button
             onClick={() => setActiveTab('staff_picks')}
             className={cn(
               'flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap',
               activeTab === 'staff_picks'
-                ? 'bg-maseya-gold text-white'
+                ? 'bg-maseya-gold text-primary-foreground'
                 : 'bg-secondary text-muted-foreground hover:text-foreground'
             )}
           >
             <Star className="w-3.5 h-3.5" />
             {t('staffPicks')}
-          </button>
-          <button
-            onClick={() => setActiveTab('all')}
-            className={cn(
-              'flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap',
-              activeTab === 'all'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-secondary text-muted-foreground hover:text-foreground'
-            )}
-          >
-            <Globe className="w-3.5 h-3.5" />
-            {t('fromCommunity')}
           </button>
         </div>
 
@@ -706,8 +663,10 @@ const CommunityPage = () => {
                           >
                             {post.nickname || 'Anonymous'}
                           </button>
-                          {post.profileTier && post.profileCompleteness !== undefined && post.profileCompleteness > 0 && (
-                            <SimilarityBadge percentage={post.profileCompleteness} tier={post.profileTier} />
+                          {post.is_staff_pick && (
+                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-maseya-gold/15 text-[10px] font-semibold text-maseya-gold">
+                              ✓ MASEYA
+                            </span>
                           )}
                         </div>
                         <div className="flex items-center gap-1 text-xs text-muted-foreground">
