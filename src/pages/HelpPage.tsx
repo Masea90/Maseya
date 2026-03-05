@@ -23,7 +23,7 @@ const faqs = [
   },
   {
     q: 'How do push notifications work?',
-    a: 'Enable them in Settings → Notifications. You'll receive gentle reminders for your morning and night routines, plus community activity alerts.',
+    a: 'Enable them in Settings > Notifications. You will receive gentle reminders for your morning and night routines, plus community activity alerts.',
   },
   {
     q: 'Is MASEYA free?',
