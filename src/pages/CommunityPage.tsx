@@ -37,6 +37,7 @@ interface Post {
   nickname?: string;
   avatarUrl?: string | null;
   reactionCounts?: Record<ReactionType, number>;
+  product_id?: number | null;
 }
 
 interface Comment {
