@@ -5,7 +5,7 @@ import { useUser } from '@/contexts/UserContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { useRewards } from '@/hooks/useRewards';
-import { MessageCircle, MoreHorizontal, Plus, Users, Lock, Globe, Send, Loader2, Pencil, Trash2, Languages, Star, ImagePlus, X, TrendingUp, Clock, UserCheck, Bookmark, BookmarkCheck, UserPlus, Hash, Package } from 'lucide-react';
+import { MessageCircle, MoreHorizontal, Plus, Users, Lock, Globe, Send, Loader2, Pencil, Trash2, Languages, Star, ImagePlus, X, TrendingUp, Clock, UserCheck, Bookmark, BookmarkCheck, UserPlus, Hash, Package, Heart, ChevronDown } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -98,6 +98,7 @@ const CommunityPage = () => {
   const [savedPostIds, setSavedPostIds] = useState<Set<string>>(new Set());
   const [trendingTags, setTrendingTags] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'newest' | 'trending' | 'following' | 'staff_picks' | 'saved'>('newest');
+  const [wishlistIds, setWishlistIds] = useState<Set<number>>(new Set());
 
   // Product attachment
   const [attachedProductId, setAttachedProductId] = useState<number | null>(null);
@@ -110,6 +111,7 @@ const CommunityPage = () => {
     loadFollowing();
     loadSavedPosts();
     loadTrendingTags();
+    loadWishlist();
   }, [currentUser?.id]);
 
   const loadFollowing = async () => {
@@ -168,10 +170,56 @@ const CommunityPage = () => {
     }
   };
 
+  const loadWishlist = async () => {
+    if (!currentUser?.id) return;
+    try {
+      const { data } = await supabase
+        .from('user_wishlist')
+        .select('product_id')
+        .eq('user_id', currentUser.id);
+      setWishlistIds(new Set(data?.map(d => d.product_id) || []));
+    } catch (e) {
+      console.error('Error loading wishlist:', e);
+    }
+  };
+
+  const toggleWishlist = async (productId: number) => {
+    if (!currentUser?.id) return;
+    const isInWishlist = wishlistIds.has(productId);
+    setWishlistIds(prev => {
+      const next = new Set(prev);
+      isInWishlist ? next.delete(productId) : next.add(productId);
+      return next;
+    });
+    try {
+      if (isInWishlist) {
+        await supabase.from('user_wishlist').delete().eq('user_id', currentUser.id).eq('product_id', productId);
+        toast.success(t('removeFromWishlist'));
+      } else {
+        await supabase.from('user_wishlist').insert({ user_id: currentUser.id, product_id: productId });
+        toast.success(t('addToWishlist') + ' ❤️');
+      }
+    } catch (e) {
+      console.error('Error toggling wishlist:', e);
+      setWishlistIds(prev => {
+        const next = new Set(prev);
+        isInWishlist ? next.add(productId) : next.delete(productId);
+        return next;
+      });
+    }
+  };
+
+  const filteredProducts = useMemo(() => {
+    if (!productSearch.trim()) return productCatalog;
+    const q = productSearch.toLowerCase();
+    return productCatalog.filter(p =>
+      p.name.toLowerCase().includes(q) || p.brand.toLowerCase().includes(q)
+    );
+  }, [productSearch]);
+
   const toggleSavePost = async (postId: string) => {
     if (!currentUser?.id) return;
     const isSaved = savedPostIds.has(postId);
-    // Optimistic
     setSavedPostIds(prev => {
       const next = new Set(prev);
       isSaved ? next.delete(postId) : next.add(postId);
@@ -192,6 +240,7 @@ const CommunityPage = () => {
       });
     }
   };
+
 
   const toggleFollowUser = async (userId: string) => {
     if (!currentUser?.id || userId === currentUser.id) return;
@@ -871,6 +920,16 @@ const CommunityPage = () => {
                           <p className="text-xs font-medium text-foreground truncate">{product.name}</p>
                           <p className="text-[10px] text-muted-foreground">{product.brand}</p>
                         </div>
+                        <button
+                          onClick={() => toggleWishlist(product.id)}
+                          className={cn(
+                            'p-1.5 rounded-full transition-colors',
+                            wishlistIds.has(product.id) ? 'text-destructive' : 'text-muted-foreground hover:text-destructive'
+                          )}
+                          title={wishlistIds.has(product.id) ? t('removeFromWishlist') : t('addToWishlist')}
+                        >
+                          <Heart className={cn('w-4 h-4', wishlistIds.has(product.id) && 'fill-current')} />
+                        </button>
                         <Button size="sm" variant="outline" className="rounded-full text-xs h-7" onClick={() => navigate(`/product/${product.id}`)}>
                           {t('viewProduct')}
                         </Button>
@@ -967,6 +1026,69 @@ const CommunityPage = () => {
                   {t('addPhoto') || 'Add a photo'}
                 </button>
               )}
+
+              {/* Product picker */}
+              <div className="space-y-2">
+                {attachedProductId ? (
+                  <div className="flex items-center gap-3 p-2.5 rounded-xl bg-secondary/50 border border-border">
+                    {(() => {
+                      const p = productCatalog.find(pr => pr.id === attachedProductId);
+                      if (!p) return null;
+                      return (
+                        <>
+                          <img src={p.image} alt={p.name} className="w-10 h-10 rounded-lg object-cover" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-foreground truncate">{p.name}</p>
+                            <p className="text-[10px] text-muted-foreground">{p.brand}</p>
+                          </div>
+                        </>
+                      );
+                    })()}
+                    <button onClick={() => setAttachedProductId(null)} className="p-1 rounded-full hover:bg-secondary">
+                      <X className="w-4 h-4 text-muted-foreground" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowProductPicker(!showProductPicker)}
+                      className="flex items-center gap-2 px-3 py-2 rounded-xl border border-dashed border-border hover:border-primary/50 hover:bg-primary/5 transition-colors text-sm text-muted-foreground w-full"
+                    >
+                      <Package className="w-4 h-4" />
+                      {t('attachProduct')}
+                      <ChevronDown className={cn('w-3 h-3 ml-auto transition-transform', showProductPicker && 'rotate-180')} />
+                    </button>
+                    {showProductPicker && (
+                      <div className="mt-1 border border-border rounded-xl bg-popover shadow-md max-h-48 overflow-hidden">
+                        <div className="p-2 border-b border-border">
+                          <input
+                            type="text"
+                            value={productSearch}
+                            onChange={(e) => setProductSearch(e.target.value)}
+                            placeholder={t('searchProducts')}
+                            className="w-full text-sm px-2 py-1.5 rounded-lg bg-secondary/50 border-none outline-none placeholder:text-muted-foreground"
+                          />
+                        </div>
+                        <div className="overflow-y-auto max-h-36">
+                          {filteredProducts.map(p => (
+                            <button
+                              key={p.id}
+                              onClick={() => { setAttachedProductId(p.id); setShowProductPicker(false); setProductSearch(''); }}
+                              className="w-full flex items-center gap-2 px-3 py-2 hover:bg-secondary/50 transition-colors text-left"
+                            >
+                              <img src={p.image} alt={p.name} className="w-8 h-8 rounded-md object-cover" />
+                              <div className="min-w-0">
+                                <p className="text-xs font-medium text-foreground truncate">{p.name}</p>
+                                <p className="text-[10px] text-muted-foreground">{p.brand}</p>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
 
               <div className="flex gap-2">
                 <Button variant={newPostVisibility === 'everyone' ? 'default' : 'outline'} size="sm" onClick={() => setNewPostVisibility('everyone')} className="rounded-full">

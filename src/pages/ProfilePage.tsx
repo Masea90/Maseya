@@ -25,6 +25,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { ProfileCompletenessCard } from '@/components/profile/ProfileCompletenessCard';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ProfileWishlist } from '@/components/profile/ProfileWishlist';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -255,6 +256,9 @@ const ProfilePage = () => {
             </div>
           )}
         </div>
+
+        {/* Wishlist */}
+        <ProfileWishlist />
 
         {/* Premium Upgrade */}
         {!user.isPremium && (
