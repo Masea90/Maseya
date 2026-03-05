@@ -8,7 +8,7 @@ const settingsSections = [
   { icon: User, label: 'Edit Profile', path: '/profile/edit' },
   { icon: Globe, label: 'Language', path: '/settings/language' },
   { icon: Bell, label: 'Notifications', path: '/settings/notifications' },
-  { icon: Shield, label: 'Privacy', path: '/profile' },
+  { icon: Shield, label: 'Privacy', path: '/settings/privacy' },
   { icon: Gift, label: 'Rewards', path: '/rewards' },
 ];
 
