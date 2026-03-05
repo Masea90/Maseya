@@ -14,7 +14,7 @@ export interface Product {
   brand: string;
   image: string;
   category: 'skin' | 'hair' | 'both';
-  tags: ('bio' | 'natural' | 'vegan' | 'cruelty-free' | 'organic')[];
+  tags: string[];
   targetConcerns: string[];
   targetHairTypes: string[];
   targetGoals: string[];
@@ -22,6 +22,16 @@ export interface Product {
   harshIngredients: string[];
   affiliateUrl?: string;
   description: TranslationKey;
+
+  // MASEYA-safe flags
+  isVegan?: boolean;
+  isOrganic?: boolean;
+  noFragrance?: boolean;
+  noEssentialOils?: boolean;
+  noDryingAlcohols?: boolean;
+  noSulfates?: boolean;
+  noSilicones?: boolean;
+  sensitiveSafe?: boolean;
 }
 
 export interface RecommendedProduct extends Product {
@@ -45,6 +55,13 @@ export const productCatalog: Product[] = [
     avoidFor: [],
     harshIngredients: [],
     description: 'ordinaryNiacinamideDesc',
+    isVegan: true,
+    noFragrance: true,
+    noEssentialOils: true,
+    noDryingAlcohols: true,
+    noSulfates: true,
+    noSilicones: true,
+    sensitiveSafe: true,
   },
   {
     id: 4,
@@ -59,6 +76,11 @@ export const productCatalog: Product[] = [
     avoidFor: [],
     harshIngredients: [],
     description: 'olaplexOilDesc',
+    isVegan: true,
+    noFragrance: false,
+    noDryingAlcohols: true,
+    noSulfates: true,
+    sensitiveSafe: false,
   },
   {
     id: 5,
@@ -73,6 +95,10 @@ export const productCatalog: Product[] = [
     avoidFor: [],
     harshIngredients: [],
     description: 'ceraveCleanserDesc',
+    noFragrance: true,
+    noDryingAlcohols: true,
+    noSulfates: true,
+    sensitiveSafe: true,
   },
   {
     id: 7,
@@ -87,6 +113,9 @@ export const productCatalog: Product[] = [
     avoidFor: [],
     harshIngredients: [],
     description: 'nuxeOilDesc',
+    noSulfates: true,
+    noSilicones: true,
+    noDryingAlcohols: true,
   },
   {
     id: 9,
@@ -101,6 +130,8 @@ export const productCatalog: Product[] = [
     avoidFor: [],
     harshIngredients: [],
     description: 'moroccanoilDesc',
+    noSulfates: true,
+    noDryingAlcohols: true,
   },
 ];
 
