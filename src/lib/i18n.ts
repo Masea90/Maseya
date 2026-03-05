@@ -340,7 +340,8 @@ export const translations = {
     viewProduct: 'View Product',
     usersLikeYouAlsoUse: 'Users with a similar profile also use this.',
     whyThisMatches: 'Why This Matches You',
-    buyNow: 'Buy Now',
+    buyNow: 'Open on Amazon',
+    openOnAmazon: 'Open on Amazon',
     about: 'About',
     keyIngredients: 'Key Ingredients',
     
@@ -881,7 +882,8 @@ export const translations = {
     viewProduct: 'Ver producto',
     usersLikeYouAlsoUse: 'Usuarias con un perfil similar también usan esto.',
     whyThisMatches: 'Por qué te encaja',
-    buyNow: 'Comprar ahora',
+    buyNow: 'Abrir en Amazon',
+    openOnAmazon: 'Abrir en Amazon',
     about: 'Acerca de',
     keyIngredients: 'Ingredientes clave',
     
@@ -1423,7 +1425,8 @@ export const translations = {
     viewProduct: 'Voir le produit',
     usersLikeYouAlsoUse: 'Les utilisatrices avec un profil similaire utilisent aussi ceci.',
     whyThisMatches: 'Pourquoi ça vous correspond',
-    buyNow: 'Acheter',
+    buyNow: 'Ouvrir sur Amazon',
+    openOnAmazon: 'Ouvrir sur Amazon',
     about: 'À propos',
     keyIngredients: 'Ingrédients clés',
     
