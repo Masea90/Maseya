@@ -213,7 +213,7 @@ export const productCatalog: Product[] = [
     targetGoals: ['healthyhair', 'natural'],
     avoidFor: [],
     harshIngredients: [],
-    description: 'kloraneMaskDesc',
+    description: 'kloraneHairMaskDesc',
     noFragrance: false,
     noDryingAlcohols: true,
     noSulfates: true,
