@@ -20,7 +20,6 @@ export interface Product {
   targetGoals: string[];
   avoidFor: string[];
   harshIngredients: string[];
-  price: string;
   affiliateUrl?: string;
   description: TranslationKey;
 }
@@ -45,7 +44,6 @@ export const productCatalog: Product[] = [
     targetGoals: ['clearskin'],
     avoidFor: [],
     harshIngredients: [],
-    price: '€5.80',
     description: 'ordinaryNiacinamideDesc',
   },
   {
@@ -60,7 +58,6 @@ export const productCatalog: Product[] = [
     targetGoals: ['healthyhair'],
     avoidFor: [],
     harshIngredients: [],
-    price: '€28.00',
     description: 'olaplexOilDesc',
   },
   {
@@ -75,7 +72,6 @@ export const productCatalog: Product[] = [
     targetGoals: ['clearskin', 'routine'],
     avoidFor: [],
     harshIngredients: [],
-    price: '€9.50',
     description: 'ceraveCleanserDesc',
   },
   {
@@ -90,7 +86,6 @@ export const productCatalog: Product[] = [
     targetGoals: ['clearskin', 'healthyhair', 'natural'],
     avoidFor: [],
     harshIngredients: [],
-    price: '€29.90',
     description: 'nuxeOilDesc',
   },
   {
@@ -105,7 +100,6 @@ export const productCatalog: Product[] = [
     targetGoals: ['healthyhair'],
     avoidFor: [],
     harshIngredients: [],
-    price: '€34.85',
     description: 'moroccanoilDesc',
   },
 ];
