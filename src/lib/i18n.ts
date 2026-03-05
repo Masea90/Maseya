@@ -514,7 +514,6 @@ export const translations = {
     attachProduct: 'Attach product',
     addToWishlist: 'Add to wishlist',
     removeFromWishlist: 'In wishlist',
-    viewProduct: 'View Product',
     imageTooLarge: 'Image is too large',
     imageSizeLimit: 'Max 5 MB. Your file is',
     compressSuggestion: 'Try compressing it or choosing a smaller image.',
@@ -1051,7 +1050,7 @@ export const translations = {
     attachProduct: 'Adjuntar producto',
     addToWishlist: 'Añadir a deseos',
     removeFromWishlist: 'En deseos',
-    viewProduct: 'Ver Producto',
+    
     imageTooLarge: 'La imagen es demasiado grande',
     imageSizeLimit: 'Máximo 5 MB. Tu archivo pesa',
     compressSuggestion: 'Intenta comprimirlo o elige una imagen más pequeña.',
@@ -1588,7 +1587,7 @@ export const translations = {
     attachProduct: 'Joindre un produit',
     addToWishlist: 'Ajouter aux envies',
     removeFromWishlist: 'Dans les envies',
-    viewProduct: 'Voir le Produit',
+    
     imageTooLarge: 'L\'image est trop volumineuse',
     imageSizeLimit: 'Max 5 Mo. Votre fichier fait',
     compressSuggestion: 'Essayez de le compresser ou choisissez une image plus petite.',
