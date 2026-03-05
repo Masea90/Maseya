@@ -5,7 +5,7 @@ import { useUser } from '@/contexts/UserContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { useRewards } from '@/hooks/useRewards';
-import { MessageCircle, MoreHorizontal, Plus, Users, Lock, Globe, Send, Loader2, Pencil, Trash2, Languages, Star, ImagePlus, X, TrendingUp, Clock, UserCheck, Bookmark, BookmarkCheck, UserPlus, Hash, Package } from 'lucide-react';
+import { MessageCircle, MoreHorizontal, Plus, Users, Lock, Globe, Send, Loader2, Pencil, Trash2, Languages, Star, ImagePlus, X, TrendingUp, Clock, UserCheck, Bookmark, BookmarkCheck, UserPlus, Hash, Package, Heart, ChevronDown } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
