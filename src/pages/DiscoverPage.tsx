@@ -290,7 +290,6 @@ const TopPickCard = ({ product, isFavorite, onToggleFavorite, t, getTagLabel, ge
               <Star className="w-3 h-3" />
               {product.matchScore}% match
             </div>
-            <span className="text-sm font-medium text-foreground">{product.price}</span>
           </div>
           
           {/* Recommended because - the key personalization message */}
@@ -393,12 +392,9 @@ const ProfilePickCard = ({ product, isFavorite, onToggleFavorite, t, getTagLabel
         )}
         
         {/* Price and match */}
-        <div className="flex items-center justify-between mt-2">
-          <div className="flex items-center gap-1.5">
-            <Star className="w-3 h-3 text-primary" />
-            <span className="text-xs text-muted-foreground">{product.matchScore}%</span>
-          </div>
-          <span className="text-sm font-semibold text-foreground">{product.price}</span>
+        <div className="flex items-center gap-1.5 mt-2">
+          <Star className="w-3 h-3 text-primary" />
+          <span className="text-xs text-muted-foreground">{product.matchScore}% match</span>
         </div>
       </div>
     </Link>
@@ -457,9 +453,8 @@ const CommunityCard = ({ product, isFavorite, onToggleFavorite, t, getTagLabel }
         <span>{product.communityUsers || 200}+ {t('usersUsing')}</span>
       </div>
 
-      {/* Price and tags */}
+      {/* Tags */}
       <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold text-foreground">{product.price}</span>
         {product.tags[0] && (
           <span className="text-[10px] px-2 py-0.5 bg-maseya-sage/30 text-foreground rounded-full">
             {getTagLabel(product.tags[0])}

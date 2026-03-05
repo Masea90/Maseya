@@ -45,7 +45,6 @@ export const productCatalog: Product[] = [
     avoidFor: [],
     harshIngredients: [],
     description: 'ordinaryNiacinamideDesc',
-    description: 'ordinaryNiacinamideDesc',
   },
   {
     id: 4,
@@ -59,7 +58,6 @@ export const productCatalog: Product[] = [
     targetGoals: ['healthyhair'],
     avoidFor: [],
     harshIngredients: [],
-    description: 'olaplexOilDesc',
     description: 'olaplexOilDesc',
   },
   {
@@ -75,7 +73,6 @@ export const productCatalog: Product[] = [
     avoidFor: [],
     harshIngredients: [],
     description: 'ceraveCleanserDesc',
-    description: 'ceraveCleanserDesc',
   },
   {
     id: 7,
@@ -90,7 +87,6 @@ export const productCatalog: Product[] = [
     avoidFor: [],
     harshIngredients: [],
     description: 'nuxeOilDesc',
-    description: 'nuxeOilDesc',
   },
   {
     id: 9,
@@ -104,7 +100,6 @@ export const productCatalog: Product[] = [
     targetGoals: ['healthyhair'],
     avoidFor: [],
     harshIngredients: [],
-    description: 'moroccanoilDesc',
     description: 'moroccanoilDesc',
   },
 ];
