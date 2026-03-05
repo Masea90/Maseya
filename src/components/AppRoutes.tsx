@@ -34,6 +34,7 @@ import ScanHistoryPage from "@/pages/ScanHistoryPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import UpdatePasswordPage from "@/pages/UpdatePasswordPage";
 import UserProfilePage from "@/pages/UserProfilePage";
+import CommunityTagPage from "@/pages/CommunityTagPage";
 import NotFound from "@/pages/NotFound";
 
 /**
@@ -92,6 +93,7 @@ export function AppRoutes() {
         <Route path="/remedies" element={<RemediesPage />} />
         <Route path="/remedy/:id" element={<RemedyDetailPage />} />
         <Route path="/community" element={<CommunityPage />} />
+        <Route path="/community/tag/:tag" element={<CommunityTagPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/profile/edit" element={<ProfileEditPage />} />
         <Route path="/scan" element={<ScanPage />} />
