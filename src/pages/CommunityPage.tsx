@@ -842,10 +842,10 @@ const CommunityPage = () => {
                     </div>
                   )}
 
-                  {/* Content */}
+                  {/* Content with hashtags */}
                   <div className="space-y-2">
                     <p className="text-foreground text-sm leading-relaxed whitespace-pre-wrap">
-                      {showOriginal.has(post.id) ? (translatedPosts.get(post.id) || post.content) : post.content}
+                      <HashtagText text={showOriginal.has(post.id) ? (translatedPosts.get(post.id) || post.content) : post.content} />
                     </p>
                     <button
                       onClick={() => toggleTranslation(post.id, post.content)}
@@ -860,7 +860,25 @@ const CommunityPage = () => {
                     </button>
                   </div>
 
-                  {/* Reactions + Comment button */}
+                  {/* Product Preview */}
+                  {post.product_id && (() => {
+                    const product = productCatalog.find(p => p.id === post.product_id);
+                    if (!product) return null;
+                    return (
+                      <div className="flex items-center gap-3 p-3 rounded-xl bg-secondary/50 border border-border">
+                        <img src={product.image} alt={product.name} className="w-12 h-12 rounded-lg object-cover" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-foreground truncate">{product.name}</p>
+                          <p className="text-[10px] text-muted-foreground">{product.brand}</p>
+                        </div>
+                        <Button size="sm" variant="outline" className="rounded-full text-xs h-7" onClick={() => navigate(`/product/${product.id}`)}>
+                          {t('viewProduct')}
+                        </Button>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Reactions + Comment + Bookmark */}
                   <div className="pt-2 border-t border-border space-y-2">
                     <PostReactions
                       postId={post.id}
@@ -868,13 +886,25 @@ const CommunityPage = () => {
                       userReactions={userReactions.get(post.id) || new Set()}
                       onToggleReaction={toggleReaction}
                     />
-                    <button
-                      onClick={() => handleOpenComments(post.id)}
-                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      <MessageCircle className="w-3.5 h-3.5" />
-                      <span>{post.comments_count} {t('comment')}</span>
-                    </button>
+                    <div className="flex items-center justify-between">
+                      <button
+                        onClick={() => handleOpenComments(post.id)}
+                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <MessageCircle className="w-3.5 h-3.5" />
+                        <span>{post.comments_count} {t('comment')}</span>
+                      </button>
+                      <button
+                        onClick={() => toggleSavePost(post.id)}
+                        className={cn(
+                          'flex items-center gap-1 text-xs transition-colors',
+                          savedPostIds.has(post.id) ? 'text-primary font-medium' : 'text-muted-foreground hover:text-foreground'
+                        )}
+                      >
+                        {savedPostIds.has(post.id) ? <BookmarkCheck className="w-3.5 h-3.5" /> : <Bookmark className="w-3.5 h-3.5" />}
+                        {savedPostIds.has(post.id) ? t('unsavePost') : t('savePost')}
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
