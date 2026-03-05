@@ -498,10 +498,26 @@ export const translations = {
     communityWelcomeTip2: 'Ask for advice from people with a similar profile',
     communityWelcomeTip3: 'React to posts that helped you',
     
-    // Staff picks
+    // Staff picks & community tabs
     staffPicks: 'Staff Picks',
     staffPick: 'MASEYA Team',
     staffPicksEmpty: 'No staff picks yet — stay tuned!',
+    communityNewest: 'Newest',
+    communityTrending: 'Trending',
+    communityFollowing: 'Following',
+    communitySaved: 'Saved',
+    communityTrendingTags: 'Trending tags',
+    savePost: 'Save',
+    unsavePost: 'Saved',
+    followUser: 'Follow',
+    unfollowUser: 'Following',
+    attachProduct: 'Attach product',
+    addToWishlist: 'Add to wishlist',
+    removeFromWishlist: 'In wishlist',
+    viewProduct: 'View Product',
+    imageTooLarge: 'Image is too large',
+    imageSizeLimit: 'Max 5 MB. Your file is',
+    compressSuggestion: 'Try compressing it or choosing a smaller image.',
 
     // Routine reminders
     routineReminders: 'Routine Reminders',
@@ -1019,10 +1035,26 @@ export const translations = {
     communityWelcomeTip2: 'Pide consejo a personas con un perfil similar',
     communityWelcomeTip3: 'Reacciona a publicaciones que te ayudaron',
     
-    // Staff picks
+    // Staff picks & community tabs
     staffPicks: 'Selección del equipo',
     staffPick: 'Equipo MASEYA',
     staffPicksEmpty: 'Aún no hay selecciones del equipo — ¡pronto!',
+    communityNewest: 'Recientes',
+    communityTrending: 'Tendencia',
+    communityFollowing: 'Siguiendo',
+    communitySaved: 'Guardados',
+    communityTrendingTags: 'Tags en tendencia',
+    savePost: 'Guardar',
+    unsavePost: 'Guardado',
+    followUser: 'Seguir',
+    unfollowUser: 'Siguiendo',
+    attachProduct: 'Adjuntar producto',
+    addToWishlist: 'Añadir a deseos',
+    removeFromWishlist: 'En deseos',
+    viewProduct: 'Ver Producto',
+    imageTooLarge: 'La imagen es demasiado grande',
+    imageSizeLimit: 'Máximo 5 MB. Tu archivo pesa',
+    compressSuggestion: 'Intenta comprimirlo o elige una imagen más pequeña.',
 
     // Routine reminders
     routineReminders: 'Recordatorios de rutina',
@@ -1540,10 +1572,26 @@ export const translations = {
     communityWelcomeTip2: 'Demandez conseil à des personnes avec un profil similaire',
     communityWelcomeTip3: 'Réagissez aux publications qui vous ont aidée',
     
-    // Staff picks
+    // Staff picks & community tabs
     staffPicks: 'Sélection de l\'équipe',
     staffPick: 'Équipe MASEYA',
     staffPicksEmpty: 'Pas encore de sélections de l\'équipe — restez à l\'écoute !',
+    communityNewest: 'Récents',
+    communityTrending: 'Tendance',
+    communityFollowing: 'Abonnements',
+    communitySaved: 'Enregistrés',
+    communityTrendingTags: 'Tags en tendance',
+    savePost: 'Enregistrer',
+    unsavePost: 'Enregistré',
+    followUser: 'Suivre',
+    unfollowUser: 'Suivi(e)',
+    attachProduct: 'Joindre un produit',
+    addToWishlist: 'Ajouter aux envies',
+    removeFromWishlist: 'Dans les envies',
+    viewProduct: 'Voir le Produit',
+    imageTooLarge: 'L\'image est trop volumineuse',
+    imageSizeLimit: 'Max 5 Mo. Votre fichier fait',
+    compressSuggestion: 'Essayez de le compresser ou choisissez une image plus petite.',
 
     // Routine reminders
     routineReminders: 'Rappels de routine',
