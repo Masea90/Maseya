@@ -33,6 +33,7 @@ import HelpPage from "@/pages/HelpPage";
 import ScanHistoryPage from "@/pages/ScanHistoryPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import UpdatePasswordPage from "@/pages/UpdatePasswordPage";
+import UserProfilePage from "@/pages/UserProfilePage";
 import NotFound from "@/pages/NotFound";
 
 /**
