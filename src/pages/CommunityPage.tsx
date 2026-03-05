@@ -320,6 +320,10 @@ const CommunityPage = () => {
       return posts.filter(p => followedUserIds.has(p.user_id));
     }
 
+    if (activeTab === 'saved') {
+      return posts.filter(p => savedPostIds.has(p.id));
+    }
+
     if (activeTab === 'trending') {
       return [...posts].sort((a, b) => {
         const scoreA = (a.likes_count || 0) + (a.comments_count || 0) * 2;
@@ -330,13 +334,13 @@ const CommunityPage = () => {
       });
     }
 
-    // 'newest' — already sorted by created_at desc from the query
+    // 'newest'
     return [...posts].sort((a, b) => {
       if (a.is_staff_pick && !b.is_staff_pick) return -1;
       if (!a.is_staff_pick && b.is_staff_pick) return 1;
       return 0;
     });
-  }, [posts, activeTab, followedUserIds]);
+  }, [posts, activeTab, followedUserIds, savedPostIds]);
 
   const MAX_POST_LENGTH = 5000;
   const MAX_COMMENT_LENGTH = 1000;
