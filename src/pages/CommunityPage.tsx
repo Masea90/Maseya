@@ -470,6 +470,7 @@ const CommunityPage = () => {
       }
       setNewPostContent('');
       clearImage();
+      setAttachedProductId(null);
       setShowNewPost(false);
       setPostStep('template');
       setSelectedCategory('general');
