@@ -17,7 +17,7 @@ const SettingsPage = () => {
   const navigate = useNavigate();
 
   return (
-    <AppLayout title={t('settings') || 'Settings'}>
+    <AppLayout title="Settings">
       <div className="px-4 py-6 space-y-4 animate-fade-in">
         <Card>
           <CardContent className="p-0 divide-y divide-border">

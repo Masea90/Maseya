@@ -88,6 +88,7 @@ export function AppRoutes() {
         <Route path="/search" element={<SearchPage />} />
         <Route path="/rewards" element={<RewardsPage />} />
         <Route path="/premium" element={<PremiumScreen />} />
+        <Route path="/settings" element={<SettingsPage />} />
         <Route path="/settings/language" element={<LanguageSettingsPage />} />
         <Route path="/settings/notifications" element={<NotificationSettingsPage />} />
         <Route path="/install" element={<InstallPage />} />
