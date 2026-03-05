@@ -170,7 +170,53 @@ const CommunityPage = () => {
     }
   };
 
-  const toggleSavePost = async (postId: string) => {
+  const loadWishlist = async () => {
+    if (!currentUser?.id) return;
+    try {
+      const { data } = await supabase
+        .from('user_wishlist')
+        .select('product_id')
+        .eq('user_id', currentUser.id);
+      setWishlistIds(new Set(data?.map(d => d.product_id) || []));
+    } catch (e) {
+      console.error('Error loading wishlist:', e);
+    }
+  };
+
+  const toggleWishlist = async (productId: number) => {
+    if (!currentUser?.id) return;
+    const isInWishlist = wishlistIds.has(productId);
+    setWishlistIds(prev => {
+      const next = new Set(prev);
+      isInWishlist ? next.delete(productId) : next.add(productId);
+      return next;
+    });
+    try {
+      if (isInWishlist) {
+        await supabase.from('user_wishlist').delete().eq('user_id', currentUser.id).eq('product_id', productId);
+        toast.success(t('removeFromWishlist'));
+      } else {
+        await supabase.from('user_wishlist').insert({ user_id: currentUser.id, product_id: productId });
+        toast.success(t('addToWishlist') + ' ❤️');
+      }
+    } catch (e) {
+      console.error('Error toggling wishlist:', e);
+      setWishlistIds(prev => {
+        const next = new Set(prev);
+        isInWishlist ? next.add(productId) : next.delete(productId);
+        return next;
+      });
+    }
+  };
+
+  const filteredProducts = useMemo(() => {
+    if (!productSearch.trim()) return productCatalog;
+    const q = productSearch.toLowerCase();
+    return productCatalog.filter(p =>
+      p.name.toLowerCase().includes(q) || p.brand.toLowerCase().includes(q)
+    );
+  }, [productSearch]);
+
     if (!currentUser?.id) return;
     const isSaved = savedPostIds.has(postId);
     // Optimistic
