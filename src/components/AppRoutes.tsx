@@ -26,6 +26,7 @@ import NotificationSettingsPage from "@/pages/NotificationSettingsPage";
 import InstallPage from "@/pages/InstallPage";
 import AdminAffiliatePage from "@/pages/AdminAffiliatePage";
 import AdminDashboardPage from "@/pages/AdminDashboardPage";
+import SettingsPage from "@/pages/SettingsPage";
 import NotFound from "@/pages/NotFound";
 
 /**
