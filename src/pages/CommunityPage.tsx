@@ -111,6 +111,7 @@ const CommunityPage = () => {
     loadFollowing();
     loadSavedPosts();
     loadTrendingTags();
+    loadWishlist();
   }, [currentUser?.id]);
 
   const loadFollowing = async () => {
