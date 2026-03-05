@@ -920,6 +920,16 @@ const CommunityPage = () => {
                           <p className="text-xs font-medium text-foreground truncate">{product.name}</p>
                           <p className="text-[10px] text-muted-foreground">{product.brand}</p>
                         </div>
+                        <button
+                          onClick={() => toggleWishlist(product.id)}
+                          className={cn(
+                            'p-1.5 rounded-full transition-colors',
+                            wishlistIds.has(product.id) ? 'text-destructive' : 'text-muted-foreground hover:text-destructive'
+                          )}
+                          title={wishlistIds.has(product.id) ? t('removeFromWishlist') : t('addToWishlist')}
+                        >
+                          <Heart className={cn('w-4 h-4', wishlistIds.has(product.id) && 'fill-current')} />
+                        </button>
                         <Button size="sm" variant="outline" className="rounded-full text-xs h-7" onClick={() => navigate(`/product/${product.id}`)}>
                           {t('viewProduct')}
                         </Button>
@@ -1016,6 +1026,69 @@ const CommunityPage = () => {
                   {t('addPhoto') || 'Add a photo'}
                 </button>
               )}
+
+              {/* Product picker */}
+              <div className="space-y-2">
+                {attachedProductId ? (
+                  <div className="flex items-center gap-3 p-2.5 rounded-xl bg-secondary/50 border border-border">
+                    {(() => {
+                      const p = productCatalog.find(pr => pr.id === attachedProductId);
+                      if (!p) return null;
+                      return (
+                        <>
+                          <img src={p.image} alt={p.name} className="w-10 h-10 rounded-lg object-cover" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-foreground truncate">{p.name}</p>
+                            <p className="text-[10px] text-muted-foreground">{p.brand}</p>
+                          </div>
+                        </>
+                      );
+                    })()}
+                    <button onClick={() => setAttachedProductId(null)} className="p-1 rounded-full hover:bg-secondary">
+                      <X className="w-4 h-4 text-muted-foreground" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowProductPicker(!showProductPicker)}
+                      className="flex items-center gap-2 px-3 py-2 rounded-xl border border-dashed border-border hover:border-primary/50 hover:bg-primary/5 transition-colors text-sm text-muted-foreground w-full"
+                    >
+                      <Package className="w-4 h-4" />
+                      {t('attachProduct')}
+                      <ChevronDown className={cn('w-3 h-3 ml-auto transition-transform', showProductPicker && 'rotate-180')} />
+                    </button>
+                    {showProductPicker && (
+                      <div className="mt-1 border border-border rounded-xl bg-popover shadow-md max-h-48 overflow-hidden">
+                        <div className="p-2 border-b border-border">
+                          <input
+                            type="text"
+                            value={productSearch}
+                            onChange={(e) => setProductSearch(e.target.value)}
+                            placeholder={t('searchProducts')}
+                            className="w-full text-sm px-2 py-1.5 rounded-lg bg-secondary/50 border-none outline-none placeholder:text-muted-foreground"
+                          />
+                        </div>
+                        <div className="overflow-y-auto max-h-36">
+                          {filteredProducts.map(p => (
+                            <button
+                              key={p.id}
+                              onClick={() => { setAttachedProductId(p.id); setShowProductPicker(false); setProductSearch(''); }}
+                              className="w-full flex items-center gap-2 px-3 py-2 hover:bg-secondary/50 transition-colors text-left"
+                            >
+                              <img src={p.image} alt={p.name} className="w-8 h-8 rounded-md object-cover" />
+                              <div className="min-w-0">
+                                <p className="text-xs font-medium text-foreground truncate">{p.name}</p>
+                                <p className="text-[10px] text-muted-foreground">{p.brand}</p>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
 
               <div className="flex gap-2">
                 <Button variant={newPostVisibility === 'everyone' ? 'default' : 'outline'} size="sm" onClick={() => setNewPostVisibility('everyone')} className="rounded-full">
