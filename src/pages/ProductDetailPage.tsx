@@ -97,7 +97,6 @@ const ProductDetailPage = () => {
           .limit(1);
         
         if (!existing || existing.length === 0) {
-          updateUser({ points: user.points + 3 });
           recordPoints(3, 'affiliate_click', `product_${productId}`);
         }
         

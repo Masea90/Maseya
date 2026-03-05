@@ -398,7 +398,7 @@ const CommunityPage = () => {
 
       // 4. Award points & badges for posting
       if (moderationStatus === 'approved') {
-        updateUser({ points: user.points + 3 });
+        recordPoints(3, 'community_post');
         recordPoints(3, 'community_post');
         awardBadge('first_post');
         if (imageUrl) awardBadge('photo_sharer');
