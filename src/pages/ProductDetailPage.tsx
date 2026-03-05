@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRewards } from '@/hooks/useRewards';
 import { getProductWithMatch, tagTranslations } from '@/lib/recommendations';
 import { useAffiliateLinks } from '@/hooks/useAffiliateLinks';
+import { useWishlist } from '@/hooks/useWishlist';
 import { supabase } from '@/integrations/supabase/client';
 // Real ingredient data for products
 const productIngredients: Record<number, { name: string; safe: boolean; note: string }[]> = {
@@ -69,8 +70,9 @@ const ProductDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { t, user, updateUser } = useUser();
-  const [isFavorite, setIsFavorite] = useState(false);
   const [showAllRetailers, setShowAllRetailers] = useState(false);
+  const { isInWishlist, toggleWishlist } = useWishlist();
+  const isFavorite = isInWishlist(productId);
 
   const productId = Number(id) || 1;
   const product = getProductWithMatch(productId, user);
@@ -139,7 +141,7 @@ const ProductDetailPage = () => {
             <ChevronLeft className="w-6 h-6" />
           </button>
           <button
-            onClick={() => setIsFavorite(!isFavorite)}
+            onClick={() => toggleWishlist(productId)}
             className="p-2 rounded-full hover:bg-secondary transition-colors"
           >
             <Heart

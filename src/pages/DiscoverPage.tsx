@@ -13,10 +13,12 @@ import {
 } from '@/lib/recommendations';
 import { TranslationKey } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
+import { useWishlist } from '@/hooks/useWishlist';
+
 const DiscoverPage = () => {
   const { t, user } = useUser();
   const [searchQuery, setSearchQuery] = useState('');
-  const [favorites, setFavorites] = useState<number[]>([]);
+  const { isInWishlist, toggleWishlist } = useWishlist();
 
   // Check if user has completed their profile
   const hasProfile = user.skinConcerns.length > 0 || user.hairType || user.goals.length > 0;
@@ -56,7 +58,7 @@ const DiscoverPage = () => {
   const hasResults = filteredTopPick || filteredProfilePicks.length > 0 || filteredCommunityPicks.length > 0;
 
   const toggleFavorite = (id: number) => {
-    setFavorites(prev => prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]);
+    toggleWishlist(id);
   };
 
   const getTagLabel = (tag: string): string => {
@@ -138,7 +140,7 @@ const DiscoverPage = () => {
             
             <TopPickCard 
               product={filteredTopPick}
-              isFavorite={favorites.includes(filteredTopPick.id)}
+              isFavorite={isInWishlist(filteredTopPick.id)}
               onToggleFavorite={() => toggleFavorite(filteredTopPick.id)}
               t={t}
               getTagLabel={getTagLabel}
@@ -172,7 +174,7 @@ const DiscoverPage = () => {
                 <ProfilePickCard 
                   key={product.id}
                   product={product}
-                  isFavorite={favorites.includes(product.id)}
+                  isFavorite={isInWishlist(product.id)}
                   onToggleFavorite={() => toggleFavorite(product.id)}
                   t={t}
                   getTagLabel={getTagLabel}
@@ -208,7 +210,7 @@ const DiscoverPage = () => {
                 <CommunityCard 
                   key={product.id}
                   product={product}
-                  isFavorite={favorites.includes(product.id)}
+                  isFavorite={isInWishlist(product.id)}
                   onToggleFavorite={() => toggleFavorite(product.id)}
                   t={t}
                   getTagLabel={getTagLabel}
