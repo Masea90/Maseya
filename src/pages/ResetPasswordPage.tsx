@@ -83,7 +83,7 @@ const ResetPasswordPage = () => {
       <div className="flex-1 px-6 py-4 animate-fade-in">
         <div className="mb-6">
           <h2 className="font-display text-2xl font-bold text-foreground mb-2">
-            {t('loginForgotPassword') || 'Reset password'}
+            Reset password
           </h2>
           <p className="text-muted-foreground">
             Enter your email and we'll send you a link to reset your password.
