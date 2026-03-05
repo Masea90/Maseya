@@ -55,6 +55,13 @@ export const productCatalog: Product[] = [
     avoidFor: [],
     harshIngredients: [],
     description: 'ordinaryNiacinamideDesc',
+    isVegan: true,
+    noFragrance: true,
+    noEssentialOils: true,
+    noDryingAlcohols: true,
+    noSulfates: true,
+    noSilicones: true,
+    sensitiveSafe: true,
   },
   {
     id: 4,
@@ -69,6 +76,11 @@ export const productCatalog: Product[] = [
     avoidFor: [],
     harshIngredients: [],
     description: 'olaplexOilDesc',
+    isVegan: true,
+    noFragrance: false,
+    noDryingAlcohols: true,
+    noSulfates: true,
+    sensitiveSafe: false,
   },
   {
     id: 5,
@@ -83,6 +95,10 @@ export const productCatalog: Product[] = [
     avoidFor: [],
     harshIngredients: [],
     description: 'ceraveCleanserDesc',
+    noFragrance: true,
+    noDryingAlcohols: true,
+    noSulfates: true,
+    sensitiveSafe: true,
   },
   {
     id: 7,
@@ -97,6 +113,9 @@ export const productCatalog: Product[] = [
     avoidFor: [],
     harshIngredients: [],
     description: 'nuxeOilDesc',
+    noSulfates: true,
+    noSilicones: true,
+    noDryingAlcohols: true,
   },
   {
     id: 9,
@@ -111,6 +130,8 @@ export const productCatalog: Product[] = [
     avoidFor: [],
     harshIngredients: [],
     description: 'moroccanoilDesc',
+    noSulfates: true,
+    noDryingAlcohols: true,
   },
 ];
 
