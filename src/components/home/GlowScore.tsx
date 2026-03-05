@@ -85,9 +85,9 @@ export const GlowScore = () => {
       </div>
 
       <div className="mt-4 pt-4 border-t border-border flex items-center gap-2">
-        <span className="text-lg">📈</span>
+        <span className="text-lg">💪</span>
         <span className="text-sm text-muted-foreground">
-          <span className="text-primary font-medium">+5%</span> {t('improvement')}
+          {t('keepItUp')}
         </span>
       </div>
     </div>

@@ -199,7 +199,7 @@ const ProfilePage = () => {
               {currentUser.email}
             </p>
           )}
-          <p className="text-xs text-muted-foreground mt-1">{t('memberSince')} 2024</p>
+          <p className="text-xs text-muted-foreground mt-1">{t('memberSince')} {currentUser ? new Date(currentUser.createdAt).getFullYear() : ''}</p>
           
           <Link
             to="/profile/edit"

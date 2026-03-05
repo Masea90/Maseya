@@ -27,6 +27,12 @@ import InstallPage from "@/pages/InstallPage";
 import AdminAffiliatePage from "@/pages/AdminAffiliatePage";
 import AdminDashboardPage from "@/pages/AdminDashboardPage";
 import SettingsPage from "@/pages/SettingsPage";
+import RemedyDetailPage from "@/pages/RemedyDetailPage";
+import PrivacySettingsPage from "@/pages/PrivacySettingsPage";
+import HelpPage from "@/pages/HelpPage";
+import ScanHistoryPage from "@/pages/ScanHistoryPage";
+import ResetPasswordPage from "@/pages/ResetPasswordPage";
+import UpdatePasswordPage from "@/pages/UpdatePasswordPage";
 import NotFound from "@/pages/NotFound";
 
 /**
@@ -59,6 +65,8 @@ export function AppRoutes() {
     return (
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/update-password" element={<UpdatePasswordPage />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     );
@@ -81,16 +89,21 @@ export function AppRoutes() {
         <Route path="/product/:id" element={<ProductDetailPage />} />
         <Route path="/routine" element={<RoutinePage />} />
         <Route path="/remedies" element={<RemediesPage />} />
+        <Route path="/remedy/:id" element={<RemedyDetailPage />} />
         <Route path="/community" element={<CommunityPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/profile/edit" element={<ProfileEditPage />} />
         <Route path="/scan" element={<ScanPage />} />
+        <Route path="/scan/history" element={<ScanHistoryPage />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/rewards" element={<RewardsPage />} />
         <Route path="/premium" element={<PremiumScreen />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/settings/language" element={<LanguageSettingsPage />} />
         <Route path="/settings/notifications" element={<NotificationSettingsPage />} />
+        <Route path="/settings/privacy" element={<PrivacySettingsPage />} />
+        <Route path="/help" element={<HelpPage />} />
+        <Route path="/update-password" element={<UpdatePasswordPage />} />
         <Route path="/install" element={<InstallPage />} />
         <Route path="/admin" element={<AdminDashboardPage />} />
         <Route path="/admin/affiliates" element={<AdminAffiliatePage />} />

@@ -93,7 +93,7 @@ const RoutinePage = () => {
     };
 
     if (!isCurrentlyCompleted) {
-      updateUser({ points: user.points + 2 });
+      // Points are now managed by DB trigger on point_transactions
       recordPoints(2, 'routine_step');
 
       // Badge: first step ever
@@ -101,7 +101,6 @@ const RoutinePage = () => {
 
       // Check if full routine completed
       if (updatedTimeOfDay.length === totalSteps) {
-        updateUser({ points: user.points + 2 + 5 }); // 2 for step + 5 bonus
         recordPoints(5, 'routine_complete');
         if (timeOfDay === 'morning') awardBadge('morning_star');
         if (timeOfDay === 'night') awardBadge('night_owl');
