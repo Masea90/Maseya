@@ -288,20 +288,26 @@ const ProductDetailPage = () => {
         {/* Ingredients */}
         <div className="space-y-3">
           <h2 className="font-display text-lg font-semibold">{t('keyIngredients')}</h2>
-          <div className="space-y-2">
-            {ingredients.map((ing, i) => (
-              <div
-                key={i}
-                className="flex items-center justify-between p-3 rounded-xl border bg-maseya-sage/5 border-maseya-sage/20"
-              >
-                <div className="flex items-center gap-3">
-                  <Check className="w-4 h-4 text-primary" />
-                  <span className="font-medium text-sm">{ing.name}</span>
+          {ingredients ? (
+            <div className="space-y-2">
+              {ingredients.map((ing, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between p-3 rounded-xl border bg-maseya-sage/5 border-maseya-sage/20"
+                >
+                  <div className="flex items-center gap-3">
+                    <Check className="w-4 h-4 text-primary" />
+                    <span className="font-medium text-sm">{ing.name}</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">{ing.note}</span>
                 </div>
-                <span className="text-xs text-muted-foreground">{ing.note}</span>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-4 rounded-xl border border-border bg-muted/30 text-center">
+              <p className="text-sm text-muted-foreground">{t('ingredientListComingSoon')}</p>
+            </div>
+          )}
         </div>
 
         {/* Social Proof */}
