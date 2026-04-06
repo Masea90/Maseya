@@ -781,6 +781,7 @@ export const translations = {
     maybeLater: 'Maybe later',
     installBannerText: 'Install MASEYA for a better experience',
     install: 'Install',
+    installApp: 'Install App',
   },
   es: {
     // Brand
@@ -1556,6 +1557,7 @@ export const translations = {
     maybeLater: 'Quizás luego',
     installBannerText: 'Instala MASEYA para una mejor experiencia',
     install: 'Instalar',
+    installApp: 'Instalar App',
   },
   fr: {
     // Brand
@@ -2322,6 +2324,7 @@ export const translations = {
     maybeLater: 'Peut-être plus tard',
     installBannerText: 'Installez MASEYA pour une meilleure expérience',
     install: 'Installer',
+    installApp: 'Installer l\'appli',
   },
 };
 
