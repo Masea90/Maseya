@@ -443,6 +443,7 @@ const CommunityPage = () => {
   };
 
   const handleCreatePost = async () => {
+    console.log('[Post] Publish clicked');
     const trimmedContent = newPostContent.trim();
     if (!trimmedContent || !currentUser?.id) return;
     if (trimmedContent.length > MAX_POST_LENGTH) {
@@ -451,24 +452,27 @@ const CommunityPage = () => {
     }
     setIsSubmitting(true);
     try {
-      // Moderation disabled for MVP launch — posts publish immediately as approved
-      const moderationStatus = 'approved';
-      const moderationReason: string | null = null;
-
-      // Upload image if selected
+      // 1. Upload image if selected
       let imageUrl: string | null = null;
       if (selectedImage) {
+        console.log('[Post] Image upload start');
         const fileExt = selectedImage.name.split('.').pop();
         const filePath = `${currentUser.id}/${Date.now()}.${fileExt}`;
         const { error: uploadError } = await supabase.storage
           .from('post-images')
           .upload(filePath, selectedImage, { upsert: false });
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          console.error('[Post] Image upload failed:', uploadError);
+          toast.error(t('failedCreatePost'));
+          return;
+        }
         const { data: urlData } = supabase.storage.from('post-images').getPublicUrl(filePath);
         imageUrl = urlData.publicUrl;
+        console.log('[Post] Image upload done');
       }
 
-      // 3. Extract hashtags and create post
+      // 2. Insert post (critical)
+      console.log('[Post] DB insert start');
       const hashtags = extractHashtags(trimmedContent);
       const { error } = await supabase
         .from('community_posts')
@@ -479,19 +483,27 @@ const CommunityPage = () => {
           tags: hashtags,
           category: selectedCategory,
           image_url: imageUrl,
-          moderation_status: moderationStatus,
-          moderation_reason: moderationReason,
+          moderation_status: 'approved',
+          moderation_reason: null,
           product_id: attachedProductId,
         } as any);
-      if (error) throw error;
+      if (error) {
+        console.error('[Post] DB insert failed:', error);
+        toast.error(t('failedCreatePost'));
+        return;
+      }
+      console.log('[Post] DB insert success');
 
-      // 4. Award points & badges for posting
-      if (moderationStatus === 'approved') {
+      // 3. Non-critical: rewards (fire-and-forget, errors caught silently)
+      try {
         recordPoints(3, 'community_post');
         awardBadge('first_post');
         if (imageUrl) awardBadge('photo_sharer');
+      } catch (e) {
+        console.error('[Post] Rewards error (non-critical):', e);
       }
 
+      // 4. Reset UI
       toast.success(t('postShared'));
       setNewPostContent('');
       clearImage();
@@ -501,9 +513,10 @@ const CommunityPage = () => {
       setSelectedCategory('general');
       loadPosts();
     } catch (error) {
-      console.error('Error creating post:', error);
+      console.error('[Post] Unexpected error:', error);
       toast.error(t('failedCreatePost'));
     } finally {
+      console.log('[Post] Finally reached, resetting isSubmitting');
       setIsSubmitting(false);
     }
   };
