@@ -1,10 +1,9 @@
-import { Camera, PlayCircle, Lock } from 'lucide-react';
+import { PlayCircle, Compass } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useUser } from '@/contexts/UserContext';
-import { cn } from '@/lib/utils';
 
 export const QuickActions = () => {
-  const { user, t } = useUser();
+  const { t } = useUser();
 
   return (
     <div className="space-y-3">
@@ -20,26 +19,12 @@ export const QuickActions = () => {
         </Link>
 
         <Link
-          to="/scan"
-          className={cn(
-            'rounded-2xl p-4 shadow-warm transition-all relative overflow-hidden',
-            user.isPremium
-              ? 'bg-maseya-gold/20 border border-maseya-gold/30'
-              : 'bg-muted border border-border'
-          )}
+          to="/discover"
+          className="rounded-2xl p-4 shadow-warm transition-all bg-primary/10 border border-primary/30"
         >
-          {!user.isPremium && (
-            <div className="absolute top-2 right-2 w-6 h-6 bg-muted-foreground/20 rounded-full flex items-center justify-center">
-              <Lock className="w-3 h-3 text-muted-foreground" />
-            </div>
-          )}
-          <Camera className={cn('w-6 h-6 mb-2', user.isPremium ? 'text-maseya-gold' : 'text-muted-foreground')} />
-          <p className={cn('font-medium', !user.isPremium && 'text-muted-foreground')}>
-            {t('skinScan')}
-          </p>
-          <p className={cn('text-sm', user.isPremium ? 'text-foreground/70' : 'text-muted-foreground')}>
-            {user.isPremium ? t('aiAnalysis') : t('premium')}
-          </p>
+          <Compass className="w-6 h-6 mb-2 text-primary" />
+          <p className="font-medium">{t('discover')}</p>
+          <p className="text-sm text-muted-foreground">{t('forYou')}</p>
         </Link>
       </div>
     </div>
