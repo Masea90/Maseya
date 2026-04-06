@@ -513,16 +513,17 @@ const ProfileEditPage = () => {
       {/* Save Button - Fixed above bottom nav */}
       <div className="fixed bottom-20 left-0 right-0 p-4 bg-gradient-to-t from-background via-background to-transparent">
         <div className="w-full sm:max-w-lg sm:mx-auto">
-        <Button
-          onClick={handleSave}
-          disabled={!hasChanges}
-          className={cn(
-            'w-full h-14 text-lg font-medium rounded-2xl transition-all',
-            hasChanges ? 'bg-gradient-olive shadow-warm-lg' : 'bg-muted text-muted-foreground'
-          )}
-        >
-          {t('save')} {hasChanges && '✓'}
-        </Button>
+          <Button
+            onClick={handleSave}
+            disabled={!hasChanges}
+            className={cn(
+              'w-full h-14 text-lg font-medium rounded-2xl transition-all',
+              hasChanges ? 'bg-gradient-olive shadow-warm-lg' : 'bg-muted text-muted-foreground'
+            )}
+          >
+            {t('save')} {hasChanges && '✓'}
+          </Button>
+        </div>
       </div>
 
       <BottomNav />
