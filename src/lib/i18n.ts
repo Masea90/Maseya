@@ -1285,7 +1285,7 @@ export const translations = {
     helpFaq5Q: '¿Cómo funcionan las notificaciones push?',
     helpFaq5A: 'Actívalas en Ajustes > Notificaciones. Recibirás recordatorios suaves para tus rutinas de mañana y noche, además de alertas de actividad de la comunidad.',
     helpFaq6Q: '¿MASEYA es gratis?',
-    helpFaq6A: 'Las funciones principales (rutinas, comunidad, recomendaciones, recompensas) son gratis. Las funciones premium como el Escáner IA de Piel están disponibles con una suscripción premium.',
+    helpFaq6A: 'Las funciones principales (rutinas, comunidad, recomendaciones, recompensas) son gratis. Las funciones premium como los análisis avanzados están disponibles con una suscripción premium.',
     helpFaq7Q: '¿Cómo elimino mi cuenta?',
     helpFaq7A: 'Ve a Ajustes → Privacidad → Eliminar mi cuenta, o envíanos un correo a support@maseya.es.',
 
