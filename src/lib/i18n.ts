@@ -1562,6 +1562,7 @@ export const translations = {
     
     // Ingredients
     ingredientAlerts: 'Alertes ingrédients',
+    ingredientListComingSoon: 'Liste détaillée des ingrédients à venir',
     ingredientAlertsSubtitle: 'Ingrédients à éviter selon votre profil',
     avoidFragrance: 'Éviter les parfums',
     fragranceReason: 'Peut irriter les peaux sensibles',
