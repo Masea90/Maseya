@@ -476,8 +476,13 @@ export const translations = {
     loginDontHaveAccount: "Don't have an account?",
     loginSignIn: 'Sign In',
     loginSignUp: 'Sign Up',
+    checkEmailTitle: 'Check your email',
+    checkEmailDescription: 'We sent you a verification link to activate your account.',
+    checkEmailSpamHint: "Don't see it? Check your spam or promotions folder.",
+    checkEmailResend: 'Resend verification email',
+    checkEmailResent: 'Verification email resent!',
+    checkEmailBackToLogin: 'Back to login',
 
-    // Permission requests
     permCameraTitle: 'Camera Access',
     permCameraDesc: 'We need camera access for photo uploads and profile pictures.',
     permCameraBenefit: 'Share photos in the community and personalize your profile.',
@@ -1189,8 +1194,13 @@ export const translations = {
     loginDontHaveAccount: '¿No tienes una cuenta?',
     loginSignIn: 'Iniciar sesión',
     loginSignUp: 'Registrarse',
+    checkEmailTitle: 'Revisa tu correo',
+    checkEmailDescription: 'Te enviamos un enlace de verificación para activar tu cuenta.',
+    checkEmailSpamHint: '¿No lo ves? Revisa la carpeta de spam o promociones.',
+    checkEmailResend: 'Reenviar correo de verificación',
+    checkEmailResent: '¡Correo de verificación reenviado!',
+    checkEmailBackToLogin: 'Volver al inicio de sesión',
 
-    // Permission requests
     permCameraTitle: 'Acceso a la cámara',
     permCameraDesc: 'Necesitamos acceso a la cámara para subir fotos y tu foto de perfil.',
     permCameraBenefit: 'Comparte fotos en la comunidad y personaliza tu perfil.',
@@ -1902,8 +1912,13 @@ export const translations = {
     loginDontHaveAccount: 'Vous n\'avez pas de compte ?',
     loginSignIn: 'Se connecter',
     loginSignUp: 'S\'inscrire',
+    checkEmailTitle: 'Vérifiez votre e-mail',
+    checkEmailDescription: 'Nous vous avons envoyé un lien de vérification pour activer votre compte.',
+    checkEmailSpamHint: 'Vous ne le voyez pas ? Vérifiez votre dossier spam ou promotions.',
+    checkEmailResend: 'Renvoyer l\'e-mail de vérification',
+    checkEmailResent: 'E-mail de vérification renvoyé !',
+    checkEmailBackToLogin: 'Retour à la connexion',
 
-    // Permission requests
     permCameraTitle: 'Accès à la caméra',
     permCameraDesc: 'Nous avons besoin de l\'accès caméra pour les photos et votre photo de profil.',
     permCameraBenefit: 'Partagez des photos dans la communauté et personnalisez votre profil.',
