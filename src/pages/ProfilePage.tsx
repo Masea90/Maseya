@@ -146,7 +146,6 @@ const ProfilePage = () => {
   const menuItems = [
     { icon: Edit3, label: t('mySkinHairProfile'), to: '/profile/edit' },
     { icon: Gift, label: t('rewardsStore'), to: '/rewards' },
-    { icon: Camera, label: t('scanHistory'), to: '/scan/history', premium: true },
     { icon: Globe, label: `${t('language')}: ${currentLang?.label}`, to: '/settings/language' },
     { icon: Bell, label: t('notifications'), to: '/settings/notifications' },
     { icon: Shield, label: t('privacy'), to: '/settings/privacy' },
