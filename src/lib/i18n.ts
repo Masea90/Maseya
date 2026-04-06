@@ -2308,6 +2308,20 @@ export const translations = {
 
     remedyNotFound: 'Remède introuvable',
     backToRemedies: 'Retour aux remèdes',
+
+    // PWA Install
+    installTitle: 'Installez MASEYA 🌿',
+    installSubtitle: 'Utilisez MASEYA comme une app sur votre téléphone',
+    installBenefit1: 'Expérience plus rapide',
+    installBenefit2: 'Accès depuis votre écran d\'accueil',
+    installBenefit3: 'Meilleur suivi de votre routine quotidienne',
+    installIOSTitle: 'Comment installer sur iPhone :',
+    installIOSStep1: 'Appuyez sur le bouton Partager ⬆️',
+    installIOSStep2: 'Appuyez sur "Sur l\'écran d\'accueil"',
+    installNow: 'Installer maintenant',
+    maybeLater: 'Peut-être plus tard',
+    installBannerText: 'Installez MASEYA pour une meilleure expérience',
+    install: 'Installer',
   },
 };
 

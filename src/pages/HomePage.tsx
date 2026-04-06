@@ -71,6 +71,9 @@ const HomePage = () => {
           </div>
         </div>
 
+        {/* Install Banner */}
+        <InstallBanner />
+
         {/* Glow Score */}
         <GlowScore />
 

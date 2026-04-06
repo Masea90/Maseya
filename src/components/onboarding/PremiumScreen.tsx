@@ -68,6 +68,13 @@ export const PremiumScreen = () => {
           </Button>
         </div>
       </div>
+      <InstallPromptModal
+        open={showInstallModal}
+        onClose={() => {
+          setShowInstallModal(false);
+          navigate('/home');
+        }}
+      />
     </div>
   );
 };
