@@ -2324,6 +2324,7 @@ export const translations = {
     maybeLater: 'Peut-être plus tard',
     installBannerText: 'Installez MASEYA pour une meilleure expérience',
     install: 'Installer',
+    installApp: 'Installer l\'appli',
   },
 };
 
