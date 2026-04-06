@@ -514,7 +514,7 @@ const CommunityPage = () => {
       if (moderationStatus === 'pending_review') {
         toast.info('Your post is under review and will be visible once approved 🔍');
       } else {
-        toast.success('Post shared! 🌿');
+        toast.success(t('postShared'));
       }
       setNewPostContent('');
       clearImage();
@@ -525,7 +525,7 @@ const CommunityPage = () => {
       loadPosts();
     } catch (error) {
       console.error('Error creating post:', error);
-      toast.error('Failed to create post');
+      toast.error(t('failedCreatePost'));
     } finally {
       setIsSubmitting(false);
     }
@@ -620,7 +620,7 @@ const CommunityPage = () => {
     try {
       const { error } = await supabase.from('community_posts').update({ content: trimmed }).eq('id', editingPost.id).eq('user_id', currentUser?.id);
       if (error) throw error;
-      toast.success('Post updated! ✨');
+      toast.success(t('postUpdated'));
       setEditingPost(null);
       setEditContent('');
       loadPosts();
@@ -634,7 +634,7 @@ const CommunityPage = () => {
       if (!isAdmin) query.eq('user_id', currentUser?.id);
       const { error } = await query;
       if (error) throw error;
-      toast.success('Post deleted');
+      toast.success(t('postDeleted'));
       setDeletingPostId(null);
       loadPosts();
     } catch (error) { console.error('Error deleting post:', error); toast.error('Failed to delete post'); }
@@ -645,7 +645,7 @@ const CommunityPage = () => {
     try {
       const { error } = await supabase.from('post_comments').delete().eq('id', deletingCommentId);
       if (error) throw error;
-      toast.success('Comment deleted');
+      toast.success(t('commentDeleted'));
       setDeletingCommentId(null);
       loadComments(showComments);
       loadPosts();
@@ -687,7 +687,7 @@ const CommunityPage = () => {
     const now = new Date();
     const posted = new Date(date);
     const diff = Math.floor((now.getTime() - posted.getTime()) / 1000);
-    if (diff < 60) return 'just now';
+    if (diff < 60) return t('justNow');
     if (diff < 3600) return `${Math.floor(diff / 60)}m`;
     if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
     return `${Math.floor(diff / 86400)}d`;
