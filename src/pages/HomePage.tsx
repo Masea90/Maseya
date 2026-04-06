@@ -3,6 +3,7 @@ import { GlowScore } from '@/components/home/GlowScore';
 import { TodayCards } from '@/components/home/TodayCards';
 import { IngredientAlerts } from '@/components/home/IngredientAlerts';
 import { QuickActions } from '@/components/home/QuickActions';
+import { InstallBanner } from '@/components/pwa/InstallBanner';
 import { useUser } from '@/contexts/UserContext';
 
 const HomePage = () => {
