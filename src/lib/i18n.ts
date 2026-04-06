@@ -1194,8 +1194,13 @@ export const translations = {
     loginDontHaveAccount: '¿No tienes una cuenta?',
     loginSignIn: 'Iniciar sesión',
     loginSignUp: 'Registrarse',
+    checkEmailTitle: 'Revisa tu correo',
+    checkEmailDescription: 'Te enviamos un enlace de verificación para activar tu cuenta.',
+    checkEmailSpamHint: '¿No lo ves? Revisa la carpeta de spam o promociones.',
+    checkEmailResend: 'Reenviar correo de verificación',
+    checkEmailResent: '¡Correo de verificación reenviado!',
+    checkEmailBackToLogin: 'Volver al inicio de sesión',
 
-    // Permission requests
     permCameraTitle: 'Acceso a la cámara',
     permCameraDesc: 'Necesitamos acceso a la cámara para subir fotos y tu foto de perfil.',
     permCameraBenefit: 'Comparte fotos en la comunidad y personaliza tu perfil.',
