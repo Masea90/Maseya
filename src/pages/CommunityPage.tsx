@@ -700,7 +700,7 @@ const CommunityPage = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Users className="w-5 h-5 text-primary" />
-            <span className="text-sm text-muted-foreground">{posts.length} {t('members')}</span>
+            <span className="text-sm text-muted-foreground">{t('communityFavorite')}</span>
           </div>
           <Button size="sm" className="rounded-full bg-gradient-olive" onClick={() => { setShowNewPost(true); setPostStep('template'); }}>
             <Plus className="w-4 h-4 mr-1" />

@@ -439,20 +439,14 @@ export const getProfileRecommendations = (user: UserProfile, limit: number = 3):
 export const getCommunityPopular = (limit: number = 2, excludeIds: number[] = []): RecommendedProduct[] => {
   const weekOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 604800000);
   
-  // Deterministic community user counts based on product ID
-  const communityUserCounts: Record<number, number> = {
-    1: 486, 2: 312, 3: 528, 4: 445, 5: 367, 6: 289, 7: 412, 8: 234, 9: 378
-  };
-
-  // Filter out excluded products and simulate community popularity
+  // Filter out excluded products
   const popularProducts = productCatalog
     .filter(p => !excludeIds.includes(p.id))
     .map((product, index) => ({
       ...product,
-      matchScore: 85 - (index * 5), // Simulated popularity
+      matchScore: 85 - (index * 5),
       matchReasons: [] as TranslationKey[],
       recommendedBecause: [] as string[],
-      communityUsers: communityUserCounts[product.id] || 200,
     }));
 
   // Rotate based on week

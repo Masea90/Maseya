@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Heart, Users, Check, Leaf, ShoppingBag, ExternalLink, ChevronDown } from 'lucide-react';
+import { ChevronLeft, Heart, Check, Leaf, ShoppingBag, ExternalLink, ChevronDown } from 'lucide-react';
 import { buildAmazonAffiliateUrl } from '@/lib/amazonAffiliate';
 import { Button } from '@/components/ui/button';
 import { useState, useCallback } from 'react';
@@ -63,10 +63,6 @@ const productIngredients: Record<number, { name: string; safe: boolean; note: st
   ],
 };
 
-// User counts for social proof
-const productUserCounts: Record<number, number> = {
-  1: 892, 2: 654, 3: 743, 4: 521, 5: 612, 6: 987, 7: 423, 8: 567, 9: 389,
-};
 
 const ProductDetailPage = () => {
   const { id } = useParams();
@@ -80,7 +76,6 @@ const ProductDetailPage = () => {
 
   const product = getProductWithMatch(productId, user);
   const ingredients = productIngredients[productId] || null;
-  const usersLikeYou = productUserCounts[productId] || 500;
   const { links, primaryLink, isLoading: linksLoading, trackClick } = useAffiliateLinks(productId);
   const { currentUser } = useAuth();
   const { awardBadge, recordPoints } = useRewards();
@@ -310,15 +305,15 @@ const ProductDetailPage = () => {
           )}
         </div>
 
-        {/* Social Proof */}
+        {/* Trust Badge */}
         <div className="bg-card rounded-2xl p-4 shadow-warm">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 bg-maseya-rose/20 rounded-full flex items-center justify-center">
-              <Users className="w-6 h-6 text-maseya-rose" />
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+              <Check className="w-6 h-6 text-primary" />
             </div>
             <div>
-              <p className="font-medium text-foreground">{usersLikeYou} {t('members')}</p>
-              <p className="text-sm text-muted-foreground">{t('usersLikeYouAlsoUse')}</p>
+              <p className="font-medium text-foreground">{t('selectedForYourProfile')}</p>
+              <p className="text-sm text-muted-foreground">{t('curatedForYou')}</p>
             </div>
           </div>
         </div>
