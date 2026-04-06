@@ -1557,6 +1557,7 @@ export const translations = {
     maybeLater: 'Quizás luego',
     installBannerText: 'Instala MASEYA para una mejor experiencia',
     install: 'Instalar',
+    installApp: 'Instalar App',
   },
   fr: {
     // Brand
