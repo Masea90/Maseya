@@ -1893,8 +1893,8 @@ export const translations = {
 
     // Permission requests
     permCameraTitle: 'Accès à la caméra',
-    permCameraDesc: 'Nous avons besoin de l\'accès caméra pour scanner les produits et analyser votre peau et vos cheveux.',
-    permCameraBenefit: 'Obtenez une analyse personnalisée de produits et des évaluations peau/cheveux en quelques secondes.',
+    permCameraDesc: 'Nous avons besoin de l\'accès caméra pour les photos et votre photo de profil.',
+    permCameraBenefit: 'Partagez des photos dans la communauté et personnalisez votre profil.',
     permCameraPrivacy: 'Les photos sont traitées localement et ne sont jamais stockées sur nos serveurs.',
     permNotifTitle: 'Activer les notifications',
     permNotifDesc: 'Restez informée avec des conseils beauté personnalisés et des rappels de routine.',
