@@ -47,7 +47,7 @@ const LoginPage = () => {
           setSignupEmail(email.toLowerCase().trim());
           setShowEmailConfirmation(true);
         } else {
-          toast.error(result.error || 'Sign up failed');
+          toast.error(result.error || t('signUpFailed'));
         }
       } else {
         const result = await login(email, password);
