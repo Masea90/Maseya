@@ -82,7 +82,7 @@ const LoginPage = () => {
         toast.success(t('checkEmailResent'));
       }
     } catch {
-      toast.error('An unexpected error occurred');
+      toast.error(t('unexpectedError'));
     } finally {
       setIsResending(false);
     }
