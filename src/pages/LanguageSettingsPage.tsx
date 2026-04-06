@@ -17,7 +17,7 @@ const LanguageSettingsPage = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-card/90 backdrop-blur-lg border-b border-border/50 shadow-warm">
-        <div className="max-w-lg mx-auto flex items-center justify-between h-14 px-4">
+        <div className="w-full sm:max-w-lg sm:mx-auto flex items-center justify-between h-14 px-4">
           <button
             onClick={() => navigate(-1)}
             className="p-2 -ml-2 rounded-full hover:bg-secondary transition-colors"

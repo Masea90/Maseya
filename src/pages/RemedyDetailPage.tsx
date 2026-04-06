@@ -22,7 +22,7 @@ const RemedyDetailPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-border/50">
-        <div className="max-w-lg mx-auto flex items-center h-14 px-4 gap-3">
+        <div className="w-full sm:max-w-lg sm:mx-auto flex items-center h-14 px-4 gap-3">
           <button onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-full hover:bg-secondary transition-colors"><ChevronLeft className="w-5 h-5" /></button>
           <h1 className="font-display text-lg font-semibold truncate">{t(remedy.titleKey)}</h1>
         </div>
