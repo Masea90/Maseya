@@ -1581,7 +1581,7 @@ export const translations = {
     tier: 'Niveau',
     rewards: 'Récompenses',
     upgradeToPremium: 'Passer à Premium',
-    unlockAiScans: 'Débloquez les scans IA et plus',
+    unlockAiScans: 'Débloquez les fonctionnalités premium et plus',
     mySkinHairProfile: 'Mon profil peau et cheveux',
     rewardsStore: 'Boutique de récompenses',
     scanHistory: 'Historique des scans',
