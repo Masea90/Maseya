@@ -163,7 +163,7 @@ export const translations = {
     tier: 'Tier',
     rewards: 'Rewards',
     upgradeToPremium: 'Upgrade to Premium',
-    unlockAiScans: 'Unlock AI scans & more',
+    unlockAiScans: 'Unlock premium features & more',
     mySkinHairProfile: 'My Skin & Hair Profile',
     rewardsStore: 'Rewards Store',
     scanHistory: 'Scan History',
