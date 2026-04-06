@@ -76,7 +76,6 @@ const ProductDetailPage = () => {
 
   const product = getProductWithMatch(productId, user);
   const ingredients = productIngredients[productId] || null;
-  const usersLikeYou = productUserCounts[productId] || 500;
   const { links, primaryLink, isLoading: linksLoading, trackClick } = useAffiliateLinks(productId);
   const { currentUser } = useAuth();
   const { awardBadge, recordPoints } = useRewards();
