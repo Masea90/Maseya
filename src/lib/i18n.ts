@@ -1237,6 +1237,7 @@ export const translations = {
     communitySaved: 'Guardados',
     communityTrendingTags: 'Tags en tendencia',
     savePost: 'Guardar',
+    linkCopied: '¡Enlace copiado!',
     unsavePost: 'Guardado',
     followUser: 'Seguir',
     unfollowUser: 'Siguiendo',
