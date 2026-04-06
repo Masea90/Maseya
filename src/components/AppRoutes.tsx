@@ -94,6 +94,7 @@ export function AppRoutes() {
         <Route path="/remedy/:id" element={<RemedyDetailPage />} />
         <Route path="/community" element={<CommunityPage />} />
         <Route path="/community/tag/:tag" element={<CommunityTagPage />} />
+        <Route path="/community/post/:id" element={<Navigate to="/community" replace />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/profile/edit" element={<ProfileEditPage />} />
         <Route path="/scan" element={<Navigate to="/home" replace />} />
