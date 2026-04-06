@@ -1184,8 +1184,8 @@ export const translations = {
 
     // Permission requests
     permCameraTitle: 'Acceso a la cámara',
-    permCameraDesc: 'Necesitamos acceso a la cámara para escanear productos y analizar tu piel y cabello.',
-    permCameraBenefit: 'Obtén análisis personalizado de productos y evaluaciones de piel/cabello en segundos.',
+    permCameraDesc: 'Necesitamos acceso a la cámara para subir fotos y tu foto de perfil.',
+    permCameraBenefit: 'Comparte fotos en la comunidad y personaliza tu perfil.',
     permCameraPrivacy: 'Las fotos se procesan localmente y nunca se almacenan en nuestros servidores.',
     permNotifTitle: 'Activar notificaciones',
     permNotifDesc: 'Mantente al día con consejos de belleza personalizados y recordatorios de rutina.',
