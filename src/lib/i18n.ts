@@ -106,7 +106,7 @@ export const translations = {
     premiumFeature1: 'Personalized skin & hair insights',
     premiumFeature2: 'Advanced product recommendations',
     premiumFeature3: 'Full routine history & progress',
-    premiumFeature4: 'Skin & Hair Scan (coming soon)',
+    premiumFeature4: 'Priority support & early access',
     
     // Scan paywall
     premiumFeature: 'Premium Feature',
