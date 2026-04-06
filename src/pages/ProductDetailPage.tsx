@@ -305,15 +305,15 @@ const ProductDetailPage = () => {
           )}
         </div>
 
-        {/* Social Proof */}
+        {/* Trust Badge */}
         <div className="bg-card rounded-2xl p-4 shadow-warm">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 bg-maseya-rose/20 rounded-full flex items-center justify-center">
-              <Users className="w-6 h-6 text-maseya-rose" />
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+              <Check className="w-6 h-6 text-primary" />
             </div>
             <div>
-              <p className="font-medium text-foreground">{usersLikeYou} {t('members')}</p>
-              <p className="text-sm text-muted-foreground">{t('usersLikeYouAlsoUse')}</p>
+              <p className="font-medium text-foreground">{t('selectedForYourProfile')}</p>
+              <p className="text-sm text-muted-foreground">{t('curatedForYou')}</p>
             </div>
           </div>
         </div>

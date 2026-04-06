@@ -449,10 +449,10 @@ const CommunityCard = ({ product, isFavorite, onToggleFavorite, t, getTagLabel }
         {product.name}
       </h3>
 
-      {/* Community social proof */}
-      <div className="flex items-center gap-1 text-xs text-maseya-rose mb-2">
-        <Users className="w-3 h-3" />
-        <span>{product.communityUsers || 200}+ {t('usersUsing')}</span>
+      {/* Trust label */}
+      <div className="flex items-center gap-1 text-xs text-primary mb-2">
+        <Check className="w-3 h-3" />
+        <span>{t('communityFavorite')}</span>
       </div>
 
       {/* Tags */}
