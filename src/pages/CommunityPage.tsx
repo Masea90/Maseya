@@ -955,7 +955,7 @@ const CommunityPage = () => {
                       <div className="flex items-center gap-3">
                         <button
                           onClick={() => {
-                            const url = `${window.location.origin}/community`;
+                            const url = 'https://www.maseya.es/community';
                             const text = post.content.slice(0, 120) + (post.content.length > 120 ? '…' : '');
                             if (navigator.share) {
                               navigator.share({ title: 'MASEYA', text, url }).catch(() => {});
