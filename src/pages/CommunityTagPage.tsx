@@ -126,7 +126,7 @@ const CommunityTagPage = () => {
                       onClick={() => navigate(`/user/${post.user_id}`)}
                       className="font-medium text-sm text-foreground hover:text-primary transition-colors"
                     >
-                      {post.nickname || 'Anonymous'}
+                      {post.nickname || t('anonymous')}
                     </button>
                     <p className="text-xs text-muted-foreground">{getTimeAgo(post.created_at)}</p>
                   </div>

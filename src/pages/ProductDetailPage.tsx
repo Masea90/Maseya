@@ -114,7 +114,7 @@ const ProductDetailPage = () => {
   if (!product) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground">Product not found</p>
+        <p className="text-muted-foreground">{t('productNotFound')}</p>
       </div>
     );
   }

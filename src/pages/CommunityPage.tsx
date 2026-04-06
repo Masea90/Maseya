@@ -448,7 +448,7 @@ const CommunityPage = () => {
     const trimmedContent = newPostContent.trim();
     if (!trimmedContent || !currentUser?.id) return;
     if (trimmedContent.length > MAX_POST_LENGTH) {
-      toast.error(`Post must be ${MAX_POST_LENGTH} characters or less`);
+      toast.error(t('postTooLong').replace('{max}', String(MAX_POST_LENGTH)));
       return;
     }
     setIsSubmitting(true);
@@ -514,7 +514,7 @@ const CommunityPage = () => {
       if (moderationStatus === 'pending_review') {
         toast.info('Your post is under review and will be visible once approved 🔍');
       } else {
-        toast.success('Post shared! 🌿');
+        toast.success(t('postShared'));
       }
       setNewPostContent('');
       clearImage();
@@ -525,7 +525,7 @@ const CommunityPage = () => {
       loadPosts();
     } catch (error) {
       console.error('Error creating post:', error);
-      toast.error('Failed to create post');
+      toast.error(t('failedCreatePost'));
     } finally {
       setIsSubmitting(false);
     }
@@ -602,7 +602,7 @@ const CommunityPage = () => {
   const handleAddComment = async () => {
     const trimmed = newComment.trim();
     if (!trimmed || !showComments || !currentUser?.id) return;
-    if (trimmed.length > MAX_COMMENT_LENGTH) { toast.error(`Comment must be ${MAX_COMMENT_LENGTH} characters or less`); return; }
+    if (trimmed.length > MAX_COMMENT_LENGTH) { toast.error(t('commentTooLong').replace('{max}', String(MAX_COMMENT_LENGTH))); return; }
     try {
       const { error } = await supabase.from('post_comments').insert({ post_id: showComments, user_id: currentUser.id, content: trimmed });
       if (error) throw error;
@@ -616,11 +616,11 @@ const CommunityPage = () => {
   const handleEditPost = async () => {
     if (!editingPost || !editContent.trim()) return;
     const trimmed = editContent.trim();
-    if (trimmed.length > MAX_POST_LENGTH) { toast.error(`Post must be ${MAX_POST_LENGTH} characters or less`); return; }
+    if (trimmed.length > MAX_POST_LENGTH) { toast.error(t('postTooLong').replace('{max}', String(MAX_POST_LENGTH))); return; }
     try {
       const { error } = await supabase.from('community_posts').update({ content: trimmed }).eq('id', editingPost.id).eq('user_id', currentUser?.id);
       if (error) throw error;
-      toast.success('Post updated! ✨');
+      toast.success(t('postUpdated'));
       setEditingPost(null);
       setEditContent('');
       loadPosts();
@@ -634,7 +634,7 @@ const CommunityPage = () => {
       if (!isAdmin) query.eq('user_id', currentUser?.id);
       const { error } = await query;
       if (error) throw error;
-      toast.success('Post deleted');
+      toast.success(t('postDeleted'));
       setDeletingPostId(null);
       loadPosts();
     } catch (error) { console.error('Error deleting post:', error); toast.error('Failed to delete post'); }
@@ -645,7 +645,7 @@ const CommunityPage = () => {
     try {
       const { error } = await supabase.from('post_comments').delete().eq('id', deletingCommentId);
       if (error) throw error;
-      toast.success('Comment deleted');
+      toast.success(t('commentDeleted'));
       setDeletingCommentId(null);
       loadComments(showComments);
       loadPosts();
@@ -687,7 +687,7 @@ const CommunityPage = () => {
     const now = new Date();
     const posted = new Date(date);
     const diff = Math.floor((now.getTime() - posted.getTime()) / 1000);
-    if (diff < 60) return 'just now';
+    if (diff < 60) return t('justNow');
     if (diff < 3600) return `${Math.floor(diff / 60)}m`;
     if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
     return `${Math.floor(diff / 86400)}d`;
@@ -816,7 +816,7 @@ const CommunityPage = () => {
                             onClick={() => navigate(`/user/${post.user_id}`)}
                             className="font-medium text-foreground text-sm hover:text-primary transition-colors"
                           >
-                            {post.nickname || 'Anonymous'}
+                            {post.nickname || t('anonymous')}
                           </button>
                           {post.is_staff_pick && (
                             <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-maseya-gold/15 text-[10px] font-semibold text-maseya-gold">
@@ -858,11 +858,11 @@ const CommunityPage = () => {
                         <DropdownMenuContent align="end">
                           {post.user_id === currentUser?.id && (
                             <DropdownMenuItem onClick={() => { setEditingPost(post); setEditContent(post.content); }}>
-                              <Pencil className="w-4 h-4 mr-2" /> Edit
+                              <Pencil className="w-4 h-4 mr-2" /> {t("editPost")}
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuItem onClick={() => setDeletingPostId(post.id)} className="text-destructive focus:text-destructive">
-                            <Trash2 className="w-4 h-4 mr-2" /> {isAdmin && post.user_id !== currentUser?.id ? 'Delete (Admin)' : 'Delete'}
+                            <Trash2 className="w-4 h-4 mr-2" /> {isAdmin && post.user_id !== currentUser?.id ? t('deleteAdmin') : t('delete')}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -1148,7 +1148,7 @@ const CommunityPage = () => {
                       onClick={() => navigate(`/user/${comment.user_id}`)}
                       className="text-sm font-medium hover:text-primary transition-colors"
                     >
-                      {comment.nickname || 'Anonymous'}
+                      {comment.nickname || t('anonymous')}
                     </button>
                     <p className="text-sm text-foreground">{comment.content}</p>
                     <p className="text-xs text-muted-foreground mt-1">{getTimeAgo(comment.created_at)}</p>

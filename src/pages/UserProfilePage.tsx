@@ -203,7 +203,7 @@ const UserProfilePage = () => {
 
             <div>
               <h1 className="font-display text-xl font-semibold text-foreground">
-                {profile.nickname || 'Anonymous'}
+                {profile.nickname || t('anonymous')}
               </h1>
               {profile.bio && (
                 <p className="text-sm text-muted-foreground mt-1 max-w-xs mx-auto">{profile.bio}</p>

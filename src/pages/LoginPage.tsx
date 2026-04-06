@@ -47,19 +47,19 @@ const LoginPage = () => {
           setSignupEmail(email.toLowerCase().trim());
           setShowEmailConfirmation(true);
         } else {
-          toast.error(result.error || 'Sign up failed');
+          toast.error(result.error || t('signUpFailed'));
         }
       } else {
         const result = await login(email, password);
         if (result.success) {
-          toast.success('Welcome back! 🌿');
+          toast.success(t('welcomeBack'));
           navigate('/');
         } else {
-          toast.error(result.error || 'Login failed');
+          toast.error(result.error || t('loginFailed'));
         }
       }
     } catch {
-      toast.error('An unexpected error occurred');
+      toast.error(t('unexpectedError'));
     } finally {
       setIsSubmitting(false);
     }
@@ -82,7 +82,7 @@ const LoginPage = () => {
         toast.success(t('checkEmailResent'));
       }
     } catch {
-      toast.error('An unexpected error occurred');
+      toast.error(t('unexpectedError'));
     } finally {
       setIsResending(false);
     }
@@ -93,10 +93,10 @@ const LoginPage = () => {
     try {
       const result = await signInWithGoogle();
       if (!result.success) {
-        toast.error(result.error || 'Google sign in failed');
+        toast.error(result.error || t('googleSignInFailed'));
       }
     } catch {
-      toast.error('An unexpected error occurred');
+      toast.error(t('unexpectedError'));
     } finally {
       setIsGoogleLoading(false);
     }
@@ -232,7 +232,7 @@ const LoginPage = () => {
           {!isSignUp && (
             <div className="text-right">
               <Link to="/reset-password" className="text-sm text-primary font-medium hover:underline">
-                Forgot password?
+                {t('forgotPassword')}
               </Link>
             </div>
           )}
