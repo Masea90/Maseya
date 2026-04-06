@@ -518,6 +518,7 @@ export const translations = {
     communitySaved: 'Saved',
     communityTrendingTags: 'Trending tags',
     savePost: 'Save',
+    linkCopied: 'Link copied!',
     unsavePost: 'Saved',
     followUser: 'Follow',
     unfollowUser: 'Following',
