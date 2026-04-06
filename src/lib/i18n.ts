@@ -142,6 +142,7 @@ export const translations = {
     
     // Ingredients
     ingredientAlerts: 'Ingredient Alerts',
+    ingredientListComingSoon: 'Detailed ingredient list coming soon',
     ingredientAlertsSubtitle: 'Ingredients to avoid based on your profile',
     avoidFragrance: 'Avoid Fragrance',
     fragranceReason: 'Can cause irritation for sensitive skin types',
@@ -851,6 +852,7 @@ export const translations = {
     
     // Ingredients
     ingredientAlerts: 'Alertas de ingredientes',
+    ingredientListComingSoon: 'Lista detallada de ingredientes próximamente',
     ingredientAlertsSubtitle: 'Ingredientes a evitar según tu perfil',
     avoidFragrance: 'Evitar fragancias',
     fragranceReason: 'Puede causar irritación en pieles sensibles',
@@ -1560,6 +1562,7 @@ export const translations = {
     
     // Ingredients
     ingredientAlerts: 'Alertes ingrédients',
+    ingredientListComingSoon: 'Liste détaillée des ingrédients à venir',
     ingredientAlertsSubtitle: 'Ingrédients à éviter selon votre profil',
     avoidFragrance: 'Éviter les parfums',
     fragranceReason: 'Peut irriter les peaux sensibles',

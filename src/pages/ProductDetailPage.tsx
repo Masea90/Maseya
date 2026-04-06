@@ -11,18 +11,8 @@ import { getProductWithMatch, tagTranslations } from '@/lib/recommendations';
 import { useAffiliateLinks } from '@/hooks/useAffiliateLinks';
 import { useWishlist } from '@/hooks/useWishlist';
 import { supabase } from '@/integrations/supabase/client';
-// Real ingredient data for products
+// Real ingredient data for products — only verified ingredients
 const productIngredients: Record<number, { name: string; safe: boolean; note: string }[]> = {
-  1: [
-    { name: 'Sunflower Seed Oil', safe: true, note: 'Deep nourishment' },
-    { name: 'Lanolin', safe: true, note: 'Protective barrier' },
-    { name: 'Chamomile Extract', safe: true, note: 'Soothes irritation' },
-  ],
-  2: [
-    { name: 'Rosehip Seed Oil', safe: true, note: 'Rich in Vitamin A & C' },
-    { name: 'Vitamin E', safe: true, note: 'Antioxidant protection' },
-    { name: 'Omega Fatty Acids', safe: true, note: 'Skin regeneration' },
-  ],
   3: [
     { name: 'Niacinamide 10%', safe: true, note: 'Reduces blemishes' },
     { name: 'Zinc PCA 1%', safe: true, note: 'Oil control' },
@@ -38,26 +28,38 @@ const productIngredients: Record<number, { name: string; safe: boolean; note: st
     { name: 'Hyaluronic Acid', safe: true, note: 'Hydration' },
     { name: 'Glycerin', safe: true, note: 'Moisture retention' },
   ],
-  6: [
-    { name: 'Mango Butter', safe: true, note: 'Intense nourishment' },
-    { name: 'Apricot Kernel Oil', safe: true, note: 'Softening' },
-    { name: 'Vitamin E', safe: true, note: 'Hair protection' },
-  ],
   7: [
     { name: 'Tsubaki Oil', safe: true, note: 'Shine & softness' },
     { name: 'Argan Oil', safe: true, note: 'Nourishment' },
     { name: 'Sweet Almond Oil', safe: true, note: 'Conditioning' },
     { name: 'Hazelnut Oil', safe: true, note: 'Lightweight moisture' },
   ],
-  8: [
-    { name: 'Lactic Acid', safe: true, note: 'Gentle exfoliation' },
-    { name: 'Willow Bark Extract', safe: true, note: 'Pore refinement' },
-    { name: 'Succinic Acid', safe: true, note: 'Brightening' },
-  ],
   9: [
     { name: 'Argan Oil', safe: true, note: 'Deep conditioning' },
     { name: 'Linseed Extract', safe: true, note: 'Strengthening' },
     { name: 'Vitamin E & F', safe: true, note: 'Shine & protection' },
+  ],
+  10: [
+    { name: 'Sunflower Seed Oil', safe: true, note: 'Deep nourishment' },
+    { name: 'Lanolin', safe: true, note: 'Protective barrier' },
+    { name: 'Viola Tricolor Extract', safe: true, note: 'Soothes & calms' },
+    { name: 'Chamomile Extract', safe: true, note: 'Anti-inflammatory' },
+    { name: 'Calendula Extract', safe: true, note: 'Skin repair' },
+  ],
+  11: [
+    { name: 'Rosehip Fruit Oil (CO2)', safe: true, note: 'Rich in Vitamin A & C' },
+    { name: 'Rosehip Seed Oil', safe: true, note: 'Skin regeneration' },
+    { name: 'Vitamin E (Tocopherol)', safe: true, note: 'Antioxidant protection' },
+  ],
+  12: [
+    { name: 'Lactic Acid (AHA)', safe: true, note: 'Gentle exfoliation' },
+    { name: 'Willow Bark Extract (BHA)', safe: true, note: 'Pore refinement' },
+    { name: 'Azelaic Acid', safe: true, note: 'Brightening & anti-redness' },
+  ],
+  13: [
+    { name: 'Mango Butter', safe: true, note: 'Intense nourishment' },
+    { name: 'Mango Pulp Extract', safe: true, note: 'Softening & repair' },
+    { name: 'Coconut Oil', safe: true, note: 'Deep conditioning' },
   ],
 };
 
@@ -77,7 +79,7 @@ const ProductDetailPage = () => {
 
 
   const product = getProductWithMatch(productId, user);
-  const ingredients = productIngredients[productId] || productIngredients[1];
+  const ingredients = productIngredients[productId] || null;
   const usersLikeYou = productUserCounts[productId] || 500;
   const { links, primaryLink, isLoading: linksLoading, trackClick } = useAffiliateLinks(productId);
   const { currentUser } = useAuth();
@@ -286,20 +288,26 @@ const ProductDetailPage = () => {
         {/* Ingredients */}
         <div className="space-y-3">
           <h2 className="font-display text-lg font-semibold">{t('keyIngredients')}</h2>
-          <div className="space-y-2">
-            {ingredients.map((ing, i) => (
-              <div
-                key={i}
-                className="flex items-center justify-between p-3 rounded-xl border bg-maseya-sage/5 border-maseya-sage/20"
-              >
-                <div className="flex items-center gap-3">
-                  <Check className="w-4 h-4 text-primary" />
-                  <span className="font-medium text-sm">{ing.name}</span>
+          {ingredients ? (
+            <div className="space-y-2">
+              {ingredients.map((ing, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between p-3 rounded-xl border bg-maseya-sage/5 border-maseya-sage/20"
+                >
+                  <div className="flex items-center gap-3">
+                    <Check className="w-4 h-4 text-primary" />
+                    <span className="font-medium text-sm">{ing.name}</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">{ing.note}</span>
                 </div>
-                <span className="text-xs text-muted-foreground">{ing.note}</span>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-4 rounded-xl border border-border bg-muted/30 text-center">
+              <p className="text-sm text-muted-foreground">{t('ingredientListComingSoon')}</p>
+            </div>
+          )}
         </div>
 
         {/* Social Proof */}
