@@ -30,7 +30,7 @@ import SettingsPage from "@/pages/SettingsPage";
 import RemedyDetailPage from "@/pages/RemedyDetailPage";
 import PrivacySettingsPage from "@/pages/PrivacySettingsPage";
 import HelpPage from "@/pages/HelpPage";
-import ScanHistoryPage from "@/pages/ScanHistoryPage";
+// ScanHistoryPage removed — feature not yet implemented
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import UpdatePasswordPage from "@/pages/UpdatePasswordPage";
 import UserProfilePage from "@/pages/UserProfilePage";
