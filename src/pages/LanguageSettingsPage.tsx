@@ -29,7 +29,7 @@ const LanguageSettingsPage = () => {
         </div>
       </header>
 
-      <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
+      <div className="w-full sm:max-w-lg sm:mx-auto px-4 py-6 space-y-6">
         <p className="text-muted-foreground text-sm">
           {t('selectYourLanguage')}
         </p>

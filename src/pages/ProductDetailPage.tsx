@@ -321,7 +321,7 @@ const ProductDetailPage = () => {
 
       {/* Fixed CTA - Primary affiliate link */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-md border-t border-border">
-        <div className="max-w-lg mx-auto">
+        <div className="w-full sm:max-w-lg sm:mx-auto">
           <Button 
             className="w-full h-14 rounded-2xl text-lg font-medium bg-gradient-olive"
             disabled={linksLoading || !primaryLink}

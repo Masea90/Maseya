@@ -28,7 +28,7 @@ const RemedyDetailPage = () => {
         </div>
       </header>
 
-      <div className="max-w-lg mx-auto px-4 py-6 space-y-6 animate-fade-in">
+      <div className="w-full sm:max-w-lg sm:mx-auto px-4 py-6 space-y-6 animate-fade-in">
         <div className="bg-card rounded-3xl p-6 shadow-warm text-center">
           <span className="text-6xl mb-4 block">{remedy.image}</span>
           <h2 className="font-display text-xl font-semibold">{t(remedy.titleKey)}</h2>

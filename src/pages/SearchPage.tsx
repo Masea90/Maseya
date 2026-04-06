@@ -84,7 +84,7 @@ const SearchPage = () => {
         </div>
       </div>
 
-      <div className="px-4 py-6 space-y-6 animate-fade-in max-w-lg mx-auto">
+      <div className="w-full sm:max-w-lg sm:mx-auto px-4 py-6 space-y-6 animate-fade-in">
         {!isSearching ? (
           <>
             {recentSearches.length > 0 && (

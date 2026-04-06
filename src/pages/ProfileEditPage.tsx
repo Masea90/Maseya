@@ -511,7 +511,8 @@ const ProfileEditPage = () => {
       </main>
 
       {/* Save Button - Fixed above bottom nav */}
-      <div className="fixed bottom-20 left-0 right-0 p-4 bg-gradient-to-t from-background via-background to-transparent max-w-lg mx-auto">
+      <div className="fixed bottom-20 left-0 right-0 p-4 bg-gradient-to-t from-background via-background to-transparent">
+        <div className="w-full sm:max-w-lg sm:mx-auto">
         <Button
           onClick={handleSave}
           disabled={!hasChanges}
