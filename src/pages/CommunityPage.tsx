@@ -503,7 +503,7 @@ const CommunityPage = () => {
         console.error('[Post] Rewards error (non-critical):', e);
       }
 
-      // 4. Reset UI
+      // 4. Reset UI and refresh feed
       toast.success(t('postShared'));
       setNewPostContent('');
       clearImage();
@@ -511,7 +511,8 @@ const CommunityPage = () => {
       setShowNewPost(false);
       setPostStep('template');
       setSelectedCategory('general');
-      loadPosts();
+      setActiveTab('newest');
+      await loadPosts();
     } catch (error) {
       console.error('[Post] Unexpected error:', error);
       toast.error(t('failedCreatePost'));
