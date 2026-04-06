@@ -52,7 +52,7 @@ const LoginPage = () => {
       } else {
         const result = await login(email, password);
         if (result.success) {
-          toast.success('Welcome back! 🌿');
+          toast.success(t('welcomeBack'));
           navigate('/');
         } else {
           toast.error(result.error || 'Login failed');
