@@ -59,7 +59,7 @@ const LoginPage = () => {
         }
       }
     } catch {
-      toast.error('An unexpected error occurred');
+      toast.error(t('unexpectedError'));
     } finally {
       setIsSubmitting(false);
     }
