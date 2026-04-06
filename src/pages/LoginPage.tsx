@@ -96,7 +96,7 @@ const LoginPage = () => {
         toast.error(result.error || t('googleSignInFailed'));
       }
     } catch {
-      toast.error('An unexpected error occurred');
+      toast.error(t('unexpectedError'));
     } finally {
       setIsGoogleLoading(false);
     }
