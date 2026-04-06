@@ -1,0 +1,24 @@
+{
+  "name": "MASEYA – Natural beauty, made personal",
+  "short_name": "MASEYA",
+  "description": "Your personalized natural beauty companion",
+  "start_url": "/home",
+  "display": "standalone",
+  "background_color": "#F5F0EB",
+  "theme_color": "#2D5A27",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
