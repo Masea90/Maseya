@@ -24,7 +24,7 @@ export const QuickActions = () => {
         >
           <Compass className="w-6 h-6 mb-2 text-primary" />
           <p className="font-medium">{t('discover')}</p>
-          <p className="text-sm text-muted-foreground">{t('recommendations')}</p>
+          <p className="text-sm text-muted-foreground">{t('topPickForYou')}</p>
         </Link>
       </div>
     </div>
