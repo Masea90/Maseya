@@ -1524,7 +1524,7 @@ export const translations = {
     premiumFeature1: 'Informations personnalisées peau et cheveux',
     premiumFeature2: 'Recommandations de produits avancées',
     premiumFeature3: 'Historique complet des routines et progrès',
-    premiumFeature4: 'Scan Peau et Cheveux (bientôt disponible)',
+    premiumFeature4: 'Support prioritaire et accès anticipé',
     
     // Scan paywall
     premiumFeature: 'Fonctionnalité Premium',
