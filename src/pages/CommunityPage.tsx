@@ -442,8 +442,6 @@ const CommunityPage = () => {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const MODERATE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/moderate-post`;
-
   const handleCreatePost = async () => {
     const trimmedContent = newPostContent.trim();
     if (!trimmedContent || !currentUser?.id) return;
@@ -453,28 +451,11 @@ const CommunityPage = () => {
     }
     setIsSubmitting(true);
     try {
-      // 1. AI moderation check
-      let moderationStatus = 'approved';
-      let moderationReason: string | null = null;
-      try {
-        const modHeaders = await getAuthHeaders();
-        const modResp = await fetch(MODERATE_URL, {
-          method: 'POST',
-          headers: modHeaders,
-          body: JSON.stringify({ content: trimmedContent, category: selectedCategory }),
-        });
-        if (modResp.ok) {
-          const modData = await modResp.json();
-          if (!modData.approved) {
-            moderationStatus = 'pending_review';
-            moderationReason = modData.reason || 'Flagged by AI moderation';
-          }
-        }
-      } catch (modError) {
-        console.error('Moderation check failed, proceeding as approved:', modError);
-      }
+      // Moderation disabled for MVP launch — posts publish immediately as approved
+      const moderationStatus = 'approved';
+      const moderationReason: string | null = null;
 
-      // 2. Upload image if selected
+      // Upload image if selected
       let imageUrl: string | null = null;
       if (selectedImage) {
         const fileExt = selectedImage.name.split('.').pop();
