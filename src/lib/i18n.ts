@@ -1956,6 +1956,7 @@ export const translations = {
     communitySaved: 'Enregistrés',
     communityTrendingTags: 'Tags en tendance',
     savePost: 'Enregistrer',
+    linkCopied: 'Lien copié !',
     unsavePost: 'Enregistré',
     followUser: 'Suivre',
     unfollowUser: 'Suivi(e)',
