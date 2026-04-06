@@ -96,8 +96,8 @@ export function AppRoutes() {
         <Route path="/community/tag/:tag" element={<CommunityTagPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/profile/edit" element={<ProfileEditPage />} />
-        <Route path="/scan" element={<ScanPage />} />
-        <Route path="/scan/history" element={<ScanHistoryPage />} />
+        <Route path="/scan" element={<Navigate to="/home" replace />} />
+        <Route path="/scan/history" element={<Navigate to="/home" replace />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/rewards" element={<RewardsPage />} />
         <Route path="/premium" element={<PremiumScreen />} />

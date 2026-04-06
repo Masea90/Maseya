@@ -271,7 +271,7 @@ const ProfilePage = () => {
               </div>
               <div className="flex-1">
                 <p className="font-semibold text-foreground">{t('upgradeToPremium')}</p>
-                <p className="text-sm text-muted-foreground">{t('unlockAiScans')}</p>
+                <p className="text-sm text-muted-foreground">{t('unlockPremiumFeatures')}</p>
               </div>
               <ChevronRight className="w-5 h-5 text-muted-foreground" />
             </div>
