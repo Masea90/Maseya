@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useUser } from '@/contexts/UserContext';
-import { Check, Crown, X, Sparkles } from 'lucide-react';
+import { Check, X, Sparkles } from 'lucide-react';
 
 export const PremiumScreen = () => {
   const navigate = useNavigate();
