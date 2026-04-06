@@ -952,16 +952,34 @@ const CommunityPage = () => {
                         <MessageCircle className="w-3.5 h-3.5" />
                         <span>{post.comments_count} {t('comment')}</span>
                       </button>
-                      <button
-                        onClick={() => toggleSavePost(post.id)}
-                        className={cn(
-                          'flex items-center gap-1 text-xs transition-colors',
-                          savedPostIds.has(post.id) ? 'text-primary font-medium' : 'text-muted-foreground hover:text-foreground'
-                        )}
-                      >
-                        {savedPostIds.has(post.id) ? <BookmarkCheck className="w-3.5 h-3.5" /> : <Bookmark className="w-3.5 h-3.5" />}
-                        {savedPostIds.has(post.id) ? t('unsavePost') : t('savePost')}
-                      </button>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => {
+                            const url = `${window.location.origin}/community`;
+                            const text = post.content.slice(0, 120) + (post.content.length > 120 ? '…' : '');
+                            if (navigator.share) {
+                              navigator.share({ title: 'MASEYA', text, url }).catch(() => {});
+                            } else {
+                              navigator.clipboard.writeText(url).then(() => {
+                                toast.success(t('linkCopied'));
+                              }).catch(() => {});
+                            }
+                          }}
+                          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          <Share2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => toggleSavePost(post.id)}
+                          className={cn(
+                            'flex items-center gap-1 text-xs transition-colors',
+                            savedPostIds.has(post.id) ? 'text-primary font-medium' : 'text-muted-foreground hover:text-foreground'
+                          )}
+                        >
+                          {savedPostIds.has(post.id) ? <BookmarkCheck className="w-3.5 h-3.5" /> : <Bookmark className="w-3.5 h-3.5" />}
+                          {savedPostIds.has(post.id) ? t('unsavePost') : t('savePost')}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
