@@ -253,24 +253,6 @@ const ProfilePage = () => {
         {/* Wishlist */}
         <ProfileWishlist />
 
-        {/* Premium Upgrade */}
-        {!user.isPremium && (
-          <Link
-            to="/premium"
-            className="block bg-gradient-to-r from-maseya-gold/20 to-maseya-terracotta/20 border-2 border-maseya-gold/40 rounded-2xl p-4 shadow-warm"
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-maseya-gold/30 rounded-full flex items-center justify-center">
-                <Crown className="w-6 h-6 text-maseya-gold" />
-              </div>
-              <div className="flex-1">
-                <p className="font-semibold text-foreground">{t('upgradeToPremium')}</p>
-                <p className="text-sm text-muted-foreground">{t('premiumFeature1')}</p>
-              </div>
-              <ChevronRight className="w-5 h-5 text-muted-foreground" />
-            </div>
-          </Link>
-        )}
 
         {/* Admin Dashboard Link */}
         {isAdmin && (
