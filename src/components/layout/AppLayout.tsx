@@ -20,7 +20,7 @@ export const AppLayout = ({
   showSettings = false,
 }: AppLayoutProps) => {
   return (
-    <div className="min-h-screen bg-background flex flex-col max-w-lg mx-auto">
+    <div className="min-h-[100dvh] bg-background flex flex-col w-full sm:max-w-lg sm:mx-auto">
       {showHeader && (
         <Header
           title={title}

@@ -28,7 +28,7 @@ export const Header = ({
         className
       )}
     >
-      <div className="flex items-center justify-between h-14 px-4 max-w-lg mx-auto">
+      <div className="flex items-center justify-between h-14 px-4 w-full sm:max-w-lg sm:mx-auto">
         <div className="flex items-center gap-3">
           {isHome ? (
             <Link to="/home" className="flex items-center gap-2">
