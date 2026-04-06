@@ -50,6 +50,8 @@ interface Comment {
   avatarUrl?: string | null;
 }
 
+const sortPostsByNewest = (items: Post[]) =>
+  [...items].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
 const CommunityPage = () => {
   const { t, user, updateUser } = useUser();
@@ -331,7 +333,9 @@ const CommunityPage = () => {
         };
       });
 
-      setPosts(postsWithProfiles);
+      const sortedLoadedPosts = sortPostsByNewest(postsWithProfiles);
+      console.log('[Post] loadPosts query result count:', postsData.length, 'visible:', sortedLoadedPosts.length);
+      setPosts(sortedLoadedPosts);
     } catch (error) {
       console.error('Error loading posts:', error);
     } finally {
@@ -362,15 +366,15 @@ const CommunityPage = () => {
   // Feed sorting
   const sortedPosts = useMemo(() => {
     if (activeTab === 'staff_picks') {
-      return posts.filter(p => p.is_staff_pick);
+      return sortPostsByNewest(posts.filter(p => p.is_staff_pick));
     }
 
     if (activeTab === 'following') {
-      return posts.filter(p => followedUserIds.has(p.user_id));
+      return sortPostsByNewest(posts.filter(p => followedUserIds.has(p.user_id)));
     }
 
     if (activeTab === 'saved') {
-      return posts.filter(p => savedPostIds.has(p.id));
+      return sortPostsByNewest(posts.filter(p => savedPostIds.has(p.id)));
     }
 
     if (activeTab === 'trending') {
@@ -383,12 +387,7 @@ const CommunityPage = () => {
       });
     }
 
-    // 'newest'
-    return [...posts].sort((a, b) => {
-      if (a.is_staff_pick && !b.is_staff_pick) return -1;
-      if (!a.is_staff_pick && b.is_staff_pick) return 1;
-      return 0;
-    });
+    return sortPostsByNewest(posts);
   }, [posts, activeTab, followedUserIds, savedPostIds]);
 
   const MAX_POST_LENGTH = 5000;
@@ -474,25 +473,47 @@ const CommunityPage = () => {
       // 2. Insert post (critical)
       console.log('[Post] DB insert start');
       const hashtags = extractHashtags(trimmedContent);
-      const { error } = await supabase
+      const payload = {
+        user_id: currentUser.id,
+        content: trimmedContent,
+        visibility: newPostVisibility,
+        tags: hashtags,
+        category: selectedCategory,
+        image_url: imageUrl,
+        moderation_status: 'approved',
+        moderation_reason: null,
+        product_id: attachedProductId,
+      };
+      console.log('[Post] Insert payload:', payload);
+      const { data: insertedPost, error } = await supabase
         .from('community_posts')
-        .insert({
-          user_id: currentUser.id,
-          content: trimmedContent,
-          visibility: newPostVisibility,
-          tags: hashtags,
-          category: selectedCategory,
-          image_url: imageUrl,
-          moderation_status: 'approved',
-          moderation_reason: null,
-          product_id: attachedProductId,
-        } as any);
-      if (error) {
+        .insert(payload as any)
+        .select('*')
+        .single();
+      if (error || !insertedPost) {
         console.error('[Post] DB insert failed:', error);
         toast.error(t('failedCreatePost'));
         return;
       }
-      console.log('[Post] DB insert success');
+      console.log('[Post] Insert result:', insertedPost);
+
+      const newPost: Post = {
+        ...insertedPost,
+        visibility: insertedPost.visibility || newPostVisibility,
+        tags: insertedPost.tags || hashtags,
+        likes_count: insertedPost.likes_count || 0,
+        comments_count: insertedPost.comments_count || 0,
+        created_at: insertedPost.created_at || new Date().toISOString(),
+        category: insertedPost.category || selectedCategory,
+        is_staff_pick: insertedPost.is_staff_pick || false,
+        image_url: insertedPost.image_url || imageUrl,
+        moderation_status: insertedPost.moderation_status || 'approved',
+        nickname: user.nickname || undefined,
+        avatarUrl: user.avatarUrl || null,
+        product_id: insertedPost.product_id || attachedProductId,
+        reactionCounts: { helped_me: 0, i_relate: 0, great_tip: 0 },
+      };
+      console.log('[Post] New post matches newest feed:', newPost.moderation_status === 'approved');
 
       // 3. Non-critical: rewards (fire-and-forget, errors caught silently)
       try {
@@ -503,7 +524,11 @@ const CommunityPage = () => {
         console.error('[Post] Rewards error (non-critical):', e);
       }
 
-      // 4. Reset UI and refresh feed
+      // 4. Reset UI and update feed immediately
+      setActiveTab('newest');
+      setPosts(prev => sortPostsByNewest([newPost, ...prev.filter(post => post.id !== newPost.id)]));
+      void loadPosts();
+
       toast.success(t('postShared'));
       setNewPostContent('');
       clearImage();
@@ -511,8 +536,6 @@ const CommunityPage = () => {
       setShowNewPost(false);
       setPostStep('template');
       setSelectedCategory('general');
-      setActiveTab('newest');
-      await loadPosts();
     } catch (error) {
       console.error('[Post] Unexpected error:', error);
       toast.error(t('failedCreatePost'));
