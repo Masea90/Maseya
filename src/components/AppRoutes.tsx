@@ -16,7 +16,7 @@ import RoutinePage from "@/pages/RoutinePage";
 import RemediesPage from "@/pages/RemediesPage";
 import CommunityPage from "@/pages/CommunityPage";
 import ProfilePage from "@/pages/ProfilePage";
-import ScanPage from "@/pages/ScanPage";
+// ScanPage removed — feature not yet implemented
 import SearchPage from "@/pages/SearchPage";
 import RewardsPage from "@/pages/RewardsPage";
 import LoginPage from "@/pages/LoginPage";
