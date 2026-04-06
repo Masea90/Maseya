@@ -492,11 +492,7 @@ const CommunityPage = () => {
         if (imageUrl) awardBadge('photo_sharer');
       }
 
-      if (moderationStatus === 'pending_review') {
-        toast.info('Your post is under review and will be visible once approved 🔍');
-      } else {
-        toast.success(t('postShared'));
-      }
+      toast.success(t('postShared'));
       setNewPostContent('');
       clearImage();
       setAttachedProductId(null);
