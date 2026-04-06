@@ -93,7 +93,7 @@ const LoginPage = () => {
     try {
       const result = await signInWithGoogle();
       if (!result.success) {
-        toast.error(result.error || 'Google sign in failed');
+        toast.error(result.error || t('googleSignInFailed'));
       }
     } catch {
       toast.error('An unexpected error occurred');
