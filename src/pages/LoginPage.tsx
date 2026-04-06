@@ -55,7 +55,7 @@ const LoginPage = () => {
           toast.success(t('welcomeBack'));
           navigate('/');
         } else {
-          toast.error(result.error || 'Login failed');
+          toast.error(result.error || t('loginFailed'));
         }
       }
     } catch {
