@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Link } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, UserPlus, LogIn, Loader2 } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, UserPlus, LogIn, Loader2, ArrowLeft, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { getTranslation, TranslationKey } from '@/lib/i18n';
+import { supabase } from '@/integrations/supabase/client';
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -17,9 +18,10 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
+  const [signupEmail, setSignupEmail] = useState('');
+  const [isResending, setIsResending] = useState(false);
 
-  // Login page can't use useUser (not inside UserProvider yet for unauthenticated users)
-  // Read language from localStorage or default to 'en'
   const getSavedLanguage = (): 'en' | 'es' | 'fr' => {
     try {
       const stored = localStorage.getItem('maseya_language');
@@ -42,8 +44,8 @@ const LoginPage = () => {
       if (isSignUp) {
         const result = await signUp(email, password);
         if (result.success) {
-          toast.success('Welcome aboard 🌿');
-          navigate('/');
+          setSignupEmail(email.toLowerCase().trim());
+          setShowEmailConfirmation(true);
         } else {
           toast.error(result.error || 'Sign up failed');
         }
@@ -63,6 +65,29 @@ const LoginPage = () => {
     }
   };
 
+  const handleResendEmail = async () => {
+    if (!signupEmail) return;
+    setIsResending(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: signupEmail,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+        },
+      });
+      if (error) {
+        toast.error(error.message);
+      } else {
+        toast.success(t('checkEmailResent'));
+      }
+    } catch {
+      toast.error('An unexpected error occurred');
+    } finally {
+      setIsResending(false);
+    }
+  };
+
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     try {
@@ -76,6 +101,65 @@ const LoginPage = () => {
       setIsGoogleLoading(false);
     }
   };
+
+  // Email confirmation screen
+  if (showEmailConfirmation) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6">
+        <div className="w-full max-w-sm text-center space-y-6 animate-fade-in">
+          <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+            <Mail className="w-10 h-10 text-primary" />
+          </div>
+
+          <div className="space-y-2">
+            <h1 className="font-display text-2xl font-bold text-foreground">
+              {t('checkEmailTitle')}
+            </h1>
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              {t('checkEmailDescription')}
+            </p>
+            <p className="text-sm font-medium text-foreground mt-2">
+              {signupEmail}
+            </p>
+          </div>
+
+          <div className="bg-muted/50 rounded-xl p-3">
+            <p className="text-xs text-muted-foreground">
+              {t('checkEmailSpamHint')}
+            </p>
+          </div>
+
+          <div className="space-y-3 pt-2">
+            <Button
+              variant="outline"
+              className="w-full h-12 rounded-2xl"
+              onClick={handleResendEmail}
+              disabled={isResending}
+            >
+              {isResending ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : (
+                <RefreshCw className="w-4 h-4 mr-2" />
+              )}
+              {t('checkEmailResend')}
+            </Button>
+
+            <Button
+              className="w-full h-12 rounded-2xl bg-gradient-olive"
+              onClick={() => {
+                setShowEmailConfirmation(false);
+                setIsSignUp(false);
+                setPassword('');
+              }}
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              {t('checkEmailBackToLogin')}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">

@@ -476,8 +476,13 @@ export const translations = {
     loginDontHaveAccount: "Don't have an account?",
     loginSignIn: 'Sign In',
     loginSignUp: 'Sign Up',
+    checkEmailTitle: 'Check your email',
+    checkEmailDescription: 'We sent you a verification link to activate your account.',
+    checkEmailSpamHint: "Don't see it? Check your spam or promotions folder.",
+    checkEmailResend: 'Resend verification email',
+    checkEmailResent: 'Verification email resent!',
+    checkEmailBackToLogin: 'Back to login',
 
-    // Permission requests
     permCameraTitle: 'Camera Access',
     permCameraDesc: 'We need camera access for photo uploads and profile pictures.',
     permCameraBenefit: 'Share photos in the community and personalize your profile.',
