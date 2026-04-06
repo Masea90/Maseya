@@ -12,6 +12,15 @@ export const PremiumScreen = () => {
   const { canShowModal } = usePWAInstall();
   const [showInstallModal, setShowInstallModal] = useState(false);
 
+  const freeFeatures = [
+    t('freeFeature1'),
+    t('freeFeature2'),
+    t('freeFeature3'),
+    t('freeFeature4'),
+    t('freeFeature5'),
+  ];
+
+
   const handleContinue = () => {
     completeOnboarding();
     if (canShowModal) {
