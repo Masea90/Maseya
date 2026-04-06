@@ -872,7 +872,7 @@ export const translations = {
     tier: 'Nivel',
     rewards: 'Recompensas',
     upgradeToPremium: 'Mejorar a Premium',
-    unlockAiScans: 'Desbloquea escaneos IA y más',
+    unlockAiScans: 'Desbloquea funciones premium y más',
     mySkinHairProfile: 'Mi perfil de piel y cabello',
     rewardsStore: 'Tienda de recompensas',
     scanHistory: 'Historial de escaneos',
