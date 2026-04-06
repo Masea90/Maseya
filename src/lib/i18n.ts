@@ -532,7 +532,6 @@ export const translations = {
    deletePostDesc: 'This action cannot be undone. This will permanently delete your post and all its comments.',
    deleteCommentConfirm: 'Delete Comment?',
    deleteCommentDesc: 'This action cannot be undone.',
-   cancel: 'Cancel',
    delete: 'Delete',
    saveChanges: 'Save Changes',
    postShared: 'Post shared! 🌿',
