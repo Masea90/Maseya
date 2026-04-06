@@ -1,23 +1,24 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useUser } from '@/contexts/UserContext';
 import { Check, X, Sparkles } from 'lucide-react';
+import { InstallPromptModal } from '@/components/pwa/InstallPromptModal';
+import { usePWAInstall } from '@/hooks/usePWAInstall';
 
 export const PremiumScreen = () => {
   const navigate = useNavigate();
   const { completeOnboarding, t } = useUser();
-
-  const freeFeatures = [
-    t('freeFeature1'),
-    t('freeFeature2'),
-    t('freeFeature3'),
-    t('freeFeature4'),
-    t('freeFeature5'),
-  ];
+  const { canShowModal } = usePWAInstall();
+  const [showInstallModal, setShowInstallModal] = useState(false);
 
   const handleContinue = () => {
     completeOnboarding();
-    navigate('/home');
+    if (canShowModal) {
+      setShowInstallModal(true);
+    } else {
+      navigate('/home');
+    }
   };
 
   return (
