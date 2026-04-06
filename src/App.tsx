@@ -34,11 +34,11 @@ function App() {
           <TooltipProvider>
             <Toaster />
             <Sonner />
-            <ConsentModal 
-              onAcceptAll={handleConsentAcceptAll}
-              onAcceptEssential={handleConsentAcceptEssential}
-            />
             <BrowserRouter>
+              <ConsentModal 
+                onAcceptAll={handleConsentAcceptAll}
+                onAcceptEssential={handleConsentAcceptEssential}
+              />
               <AppRoutes />
             </BrowserRouter>
           </TooltipProvider>
