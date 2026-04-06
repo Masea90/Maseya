@@ -767,6 +767,20 @@ export const translations = {
     // Remedy not found
     remedyNotFound: 'Remedy not found',
     backToRemedies: 'Back to Remedies',
+
+    // PWA Install
+    installTitle: 'Install MASEYA 🌿',
+    installSubtitle: 'Use MASEYA like an app on your phone',
+    installBenefit1: 'Faster experience',
+    installBenefit2: 'Access from your home screen',
+    installBenefit3: 'Better daily routine tracking',
+    installIOSTitle: 'How to install on iPhone:',
+    installIOSStep1: 'Tap the Share button ⬆️',
+    installIOSStep2: 'Tap "Add to Home Screen"',
+    installNow: 'Install now',
+    maybeLater: 'Maybe later',
+    installBannerText: 'Install MASEYA for a better experience',
+    install: 'Install',
   },
   es: {
     // Brand
@@ -1528,6 +1542,20 @@ export const translations = {
 
     remedyNotFound: 'Remedio no encontrado',
     backToRemedies: 'Volver a remedios',
+
+    // PWA Install
+    installTitle: 'Instala MASEYA 🌿',
+    installSubtitle: 'Usa MASEYA como una app en tu móvil',
+    installBenefit1: 'Experiencia más rápida',
+    installBenefit2: 'Acceso desde tu pantalla de inicio',
+    installBenefit3: 'Mejor seguimiento de tu rutina diaria',
+    installIOSTitle: 'Cómo instalar en iPhone:',
+    installIOSStep1: 'Toca el botón Compartir ⬆️',
+    installIOSStep2: 'Toca "Añadir a pantalla de inicio"',
+    installNow: 'Instalar ahora',
+    maybeLater: 'Quizás luego',
+    installBannerText: 'Instala MASEYA para una mejor experiencia',
+    install: 'Instalar',
   },
   fr: {
     // Brand
@@ -2280,6 +2308,20 @@ export const translations = {
 
     remedyNotFound: 'Remède introuvable',
     backToRemedies: 'Retour aux remèdes',
+
+    // PWA Install
+    installTitle: 'Installez MASEYA 🌿',
+    installSubtitle: 'Utilisez MASEYA comme une app sur votre téléphone',
+    installBenefit1: 'Expérience plus rapide',
+    installBenefit2: 'Accès depuis votre écran d\'accueil',
+    installBenefit3: 'Meilleur suivi de votre routine quotidienne',
+    installIOSTitle: 'Comment installer sur iPhone :',
+    installIOSStep1: 'Appuyez sur le bouton Partager ⬆️',
+    installIOSStep2: 'Appuyez sur "Sur l\'écran d\'accueil"',
+    installNow: 'Installer maintenant',
+    maybeLater: 'Peut-être plus tard',
+    installBannerText: 'Installez MASEYA pour une meilleure expérience',
+    install: 'Installer',
   },
 };
 
