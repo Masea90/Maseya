@@ -575,7 +575,7 @@ export const translations = {
     helpFaq5Q: 'How do push notifications work?',
     helpFaq5A: 'Enable them in Settings > Notifications. You will receive gentle reminders for your morning and night routines, plus community activity alerts.',
     helpFaq6Q: 'Is MASEYA free?',
-    helpFaq6A: 'The core features (routines, community, recommendations, rewards) are free. Premium features like AI Skin Scanner are available with a premium subscription.',
+    helpFaq6A: 'The core features (routines, community, recommendations, rewards) are free. Premium features like advanced insights are available with a premium subscription.',
     helpFaq7Q: 'How do I delete my account?',
     helpFaq7A: 'Go to Settings → Privacy → Delete my account, or email us at support@maseya.es.',
 
