@@ -232,7 +232,7 @@ const LoginPage = () => {
           {!isSignUp && (
             <div className="text-right">
               <Link to="/reset-password" className="text-sm text-primary font-medium hover:underline">
-                Forgot password?
+                {t('forgotPassword')}
               </Link>
             </div>
           )}

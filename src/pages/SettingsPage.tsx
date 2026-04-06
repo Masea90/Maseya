@@ -3,13 +3,14 @@ import { useUser } from '@/contexts/UserContext';
 import { useNavigate } from 'react-router-dom';
 import { User, Bell, Shield, Gift, ChevronRight, Globe } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { TranslationKey } from '@/lib/i18n';
 
-const settingsSections = [
-  { icon: User, label: 'Edit Profile', path: '/profile/edit' },
-  { icon: Globe, label: 'Language', path: '/settings/language' },
-  { icon: Bell, label: 'Notifications', path: '/settings/notifications' },
-  { icon: Shield, label: 'Privacy', path: '/settings/privacy' },
-  { icon: Gift, label: 'Rewards', path: '/rewards' },
+const settingsSections: { icon: typeof User; labelKey: TranslationKey; path: string }[] = [
+  { icon: User, labelKey: 'editProfileSetting', path: '/profile/edit' },
+  { icon: Globe, labelKey: 'languageSetting', path: '/settings/language' },
+  { icon: Bell, labelKey: 'notificationsSetting', path: '/settings/notifications' },
+  { icon: Shield, labelKey: 'privacySetting', path: '/settings/privacy' },
+  { icon: Gift, labelKey: 'rewardsSetting', path: '/rewards' },
 ];
 
 const SettingsPage = () => {
@@ -17,7 +18,7 @@ const SettingsPage = () => {
   const navigate = useNavigate();
 
   return (
-    <AppLayout title="Settings">
+    <AppLayout title={t('settings')}>
       <div className="px-4 py-6 space-y-4 animate-fade-in">
         <Card>
           <CardContent className="p-0 divide-y divide-border">
@@ -29,7 +30,7 @@ const SettingsPage = () => {
               >
                 <div className="flex items-center gap-3">
                   <section.icon className="w-5 h-5 text-muted-foreground" />
-                  <span className="text-sm font-medium">{section.label}</span>
+                  <span className="text-sm font-medium">{t(section.labelKey)}</span>
                 </div>
                 <ChevronRight className="w-4 h-4 text-muted-foreground" />
               </button>
