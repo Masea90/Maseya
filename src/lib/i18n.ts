@@ -475,8 +475,8 @@ export const translations = {
 
     // Permission requests
     permCameraTitle: 'Camera Access',
-    permCameraDesc: 'We need camera access to scan products and analyze your skin & hair.',
-    permCameraBenefit: 'Get personalized product analysis and skin/hair assessments in seconds.',
+    permCameraDesc: 'We need camera access for photo uploads and profile pictures.',
+    permCameraBenefit: 'Share photos in the community and personalize your profile.',
     permCameraPrivacy: 'Photos are processed locally and never stored on our servers.',
     permNotifTitle: 'Enable Notifications',
     permNotifDesc: 'Stay updated with personalized beauty tips and routine reminders.',
