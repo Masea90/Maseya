@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Heart, Users, Check, Leaf, ShoppingBag, ExternalLink, ChevronDown } from 'lucide-react';
+import { ChevronLeft, Heart, Check, Leaf, ShoppingBag, ExternalLink, ChevronDown } from 'lucide-react';
 import { buildAmazonAffiliateUrl } from '@/lib/amazonAffiliate';
 import { Button } from '@/components/ui/button';
 import { useState, useCallback } from 'react';

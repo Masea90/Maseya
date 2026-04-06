@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useUser } from '@/contexts/UserContext';
-import { Search, Heart, Star, Sparkles, Crown, Users, Clock } from 'lucide-react';
+import { Search, Heart, Star, Sparkles, Crown, Check, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
 import { 
