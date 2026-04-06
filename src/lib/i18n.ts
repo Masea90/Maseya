@@ -106,7 +106,7 @@ export const translations = {
     premiumFeature1: 'Personalized skin & hair insights',
     premiumFeature2: 'Advanced product recommendations',
     premiumFeature3: 'Full routine history & progress',
-    premiumFeature4: 'Skin & Hair Scan (coming soon)',
+    premiumFeature4: 'Priority support & early access',
     
     // Scan paywall
     premiumFeature: 'Premium Feature',
@@ -163,7 +163,7 @@ export const translations = {
     tier: 'Tier',
     rewards: 'Rewards',
     upgradeToPremium: 'Upgrade to Premium',
-    unlockAiScans: 'Unlock AI scans & more',
+    unlockAiScans: 'Unlock premium features & more',
     mySkinHairProfile: 'My Skin & Hair Profile',
     rewardsStore: 'Rewards Store',
     scanHistory: 'Scan History',
@@ -475,8 +475,8 @@ export const translations = {
 
     // Permission requests
     permCameraTitle: 'Camera Access',
-    permCameraDesc: 'We need camera access to scan products and analyze your skin & hair.',
-    permCameraBenefit: 'Get personalized product analysis and skin/hair assessments in seconds.',
+    permCameraDesc: 'We need camera access for photo uploads and profile pictures.',
+    permCameraBenefit: 'Share photos in the community and personalize your profile.',
     permCameraPrivacy: 'Photos are processed locally and never stored on our servers.',
     permNotifTitle: 'Enable Notifications',
     permNotifDesc: 'Stay updated with personalized beauty tips and routine reminders.',
@@ -575,7 +575,7 @@ export const translations = {
     helpFaq5Q: 'How do push notifications work?',
     helpFaq5A: 'Enable them in Settings > Notifications. You will receive gentle reminders for your morning and night routines, plus community activity alerts.',
     helpFaq6Q: 'Is MASEYA free?',
-    helpFaq6A: 'The core features (routines, community, recommendations, rewards) are free. Premium features like AI Skin Scanner are available with a premium subscription.',
+    helpFaq6A: 'The core features (routines, community, recommendations, rewards) are free. Premium features like advanced insights are available with a premium subscription.',
     helpFaq7Q: 'How do I delete my account?',
     helpFaq7A: 'Go to Settings → Privacy → Delete my account, or email us at support@maseya.es.',
 
@@ -815,7 +815,7 @@ export const translations = {
     premiumFeature1: 'Información personalizada de piel y cabello',
     premiumFeature2: 'Recomendaciones avanzadas de productos',
     premiumFeature3: 'Historial completo de rutinas y progreso',
-    premiumFeature4: 'Escaneo de Piel y Cabello (próximamente)',
+    premiumFeature4: 'Soporte prioritario y acceso anticipado',
     
     // Scan paywall
     premiumFeature: 'Función Premium',
@@ -872,7 +872,7 @@ export const translations = {
     tier: 'Nivel',
     rewards: 'Recompensas',
     upgradeToPremium: 'Mejorar a Premium',
-    unlockAiScans: 'Desbloquea escaneos IA y más',
+    unlockAiScans: 'Desbloquea funciones premium y más',
     mySkinHairProfile: 'Mi perfil de piel y cabello',
     rewardsStore: 'Tienda de recompensas',
     scanHistory: 'Historial de escaneos',
@@ -1184,8 +1184,8 @@ export const translations = {
 
     // Permission requests
     permCameraTitle: 'Acceso a la cámara',
-    permCameraDesc: 'Necesitamos acceso a la cámara para escanear productos y analizar tu piel y cabello.',
-    permCameraBenefit: 'Obtén análisis personalizado de productos y evaluaciones de piel/cabello en segundos.',
+    permCameraDesc: 'Necesitamos acceso a la cámara para subir fotos y tu foto de perfil.',
+    permCameraBenefit: 'Comparte fotos en la comunidad y personaliza tu perfil.',
     permCameraPrivacy: 'Las fotos se procesan localmente y nunca se almacenan en nuestros servidores.',
     permNotifTitle: 'Activar notificaciones',
     permNotifDesc: 'Mantente al día con consejos de belleza personalizados y recordatorios de rutina.',
@@ -1285,7 +1285,7 @@ export const translations = {
     helpFaq5Q: '¿Cómo funcionan las notificaciones push?',
     helpFaq5A: 'Actívalas en Ajustes > Notificaciones. Recibirás recordatorios suaves para tus rutinas de mañana y noche, además de alertas de actividad de la comunidad.',
     helpFaq6Q: '¿MASEYA es gratis?',
-    helpFaq6A: 'Las funciones principales (rutinas, comunidad, recomendaciones, recompensas) son gratis. Las funciones premium como el Escáner IA de Piel están disponibles con una suscripción premium.',
+    helpFaq6A: 'Las funciones principales (rutinas, comunidad, recomendaciones, recompensas) son gratis. Las funciones premium como los análisis avanzados están disponibles con una suscripción premium.',
     helpFaq7Q: '¿Cómo elimino mi cuenta?',
     helpFaq7A: 'Ve a Ajustes → Privacidad → Eliminar mi cuenta, o envíanos un correo a support@maseya.es.',
 
@@ -1524,7 +1524,7 @@ export const translations = {
     premiumFeature1: 'Informations personnalisées peau et cheveux',
     premiumFeature2: 'Recommandations de produits avancées',
     premiumFeature3: 'Historique complet des routines et progrès',
-    premiumFeature4: 'Scan Peau et Cheveux (bientôt disponible)',
+    premiumFeature4: 'Support prioritaire et accès anticipé',
     
     // Scan paywall
     premiumFeature: 'Fonctionnalité Premium',
@@ -1581,7 +1581,7 @@ export const translations = {
     tier: 'Niveau',
     rewards: 'Récompenses',
     upgradeToPremium: 'Passer à Premium',
-    unlockAiScans: 'Débloquez les scans IA et plus',
+    unlockAiScans: 'Débloquez les fonctionnalités premium et plus',
     mySkinHairProfile: 'Mon profil peau et cheveux',
     rewardsStore: 'Boutique de récompenses',
     scanHistory: 'Historique des scans',
@@ -1893,8 +1893,8 @@ export const translations = {
 
     // Permission requests
     permCameraTitle: 'Accès à la caméra',
-    permCameraDesc: 'Nous avons besoin de l\'accès caméra pour scanner les produits et analyser votre peau et vos cheveux.',
-    permCameraBenefit: 'Obtenez une analyse personnalisée de produits et des évaluations peau/cheveux en quelques secondes.',
+    permCameraDesc: 'Nous avons besoin de l\'accès caméra pour les photos et votre photo de profil.',
+    permCameraBenefit: 'Partagez des photos dans la communauté et personnalisez votre profil.',
     permCameraPrivacy: 'Les photos sont traitées localement et ne sont jamais stockées sur nos serveurs.',
     permNotifTitle: 'Activer les notifications',
     permNotifDesc: 'Restez informée avec des conseils beauté personnalisés et des rappels de routine.',
@@ -1994,7 +1994,7 @@ export const translations = {
     helpFaq5Q: 'Comment fonctionnent les notifications push ?',
     helpFaq5A: 'Activez-les dans Paramètres > Notifications. Vous recevrez des rappels pour vos routines matin et soir, ainsi que des alertes d\'activité communautaire.',
     helpFaq6Q: 'MASEYA est-il gratuit ?',
-    helpFaq6A: 'Les fonctionnalités principales (routines, communauté, recommandations, récompenses) sont gratuites. Les fonctionnalités premium comme le Scanner IA Peau sont disponibles avec un abonnement premium.',
+    helpFaq6A: 'Les fonctionnalités principales (routines, communauté, recommandations, récompenses) sont gratuites. Les fonctionnalités premium comme les analyses avancées sont disponibles avec un abonnement premium.',
     helpFaq7Q: 'Comment supprimer mon compte ?',
     helpFaq7A: 'Allez dans Paramètres → Confidentialité → Supprimer mon compte, ou envoyez-nous un e-mail à support@maseya.es.',
 

@@ -146,7 +146,6 @@ const ProfilePage = () => {
   const menuItems = [
     { icon: Edit3, label: t('mySkinHairProfile'), to: '/profile/edit' },
     { icon: Gift, label: t('rewardsStore'), to: '/rewards' },
-    { icon: Camera, label: t('scanHistory'), to: '/scan/history', premium: true },
     { icon: Globe, label: `${t('language')}: ${currentLang?.label}`, to: '/settings/language' },
     { icon: Bell, label: t('notifications'), to: '/settings/notifications' },
     { icon: Shield, label: t('privacy'), to: '/settings/privacy' },
@@ -272,7 +271,7 @@ const ProfilePage = () => {
               </div>
               <div className="flex-1">
                 <p className="font-semibold text-foreground">{t('upgradeToPremium')}</p>
-                <p className="text-sm text-muted-foreground">{t('unlockAiScans')}</p>
+                <p className="text-sm text-muted-foreground">{t('premiumFeature1')}</p>
               </div>
               <ChevronRight className="w-5 h-5 text-muted-foreground" />
             </div>
@@ -309,11 +308,6 @@ const ProfilePage = () => {
               <div className="flex items-center gap-3">
                 <item.icon className="w-5 h-5 text-muted-foreground" />
                 <span className="font-medium text-foreground">{item.label}</span>
-                {item.premium && !user.isPremium && (
-                  <span className="text-[10px] bg-maseya-gold/20 text-maseya-gold px-2 py-0.5 rounded-full font-medium">
-                    {t('premium')}
-                  </span>
-                )}
               </div>
               <ChevronRight className="w-4 h-4 text-muted-foreground" />
             </Link>

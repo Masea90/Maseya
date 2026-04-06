@@ -16,7 +16,7 @@ import RoutinePage from "@/pages/RoutinePage";
 import RemediesPage from "@/pages/RemediesPage";
 import CommunityPage from "@/pages/CommunityPage";
 import ProfilePage from "@/pages/ProfilePage";
-import ScanPage from "@/pages/ScanPage";
+// ScanPage removed — feature not yet implemented
 import SearchPage from "@/pages/SearchPage";
 import RewardsPage from "@/pages/RewardsPage";
 import LoginPage from "@/pages/LoginPage";
@@ -30,7 +30,7 @@ import SettingsPage from "@/pages/SettingsPage";
 import RemedyDetailPage from "@/pages/RemedyDetailPage";
 import PrivacySettingsPage from "@/pages/PrivacySettingsPage";
 import HelpPage from "@/pages/HelpPage";
-import ScanHistoryPage from "@/pages/ScanHistoryPage";
+// ScanHistoryPage removed — feature not yet implemented
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import UpdatePasswordPage from "@/pages/UpdatePasswordPage";
 import UserProfilePage from "@/pages/UserProfilePage";
@@ -96,8 +96,8 @@ export function AppRoutes() {
         <Route path="/community/tag/:tag" element={<CommunityTagPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/profile/edit" element={<ProfileEditPage />} />
-        <Route path="/scan" element={<ScanPage />} />
-        <Route path="/scan/history" element={<ScanHistoryPage />} />
+        <Route path="/scan" element={<Navigate to="/home" replace />} />
+        <Route path="/scan/history" element={<Navigate to="/home" replace />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/rewards" element={<RewardsPage />} />
         <Route path="/premium" element={<PremiumScreen />} />
