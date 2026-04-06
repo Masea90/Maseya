@@ -157,12 +157,6 @@ const ProfilePage = () => {
       <div className="px-4 py-6 space-y-6 animate-fade-in">
         {/* Profile Header */}
         <div className="bg-card rounded-3xl p-6 shadow-warm text-center relative overflow-hidden">
-          {user.isPremium && (
-            <div className="absolute top-0 right-0 bg-maseya-gold text-white text-xs font-medium px-3 py-1 rounded-bl-2xl flex items-center gap-1">
-              <Crown className="w-3 h-3" />
-              {t('premium')}
-            </div>
-          )}
           
           <input
             ref={fileInputRef}
