@@ -1542,6 +1542,20 @@ export const translations = {
 
     remedyNotFound: 'Remedio no encontrado',
     backToRemedies: 'Volver a remedios',
+
+    // PWA Install
+    installTitle: 'Instala MASEYA 🌿',
+    installSubtitle: 'Usa MASEYA como una app en tu móvil',
+    installBenefit1: 'Experiencia más rápida',
+    installBenefit2: 'Acceso desde tu pantalla de inicio',
+    installBenefit3: 'Mejor seguimiento de tu rutina diaria',
+    installIOSTitle: 'Cómo instalar en iPhone:',
+    installIOSStep1: 'Toca el botón Compartir ⬆️',
+    installIOSStep2: 'Toca "Añadir a pantalla de inicio"',
+    installNow: 'Instalar ahora',
+    maybeLater: 'Quizás luego',
+    installBannerText: 'Instala MASEYA para una mejor experiencia',
+    install: 'Instalar',
   },
   fr: {
     // Brand
