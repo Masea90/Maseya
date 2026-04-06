@@ -157,12 +157,6 @@ const ProfilePage = () => {
       <div className="px-4 py-6 space-y-6 animate-fade-in">
         {/* Profile Header */}
         <div className="bg-card rounded-3xl p-6 shadow-warm text-center relative overflow-hidden">
-          {user.isPremium && (
-            <div className="absolute top-0 right-0 bg-maseya-gold text-white text-xs font-medium px-3 py-1 rounded-bl-2xl flex items-center gap-1">
-              <Crown className="w-3 h-3" />
-              {t('premium')}
-            </div>
-          )}
           
           <input
             ref={fileInputRef}
@@ -259,24 +253,6 @@ const ProfilePage = () => {
         {/* Wishlist */}
         <ProfileWishlist />
 
-        {/* Premium Upgrade */}
-        {!user.isPremium && (
-          <Link
-            to="/premium"
-            className="block bg-gradient-to-r from-maseya-gold/20 to-maseya-terracotta/20 border-2 border-maseya-gold/40 rounded-2xl p-4 shadow-warm"
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-maseya-gold/30 rounded-full flex items-center justify-center">
-                <Crown className="w-6 h-6 text-maseya-gold" />
-              </div>
-              <div className="flex-1">
-                <p className="font-semibold text-foreground">{t('upgradeToPremium')}</p>
-                <p className="text-sm text-muted-foreground">{t('premiumFeature1')}</p>
-              </div>
-              <ChevronRight className="w-5 h-5 text-muted-foreground" />
-            </div>
-          </Link>
-        )}
 
         {/* Admin Dashboard Link */}
         {isAdmin && (
