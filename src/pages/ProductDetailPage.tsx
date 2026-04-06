@@ -63,10 +63,6 @@ const productIngredients: Record<number, { name: string; safe: boolean; note: st
   ],
 };
 
-// User counts for social proof
-const productUserCounts: Record<number, number> = {
-  1: 892, 2: 654, 3: 743, 4: 521, 5: 612, 6: 987, 7: 423, 8: 567, 9: 389,
-};
 
 const ProductDetailPage = () => {
   const { id } = useParams();
