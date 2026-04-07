@@ -1,12 +1,14 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUser } from '@/contexts/UserContext';
+import type { ChatProduct } from '@/components/chat/ChatProductCard';
 
 export interface ChatMessage {
   id: number;
   type: 'bot' | 'user';
   content: string;
   time: string;
+  products?: ChatProduct[];
 }
 
 export type AiMessage = { role: 'user' | 'assistant'; content: string };
@@ -37,7 +39,6 @@ function loadMessages(userId: string | undefined, greeting: string): ChatMessage
 function persistMessages(userId: string | undefined, messages: ChatMessage[]) {
   try {
     const key = getStorageKey(userId);
-    // Only keep the last N messages to avoid storage bloat
     const toStore = messages.slice(-MAX_PERSISTED_MESSAGES);
     localStorage.setItem(key, JSON.stringify(toStore));
   } catch {
@@ -55,14 +56,12 @@ export function useChatHistory() {
     loadMessages(userId, greeting)
   );
 
-  // Persist whenever messages change (skip initial load)
   useEffect(() => {
     if (messages.length > 0) {
       persistMessages(userId, messages);
     }
   }, [messages, userId]);
 
-  // Reload from storage if user changes (login/logout)
   useEffect(() => {
     setMessages(loadMessages(userId, greeting));
   }, [userId, greeting]);
@@ -86,7 +85,6 @@ export function useChatHistory() {
 
   const buildConversationHistory = useCallback(
     (msgs: ChatMessage[]): AiMessage[] => {
-      // Skip the very first greeting message for the AI context
       const first = msgs[0];
       return msgs
         .filter(m => !(m.id === first?.id && m.type === 'bot'))

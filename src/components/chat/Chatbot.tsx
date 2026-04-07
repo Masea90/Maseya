@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { useUser } from '@/contexts/UserContext';
 import { useChatHistory } from '@/hooks/useChatHistory';
 import { getAuthHeaders } from '@/lib/authHeaders';
+import { ChatProductCards, type ChatProduct } from './ChatProductCard';
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
@@ -70,6 +71,7 @@ export const Chatbot = () => {
     };
 
     let assistantContent = '';
+    let recommendedProducts: ChatProduct[] = [];
     const botMessageId = Date.now() + 1;
 
     try {
@@ -139,6 +141,19 @@ export const Chatbot = () => {
 
           try {
             const parsed = JSON.parse(jsonStr);
+
+            // Check for custom product recommendation event
+            if (parsed.type === 'recommended_products' && Array.isArray(parsed.products)) {
+              recommendedProducts = parsed.products;
+              // Update the bot message with products
+              setMessages(prev =>
+                prev.map(m =>
+                  m.id === botMessageId ? { ...m, products: recommendedProducts } : m
+                )
+              );
+              continue;
+            }
+
             const content = parsed.choices?.[0]?.delta?.content as string | undefined;
             if (content) {
               assistantContent += content;
@@ -167,6 +182,15 @@ export const Chatbot = () => {
           if (jsonStr === '[DONE]') continue;
           try {
             const parsed = JSON.parse(jsonStr);
+            if (parsed.type === 'recommended_products' && Array.isArray(parsed.products)) {
+              recommendedProducts = parsed.products;
+              setMessages(prev =>
+                prev.map(m =>
+                  m.id === botMessageId ? { ...m, products: recommendedProducts } : m
+                )
+              );
+              continue;
+            }
             const content = parsed.choices?.[0]?.delta?.content as string | undefined;
             if (content) {
               assistantContent += content;
@@ -182,7 +206,7 @@ export const Chatbot = () => {
       }
 
       // If we got no content at all, show error
-      if (!assistantContent.trim()) {
+      if (!assistantContent.trim() && recommendedProducts.length === 0) {
         setMessages(prev =>
           prev.map(m =>
             m.id === botMessageId ? { ...m, content: t('chatbotError') } : m
@@ -285,9 +309,12 @@ export const Chatbot = () => {
             >
               {message.content ? (
                 message.type === 'bot' ? (
-                  <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:my-1 [&>ul]:my-1 [&>ol]:my-1 [&>li]:my-0.5 [&>h1]:text-sm [&>h2]:text-sm [&>h3]:text-sm [&_a]:text-primary [&_a]:underline">
-                    <ReactMarkdown>{message.content}</ReactMarkdown>
-                  </div>
+                  <>
+                    <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:my-1 [&>ul]:my-1 [&>ol]:my-1 [&>li]:my-0.5 [&>h1]:text-sm [&>h2]:text-sm [&>h3]:text-sm [&_a]:text-primary [&_a]:underline">
+                      <ReactMarkdown>{message.content}</ReactMarkdown>
+                    </div>
+                    {message.products && <ChatProductCards products={message.products} />}
+                  </>
                 ) : (
                   message.content
                 )
@@ -301,7 +328,7 @@ export const Chatbot = () => {
           </div>
         ))}
 
-        {/* Typing indicator when loading but no bot message yet */}
+        {/* Typing indicator */}
         {isLoading && !messages.some(m => m.type === 'bot' && m.content === '' && m.id > Date.now() - 5000) && messages[messages.length - 1]?.type === 'user' && (
           <div className="flex gap-2 flex-row">
             <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-secondary">
