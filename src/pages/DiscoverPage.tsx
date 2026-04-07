@@ -576,4 +576,55 @@ const CommunityCard = ({ product, isFavorite, onToggleFavorite, t, getTagLabel }
   );
 };
 
+// Context-based product card with personalized label
+interface ContextProductCardProps {
+  product: RecommendedProduct & { contextLabel: string; tier: string };
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
+  t: (key: TranslationKey) => string;
+  getTagLabel: (tag: string) => string;
+}
+
+const ContextProductCard = ({ product, isFavorite, onToggleFavorite, t, getTagLabel }: ContextProductCardProps) => {
+  return (
+    <Link
+      to={`/product/${product.id}`}
+      className="flex gap-3 bg-card rounded-xl p-3 shadow-warm transition-all hover:shadow-warm-lg border border-border"
+    >
+      <div className="w-20 h-20 flex-shrink-0 bg-white rounded-lg overflow-hidden">
+        <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-xs text-muted-foreground">{product.brand}</p>
+            <h3 className="font-medium text-sm text-foreground line-clamp-1">{product.name}</h3>
+          </div>
+          <button
+            onClick={e => { e.preventDefault(); onToggleFavorite(); }}
+            className="p-1.5 rounded-full bg-secondary transition-all flex-shrink-0"
+          >
+            <Heart className={cn('w-4 h-4 transition-colors', isFavorite ? 'fill-maseya-rose text-maseya-rose' : 'text-muted-foreground')} />
+          </button>
+        </div>
+        {/* Personalized context label */}
+        <p className="text-xs text-primary mt-1 font-medium line-clamp-1">
+          ✨ {product.contextLabel}
+        </p>
+        <div className="flex items-center gap-1.5 mt-1.5">
+          <Star className="w-3 h-3 text-primary" />
+          <span className="text-xs text-muted-foreground">{product.matchScore}% match</span>
+        </div>
+        <div className="flex flex-wrap gap-1 mt-1.5">
+          {product.tags.slice(0, 2).map(tag => (
+            <span key={tag} className="text-[10px] px-2 py-0.5 bg-maseya-sage/30 text-foreground rounded-full">
+              {getTagLabel(tag)}
+            </span>
+          ))}
+        </div>
+      </div>
+    </Link>
+  );
+};
+
 export default DiscoverPage;
