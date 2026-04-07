@@ -91,6 +91,106 @@ const DiscoverPage = () => {
     return '';
   };
 
+  // CONTEXT VIEW — personalized daily card landing
+  if (context && contextRecs.length > 0) {
+    const isSkin = context === 'skin_today';
+    const ContextIcon = isSkin ? Droplets : Wind;
+    const title = isSkin ? t('skinToday') : t('hairToday');
+    const subtitle = isSkin ? t('hydrationFocus') : t('scalpCareDay');
+
+    const topMatches = contextRecs.filter(p => p.tier === 'top');
+    const alternatives = contextRecs.filter(p => p.tier === 'alternative');
+    const budget = contextRecs.filter(p => p.tier === 'budget');
+
+    return (
+      <AppLayout title={title}>
+        <div className="px-4 py-6 space-y-6 animate-fade-in">
+          {/* Back + header */}
+          <div className="space-y-2">
+            <button onClick={() => navigate('/')} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <ArrowLeft className="w-4 h-4" />
+              {t('home') || 'Home'}
+            </button>
+            <div className="flex items-center gap-2">
+              <ContextIcon className="w-6 h-6 text-primary" />
+              <div>
+                <h1 className="font-display text-xl font-semibold">{title}</h1>
+                <p className="text-sm text-muted-foreground">{subtitle}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Top matches */}
+          {topMatches.length > 0 && (
+            <section className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Crown className="w-5 h-5 text-amber-500" />
+                <h2 className="font-display text-lg font-semibold">{t('topPickForYou')}</h2>
+              </div>
+              <div className="space-y-3">
+                {topMatches.map(product => (
+                  <ContextProductCard
+                    key={product.id}
+                    product={product}
+                    isFavorite={isInWishlist(product.id)}
+                    onToggleFavorite={() => toggleWishlist(product.id)}
+                    t={t}
+                    getTagLabel={getTagLabel}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Alternatives */}
+          {alternatives.length > 0 && (
+            <section className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-primary" />
+                <h2 className="font-display text-lg font-semibold">{t('becauseOfProfile')}</h2>
+              </div>
+              <div className="space-y-3">
+                {alternatives.map(product => (
+                  <ContextProductCard
+                    key={product.id}
+                    product={product}
+                    isFavorite={isInWishlist(product.id)}
+                    onToggleFavorite={() => toggleWishlist(product.id)}
+                    t={t}
+                    getTagLabel={getTagLabel}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Budget options */}
+          {budget.length > 0 && (
+            <section className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Check className="w-5 h-5 text-primary" />
+                <h2 className="font-display text-lg font-semibold">{t('popularInCommunity')}</h2>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {budget.map(product => (
+                  <CommunityCard
+                    key={product.id}
+                    product={product}
+                    isFavorite={isInWishlist(product.id)}
+                    onToggleFavorite={() => toggleWishlist(product.id)}
+                    t={t}
+                    getTagLabel={getTagLabel}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+      </AppLayout>
+    );
+  }
+
+  // DEFAULT DISCOVER VIEW
   return (
     <AppLayout title={t('discover')}>
       <div className="px-4 py-6 space-y-6 animate-fade-in">
