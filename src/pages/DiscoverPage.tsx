@@ -1,15 +1,17 @@
 import { useState, useMemo } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useUser } from '@/contexts/UserContext';
-import { Search, Heart, Star, Sparkles, Crown, Check, Clock, Users } from 'lucide-react';
+import { Search, Heart, Star, Sparkles, Crown, Check, Clock, Users, ArrowLeft, Droplets, Wind } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { 
   getTopRecommendation, 
   getProfileRecommendations, 
   getCommunityPopular,
+  getContextRecommendations,
   tagTranslations, 
-  RecommendedProduct 
+  RecommendedProduct,
+  DiscoverContext,
 } from '@/lib/recommendations';
 import { TranslationKey } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
