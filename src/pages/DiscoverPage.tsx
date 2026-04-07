@@ -1,15 +1,17 @@
 import { useState, useMemo } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useUser } from '@/contexts/UserContext';
-import { Search, Heart, Star, Sparkles, Crown, Check, Clock, Users } from 'lucide-react';
+import { Search, Heart, Star, Sparkles, Crown, Check, Clock, Users, ArrowLeft, Droplets, Wind } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { 
   getTopRecommendation, 
   getProfileRecommendations, 
   getCommunityPopular,
+  getContextRecommendations,
   tagTranslations, 
-  RecommendedProduct 
+  RecommendedProduct,
+  DiscoverContext,
 } from '@/lib/recommendations';
 import { TranslationKey } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
@@ -19,9 +21,16 @@ const DiscoverPage = () => {
   const { t, user } = useUser();
   const [searchQuery, setSearchQuery] = useState('');
   const { isInWishlist, toggleWishlist } = useWishlist();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  const context = (searchParams.get('context') as DiscoverContext) || null;
 
   // Check if user has completed their profile
   const hasProfile = user.skinConcerns.length > 0 || user.hairType || user.goals.length > 0;
+
+  // Context-based recommendations
+  const contextRecs = useMemo(() => getContextRecommendations(context, user), [context, user]);
 
   // Get personalized recommendations with rotation
   const topPick = useMemo(() => getTopRecommendation(user), [user]);
@@ -82,6 +91,106 @@ const DiscoverPage = () => {
     return '';
   };
 
+  // CONTEXT VIEW — personalized daily card landing
+  if (context && contextRecs.length > 0) {
+    const isSkin = context === 'skin_today';
+    const ContextIcon = isSkin ? Droplets : Wind;
+    const title = isSkin ? t('skinToday') : t('hairToday');
+    const subtitle = isSkin ? t('hydrationFocus') : t('scalpCareDay');
+
+    const topMatches = contextRecs.filter(p => p.tier === 'top');
+    const alternatives = contextRecs.filter(p => p.tier === 'alternative');
+    const budget = contextRecs.filter(p => p.tier === 'budget');
+
+    return (
+      <AppLayout title={title}>
+        <div className="px-4 py-6 space-y-6 animate-fade-in">
+          {/* Back + header */}
+          <div className="space-y-2">
+            <button onClick={() => navigate('/')} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <ArrowLeft className="w-4 h-4" />
+              {t('home') || 'Home'}
+            </button>
+            <div className="flex items-center gap-2">
+              <ContextIcon className="w-6 h-6 text-primary" />
+              <div>
+                <h1 className="font-display text-xl font-semibold">{title}</h1>
+                <p className="text-sm text-muted-foreground">{subtitle}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Top matches */}
+          {topMatches.length > 0 && (
+            <section className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Crown className="w-5 h-5 text-amber-500" />
+                <h2 className="font-display text-lg font-semibold">{t('topPickForYou')}</h2>
+              </div>
+              <div className="space-y-3">
+                {topMatches.map(product => (
+                  <ContextProductCard
+                    key={product.id}
+                    product={product}
+                    isFavorite={isInWishlist(product.id)}
+                    onToggleFavorite={() => toggleWishlist(product.id)}
+                    t={t}
+                    getTagLabel={getTagLabel}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Alternatives */}
+          {alternatives.length > 0 && (
+            <section className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-primary" />
+                <h2 className="font-display text-lg font-semibold">{t('becauseOfProfile')}</h2>
+              </div>
+              <div className="space-y-3">
+                {alternatives.map(product => (
+                  <ContextProductCard
+                    key={product.id}
+                    product={product}
+                    isFavorite={isInWishlist(product.id)}
+                    onToggleFavorite={() => toggleWishlist(product.id)}
+                    t={t}
+                    getTagLabel={getTagLabel}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Budget options */}
+          {budget.length > 0 && (
+            <section className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Check className="w-5 h-5 text-primary" />
+                <h2 className="font-display text-lg font-semibold">{t('popularInCommunity')}</h2>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {budget.map(product => (
+                  <CommunityCard
+                    key={product.id}
+                    product={product}
+                    isFavorite={isInWishlist(product.id)}
+                    onToggleFavorite={() => toggleWishlist(product.id)}
+                    t={t}
+                    getTagLabel={getTagLabel}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+      </AppLayout>
+    );
+  }
+
+  // DEFAULT DISCOVER VIEW
   return (
     <AppLayout title={t('discover')}>
       <div className="px-4 py-6 space-y-6 animate-fade-in">
@@ -462,6 +571,57 @@ const CommunityCard = ({ product, isFavorite, onToggleFavorite, t, getTagLabel }
             {getTagLabel(product.tags[0])}
           </span>
         )}
+      </div>
+    </Link>
+  );
+};
+
+// Context-based product card with personalized label
+interface ContextProductCardProps {
+  product: RecommendedProduct & { contextLabel: string; tier: string };
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
+  t: (key: TranslationKey) => string;
+  getTagLabel: (tag: string) => string;
+}
+
+const ContextProductCard = ({ product, isFavorite, onToggleFavorite, t, getTagLabel }: ContextProductCardProps) => {
+  return (
+    <Link
+      to={`/product/${product.id}`}
+      className="flex gap-3 bg-card rounded-xl p-3 shadow-warm transition-all hover:shadow-warm-lg border border-border"
+    >
+      <div className="w-20 h-20 flex-shrink-0 bg-white rounded-lg overflow-hidden">
+        <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-xs text-muted-foreground">{product.brand}</p>
+            <h3 className="font-medium text-sm text-foreground line-clamp-1">{product.name}</h3>
+          </div>
+          <button
+            onClick={e => { e.preventDefault(); onToggleFavorite(); }}
+            className="p-1.5 rounded-full bg-secondary transition-all flex-shrink-0"
+          >
+            <Heart className={cn('w-4 h-4 transition-colors', isFavorite ? 'fill-maseya-rose text-maseya-rose' : 'text-muted-foreground')} />
+          </button>
+        </div>
+        {/* Personalized context label */}
+        <p className="text-xs text-primary mt-1 font-medium line-clamp-1">
+          ✨ {product.contextLabel}
+        </p>
+        <div className="flex items-center gap-1.5 mt-1.5">
+          <Star className="w-3 h-3 text-primary" />
+          <span className="text-xs text-muted-foreground">{product.matchScore}% match</span>
+        </div>
+        <div className="flex flex-wrap gap-1 mt-1.5">
+          {product.tags.slice(0, 2).map(tag => (
+            <span key={tag} className="text-[10px] px-2 py-0.5 bg-maseya-sage/30 text-foreground rounded-full">
+              {getTagLabel(tag)}
+            </span>
+          ))}
+        </div>
       </div>
     </Link>
   );

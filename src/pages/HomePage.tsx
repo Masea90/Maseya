@@ -21,7 +21,7 @@ const HomePage = () => {
       subtitle: t('hydrationFocus'),
       description: t('skinTodayDesc'),
       color: 'skin' as const,
-      linkTo: '/discover',
+      linkTo: '/discover?context=skin_today',
     },
     {
       icon: '✨',
@@ -29,7 +29,7 @@ const HomePage = () => {
       subtitle: t('scalpCareDay'),
       description: t('hairTodayDesc'),
       color: 'hair' as const,
-      linkTo: '/remedies',
+      linkTo: '/discover?context=hair_today',
     },
     {
       icon: '🥗',

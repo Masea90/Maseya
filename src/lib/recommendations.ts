@@ -478,3 +478,79 @@ export const tagTranslations: Record<string, TranslationKey> = {
   'cruelty-free': 'tagCrueltyFree',
   organic: 'tagOrganic',
 };
+
+// Context-based recommendations for daily cards
+export type DiscoverContext = 'skin_today' | 'hair_today' | null;
+
+interface ContextRecommendation extends RecommendedProduct {
+  contextLabel: string; // e.g. "Because your skin is dehydrated"
+  tier: 'top' | 'alternative' | 'budget';
+}
+
+const getSkinContextLabel = (product: Product, user: UserProfile): string => {
+  if (user.skinConcerns.includes('dryness') && product.targetConcerns.includes('dryness')) {
+    return 'Because your skin needs hydration';
+  }
+  if (user.skinConcerns.includes('sensitivity') && product.sensitiveSafe) {
+    return 'Safe for your sensitive skin';
+  }
+  if (user.skinConcerns.includes('acne') && product.targetConcerns.includes('acne')) {
+    return 'Helps with breakouts';
+  }
+  if (user.skinConcerns.includes('oiliness') && product.targetConcerns.includes('oiliness')) {
+    return 'Controls excess oil';
+  }
+  if (user.skinConcerns.includes('aging') && product.targetConcerns.includes('aging')) {
+    return 'Targets fine lines & aging';
+  }
+  if (product.noFragrance) return 'Matches your preference: no fragrance';
+  if (product.isVegan) return 'Vegan & clean formula';
+  if (product.isOrganic) return 'Organic ingredients';
+  return 'Recommended for your profile';
+};
+
+const getHairContextLabel = (product: Product, user: UserProfile): string => {
+  if (user.hairType && product.targetHairTypes.includes(user.hairType)) {
+    const names: Record<string, string> = { straight: 'straight', wavy: 'wavy', curly: 'curly', coily: 'coily' };
+    return `Perfect for ${names[user.hairType] || user.hairType} hair`;
+  }
+  if (user.hairConcerns.includes('dryness')) return 'Nourishes dry hair';
+  if (user.hairConcerns.includes('frizz')) return 'Tames frizz';
+  if (user.hairConcerns.includes('hairfall')) return 'Strengthens hair';
+  return 'Recommended for your hair type';
+};
+
+export const getContextRecommendations = (
+  context: DiscoverContext,
+  user: UserProfile
+): ContextRecommendation[] => {
+  if (!context) return [];
+
+  const isSkin = context === 'skin_today';
+  const categoryFilter = isSkin
+    ? (p: Product) => p.category === 'skin' || p.category === 'both'
+    : (p: Product) => p.category === 'hair' || p.category === 'both';
+
+  const getLabel = isSkin ? getSkinContextLabel : getHairContextLabel;
+
+  const scored = productCatalog
+    .filter(categoryFilter)
+    .map(product => {
+      const matchScore = calculateMatchScore(product, user);
+      return {
+        ...product,
+        matchScore,
+        matchReasons: getMatchReasons(product, user),
+        recommendedBecause: getRecommendedBecause(product, user),
+        contextLabel: getLabel(product, user),
+        tier: 'alternative' as const,
+      };
+    })
+    .sort((a, b) => b.matchScore - a.matchScore);
+
+  // Assign tiers
+  return scored.map((p, i) => ({
+    ...p,
+    tier: i < 3 ? 'top' as const : i < 7 ? 'alternative' as const : 'budget' as const,
+  }));
+};
