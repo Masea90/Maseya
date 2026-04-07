@@ -21,9 +21,16 @@ const DiscoverPage = () => {
   const { t, user } = useUser();
   const [searchQuery, setSearchQuery] = useState('');
   const { isInWishlist, toggleWishlist } = useWishlist();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  const context = (searchParams.get('context') as DiscoverContext) || null;
 
   // Check if user has completed their profile
   const hasProfile = user.skinConcerns.length > 0 || user.hairType || user.goals.length > 0;
+
+  // Context-based recommendations
+  const contextRecs = useMemo(() => getContextRecommendations(context, user), [context, user]);
 
   // Get personalized recommendations with rotation
   const topPick = useMemo(() => getTopRecommendation(user), [user]);
