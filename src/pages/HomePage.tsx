@@ -1,9 +1,12 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Check, ChevronRight, Sparkles, Droplets, TrendingUp } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useUser } from '@/contexts/UserContext';
 import { useRewards } from '@/hooks/useRewards';
+import { useRoutineCompletionSync } from '@/hooks/useRoutineCompletionSync';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { productCatalog } from '@/lib/recommendations';
 import { remedies } from '@/lib/remedies';
 import { toast } from 'sonner';
@@ -11,13 +14,41 @@ import { cn } from '@/lib/utils';
 import { InstallBanner } from '@/components/pwa/InstallBanner';
 
 const HomePage = () => {
-  const { user, updateUser, t, glowScore } = useUser();
-  const { recordPoints } = useRewards();
-  const [completedToday, setCompletedToday] = useState(() => {
-    const last = localStorage.getItem('maseya_routine_date');
-    return last === new Date().toISOString().split('T')[0];
-  });
+  const { user, t, glowScore } = useUser();
+  const { currentUser } = useAuth();
+  const { recordPoints, awardBadge } = useRewards();
+  const { syncCompletion } = useRoutineCompletionSync();
+  const [completedToday, setCompletedToday] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
   const [showGlow, setShowGlow] = useState(false);
+
+  const today = new Date().toISOString().split('T')[0];
+
+  // Check real DB for today's completion status on mount
+  useEffect(() => {
+    const checkTodayCompletion = async () => {
+      if (!currentUser?.id) {
+        setIsChecking(false);
+        return;
+      }
+      try {
+        const { data } = await supabase
+          .from('routine_completions')
+          .select('id')
+          .eq('user_id', currentUser.id)
+          .eq('completion_date', today)
+          .eq('is_fully_completed', true)
+          .limit(1);
+
+        setCompletedToday(!!(data && data.length > 0));
+      } catch (e) {
+        console.error('Error checking routine completion:', e);
+      }
+      setIsChecking(false);
+    };
+
+    checkTodayCompletion();
+  }, [currentUser?.id, today]);
 
   const currentHour = new Date().getHours();
   const greeting = currentHour < 12 ? t('goodMorning') : currentHour < 17 ? t('goodAfternoon') : t('goodEvening');
@@ -67,40 +98,47 @@ const HomePage = () => {
     return remedies[0];
   }, [user.skinConcerns, user.hairConcerns]);
 
-  // Fake but believable metrics
+  // Progress metrics derived from real data (streak + glow score)
   const hydrationScore = useMemo(() => {
-    const base = 45 + (user.streak * 3) + (user.skinConcerns.includes('dryness') ? -5 : 10);
-    return Math.min(92, Math.max(35, base + glowScore.skin * 0.3));
+    const base = 40 + (user.streak * 3) + (user.skinConcerns.includes('dryness') ? -5 : 10);
+    return Math.min(92, Math.max(30, base + glowScore.skin * 0.3));
   }, [user.streak, user.skinConcerns, glowScore.skin]);
 
   const consistencyScore = useMemo(() => {
-    const base = 20 + (user.streak * 8);
-    return Math.min(95, Math.max(15, base));
+    const base = 15 + (user.streak * 9);
+    return Math.min(95, Math.max(10, base));
   }, [user.streak]);
 
-  // Handle routine completion CTA
+  // Handle routine completion CTA — uses the REAL routine system
   const handleCompleteRoutine = useCallback(async () => {
-    if (completedToday) return;
+    if (completedToday || !currentUser?.id) return;
 
-    // Haptic feedback
+    // Haptic feedback — instant UX
     if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
 
+    // Optimistic UI update
     setShowGlow(true);
     setCompletedToday(true);
-    localStorage.setItem('maseya_routine_date', new Date().toISOString().split('T')[0]);
 
-    // Award points & update streak
-    const newStreak = user.streak + 1;
-    const newPoints = user.points + 5;
-    updateUser({ streak: newStreak, points: newPoints });
-    await recordPoints(5, 'daily_routine_completion');
+    // Determine which time of day based on current hour
+    const timeOfDay = currentHour < 15 ? 'morning' : 'night';
+
+    // Use the REAL routine completion sync — same as RoutinePage
+    // Mark all steps as completed (quick-complete)
+    const quickCompleteSteps = ['quick-complete-all'];
+    const totalSteps = 1; // Treat as single "did you do your routine?" step
+    await syncCompletion(timeOfDay, quickCompleteSteps, totalSteps);
+
+    // Award points through the same trusted flow as RoutinePage
+    await recordPoints(5, 'routine_complete');
+    awardBadge('first_step');
 
     toast.success(t('routineCompleted'), {
       description: t('routineCompletedDesc'),
     });
 
     setTimeout(() => setShowGlow(false), 2000);
-  }, [completedToday, user.streak, user.points, updateUser, recordPoints, t]);
+  }, [completedToday, currentUser?.id, currentHour, syncCompletion, recordPoints, awardBadge, t]);
 
   return (
     <AppLayout showSearch showNotifications>
@@ -125,7 +163,7 @@ const HomePage = () => {
         {/* Primary CTA - Complete Routine */}
         <button
           onClick={handleCompleteRoutine}
-          disabled={completedToday}
+          disabled={completedToday || isChecking}
           className={cn(
             'w-full relative overflow-hidden rounded-2xl p-5 text-center transition-all duration-300 shadow-warm',
             completedToday
@@ -134,7 +172,6 @@ const HomePage = () => {
             showGlow && 'ring-4 ring-primary/40 ring-offset-2 ring-offset-background'
           )}
         >
-          {/* Success glow animation */}
           {showGlow && (
             <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary-foreground/20 to-primary/0 animate-pulse" />
           )}
@@ -157,7 +194,7 @@ const HomePage = () => {
               </>
             )}
           </div>
-          {!completedToday && (
+          {!completedToday && !isChecking && (
             <p className="relative text-sm opacity-80 mt-1">+5 {t('points')} · +1 {t('streak')}</p>
           )}
         </button>
@@ -170,9 +207,11 @@ const HomePage = () => {
             <TrendingUp className="w-5 h-5 text-primary" />
             <h2 className="font-display text-base font-semibold">{t('yourProgress')}</h2>
           </div>
-          <p className="text-sm text-muted-foreground -mt-2">{t('skinImproving')}</p>
+          <p className="text-sm text-muted-foreground -mt-2">
+            {user.streak > 0 ? t('skinImproving') : t('startYourJourney')}
+          </p>
 
-          {/* Hydration */}
+          {/* Hydration — derived from streak + glow score */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-1.5">
@@ -189,7 +228,7 @@ const HomePage = () => {
             </div>
           </div>
 
-          {/* Consistency */}
+          {/* Consistency — derived from streak */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-1.5">
@@ -220,7 +259,6 @@ const HomePage = () => {
         <div className="space-y-3">
           <h2 className="font-display text-base font-semibold">{t('todayRecommendations')}</h2>
 
-          {/* Product cards */}
           <div className="space-y-2.5">
             {recommendedProducts.map((product, i) => (
               product && (
@@ -247,7 +285,6 @@ const HomePage = () => {
               )
             ))}
 
-            {/* Natural remedy card */}
             {recommendedRemedy && (
               <Link
                 to={`/remedies/${recommendedRemedy.id}`}
