@@ -1,55 +1,15 @@
-import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Download, Share, Plus, Check, Smartphone, Apple } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-}
+import { usePWAInstall } from "@/hooks/usePWAInstall";
 
 export default function InstallPage() {
   const navigate = useNavigate();
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isInstalled, setIsInstalled] = useState(false);
-  const [isIOS, setIsIOS] = useState(false);
-  const [isAndroid, setIsAndroid] = useState(false);
-
-  useEffect(() => {
-    // Check if already installed
-    if (window.matchMedia("(display-mode: standalone)").matches) {
-      setIsInstalled(true);
-    }
-
-    // Detect platform
-    const userAgent = navigator.userAgent.toLowerCase();
-    setIsIOS(/iphone|ipad|ipod/.test(userAgent));
-    setIsAndroid(/android/.test(userAgent));
-
-    // Listen for install prompt
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
-    };
-
-    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-
-    return () => {
-      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-    };
-  }, []);
+  const { isInstalled, isIOS, isAndroid, canInstallNatively, triggerInstall } = usePWAInstall();
 
   const handleInstall = async () => {
-    if (!deferredPrompt) return;
-
-    await deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-
-    if (outcome === "accepted") {
-      setIsInstalled(true);
-    }
-    setDeferredPrompt(null);
+    await triggerInstall();
   };
 
   return (
@@ -105,7 +65,7 @@ export default function InstallPage() {
         )}
 
         {/* Android Install Button */}
-        {!isInstalled && deferredPrompt && (
+        {!isInstalled && canInstallNatively && (
           <Button
             onClick={handleInstall}
             className="w-full h-14 text-lg"
@@ -129,9 +89,7 @@ export default function InstallPage() {
 
               <ol className="space-y-4 text-sm">
                 <li className="flex gap-3">
-                  <span className="w-6 h-6 bg-primary/10 text-primary rounded-full flex items-center justify-center text-xs font-bold shrink-0">
-                    1
-                  </span>
+                  <span className="w-6 h-6 bg-primary/10 text-primary rounded-full flex items-center justify-center text-xs font-bold shrink-0">1</span>
                   <div>
                     <p className="font-medium">Tap the Share button</p>
                     <p className="text-muted-foreground flex items-center gap-1">
@@ -140,9 +98,7 @@ export default function InstallPage() {
                   </div>
                 </li>
                 <li className="flex gap-3">
-                  <span className="w-6 h-6 bg-primary/10 text-primary rounded-full flex items-center justify-center text-xs font-bold shrink-0">
-                    2
-                  </span>
+                  <span className="w-6 h-6 bg-primary/10 text-primary rounded-full flex items-center justify-center text-xs font-bold shrink-0">2</span>
                   <div>
                     <p className="font-medium">Scroll down and tap "Add to Home Screen"</p>
                     <p className="text-muted-foreground flex items-center gap-1">
@@ -151,14 +107,10 @@ export default function InstallPage() {
                   </div>
                 </li>
                 <li className="flex gap-3">
-                  <span className="w-6 h-6 bg-primary/10 text-primary rounded-full flex items-center justify-center text-xs font-bold shrink-0">
-                    3
-                  </span>
+                  <span className="w-6 h-6 bg-primary/10 text-primary rounded-full flex items-center justify-center text-xs font-bold shrink-0">3</span>
                   <div>
                     <p className="font-medium">Tap "Add" in the top right</p>
-                    <p className="text-muted-foreground">
-                      MASEYA will appear on your home screen!
-                    </p>
+                    <p className="text-muted-foreground">MASEYA will appear on your home screen!</p>
                   </div>
                 </li>
               </ol>
@@ -166,8 +118,8 @@ export default function InstallPage() {
           </Card>
         )}
 
-        {/* Android Instructions (fallback if no prompt) */}
-        {!isInstalled && isAndroid && !deferredPrompt && (
+        {/* Android Instructions (always show when no native prompt) */}
+        {!isInstalled && isAndroid && !canInstallNatively && (
           <Card>
             <CardContent className="p-4 space-y-4">
               <div className="flex items-center gap-3">
@@ -179,36 +131,24 @@ export default function InstallPage() {
 
               <ol className="space-y-4 text-sm">
                 <li className="flex gap-3">
-                  <span className="w-6 h-6 bg-primary/10 text-primary rounded-full flex items-center justify-center text-xs font-bold shrink-0">
-                    1
-                  </span>
+                  <span className="w-6 h-6 bg-primary/10 text-primary rounded-full flex items-center justify-center text-xs font-bold shrink-0">1</span>
                   <div>
                     <p className="font-medium">Tap the menu button</p>
-                    <p className="text-muted-foreground">
-                      Look for ⋮ in the top right of Chrome
-                    </p>
+                    <p className="text-muted-foreground">Look for ⋮ in the top right of Chrome</p>
                   </div>
                 </li>
                 <li className="flex gap-3">
-                  <span className="w-6 h-6 bg-primary/10 text-primary rounded-full flex items-center justify-center text-xs font-bold shrink-0">
-                    2
-                  </span>
+                  <span className="w-6 h-6 bg-primary/10 text-primary rounded-full flex items-center justify-center text-xs font-bold shrink-0">2</span>
                   <div>
                     <p className="font-medium">Tap "Add to Home screen"</p>
-                    <p className="text-muted-foreground">
-                      Or "Install app" if available
-                    </p>
+                    <p className="text-muted-foreground">Or "Install app" if available</p>
                   </div>
                 </li>
                 <li className="flex gap-3">
-                  <span className="w-6 h-6 bg-primary/10 text-primary rounded-full flex items-center justify-center text-xs font-bold shrink-0">
-                    3
-                  </span>
+                  <span className="w-6 h-6 bg-primary/10 text-primary rounded-full flex items-center justify-center text-xs font-bold shrink-0">3</span>
                   <div>
                     <p className="font-medium">Tap "Add"</p>
-                    <p className="text-muted-foreground">
-                      MASEYA will appear on your home screen!
-                    </p>
+                    <p className="text-muted-foreground">MASEYA will appear on your home screen!</p>
                   </div>
                 </li>
               </ol>
