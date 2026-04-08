@@ -8,19 +8,30 @@ const corsHeaders = {
 };
 
 const PRODUCT_CATALOG = `
-Available products in the MASEYA catalog:
-1. Weleda Skin Food Original – Intensive moisturizer, natural/organic, for dryness & sensitivity, €12.95
-2. Pai Skincare Rosehip BioRegenerate Oil – Organic rosehip oil, for aging/dark spots/dullness/dryness, €26.00
-3. The Ordinary Niacinamide 10% + Zinc 1% – Vegan, for oiliness/acne/pores, €5.80
-4. Olaplex No.7 Bonding Oil – Hair oil, vegan, for all hair types, €28.00
-5. CeraVe Hydrating Cleanser – Gentle cleanser with ceramides, for dryness/sensitivity, €9.50
-6. Klorane Mango Butter Hair Mask – Natural/vegan hair mask, for curly/coily/wavy hair, €12.90
-7. NUXE Huile Prodigieuse – Multi-use dry oil for face/body/hair, natural, for dryness/dullness, €29.90
-8. REN Ready Steady Glow Tonic – AHA tonic, natural/vegan, for dullness/pores/dark spots, €32.00
-9. Moroccanoil Treatment Original – Argan oil hair treatment, for all hair types, €34.85
+Available products in the MASEYA catalog (use catalog_id when recommending):
+- catalog_id:3 — The Ordinary Niacinamide 10% + Zinc 1% — Vegan, for oiliness/acne/pores, sensitive-safe
+- catalog_id:4 — Olaplex No.7 Bonding Oil — Hair oil, vegan, for all hair types
+- catalog_id:5 — CeraVe Hydrating Cleanser — Gentle cleanser with ceramides, for dryness/sensitivity
+- catalog_id:6 — Weleda Skin Food Original — Intensive moisturizer, natural/organic, for dryness
+- catalog_id:7 — NUXE Huile Prodigieuse — Multi-use dry oil for face/body/hair, for dryness/dullness
+- catalog_id:8 — Moroccanoil Treatment Original — Argan oil hair treatment, for all hair types
+- catalog_id:9 — Pai Rosehip BioRegenerate Oil — Organic rosehip oil, for aging/dark spots/dryness
+- catalog_id:10 — REN Ready Steady Glow Tonic — AHA tonic, vegan, for dullness/pores/dark spots
+- catalog_id:11 — Klorane Mango Butter Hair Mask — Natural/vegan hair mask, for curly/coily/wavy hair
 `;
 
-// Map user country to Amazon marketplace
+const REMEDY_CATALOG = `
+Available natural remedies in the MASEYA library (use remedy_id when recommending):
+- remedy_id:1 — Honey & Oatmeal Face Mask — Skin — hydrating, soothing, anti-inflammatory
+- remedy_id:2 — Rosemary Oil Scalp Treatment — Hair — growth, strengthening, shine
+- remedy_id:3 — Rice Water Rinse — Hair — shine, strength, detangling
+- remedy_id:4 — Green Tea Toner — Skin — antioxidant, pore-refining, brightening
+- remedy_id:5 — Avocado & Coconut Hair Mask — Hair — deep conditioning, repair, moisture
+- remedy_id:6 — Collagen Smoothie — Nutrition — elasticity, anti-aging, glow
+- remedy_id:7 — Turmeric Brightening Mask — Skin — brightening, anti-inflammatory, even tone
+- remedy_id:8 — Biotin Breakfast Bowl — Nutrition — hair growth, nail strength, energy
+`;
+
 const COUNTRY_TO_MARKETPLACE: Record<string, { domain: string; suffix: string }> = {
   spain: { domain: "www.amazon.es", suffix: "es" },
   es: { domain: "www.amazon.es", suffix: "es" },
@@ -44,8 +55,7 @@ function getMarketplace(country?: string): { domain: string; suffix: string } {
 }
 
 function buildAmazonSearchUrl(query: string, domain: string): string {
-  const encoded = encodeURIComponent(query);
-  return `https://${domain}/s?k=${encoded}`;
+  return `https://${domain}/s?k=${encodeURIComponent(query)}`;
 }
 
 const RECOMMEND_TOOL = {
@@ -53,36 +63,37 @@ const RECOMMEND_TOOL = {
   function: {
     name: "recommend_products",
     description:
-      "Recommend beauty/skincare/haircare products to the user. Use this whenever you want to suggest specific products. Generate real product search queries for Amazon.",
+      "Recommend beauty products to the user. ALWAYS use this tool when suggesting products. Include catalog_id if the product is from the MASEYA catalog.",
     parameters: {
       type: "object",
       properties: {
         products: {
           type: "array",
-          description: "List of product recommendations",
           items: {
             type: "object",
             properties: {
-              title: {
-                type: "string",
-                description: "Full product name, e.g. 'CeraVe Hydrating Facial Cleanser 473ml'",
-              },
-              brand: {
-                type: "string",
-                description: "Brand name, e.g. 'CeraVe'",
-              },
-              search_query: {
-                type: "string",
-                description:
-                  "Exact Amazon search query to find this product, e.g. 'CeraVe Hydrating Facial Cleanser'",
-              },
-              reason: {
-                type: "string",
-                description:
-                  "Brief reason why this product is recommended for this user (1 sentence)",
-              },
+              title: { type: "string", description: "Full product name" },
+              brand: { type: "string", description: "Brand name" },
+              search_query: { type: "string", description: "Amazon search query to find this product" },
+              reason: { type: "string", description: "Brief reason why this product fits THIS user's specific profile (reference their concerns/goals directly)" },
+              catalog_id: { type: "number", description: "If from MASEYA catalog, the catalog ID. Otherwise omit." },
             },
             required: ["title", "brand", "search_query", "reason"],
+            additionalProperties: false,
+          },
+        },
+        remedies: {
+          type: "array",
+          description: "Optional: natural remedy recommendations from the MASEYA library",
+          items: {
+            type: "object",
+            properties: {
+              title: { type: "string", description: "Remedy name" },
+              category: { type: "string", description: "Skin, Hair, or Nutrition" },
+              reason: { type: "string", description: "Brief reason why this remedy fits THIS user" },
+              remedy_id: { type: "number", description: "If from MASEYA library, the remedy ID." },
+            },
+            required: ["title", "category", "reason"],
             additionalProperties: false,
           },
         },
@@ -103,45 +114,55 @@ function buildSystemPrompt(userProfile: Record<string, unknown>): string {
         ? "Réponds TOUJOURS en français. Utilise un ton chaleureux et bienveillant."
         : "Always respond in English. Use a warm and friendly tone.";
 
-  const profileSummary = userProfile
-    ? `
-User Profile:
-- Skin concerns: ${(userProfile.skinConcerns as string[])?.join(", ") || "not set"}
-- Hair type: ${(userProfile.hairType as string) || "not set"}
-- Hair concerns: ${(userProfile.hairConcerns as string[])?.join(", ") || "not set"}
-- Goals: ${(userProfile.goals as string[])?.join(", ") || "not set"}
-- Age range: ${(userProfile.ageRange as string) || "not set"}
-- Sensitivities: ${(userProfile.sensitivities as string[])?.join(", ") || "none"}
-- Country: ${(userProfile.country as string) || "not set"}
-- Climate: ${(userProfile.climateType as string) || "not set"}
-`
-    : "User has not completed their profile yet.";
+  const skinConcerns = (userProfile.skinConcerns as string[]) || [];
+  const hairType = (userProfile.hairType as string) || "";
+  const hairConcerns = (userProfile.hairConcerns as string[]) || [];
+  const goals = (userProfile.goals as string[]) || [];
+  const sensitivities = (userProfile.sensitivities as string[]) || [];
+  const climate = (userProfile.climateType as string) || "";
 
-  return `You are Mira, the friendly and knowledgeable beauty assistant for the MASEYA app. MASEYA is a personalized natural beauty platform for skincare, haircare, and self-care.
+  const hasProfile = skinConcerns.length > 0 || hairType || goals.length > 0;
+
+  const profileSummary = hasProfile
+    ? `
+THIS USER'S PROFILE (use this to personalize every response):
+- Skin concerns: ${skinConcerns.join(", ") || "none specified"}
+- Hair type: ${hairType || "not specified"}
+- Hair concerns: ${hairConcerns.join(", ") || "none specified"}
+- Goals: ${goals.join(", ") || "not specified"}
+- Sensitivities: ${sensitivities.join(", ") || "none"}
+- Climate: ${climate || "not specified"}
+
+IMPORTANT: Reference the user's specific concerns in your answers. Don't give generic advice.
+Example: Instead of "try a hydrating serum", say "Because your skin profile shows dryness, a hyaluronic acid serum would help restore moisture."
+`
+    : "User has not completed their profile yet. Encourage them to complete it for personalized advice.";
+
+  return `You are Mira, the beauty assistant for MASEYA — a personalized natural beauty app.
 
 ${langInstruction}
 
 Your personality:
-- Warm, supportive, and encouraging — like a knowledgeable friend
-- Use occasional emojis (🌿 💧 ✨ 🌸 💇‍♀️) but don't overdo it
-- Give practical, actionable advice
-- Keep responses concise (2-4 short paragraphs max)
-- Never give medical advice — if someone describes a serious condition, kindly suggest they see a dermatologist
+- Warm, specific, and action-oriented — like a knowledgeable friend who knows their skin
+- Use occasional emojis (🌿 💧 ✨ 🌸) sparingly
+- Give specific advice tied to the user's profile, never generic
+- Keep responses concise (2-3 short paragraphs max)
+- Never give medical advice — suggest seeing a dermatologist for serious concerns
 
 ${profileSummary}
 
 ${PRODUCT_CATALOG}
 
-Product recommendation guidelines:
-- When the user asks for product recommendations, ALWAYS use the recommend_products tool
-- You can recommend products from the MASEYA catalog above AND any real product you know exists
-- For each product, provide the exact product name, brand, and a search query that would find it on Amazon
-- Recommend 2-5 products per request, matching the user's profile
-- Mention WHY each product is a good match in the reason field
-- In your text response, briefly introduce the recommendations but don't list all details — the tool will render product cards
-- Stay focused on skincare, haircare, natural beauty, and wellness
-- If the user asks about topics outside beauty/wellness, gently redirect
-- If the user's profile is incomplete, encourage them to complete it for better recommendations`;
+${REMEDY_CATALOG}
+
+CRITICAL RULES:
+1. When recommending products, ALWAYS use the recommend_products tool — never list products as plain text
+2. Reference the user's specific profile in recommendations: "Because you have dry skin..." not "This product is good for dry skin"
+3. Prefer MASEYA catalog products (include catalog_id) but you can recommend any real product
+4. When relevant, also recommend natural remedies using the remedies array in the tool
+5. Recommend 1-3 products and optionally 1 remedy per response — don't overwhelm
+6. In your text, briefly explain WHY you chose these recommendations, then let the cards do the rest
+7. Stay focused on skincare, haircare, natural beauty, and wellness`;
 }
 
 serve(async (req) => {
@@ -150,7 +171,6 @@ serve(async (req) => {
   }
 
   try {
-    // --- Authentication ---
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -174,7 +194,6 @@ serve(async (req) => {
       });
     }
 
-    // --- Input Validation ---
     const { messages, userProfile } = await req.json();
 
     if (!Array.isArray(messages) || messages.length === 0 || messages.length > 50) {
@@ -199,7 +218,6 @@ serve(async (req) => {
       }
     }
 
-    // --- AI Call ---
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
@@ -247,13 +265,10 @@ serve(async (req) => {
       });
     }
 
-    // Stream the response, capturing tool calls along the way
     const reader = response.body!.getReader();
     const decoder = new TextDecoder();
-
     let toolCallArgs = "";
     let hasToolCall = false;
-    let textBuffer = "";
 
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
@@ -280,13 +295,11 @@ serve(async (req) => {
                 const choice = parsed.choices?.[0];
                 if (!choice) continue;
 
-                // Text content — forward to client
                 const content = choice.delta?.content;
                 if (content) {
                   controller.enqueue(encoder.encode(line + "\n\n"));
                 }
 
-                // Tool call arguments — accumulate
                 const tcDelta = choice.delta?.tool_calls?.[0];
                 if (tcDelta) {
                   hasToolCall = true;
@@ -300,24 +313,33 @@ serve(async (req) => {
             }
           }
 
-          // If there was a tool call, parse it and send product recommendations as a custom SSE event
+          // Process tool call results
           if (hasToolCall && toolCallArgs) {
             try {
               const toolData = JSON.parse(toolCallArgs);
               const products = toolData.products || [];
+              const remedyRecs = toolData.remedies || [];
 
-              // Build Amazon search URLs for each product
-              const enrichedProducts = products.map((p: { title: string; brand: string; search_query: string; reason: string }) => ({
+              const enrichedProducts = products.map((p: { title: string; brand: string; search_query: string; reason: string; catalog_id?: number }) => ({
                 title: p.title,
                 brand: p.brand,
                 amazon_url: buildAmazonSearchUrl(p.search_query, marketplace.domain),
                 marketplace: `amazon.${marketplace.suffix}`,
                 reason: p.reason,
+                catalog_id: p.catalog_id || null,
+              }));
+
+              const enrichedRemedies = remedyRecs.map((r: { title: string; category: string; reason: string; remedy_id?: number }) => ({
+                title: r.title,
+                category: r.category,
+                reason: r.reason,
+                remedy_id: r.remedy_id || null,
               }));
 
               const productEvent = `data: ${JSON.stringify({
                 type: "recommended_products",
                 products: enrichedProducts,
+                remedies: enrichedRemedies,
               })}\n\n`;
               controller.enqueue(encoder.encode(productEvent));
             } catch (e) {
