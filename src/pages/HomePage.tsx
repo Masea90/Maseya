@@ -1,90 +1,293 @@
+import { useState, useCallback, useMemo } from 'react';
+import { Link } from 'react-router-dom';
+import { Check, ChevronRight, Sparkles, Droplets, TrendingUp } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { GlowScore } from '@/components/home/GlowScore';
-import { TodayCards } from '@/components/home/TodayCards';
-import { IngredientAlerts } from '@/components/home/IngredientAlerts';
-import { QuickActions } from '@/components/home/QuickActions';
-import { InstallBanner } from '@/components/pwa/InstallBanner';
 import { useUser } from '@/contexts/UserContext';
+import { useRewards } from '@/hooks/useRewards';
+import { productCatalog } from '@/lib/recommendations';
+import { remedies } from '@/lib/remedies';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+import { InstallBanner } from '@/components/pwa/InstallBanner';
 
 const HomePage = () => {
-  const { user, t } = useUser();
+  const { user, updateUser, t, glowScore } = useUser();
+  const { recordPoints } = useRewards();
+  const [completedToday, setCompletedToday] = useState(() => {
+    const last = localStorage.getItem('maseya_routine_date');
+    return last === new Date().toISOString().split('T')[0];
+  });
+  const [showGlow, setShowGlow] = useState(false);
+
   const currentHour = new Date().getHours();
   const greeting = currentHour < 12 ? t('goodMorning') : currentHour < 17 ? t('goodAfternoon') : t('goodEvening');
-  
-  const dailyQuotes = [t('quote1'), t('quote2'), t('quote3'), t('quote4')];
-  const randomQuote = dailyQuotes[Math.floor(Math.random() * dailyQuotes.length)];
 
-  const todayCards = [
-    {
-      icon: '💧',
-      title: t('skinToday'),
-      subtitle: t('hydrationFocus'),
-      description: t('skinTodayDesc'),
-      color: 'skin' as const,
-      linkTo: '/discover?context=skin_today',
-    },
-    {
-      icon: '✨',
-      title: t('hairToday'),
-      subtitle: t('scalpCareDay'),
-      description: t('hairTodayDesc'),
-      color: 'hair' as const,
-      linkTo: '/discover?context=hair_today',
-    },
-    {
-      icon: '🥗',
-      title: t('nutritionTip'),
-      subtitle: t('boostYourGlow'),
-      description: t('nutritionTipDesc'),
-      color: 'nutrition' as const,
-      linkTo: '/remedies',
-    },
-  ];
+  // Personalized status message based on profile
+  const statusMessage = useMemo(() => {
+    if (user.streak === 0) return t('startYourJourney');
+    if (user.skinConcerns.includes('dryness')) return t('skinNeedsHydration');
+    if (user.skinConcerns.includes('oiliness') || user.skinConcerns.includes('acne')) return t('skinLooksGreat');
+    if (user.hairConcerns.length > 0) return t('hairNeedsCare');
+    if (user.streak > 0) return t('keepUpStreak');
+    return t('skinLooksGreat');
+  }, [user.skinConcerns, user.hairConcerns, user.streak, t]);
+
+  // Personalized recommendation reason
+  const getRecommendationReason = useCallback(() => {
+    if (user.skinConcerns.includes('dryness')) return t('becauseSkinDry');
+    if (user.skinConcerns.includes('oiliness')) return t('becauseSkinOily');
+    if (user.skinConcerns.includes('acne')) return t('becauseSkinAcne');
+    if (user.skinConcerns.includes('sensitivity')) return t('becauseSkinSensitive');
+    return t('becauseSkinDry');
+  }, [user.skinConcerns, t]);
+
+  const getHairReason = useCallback(() => {
+    if (user.hairConcerns.includes('dryBrittle')) return t('becauseHairDry');
+    if (user.hairConcerns.includes('frizz')) return t('becauseHairFrizz');
+    return t('becauseHairDry');
+  }, [user.hairConcerns, t]);
+
+  // Pick 2 products based on user profile
+  const recommendedProducts = useMemo(() => {
+    const skinProduct = productCatalog.find(p =>
+      p.category === 'skin' && p.targetConcerns.some(c => user.skinConcerns.includes(c))
+    ) || productCatalog.find(p => p.category === 'skin');
+
+    const hairProduct = productCatalog.find(p =>
+      p.category === 'hair' && p.targetHairTypes.includes(user.hairType)
+    ) || productCatalog.find(p => p.category === 'hair');
+
+    return [skinProduct, hairProduct].filter(Boolean);
+  }, [user.skinConcerns, user.hairType]);
+
+  // Pick 1 remedy
+  const recommendedRemedy = useMemo(() => {
+    if (user.skinConcerns.includes('dryness')) return remedies.find(r => r.category === 'Skin');
+    if (user.hairConcerns.length > 0) return remedies.find(r => r.category === 'Hair');
+    return remedies[0];
+  }, [user.skinConcerns, user.hairConcerns]);
+
+  // Fake but believable metrics
+  const hydrationScore = useMemo(() => {
+    const base = 45 + (user.streak * 3) + (user.skinConcerns.includes('dryness') ? -5 : 10);
+    return Math.min(92, Math.max(35, base + glowScore.skin * 0.3));
+  }, [user.streak, user.skinConcerns, glowScore.skin]);
+
+  const consistencyScore = useMemo(() => {
+    const base = 20 + (user.streak * 8);
+    return Math.min(95, Math.max(15, base));
+  }, [user.streak]);
+
+  // Handle routine completion CTA
+  const handleCompleteRoutine = useCallback(async () => {
+    if (completedToday) return;
+
+    // Haptic feedback
+    if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
+
+    setShowGlow(true);
+    setCompletedToday(true);
+    localStorage.setItem('maseya_routine_date', new Date().toISOString().split('T')[0]);
+
+    // Award points & update streak
+    const newStreak = user.streak + 1;
+    const newPoints = user.points + 5;
+    updateUser({ streak: newStreak, points: newPoints });
+    await recordPoints(5, 'daily_routine_completion');
+
+    toast.success(t('routineCompleted'), {
+      description: t('routineCompletedDesc'),
+    });
+
+    setTimeout(() => setShowGlow(false), 2000);
+  }, [completedToday, user.streak, user.points, updateUser, recordPoints, t]);
 
   return (
     <AppLayout showSearch showNotifications>
-      <div className="px-4 py-6 space-y-6 animate-fade-in">
-        {/* Greeting */}
-        <div className="space-y-1">
-          <h1 className="font-display text-2xl font-semibold">
-            {greeting}, {user.nickname || user.name} ☀️
-          </h1>
-          <p className="text-muted-foreground text-sm italic">{randomQuote}</p>
-        </div>
-
-        {/* Streak & Points */}
-        <div className="flex items-center gap-4 bg-card rounded-2xl p-4 shadow-warm">
-          <div className="flex items-center gap-2">
-            <span className="text-xl">🔥</span>
+      <div className="px-4 py-5 space-y-5 animate-fade-in">
+        {/* Today Status */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
             <div>
-              <p className="font-semibold text-foreground">{user.streak}-{t('streak')}</p>
-              <p className="text-xs text-muted-foreground">{t('keepItUp')}</p>
+              <h1 className="font-display text-xl font-semibold text-foreground">
+                {greeting}, {user.nickname || user.name} ☀️
+              </h1>
+              <p className="text-sm text-muted-foreground mt-0.5">{statusMessage}</p>
             </div>
-          </div>
-          <div className="w-px h-10 bg-border" />
-          <div className="flex items-center gap-2">
-            <span className="text-xl">⭐</span>
-            <div>
-              <p className="font-semibold text-foreground">{user.points} {t('points')}</p>
-              <p className="text-xs text-muted-foreground">{t('silver')} {t('tier').toLowerCase()}</p>
+            <div className="flex items-center gap-1.5 bg-accent/20 rounded-full px-3 py-1.5">
+              <span className="text-lg">🔥</span>
+              <span className="font-display font-bold text-foreground">{user.streak}</span>
+              <span className="text-xs text-muted-foreground">{t('daysStreak')}</span>
             </div>
           </div>
         </div>
 
-        {/* Install Banner */}
+        {/* Primary CTA - Complete Routine */}
+        <button
+          onClick={handleCompleteRoutine}
+          disabled={completedToday}
+          className={cn(
+            'w-full relative overflow-hidden rounded-2xl p-5 text-center transition-all duration-300 shadow-warm',
+            completedToday
+              ? 'bg-primary/15 border-2 border-primary/30'
+              : 'bg-gradient-olive text-primary-foreground hover:opacity-95 active:scale-[0.98]',
+            showGlow && 'ring-4 ring-primary/40 ring-offset-2 ring-offset-background'
+          )}
+        >
+          {/* Success glow animation */}
+          {showGlow && (
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary-foreground/20 to-primary/0 animate-pulse" />
+          )}
+          <div className="relative flex items-center justify-center gap-3">
+            {completedToday ? (
+              <>
+                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                  <Check className="w-5 h-5 text-primary" />
+                </div>
+                <span className="font-display text-lg font-semibold text-primary">
+                  {t('alreadyCompleted')}
+                </span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-6 h-6" />
+                <span className="font-display text-lg font-semibold">
+                  {t('completedRoutine')}
+                </span>
+              </>
+            )}
+          </div>
+          {!completedToday && (
+            <p className="relative text-sm opacity-80 mt-1">+5 {t('points')} · +1 {t('streak')}</p>
+          )}
+        </button>
+
         <InstallBanner />
 
-        {/* Glow Score */}
-        <GlowScore />
+        {/* Progress Section */}
+        <div className="bg-card rounded-2xl p-5 shadow-warm space-y-4">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-primary" />
+            <h2 className="font-display text-base font-semibold">{t('yourProgress')}</h2>
+          </div>
+          <p className="text-sm text-muted-foreground -mt-2">{t('skinImproving')}</p>
 
-        {/* Quick Actions */}
-        <QuickActions />
+          {/* Hydration */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-sm">
+              <span className="flex items-center gap-1.5">
+                <Droplets className="w-4 h-4 text-glow-skin" />
+                {t('hydrationLevel')}
+              </span>
+              <span className="font-semibold text-glow-skin">{Math.round(hydrationScore)}%</span>
+            </div>
+            <div className="h-2.5 bg-muted rounded-full overflow-hidden">
+              <div
+                className="h-full bg-glow-skin rounded-full transition-all duration-1000 ease-out"
+                style={{ width: `${hydrationScore}%` }}
+              />
+            </div>
+          </div>
 
-        {/* Today's Cards */}
-        <TodayCards cards={todayCards} />
+          {/* Consistency */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-sm">
+              <span className="flex items-center gap-1.5">
+                <TrendingUp className="w-4 h-4 text-glow-nutrition" />
+                {t('consistencyScore')}
+              </span>
+              <span className="font-semibold text-glow-nutrition">{Math.round(consistencyScore)}%</span>
+            </div>
+            <div className="h-2.5 bg-muted rounded-full overflow-hidden">
+              <div
+                className="h-full bg-glow-nutrition rounded-full transition-all duration-1000 ease-out"
+                style={{ width: `${consistencyScore}%` }}
+              />
+            </div>
+          </div>
 
-        {/* Ingredient Alerts */}
-        <IngredientAlerts />
+          {/* Glow Score mini */}
+          <div className="pt-2 border-t border-border flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">{t('yourGlowScore')}</span>
+            <Link to="/profile" className="flex items-center gap-1 text-primary font-semibold text-sm">
+              {glowScore.overall}/100
+              <ChevronRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </div>
+
+        {/* Today's Recommendations */}
+        <div className="space-y-3">
+          <h2 className="font-display text-base font-semibold">{t('todayRecommendations')}</h2>
+
+          {/* Product cards */}
+          <div className="space-y-2.5">
+            {recommendedProducts.map((product, i) => (
+              product && (
+                <Link
+                  key={product.id}
+                  to={`/product/${product.id}`}
+                  className="flex items-center gap-3 bg-card rounded-2xl p-3 shadow-warm hover:shadow-warm-lg transition-all"
+                >
+                  <img
+                    src={product.image}
+                    alt={product.name}
+                    className="w-16 h-16 rounded-xl object-cover flex-shrink-0"
+                    loading="lazy"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm text-foreground truncate">{product.name}</p>
+                    <p className="text-xs text-muted-foreground">{product.brand}</p>
+                    <p className="text-xs text-primary mt-1 italic">
+                      {i === 0 ? getRecommendationReason() : getHairReason()}
+                    </p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                </Link>
+              )
+            ))}
+
+            {/* Natural remedy card */}
+            {recommendedRemedy && (
+              <Link
+                to={`/remedies/${recommendedRemedy.id}`}
+                className="flex items-center gap-3 bg-glow-nutrition/10 border border-glow-nutrition/25 rounded-2xl p-3 transition-all hover:shadow-warm"
+              >
+                <div className="w-16 h-16 rounded-xl bg-glow-nutrition/15 flex items-center justify-center text-3xl flex-shrink-0">
+                  {recommendedRemedy.image}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <span className="text-[10px] uppercase tracking-wider font-semibold text-glow-nutrition bg-glow-nutrition/15 px-1.5 py-0.5 rounded-full">
+                      {t('naturalRemedy')}
+                    </span>
+                  </div>
+                  <p className="font-medium text-sm text-foreground truncate">{t(recommendedRemedy.titleKey)}</p>
+                  <p className="text-xs text-primary mt-0.5 italic">{t('becauseNatural')}</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              </Link>
+            )}
+          </div>
+        </div>
+
+        {/* Quick links */}
+        <div className="grid grid-cols-2 gap-3 pb-2">
+          <Link
+            to="/routine"
+            className="bg-gradient-olive text-primary-foreground rounded-2xl p-4 shadow-warm transition-all hover:opacity-90"
+          >
+            <span className="text-xl mb-1 block">🧴</span>
+            <p className="font-medium text-sm">{t('startRoutine')}</p>
+          </Link>
+          <Link
+            to="/discover"
+            className="bg-card border border-border rounded-2xl p-4 shadow-warm transition-all hover:shadow-warm-lg"
+          >
+            <span className="text-xl mb-1 block">🔍</span>
+            <p className="font-medium text-sm text-foreground">{t('discover')}</p>
+          </Link>
+        </div>
       </div>
     </AppLayout>
   );
