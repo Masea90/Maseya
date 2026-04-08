@@ -57,11 +57,14 @@ export const ChatProductCard = ({ product }: { product: ChatProduct }) => {
     const affiliateUrl = buildAmazonAffiliateUrl(product.amazon_url);
     window.open(affiliateUrl, '_blank', 'noopener,noreferrer');
 
-    supabase.from('affiliate_clicks').insert({
-      product_id: catalogProduct?.id || 0,
-      retailer_name: product.marketplace,
-      user_id: currentUser?.id || null,
-    }).then(() => {});
+    // Only track if we have a real catalog product ID
+    if (catalogProduct?.id) {
+      supabase.from('affiliate_clicks').insert({
+        product_id: catalogProduct.id,
+        retailer_name: product.marketplace,
+        user_id: currentUser?.id || null,
+      }).then(() => {});
+    }
   };
 
   return (
@@ -101,7 +104,7 @@ export const ChatProductCard = ({ product }: { product: ChatProduct }) => {
               className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-border text-[10px] font-medium text-foreground hover:bg-muted transition-colors"
             >
               <ChevronRight className="w-3 h-3" />
-              {t('discover')}
+              {t('viewProduct')}
             </Link>
           )}
           <button
@@ -125,7 +128,7 @@ export const ChatRemedyCard = ({ remedy }: { remedy: ChatRemedy }) => {
 
   return (
     <Link
-      to={matchedRemedy ? `/remedies/${matchedRemedy.id}` : '/remedies'}
+      to={matchedRemedy ? `/remedy/${matchedRemedy.id}` : '/remedies'}
       className="flex gap-3 p-3 rounded-xl border border-glow-nutrition/25 bg-glow-nutrition/5 hover:bg-glow-nutrition/10 transition-colors"
     >
       <div className="w-14 h-14 rounded-lg bg-glow-nutrition/15 flex items-center justify-center text-2xl flex-shrink-0">
