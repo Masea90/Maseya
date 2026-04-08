@@ -156,9 +156,17 @@ export const ChatRemedyCard = ({ remedy }: { remedy: ChatRemedy }) => {
 
 export const ChatProductCards = ({ products }: { products: ChatProduct[] }) => {
   if (!products?.length) return null;
+  // Deduplicate by title+brand
+  const seen = new Set<string>();
+  const unique = products.filter(p => {
+    const key = `${p.title.toLowerCase()}|${p.brand.toLowerCase()}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
   return (
     <div className="mt-2 space-y-2">
-      {products.map((product, idx) => (
+      {unique.map((product, idx) => (
         <ChatProductCard key={`${product.title}-${idx}`} product={product} />
       ))}
     </div>
@@ -167,9 +175,16 @@ export const ChatProductCards = ({ products }: { products: ChatProduct[] }) => {
 
 export const ChatRemedyCards = ({ remedies: remedyList }: { remedies: ChatRemedy[] }) => {
   if (!remedyList?.length) return null;
+  const seen = new Set<string>();
+  const unique = remedyList.filter(r => {
+    const key = `${r.title.toLowerCase()}|${r.category.toLowerCase()}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
   return (
     <div className="mt-2 space-y-2">
-      {remedyList.map((remedy, idx) => (
+      {unique.map((remedy, idx) => (
         <ChatRemedyCard key={`${remedy.title}-${idx}`} remedy={remedy} />
       ))}
     </div>

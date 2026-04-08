@@ -88,7 +88,15 @@ const HomePage = () => {
       p.category === 'hair' && p.targetHairTypes.includes(user.hairType)
     ) || productCatalog.find(p => p.category === 'hair');
 
-    return [skinProduct, hairProduct].filter(Boolean);
+    // Deduplicate by title+brand
+    const seen = new Set<string>();
+    return [skinProduct, hairProduct].filter((p): p is NonNullable<typeof p> => {
+      if (!p) return false;
+      const key = `${p.name.toLowerCase()}|${p.brand.toLowerCase()}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   }, [user.skinConcerns, user.hairType]);
 
   // Pick 1 remedy
@@ -302,7 +310,7 @@ const HomePage = () => {
 
             {recommendedRemedy && (
               <Link
-                to={`/remedies/${recommendedRemedy.id}`}
+                to={`/remedy/${recommendedRemedy.id}`}
                 className="flex items-center gap-3 bg-glow-nutrition/10 border border-glow-nutrition/25 rounded-2xl p-3 transition-all hover:shadow-warm"
               >
                 <div className="w-16 h-16 rounded-xl bg-glow-nutrition/15 flex items-center justify-center text-3xl flex-shrink-0">
