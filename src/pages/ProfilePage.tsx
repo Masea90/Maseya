@@ -292,9 +292,9 @@ const ProfilePage = () => {
 
         {/* Logout */}
         <button 
-          onClick={() => {
-            logout();
-            navigate('/login');
+          onClick={async () => {
+            await logout();
+            navigate('/login', { replace: true });
           }}
           className="w-full flex items-center justify-center gap-2 p-4 text-destructive hover:bg-destructive/10 rounded-2xl transition-colors"
         >
