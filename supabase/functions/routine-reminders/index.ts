@@ -266,6 +266,12 @@ async function sendPushNotification(
   }
 
   const webPush = await import("https://esm.sh/web-push@3.6.7");
+  
+  console.log("VAPID public key length:", sanitizeKey(VAPID_PUBLIC_KEY).length);
+  console.log("VAPID private key length:", sanitizeKey(VAPID_PRIVATE_KEY).length);
+  console.log("p256dh length:", sanitizeKey(subscription.p256dh).length);
+  console.log("auth length:", sanitizeKey(subscription.auth).length);
+  
   webPush.setVapidDetails(
     "mailto:hello@maseya.app",
     sanitizeKey(VAPID_PUBLIC_KEY),
