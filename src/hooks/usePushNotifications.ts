@@ -183,9 +183,10 @@ export const usePushNotifications = () => {
       return true;
     } catch (error) {
       console.error('Error subscribing to push:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       toast({
         title: 'Error',
-        description: 'Failed to enable push notifications. Please try again.',
+        description: `Failed to enable push notifications: ${errorMessage}`,
         variant: 'destructive',
       });
       return false;
