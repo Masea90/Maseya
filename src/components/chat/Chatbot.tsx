@@ -183,11 +183,12 @@ export const Chatbot = () => {
           if (jsonStr === '[DONE]') continue;
           try {
             const parsed = JSON.parse(jsonStr);
-            if (parsed.type === 'recommended_products' && Array.isArray(parsed.products)) {
-              recommendedProducts = parsed.products;
+            if (parsed.type === 'recommended_products') {
+              if (Array.isArray(parsed.products)) recommendedProducts = parsed.products;
+              if (Array.isArray(parsed.remedies)) recommendedRemedies = parsed.remedies;
               setMessages(prev =>
                 prev.map(m =>
-                  m.id === botMessageId ? { ...m, products: recommendedProducts } : m
+                  m.id === botMessageId ? { ...m, products: recommendedProducts, remedies: recommendedRemedies } : m
                 )
               );
               continue;
@@ -315,6 +316,7 @@ export const Chatbot = () => {
                       <ReactMarkdown>{message.content}</ReactMarkdown>
                     </div>
                     {message.products && <ChatProductCards products={message.products} />}
+                    {message.remedies && <ChatRemedyCards remedies={message.remedies} />}
                   </>
                 ) : (
                   message.content
