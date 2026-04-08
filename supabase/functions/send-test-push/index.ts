@@ -20,7 +20,7 @@ function getCorsHeaders(req: Request) {
 const rateLimitMap = new Map<string, number>();
 const RATE_LIMIT_MS = 30_000;
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
 
   if (req.method === "OPTIONS") {
@@ -34,7 +34,7 @@ serve(async (req) => {
     });
 
   try {
-    // ── Auth via getClaims ──
+    // ── Auth ──
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return json({ error: "Missing authorization" }, 401);
@@ -46,13 +46,11 @@ serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } =
-      await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
       return json({ error: "Unauthorized" }, 401);
     }
-    const userId = claimsData.claims.sub as string;
+    const userId = user.id;
 
     // ── Rate limit (per-user, 30s cooldown) ──
     const now = Date.now();
