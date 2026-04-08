@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUser } from '@/contexts/UserContext';
-import type { ChatProduct } from '@/components/chat/ChatProductCard';
+import type { ChatProduct, ChatRemedy } from '@/components/chat/ChatProductCard';
 
 export interface ChatMessage {
   id: number;
@@ -9,6 +9,7 @@ export interface ChatMessage {
   content: string;
   time: string;
   products?: ChatProduct[];
+  remedies?: ChatRemedy[];
 }
 
 export type AiMessage = { role: 'user' | 'assistant'; content: string };

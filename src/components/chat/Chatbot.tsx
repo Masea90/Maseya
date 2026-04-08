@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { useUser } from '@/contexts/UserContext';
 import { useChatHistory } from '@/hooks/useChatHistory';
 import { getAuthHeaders } from '@/lib/authHeaders';
-import { ChatProductCards, type ChatProduct } from './ChatProductCard';
+import { ChatProductCards, ChatRemedyCards, type ChatProduct, type ChatRemedy } from './ChatProductCard';
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
@@ -72,6 +72,7 @@ export const Chatbot = () => {
 
     let assistantContent = '';
     let recommendedProducts: ChatProduct[] = [];
+    let recommendedRemedies: ChatRemedy[] = [];
     const botMessageId = Date.now() + 1;
 
     try {
@@ -142,13 +143,13 @@ export const Chatbot = () => {
           try {
             const parsed = JSON.parse(jsonStr);
 
-            // Check for custom product recommendation event
-            if (parsed.type === 'recommended_products' && Array.isArray(parsed.products)) {
-              recommendedProducts = parsed.products;
-              // Update the bot message with products
+            // Check for custom product/remedy recommendation event
+            if (parsed.type === 'recommended_products') {
+              if (Array.isArray(parsed.products)) recommendedProducts = parsed.products;
+              if (Array.isArray(parsed.remedies)) recommendedRemedies = parsed.remedies;
               setMessages(prev =>
                 prev.map(m =>
-                  m.id === botMessageId ? { ...m, products: recommendedProducts } : m
+                  m.id === botMessageId ? { ...m, products: recommendedProducts, remedies: recommendedRemedies } : m
                 )
               );
               continue;
@@ -182,11 +183,12 @@ export const Chatbot = () => {
           if (jsonStr === '[DONE]') continue;
           try {
             const parsed = JSON.parse(jsonStr);
-            if (parsed.type === 'recommended_products' && Array.isArray(parsed.products)) {
-              recommendedProducts = parsed.products;
+            if (parsed.type === 'recommended_products') {
+              if (Array.isArray(parsed.products)) recommendedProducts = parsed.products;
+              if (Array.isArray(parsed.remedies)) recommendedRemedies = parsed.remedies;
               setMessages(prev =>
                 prev.map(m =>
-                  m.id === botMessageId ? { ...m, products: recommendedProducts } : m
+                  m.id === botMessageId ? { ...m, products: recommendedProducts, remedies: recommendedRemedies } : m
                 )
               );
               continue;
@@ -314,6 +316,7 @@ export const Chatbot = () => {
                       <ReactMarkdown>{message.content}</ReactMarkdown>
                     </div>
                     {message.products && <ChatProductCards products={message.products} />}
+                    {message.remedies && <ChatRemedyCards remedies={message.remedies} />}
                   </>
                 ) : (
                   message.content
