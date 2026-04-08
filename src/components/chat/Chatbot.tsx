@@ -143,13 +143,13 @@ export const Chatbot = () => {
           try {
             const parsed = JSON.parse(jsonStr);
 
-            // Check for custom product recommendation event
-            if (parsed.type === 'recommended_products' && Array.isArray(parsed.products)) {
-              recommendedProducts = parsed.products;
-              // Update the bot message with products
+            // Check for custom product/remedy recommendation event
+            if (parsed.type === 'recommended_products') {
+              if (Array.isArray(parsed.products)) recommendedProducts = parsed.products;
+              if (Array.isArray(parsed.remedies)) recommendedRemedies = parsed.remedies;
               setMessages(prev =>
                 prev.map(m =>
-                  m.id === botMessageId ? { ...m, products: recommendedProducts } : m
+                  m.id === botMessageId ? { ...m, products: recommendedProducts, remedies: recommendedRemedies } : m
                 )
               );
               continue;
