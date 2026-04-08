@@ -72,6 +72,7 @@ export const Chatbot = () => {
 
     let assistantContent = '';
     let recommendedProducts: ChatProduct[] = [];
+    let recommendedRemedies: ChatRemedy[] = [];
     const botMessageId = Date.now() + 1;
 
     try {
