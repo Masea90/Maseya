@@ -123,11 +123,26 @@ const HomePage = () => {
     // Determine which time of day based on current hour
     const timeOfDay = currentHour < 15 ? 'morning' : 'night';
 
-    // Use the REAL routine completion sync — same as RoutinePage
-    // Mark all steps as completed (quick-complete)
-    const quickCompleteSteps = ['quick-complete-all'];
-    const totalSteps = 1; // Treat as single "did you do your routine?" step
-    await syncCompletion(timeOfDay, quickCompleteSteps, totalSteps);
+    // Check if a routine_completions row already exists for today + time_of_day
+    // If it does, preserve existing step data — only mark as fully completed
+    const { data: existing } = await supabase
+      .from('routine_completions')
+      .select('id, completed_steps, total_steps')
+      .eq('user_id', currentUser.id)
+      .eq('completion_date', today)
+      .eq('time_of_day', timeOfDay)
+      .maybeSingle();
+
+    if (existing) {
+      // Row exists — preserve real step data, just mark fully completed
+      await supabase
+        .from('routine_completions')
+        .update({ is_fully_completed: true })
+        .eq('id', existing.id);
+    } else {
+      // No row for today — create one via the real sync flow
+      await syncCompletion(timeOfDay, ['quick-complete-all'], 1);
+    }
 
     // Award points through the same trusted flow as RoutinePage
     await recordPoints(5, 'routine_complete');
@@ -138,7 +153,7 @@ const HomePage = () => {
     });
 
     setTimeout(() => setShowGlow(false), 2000);
-  }, [completedToday, currentUser?.id, currentHour, syncCompletion, recordPoints, awardBadge, t]);
+  }, [completedToday, currentUser?.id, currentHour, syncCompletion, recordPoints, awardBadge, t, today]);
 
   return (
     <AppLayout showSearch showNotifications>
