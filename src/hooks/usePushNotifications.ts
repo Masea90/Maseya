@@ -15,27 +15,46 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
   return outputArray;
 }
 
-/** Fetch the VAPID public key from the backend (cached after first call). */
+/** Validate that a string looks like a URL-safe base64 VAPID public key (65 uncompressed bytes → 87 base64url chars). */
+function isValidVapidKey(key: string): boolean {
+  return !!key && /^[A-Za-z0-9_-]{80,}$/.test(key) && key.startsWith('B');
+}
+
+/** Fetch the VAPID public key from the backend. */
 let cachedVapidKey: string | null = null;
 async function getVapidPublicKey(): Promise<string> {
-  if (cachedVapidKey) return cachedVapidKey;
+  if (cachedVapidKey && isValidVapidKey(cachedVapidKey)) return cachedVapidKey;
 
   // Try env var first (works in local dev)
   const envKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
-  if (envKey) {
+  if (envKey && isValidVapidKey(envKey)) {
     cachedVapidKey = envKey;
     return envKey;
   }
 
-  // Fetch from edge function
+  // Fetch from edge function — bust any stale browser cache
   const res = await fetch(
     `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-vapid-key`,
-    { headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY } },
+    {
+      headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
+      cache: 'no-cache',
+    },
   );
   if (!res.ok) throw new Error('Failed to fetch VAPID key');
   const data = await res.json();
-  cachedVapidKey = data.key;
-  return data.key;
+  const key = data.key;
+
+  // Debug logging (temporary — remove once push works in production)
+  console.log('[VAPID] raw key:', key);
+  console.log('[VAPID] length:', key?.length);
+  console.log('[VAPID] valid:', isValidVapidKey(key));
+
+  if (!isValidVapidKey(key)) {
+    throw new Error(`Invalid VAPID public key received (length=${key?.length}). Clear your browser cache and retry.`);
+  }
+
+  cachedVapidKey = key;
+  return key;
 }
 
 /** Checks whether the browser supports service workers, PushManager, and Notification API. */
@@ -152,6 +171,16 @@ export const usePushNotifications = () => {
 
       // Fetch VAPID key and subscribe to push
       const vapidKey = await getVapidPublicKey();
+
+      if (!isValidVapidKey(vapidKey)) {
+        toast({
+          title: 'Invalid VAPID Key',
+          description: 'The push notification key is invalid. Please clear your browser cache and try again.',
+          variant: 'destructive',
+        });
+        return false;
+      }
+
       const applicationServerKey = urlBase64ToUint8Array(vapidKey);
 
       let subscription = await registration.pushManager.getSubscription();
