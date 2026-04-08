@@ -22,6 +22,6 @@ serve(async (req) => {
 
   return new Response(
     JSON.stringify({ key: vapidPublicKey }),
-    { headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "public, max-age=86400" } },
+    { headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "no-cache, no-store, must-revalidate" } },
   );
 });
