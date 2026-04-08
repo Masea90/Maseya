@@ -126,7 +126,6 @@ const ProductDetailPage = () => {
   };
 
   const secondaryLinks = links.filter(l => !l.is_primary);
-  const visibleSecondaryLinks = showAllRetailers ? secondaryLinks : secondaryLinks.slice(0, 2);
 
   return (
     <div className="min-h-screen bg-background">
