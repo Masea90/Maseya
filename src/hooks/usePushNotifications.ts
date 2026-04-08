@@ -151,7 +151,11 @@ export const usePushNotifications = () => {
 
       // Fetch VAPID key and subscribe to push
       const vapidKey = await getVapidPublicKey();
-      const applicationServerKey = urlBase64ToUint8Array(vapidKey);
+      const keyBytes = urlBase64ToUint8Array(vapidKey);
+      const applicationServerKey = keyBytes.buffer.slice(
+        keyBytes.byteOffset,
+        keyBytes.byteOffset + keyBytes.byteLength,
+      );
 
       let subscription = await registration.pushManager.getSubscription();
 
