@@ -248,6 +248,11 @@ function getMessage(timeOfDay: string, lang: string): string {
   return messages[timeOfDay]?.[lang] || messages[timeOfDay]?.en || "Time for your routine!";
 }
 
+// Sanitize base64 keys: trim whitespace, remove padding, convert to base64url
+function sanitizeKey(key: string): string {
+  return key.trim().replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
+}
+
 async function sendPushNotification(
   subscription: { endpoint: string; p256dh: string; auth: string },
   payload: { title: string; message: string; url: string }
@@ -263,14 +268,17 @@ async function sendPushNotification(
   const webPush = await import("https://esm.sh/web-push@3.6.7");
   webPush.setVapidDetails(
     "mailto:hello@maseya.app",
-    VAPID_PUBLIC_KEY,
-    VAPID_PRIVATE_KEY,
+    sanitizeKey(VAPID_PUBLIC_KEY),
+    sanitizeKey(VAPID_PRIVATE_KEY),
   );
 
   await webPush.sendNotification(
     {
       endpoint: subscription.endpoint,
-      keys: { p256dh: subscription.p256dh, auth: subscription.auth },
+      keys: {
+        p256dh: sanitizeKey(subscription.p256dh),
+        auth: sanitizeKey(subscription.auth),
+      },
     },
     JSON.stringify(payload),
   );
