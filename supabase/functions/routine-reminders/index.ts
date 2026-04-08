@@ -16,19 +16,53 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
+    // ── Test mode: send a test push to a specific user ──
+    let testUserId: string | null = null;
+    try {
+      const body = await req.json();
+      testUserId = body?.test_user_id || null;
+    } catch { /* no body */ }
+
+    if (testUserId) {
+      const { data: subs } = await supabase
+        .from("push_subscriptions")
+        .select("endpoint, p256dh, auth")
+        .eq("user_id", testUserId);
+
+      if (!subs || subs.length === 0) {
+        return new Response(
+          JSON.stringify({ error: "No push subscriptions found for test user" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const results = [];
+      for (const sub of subs) {
+        try {
+          await sendPushNotification(sub, {
+            title: "🔔 MASEYA Test",
+            message: "Push delivery confirmed! Your reminders will work. ✅",
+            url: "/",
+          });
+          results.push({ endpoint: sub.endpoint.slice(0, 50), status: "sent" });
+        } catch (e) {
+          results.push({ endpoint: sub.endpoint.slice(0, 50), status: "failed", error: e.message });
+        }
+      }
+
+      return new Response(
+        JSON.stringify({ test: true, results }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ── Normal cron mode ──
     const now = new Date();
     const currentHourUTC = now.getUTCHours();
     const todayStr = now.toISOString().split("T")[0];
 
-    // Determine which routine to nudge based on UTC hour
-    // Morning nudge: around noon local time (we'll check various timezones)
-    // Night nudge: around 9-10pm local time
     const nudgeTargets: { timeOfDay: string; offsetHours: number[] }[] = [];
-
-    // For each common timezone offset, check if it's nudge time
-    // Morning nudge at local noon (12:00): UTC hour = 12 - offset
-    // Night nudge at local 21:00 (9pm): UTC hour = 21 - offset
-    const timezoneOffsets = [-5, -4, -3, 0, 1, 2, 3]; // Americas, UTC, Europe, Africa
+    const timezoneOffsets = [-5, -4, -3, 0, 1, 2, 3];
 
     for (const offset of timezoneOffsets) {
       const localHour = (currentHourUTC + offset + 24) % 24;
