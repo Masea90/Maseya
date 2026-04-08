@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import webPush from "npm:web-push@3.6.7";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,19 +17,53 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
+    // ── Test mode: send a test push to a specific user ──
+    let testUserId: string | null = null;
+    try {
+      const body = await req.json();
+      testUserId = body?.test_user_id || null;
+    } catch { /* no body */ }
+
+    if (testUserId) {
+      const { data: subs } = await supabase
+        .from("push_subscriptions")
+        .select("endpoint, p256dh, auth")
+        .eq("user_id", testUserId);
+
+      if (!subs || subs.length === 0) {
+        return new Response(
+          JSON.stringify({ error: "No push subscriptions found for test user" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const results = [];
+      for (const sub of subs) {
+        try {
+          await sendPushNotification(sub, {
+            title: "🔔 MASEYA Test",
+            message: "Push delivery confirmed! Your reminders will work. ✅",
+            url: "/",
+          });
+          results.push({ endpoint: sub.endpoint.slice(0, 50), status: "sent" });
+        } catch (e) {
+          results.push({ endpoint: sub.endpoint.slice(0, 50), status: "failed", error: e.message });
+        }
+      }
+
+      return new Response(
+        JSON.stringify({ test: true, results }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ── Normal cron mode ──
     const now = new Date();
     const currentHourUTC = now.getUTCHours();
     const todayStr = now.toISOString().split("T")[0];
 
-    // Determine which routine to nudge based on UTC hour
-    // Morning nudge: around noon local time (we'll check various timezones)
-    // Night nudge: around 9-10pm local time
     const nudgeTargets: { timeOfDay: string; offsetHours: number[] }[] = [];
-
-    // For each common timezone offset, check if it's nudge time
-    // Morning nudge at local noon (12:00): UTC hour = 12 - offset
-    // Night nudge at local 21:00 (9pm): UTC hour = 21 - offset
-    const timezoneOffsets = [-5, -4, -3, 0, 1, 2, 3]; // Americas, UTC, Europe, Africa
+    const timezoneOffsets = [-5, -4, -3, 0, 1, 2, 3];
 
     for (const offset of timezoneOffsets) {
       const localHour = (currentHourUTC + offset + 24) % 24;
@@ -214,6 +249,11 @@ function getMessage(timeOfDay: string, lang: string): string {
   return messages[timeOfDay]?.[lang] || messages[timeOfDay]?.en || "Time for your routine!";
 }
 
+// Sanitize base64 keys: trim whitespace, remove padding, convert to base64url
+function sanitizeKey(key: string): string {
+  return key.trim().replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
+}
+
 async function sendPushNotification(
   subscription: { endpoint: string; p256dh: string; auth: string },
   payload: { title: string; message: string; url: string }
@@ -226,18 +266,26 @@ async function sendPushNotification(
     return;
   }
 
-  const webPush = await import("https://esm.sh/web-push@3.6.7");
-  webPush.setVapidDetails(
-    "mailto:hello@maseya.app",
-    VAPID_PUBLIC_KEY,
-    VAPID_PRIVATE_KEY,
-  );
+  const pubKey = sanitizeKey(VAPID_PUBLIC_KEY);
+  const privKey = sanitizeKey(VAPID_PRIVATE_KEY);
+  const p256dh = sanitizeKey(subscription.p256dh);
+  const auth = sanitizeKey(subscription.auth);
+
+  console.log(`VAPID pub: ${pubKey.length} chars, starts: ${pubKey.slice(0,8)}, ends: ${pubKey.slice(-4)}`);
+  console.log(`VAPID priv: ${privKey.length} chars, starts: ${privKey.slice(0,4)}`);
+  console.log(`p256dh: ${p256dh.length} chars, auth: ${auth.length} chars`);
+  
+  // Check for non-base64url characters
+  const b64urlRegex = /^[A-Za-z0-9_-]+$/;
+  console.log(`pubKey valid b64url: ${b64urlRegex.test(pubKey)}`);
+  console.log(`privKey valid b64url: ${b64urlRegex.test(privKey)}`);
+  console.log(`p256dh valid b64url: ${b64urlRegex.test(p256dh)}`);
+  console.log(`auth valid b64url: ${b64urlRegex.test(auth)}`);
+
+  webPush.setVapidDetails("mailto:hello@maseya.app", pubKey, privKey);
 
   await webPush.sendNotification(
-    {
-      endpoint: subscription.endpoint,
-      keys: { p256dh: subscription.p256dh, auth: subscription.auth },
-    },
+    { endpoint: subscription.endpoint, keys: { p256dh, auth } },
     JSON.stringify(payload),
   );
 
