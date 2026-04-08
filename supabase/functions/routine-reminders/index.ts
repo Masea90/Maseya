@@ -266,20 +266,26 @@ async function sendPushNotification(
     return;
   }
 
-  webPush.setVapidDetails(
-    "mailto:hello@maseya.app",
-    sanitizeKey(VAPID_PUBLIC_KEY),
-    sanitizeKey(VAPID_PRIVATE_KEY),
-  );
+  const pubKey = sanitizeKey(VAPID_PUBLIC_KEY);
+  const privKey = sanitizeKey(VAPID_PRIVATE_KEY);
+  const p256dh = sanitizeKey(subscription.p256dh);
+  const auth = sanitizeKey(subscription.auth);
+
+  console.log(`VAPID pub: ${pubKey.length} chars, starts: ${pubKey.slice(0,8)}, ends: ${pubKey.slice(-4)}`);
+  console.log(`VAPID priv: ${privKey.length} chars, starts: ${privKey.slice(0,4)}`);
+  console.log(`p256dh: ${p256dh.length} chars, auth: ${auth.length} chars`);
+  
+  // Check for non-base64url characters
+  const b64urlRegex = /^[A-Za-z0-9_-]+$/;
+  console.log(`pubKey valid b64url: ${b64urlRegex.test(pubKey)}`);
+  console.log(`privKey valid b64url: ${b64urlRegex.test(privKey)}`);
+  console.log(`p256dh valid b64url: ${b64urlRegex.test(p256dh)}`);
+  console.log(`auth valid b64url: ${b64urlRegex.test(auth)}`);
+
+  webPush.setVapidDetails("mailto:hello@maseya.app", pubKey, privKey);
 
   await webPush.sendNotification(
-    {
-      endpoint: subscription.endpoint,
-      keys: {
-        p256dh: sanitizeKey(subscription.p256dh),
-        auth: sanitizeKey(subscription.auth),
-      },
-    },
+    { endpoint: subscription.endpoint, keys: { p256dh, auth } },
     JSON.stringify(payload),
   );
 
