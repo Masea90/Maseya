@@ -12,54 +12,55 @@ import { useAffiliateLinks } from '@/hooks/useAffiliateLinks';
 import { useWishlist } from '@/hooks/useWishlist';
 import { supabase } from '@/integrations/supabase/client';
 // Real ingredient data for products — only verified ingredients
-const productIngredients: Record<number, { name: string; safe: boolean; note: string }[]> = {
+// Notes use i18n keys for full localization
+const productIngredients: Record<number, { name: string; noteKey: string }[]> = {
   3: [
-    { name: 'Niacinamide 10%', safe: true, note: 'Reduces blemishes' },
-    { name: 'Zinc PCA 1%', safe: true, note: 'Oil control' },
-    { name: 'Tasmanian Pepperberry', safe: true, note: 'Reduces irritation' },
+    { name: 'Niacinamide 10%', noteKey: 'ingNoteReducesBlemishes' },
+    { name: 'Zinc PCA 1%', noteKey: 'ingNoteOilControl' },
+    { name: 'Tasmanian Pepperberry', noteKey: 'ingNoteReducesIrritation' },
   ],
   4: [
-    { name: 'Bis-Aminopropyl Diglycol Dimaleate', safe: true, note: 'Bond repair' },
-    { name: 'Moringa Oil', safe: true, note: 'Shine enhancement' },
-    { name: 'Fermented Green Tea', safe: true, note: 'Antioxidant' },
+    { name: 'Bis-Aminopropyl Diglycol Dimaleate', noteKey: 'ingNoteBondRepair' },
+    { name: 'Moringa Oil', noteKey: 'ingNoteShineEnhancement' },
+    { name: 'Fermented Green Tea', noteKey: 'ingNoteAntioxidant' },
   ],
   5: [
-    { name: 'Ceramides 1, 3, 6-II', safe: true, note: 'Restores skin barrier' },
-    { name: 'Hyaluronic Acid', safe: true, note: 'Hydration' },
-    { name: 'Glycerin', safe: true, note: 'Moisture retention' },
+    { name: 'Ceramides 1, 3, 6-II', noteKey: 'ingNoteRestoresBarrier' },
+    { name: 'Hyaluronic Acid', noteKey: 'ingNoteHydration' },
+    { name: 'Glycerin', noteKey: 'ingNoteMoistureRetention' },
   ],
   7: [
-    { name: 'Tsubaki Oil', safe: true, note: 'Shine & softness' },
-    { name: 'Argan Oil', safe: true, note: 'Nourishment' },
-    { name: 'Sweet Almond Oil', safe: true, note: 'Conditioning' },
-    { name: 'Hazelnut Oil', safe: true, note: 'Lightweight moisture' },
+    { name: 'Tsubaki Oil', noteKey: 'ingNoteShineSoftness' },
+    { name: 'Argan Oil', noteKey: 'ingNoteNourishment' },
+    { name: 'Sweet Almond Oil', noteKey: 'ingNoteConditioning' },
+    { name: 'Hazelnut Oil', noteKey: 'ingNoteLightMoisture' },
   ],
   9: [
-    { name: 'Argan Oil', safe: true, note: 'Deep conditioning' },
-    { name: 'Linseed Extract', safe: true, note: 'Strengthening' },
-    { name: 'Vitamin E & F', safe: true, note: 'Shine & protection' },
+    { name: 'Argan Oil', noteKey: 'ingNoteDeepConditioning' },
+    { name: 'Linseed Extract', noteKey: 'ingNoteStrengthening' },
+    { name: 'Vitamin E & F', noteKey: 'ingNoteShineProtection' },
   ],
   10: [
-    { name: 'Sunflower Seed Oil', safe: true, note: 'Deep nourishment' },
-    { name: 'Lanolin', safe: true, note: 'Protective barrier' },
-    { name: 'Viola Tricolor Extract', safe: true, note: 'Soothes & calms' },
-    { name: 'Chamomile Extract', safe: true, note: 'Anti-inflammatory' },
-    { name: 'Calendula Extract', safe: true, note: 'Skin repair' },
+    { name: 'Sunflower Seed Oil', noteKey: 'ingNoteDeepNourishment' },
+    { name: 'Lanolin', noteKey: 'ingNoteProtectiveBarrier' },
+    { name: 'Viola Tricolor Extract', noteKey: 'ingNoteSoothesCalms' },
+    { name: 'Chamomile Extract', noteKey: 'ingNoteAntiInflammatory' },
+    { name: 'Calendula Extract', noteKey: 'ingNoteSkinRepair' },
   ],
   11: [
-    { name: 'Rosehip Fruit Oil (CO2)', safe: true, note: 'Rich in Vitamin A & C' },
-    { name: 'Rosehip Seed Oil', safe: true, note: 'Skin regeneration' },
-    { name: 'Vitamin E (Tocopherol)', safe: true, note: 'Antioxidant protection' },
+    { name: 'Rosehip Fruit Oil (CO2)', noteKey: 'ingNoteVitaminAC' },
+    { name: 'Rosehip Seed Oil', noteKey: 'ingNoteSkinRegeneration' },
+    { name: 'Vitamin E (Tocopherol)', noteKey: 'ingNoteAntioxidantProtection' },
   ],
   12: [
-    { name: 'Lactic Acid (AHA)', safe: true, note: 'Gentle exfoliation' },
-    { name: 'Willow Bark Extract (BHA)', safe: true, note: 'Pore refinement' },
-    { name: 'Azelaic Acid', safe: true, note: 'Brightening & anti-redness' },
+    { name: 'Lactic Acid (AHA)', noteKey: 'ingNoteGentleExfoliation' },
+    { name: 'Willow Bark Extract (BHA)', noteKey: 'ingNotePoreRefinement' },
+    { name: 'Azelaic Acid', noteKey: 'ingNoteBrighteningAntiRedness' },
   ],
   13: [
-    { name: 'Mango Butter', safe: true, note: 'Intense nourishment' },
-    { name: 'Mango Pulp Extract', safe: true, note: 'Softening & repair' },
-    { name: 'Coconut Oil', safe: true, note: 'Deep conditioning' },
+    { name: 'Mango Butter', noteKey: 'ingNoteIntenseNourishment' },
+    { name: 'Mango Pulp Extract', noteKey: 'ingNoteSofteningRepair' },
+    { name: 'Coconut Oil', noteKey: 'ingNoteDeepConditioning' },
   ],
 };
 
@@ -186,15 +187,9 @@ const ProductDetailPage = () => {
           </div>
         </div>
 
-        {/* Real Product Note */}
-        <div className="bg-maseya-cream/50 border border-maseya-sage/30 rounded-xl p-3 flex items-center gap-2">
-          <Check className="w-4 h-4 text-primary flex-shrink-0" />
-          <p className="text-xs text-muted-foreground">
-            {t('realProductNote')}
-          </p>
-        </div>
+        {/* Verified product badge - only show tags that are true for this product */}
 
-        {/* Where to Buy - Multi-retailer */}
+        {/* Where to Buy */}
         {links.length > 0 && (
           <div className="space-y-3">
             <h2 className="font-display text-lg font-semibold flex items-center gap-2">
@@ -213,7 +208,6 @@ const ProductDetailPage = () => {
                     <span className="text-2xl">{primaryLink.retailer_icon}</span>
                     <div className="text-left">
                       <p className="font-semibold text-foreground">{primaryLink.retailer_name}</p>
-                      <p className="text-xs text-muted-foreground">{t('officialStore')}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -223,33 +217,36 @@ const ProductDetailPage = () => {
                 </button>
               )}
 
-              {/* Secondary retailers */}
-              {visibleSecondaryLinks.map(link => (
-                <button
-                  key={link.id}
-                  onClick={() => handleAffiliateClick(link)}
-                  className="w-full flex items-center justify-between p-3.5 rounded-xl bg-card border border-border hover:border-primary/30 transition-all group"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-xl">{link.retailer_icon}</span>
-                    <p className="font-medium text-foreground text-sm">{link.retailer_name}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">{t('visitStore')}</span>
-                    <ExternalLink className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
-                  </div>
-                </button>
-              ))}
-
-              {/* Show more toggle */}
-              {secondaryLinks.length > 2 && !showAllRetailers && (
-                <button
-                  onClick={() => setShowAllRetailers(true)}
-                  className="w-full flex items-center justify-center gap-1 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <ChevronDown className="w-4 h-4" />
-                  {t('moreOptions')}
-                </button>
+              {/* Other countries - collapsed by default */}
+              {secondaryLinks.length > 0 && (
+                <>
+                  {showAllRetailers ? (
+                    <div className="space-y-1.5">
+                      <p className="text-xs text-muted-foreground font-medium px-1">{t('otherCountries')}</p>
+                      {secondaryLinks.map(link => (
+                        <button
+                          key={link.id}
+                          onClick={() => handleAffiliateClick(link)}
+                          className="w-full flex items-center justify-between p-3 rounded-xl bg-card border border-border hover:border-primary/30 transition-all group"
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="text-lg">{link.retailer_icon}</span>
+                            <p className="font-medium text-foreground text-sm">{link.retailer_name}</p>
+                          </div>
+                          <ExternalLink className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setShowAllRetailers(true)}
+                      className="w-full flex items-center justify-center gap-1 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <ChevronDown className="w-3.5 h-3.5" />
+                      {t('otherCountries')}
+                    </button>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -294,7 +291,7 @@ const ProductDetailPage = () => {
                     <Check className="w-4 h-4 text-primary" />
                     <span className="font-medium text-sm">{ing.name}</span>
                   </div>
-                  <span className="text-xs text-muted-foreground">{ing.note}</span>
+                  <span className="text-xs text-muted-foreground">{t(ing.noteKey as any)}</span>
                 </div>
               ))}
             </div>
