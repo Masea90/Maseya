@@ -25,15 +25,17 @@ export interface ChatRemedy {
 }
 
 // Try to match an AI-recommended product to the internal catalog
+// Strict matching: exact brand + significant title overlap required
 function matchCatalogProduct(title: string, brand: string) {
   const titleLower = title.toLowerCase();
   const brandLower = brand.toLowerCase();
-  return productCatalog.find(
-    p =>
-      p.brand.toLowerCase() === brandLower ||
-      p.name.toLowerCase().includes(titleLower.split(' ').slice(0, 2).join(' ')) ||
-      titleLower.includes(p.name.toLowerCase().split(' ').slice(0, 2).join(' '))
-  );
+  return productCatalog.find(p => {
+    const brandMatch = p.brand.toLowerCase() === brandLower;
+    if (!brandMatch) return false;
+    // Require at least the first 2 words of the catalog name to appear in the title
+    const catalogWords = p.name.toLowerCase().split(' ').filter(w => w.length > 2).slice(0, 2);
+    return catalogWords.length > 0 && catalogWords.every(w => titleLower.includes(w));
+  });
 }
 
 // Try to match a remedy by title
