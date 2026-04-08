@@ -193,28 +193,52 @@ Deno.serve(async (req) => {
 });
 
 function getTimezoneOffset(timezone: string): number {
-  // Map common timezone strings to UTC offsets
-  const offsets: Record<string, number> = {
-    UTC: 0,
-    "Europe/London": 0,
-    "Europe/Paris": 1,
-    "Europe/Berlin": 1,
-    "Europe/Madrid": 1,
-    "Europe/Rome": 1,
-    "Europe/Istanbul": 3,
-    "Africa/Cairo": 2,
-    "Africa/Casablanca": 1,
-    "Africa/Lagos": 1,
-    "America/New_York": -5,
-    "America/Chicago": -6,
-    "America/Denver": -7,
-    "America/Los_Angeles": -8,
-    "America/Sao_Paulo": -3,
-    "America/Argentina/Buenos_Aires": -3,
-    "America/Mexico_City": -6,
-    "America/Bogota": -5,
-  };
-  return offsets[timezone] ?? 0;
+  // Dynamically compute the current UTC offset for the given IANA timezone,
+  // which automatically accounts for DST transitions.
+  try {
+    const now = new Date();
+    // Format a short date in the target timezone and in UTC, then diff them
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+    const utcFormatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: "UTC",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+
+    const parseParts = (f: Intl.DateTimeFormat) => {
+      const p = Object.fromEntries(
+        f.formatToParts(now).map((x) => [x.type, x.value])
+      );
+      return Date.UTC(
+        +p.year,
+        +p.month - 1,
+        +p.day,
+        +(p.hour === "24" ? "0" : p.hour),
+        +p.minute
+      );
+    };
+
+    const localMs = parseParts(formatter);
+    const utcMs = parseParts(utcFormatter);
+    const offsetHours = Math.round((localMs - utcMs) / 3_600_000);
+    return offsetHours;
+  } catch {
+    // If the timezone string is invalid, default to UTC
+    console.warn(`Unknown timezone "${timezone}", defaulting to UTC offset 0`);
+    return 0;
+  }
 }
 
 function getTitle(timeOfDay: string, lang: string): string {
