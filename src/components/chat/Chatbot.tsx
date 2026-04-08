@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { useUser } from '@/contexts/UserContext';
 import { useChatHistory } from '@/hooks/useChatHistory';
 import { getAuthHeaders } from '@/lib/authHeaders';
-import { ChatProductCards, type ChatProduct } from './ChatProductCard';
+import { ChatProductCards, ChatRemedyCards, type ChatProduct, type ChatRemedy } from './ChatProductCard';
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
