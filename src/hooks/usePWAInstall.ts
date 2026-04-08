@@ -9,8 +9,25 @@ interface BeforeInstallPromptEvent extends Event {
 const STORAGE_KEY = 'maseya_install_prompt_shown';
 const INSTALLED_KEY = 'maseya_installed';
 
+// Global deferred prompt so any component can access it
+let globalDeferredPrompt: BeforeInstallPromptEvent | null = null;
+const listeners = new Set<(p: BeforeInstallPromptEvent | null) => void>();
+
+function setGlobalPrompt(p: BeforeInstallPromptEvent | null) {
+  globalDeferredPrompt = p;
+  listeners.forEach((fn) => fn(p));
+}
+
+// Capture the event as early as possible (module level)
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeinstallprompt', (e: Event) => {
+    e.preventDefault();
+    setGlobalPrompt(e as BeforeInstallPromptEvent);
+  });
+}
+
 export const usePWAInstall = () => {
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(globalDeferredPrompt);
   const [isInstalled, setIsInstalled] = useState(false);
   const [promptShown, setPromptShown] = useState(false);
   const device = getDeviceInfo();
@@ -23,21 +40,19 @@ export const usePWAInstall = () => {
 
     setPromptShown(localStorage.getItem(STORAGE_KEY) === 'true');
 
-    const handler = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
-    };
+    // Subscribe to global prompt changes
+    const handler = (p: BeforeInstallPromptEvent | null) => setDeferredPrompt(p);
+    listeners.add(handler);
 
     const installedHandler = () => {
       setIsInstalled(true);
       localStorage.setItem(INSTALLED_KEY, 'true');
     };
 
-    window.addEventListener('beforeinstallprompt', handler);
     window.addEventListener('appinstalled', installedHandler);
 
     return () => {
-      window.removeEventListener('beforeinstallprompt', handler);
+      listeners.delete(handler);
       window.removeEventListener('appinstalled', installedHandler);
     };
   }, [device.isStandalone]);
@@ -46,7 +61,7 @@ export const usePWAInstall = () => {
     if (!deferredPrompt) return false;
     await deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
-    setDeferredPrompt(null);
+    setGlobalPrompt(null);
     if (outcome === 'accepted') {
       setIsInstalled(true);
       localStorage.setItem(INSTALLED_KEY, 'true');
