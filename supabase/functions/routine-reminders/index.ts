@@ -218,10 +218,28 @@ async function sendPushNotification(
   subscription: { endpoint: string; p256dh: string; auth: string },
   payload: { title: string; message: string; url: string }
 ) {
-  // Note: In production, you'd use the web-push protocol with VAPID keys
-  // For now, this creates the notification in-app only
-  // Push notification sending requires VAPID private key and web-push implementation
-  console.log(
-    `Would send push to ${subscription.endpoint}: ${payload.title}`
+  const VAPID_PUBLIC_KEY = Deno.env.get("VAPID_PUBLIC_KEY");
+  const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY");
+
+  if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+    console.error("VAPID keys not configured — cannot send push");
+    return;
+  }
+
+  const webPush = await import("https://esm.sh/web-push@3.6.7");
+  webPush.setVapidDetails(
+    "mailto:hello@maseya.app",
+    VAPID_PUBLIC_KEY,
+    VAPID_PRIVATE_KEY,
   );
+
+  await webPush.sendNotification(
+    {
+      endpoint: subscription.endpoint,
+      keys: { p256dh: subscription.p256dh, auth: subscription.auth },
+    },
+    JSON.stringify(payload),
+  );
+
+  console.log(`Push sent to ${subscription.endpoint.slice(0, 50)}...`);
 }
