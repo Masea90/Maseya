@@ -77,7 +77,7 @@ export const translations = {
     // Goals
     clearSkin: 'Clear, Glowing Skin',
     healthyHair: 'Healthy, Strong Hair',
-    natural: 'All-Natural Products',
+    natural: 'Clean & Natural Beauty',
     nutrition: 'Better Nutrition',
     routine: 'Simple Routines',
     community: 'Community Support',
@@ -910,7 +910,7 @@ export const translations = {
     // Goals
     clearSkin: 'Piel clara y radiante',
     healthyHair: 'Cabello sano y fuerte',
-    natural: 'Productos 100% naturales',
+    natural: 'Belleza natural y limpia',
     nutrition: 'Mejor nutrición',
     routine: 'Rutinas simples',
     community: 'Apoyo de la comunidad',
@@ -1742,7 +1742,7 @@ export const translations = {
     // Goals
     clearSkin: 'Peau nette et éclatante',
     healthyHair: 'Cheveux sains et forts',
-    natural: 'Produits 100% naturels',
+    natural: 'Beauté naturelle et clean',
     nutrition: 'Meilleure nutrition',
     routine: 'Routines simples',
     community: 'Soutien de la communauté',
