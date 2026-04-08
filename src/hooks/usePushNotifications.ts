@@ -151,10 +151,16 @@ export const usePushNotifications = () => {
 
       // Fetch VAPID key and subscribe to push
       const vapidKey = await getVapidPublicKey();
-      const subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidKey).buffer as ArrayBuffer,
-      });
+      const applicationServerKey = urlBase64ToUint8Array(vapidKey);
+
+      let subscription = await registration.pushManager.getSubscription();
+
+      if (!subscription) {
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey,
+        });
+      }
 
       // Save subscription to database
       const subscriptionJson = subscription.toJSON();
