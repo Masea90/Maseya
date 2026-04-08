@@ -149,10 +149,11 @@ export const usePushNotifications = () => {
         return false;
       }
 
-      // Subscribe to push
+      // Fetch VAPID key and subscribe to push
+      const vapidKey = await getVapidPublicKey();
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        applicationServerKey: urlBase64ToUint8Array(vapidKey),
       });
 
       // Save subscription to database
