@@ -1,10 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
-
-// VAPID public key from environment — must match the server-side VAPID_PUBLIC_KEY secret
-const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || '';
 
 function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -15,6 +12,29 @@ function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
     outputArray[i] = rawData.charCodeAt(i);
   }
   return outputArray.buffer as ArrayBuffer;
+}
+
+/** Fetch the VAPID public key from the backend (cached after first call). */
+let cachedVapidKey: string | null = null;
+async function getVapidPublicKey(): Promise<string> {
+  if (cachedVapidKey) return cachedVapidKey;
+
+  // Try env var first (works in local dev)
+  const envKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+  if (envKey) {
+    cachedVapidKey = envKey;
+    return envKey;
+  }
+
+  // Fetch from edge function
+  const res = await fetch(
+    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-vapid-key`,
+    { headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY } },
+  );
+  if (!res.ok) throw new Error('Failed to fetch VAPID key');
+  const data = await res.json();
+  cachedVapidKey = data.key;
+  return data.key;
 }
 
 /** Checks whether the browser supports service workers, PushManager, and Notification API. */
