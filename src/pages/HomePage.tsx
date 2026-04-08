@@ -209,7 +209,7 @@ const HomePage = () => {
                     {t('routineDoneToday')}
                   </span>
                   <p className="text-sm text-primary/70 mt-0.5">
-                    🔥 {t('streakTomorrowHook', { streak: String(user.streak + 1) })}
+                    🔥 {t('comeBackTomorrow')}
                   </p>
                 </div>
               </>
