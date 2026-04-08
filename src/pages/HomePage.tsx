@@ -204,9 +204,14 @@ const HomePage = () => {
                 <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
                   <Check className="w-5 h-5 text-primary" />
                 </div>
-                <span className="font-display text-lg font-semibold text-primary">
-                  {t('alreadyCompleted')}
-                </span>
+                <div className="text-center">
+                  <span className="font-display text-lg font-semibold text-primary block">
+                    {t('routineDoneToday')}
+                  </span>
+                  <p className="text-sm text-primary/70 mt-0.5">
+                    🔥 {t('streakTomorrowHook', { streak: String(user.streak + 1) })}
+                  </p>
+                </div>
               </>
             ) : (
               <>
