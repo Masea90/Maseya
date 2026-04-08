@@ -210,7 +210,7 @@ const HomePage = () => {
             )}
           </div>
           {!completedToday && !isChecking && (
-            <p className="relative text-sm opacity-80 mt-1">+5 {t('points')} · +1 {t('streak')}</p>
+            <p className="relative text-sm opacity-80 mt-1">+5 {t('points')} · 🔥 {t('keepItUp')}</p>
           )}
         </button>
 
