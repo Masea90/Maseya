@@ -168,7 +168,6 @@ Deno.serve(async (req) => {
       products = (rows ?? []) as MaseyaRow[];
     }
 
-    const products = (rows ?? []) as MaseyaRow[];
     let enriched = 0;
     let stillMissing = 0;
 
@@ -189,9 +188,30 @@ Deno.serve(async (req) => {
         continue;
       }
 
+      // For single-barcode mode, the row may not exist yet — upsert with sensible defaults
+      if (singleBarcode && !row.product_name && !row.image_url && !row.ingredients_text) {
+        const newRow = {
+          barcode: row.barcode,
+          product_name: patch.product_name || 'Producto sin nombre',
+          brand: patch.brand ?? null,
+          category: patch.category ?? row.category ?? 'unknown',
+          ingredients_text: patch.ingredients_text ?? null,
+          image_url: patch.image_url ?? null,
+          source: 'enrich_lookup',
+          verified: false,
+          last_enriched_at: new Date().toISOString(),
+        };
+        const { error: upErr } = await admin
+          .from("maseya_products")
+          .upsert(newRow, { onConflict: 'barcode' });
+        if (upErr) { console.error("[enrich] insert error", row.barcode, upErr); stillMissing++; }
+        else enriched++;
+        continue;
+      }
+
       const { error: upErr } = await admin
         .from("maseya_products")
-        .update(patch)
+        .update({ ...patch, last_enriched_at: new Date().toISOString() })
         .eq("barcode", row.barcode);
       if (upErr) {
         console.error("[enrich] update error", row.barcode, upErr);
