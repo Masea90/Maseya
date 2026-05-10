@@ -69,13 +69,40 @@ const COPY = {
 export const OnboardingQuiz = () => {
   const navigate = useNavigate();
   const { user, completeOnboarding } = useUser();
+  const { currentUser } = useAuth();
   const c = COPY[user.language] ?? COPY.es;
 
   const [skin, setSkin] = useState<string[]>([]);
   const [allergies, setAllergies] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
 
   const toggle = (val: string, list: string[], setList: (v: string[]) => void) => {
     setList(list.includes(val) ? list.filter(x => x !== val) : [...list, val]);
+  };
+
+  const handleSubmit = async () => {
+    if (skin.length === 0 || saving) return;
+    setSaving(true);
+    localStorage.setItem('maseya_onboarding', JSON.stringify({ skin, allergies }));
+
+    if (currentUser?.id) {
+      const cleanAllergies = allergies.filter(a => a !== 'none');
+      const { error } = await supabase
+        .from('health_profiles')
+        .upsert(
+          {
+            user_id: currentUser.id,
+            skin_type: skin,
+            allergies: cleanAllergies,
+            completion_pct: 25,
+          },
+          { onConflict: 'user_id' }
+        );
+      if (error) console.error('health_profiles upsert error:', error);
+      completeOnboarding();
+    }
+
+    navigate('/scan', { replace: true });
   };
 
   const handleSubmit = () => {
