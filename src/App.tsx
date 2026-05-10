@@ -8,6 +8,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { UserProvider } from '@/contexts/UserContext';
 import { AppRoutes } from '@/components/AppRoutes';
 import { ConsentModal } from '@/components/consent/ConsentModal';
+import { UpdateBanner } from '@/components/UpdateBanner';
 
 function App() {
   const [queryClient] = useState(() => new QueryClient());
@@ -19,6 +20,7 @@ function App() {
           <TooltipProvider>
             <Toaster />
             <Sonner />
+            <UpdateBanner />
             <BrowserRouter>
               <ConsentModal onAcceptAll={() => {}} onAcceptEssential={() => {}} />
               <AppRoutes />
