@@ -335,23 +335,59 @@ const ProfilePage = () => {
               </div>
               <Switch checked={premium} onCheckedChange={(v) => setPremium(v)} />
             </div>
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={async () => {
-                const tid = toast.loading('Enriqueciendo productos...');
-                const { data, error } = await supabase.functions.invoke('enrich-products', { body: {} });
-                toast.dismiss(tid);
-                if (error) {
-                  toast.error('Error al enriquecer productos');
-                  return;
-                }
-                const r = data as { scanned?: number; enriched?: number; still_missing?: number };
-                toast.success(`${r?.enriched ?? 0} productos actualizados (${r?.scanned ?? 0} escaneados)`);
-              }}
-            >
-              🔄 Enriquecer productos ahora
-            </Button>
+
+            <div className="pt-3 border-t border-primary/20 space-y-2">
+              <p className="text-xs font-semibold text-primary uppercase tracking-wider">Base de datos</p>
+              <p className="text-sm">
+                Productos en base de datos:{' '}
+                <span className="font-semibold">{productCount ?? '...'}</span>
+              </p>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={async () => {
+                  const tid = toast.loading('Importando... puede tardar 30 segundos');
+                  const { data, error } = await supabase.functions.invoke('import-off-products', { body: { page: 1, source: 'off' } });
+                  toast.dismiss(tid);
+                  if (error) { toast.error('Error al importar productos'); return; }
+                  const r = data as { imported?: number; skipped?: number };
+                  toast.success(`${r?.imported ?? 0} productos importados, ${r?.skipped ?? 0} omitidos`);
+                  refreshProductCount();
+                }}
+              >
+                📥 Importar productos España (pág 1)
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={async () => {
+                  const tid = toast.loading('Importando... puede tardar 30 segundos');
+                  const { data, error } = await supabase.functions.invoke('import-off-products', { body: { page: 1, source: 'obf' } });
+                  toast.dismiss(tid);
+                  if (error) { toast.error('Error al importar cosméticos'); return; }
+                  const r = data as { imported?: number; skipped?: number };
+                  toast.success(`${r?.imported ?? 0} productos importados, ${r?.skipped ?? 0} omitidos`);
+                  refreshProductCount();
+                }}
+              >
+                📥 Importar cosméticos España (pág 1)
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={async () => {
+                  const tid = toast.loading('Enriqueciendo productos...');
+                  const { data, error } = await supabase.functions.invoke('enrich-products', { body: {} });
+                  toast.dismiss(tid);
+                  if (error) { toast.error('Error al enriquecer productos'); return; }
+                  const r = data as { scanned?: number; enriched?: number; still_missing?: number };
+                  toast.success(`${r?.enriched ?? 0} productos actualizados (${r?.scanned ?? 0} escaneados)`);
+                  refreshProductCount();
+                }}
+              >
+                🔄 Enriquecer productos ahora
+              </Button>
+            </div>
           </div>
         )}
       </div>
