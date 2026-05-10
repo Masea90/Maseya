@@ -68,6 +68,45 @@ export type Database = {
         }
         Relationships: []
       }
+      maseya_products: {
+        Row: {
+          barcode: string
+          brand: string | null
+          category: string
+          created_at: string
+          image_url: string | null
+          ingredients_text: string | null
+          product_name: string
+          source: string
+          updated_at: string
+          verified: boolean
+        }
+        Insert: {
+          barcode: string
+          brand?: string | null
+          category: string
+          created_at?: string
+          image_url?: string | null
+          ingredients_text?: string | null
+          product_name: string
+          source?: string
+          updated_at?: string
+          verified?: boolean
+        }
+        Update: {
+          barcode?: string
+          brand?: string | null
+          category?: string
+          created_at?: string
+          image_url?: string | null
+          ingredients_text?: string | null
+          product_name?: string
+          source?: string
+          updated_at?: string
+          verified?: boolean
+        }
+        Relationships: []
+      }
       monthly_scan_counts: {
         Row: {
           count: number
