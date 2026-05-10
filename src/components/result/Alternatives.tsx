@@ -200,17 +200,29 @@ export const Alternatives = ({ current, currentScore }: Props) => {
               <button
                 key={a.barcode}
                 onClick={() => navigate(`/result/${encodeURIComponent(a.barcode)}`)}
-                className="aspect-[3/4] rounded-2xl bg-card border border-border p-2 flex flex-col gap-1 text-left hover:border-primary/50 transition-colors"
+                className="aspect-[3/4] rounded-2xl bg-card border border-border p-2 flex flex-col gap-1 text-left hover:border-primary/50 transition-colors overflow-hidden"
               >
-                <div
-                  className="self-start text-[10px] font-bold px-2 py-0.5 rounded-full"
-                  style={{ backgroundColor: sl.bg, color: sl.color }}
-                >
-                  {a.score}
+                <div className="flex items-start justify-between gap-1">
+                  <div
+                    className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                    style={{ backgroundColor: sl.bg, color: sl.color }}
+                  >
+                    {a.score}
+                  </div>
                 </div>
-                <p className="text-[11px] font-semibold leading-tight line-clamp-2 mt-1">{a.product_name}</p>
+                {a.image ? (
+                  <div className="w-full aspect-square rounded-lg overflow-hidden bg-muted">
+                    <img src={a.image} alt={a.product_name} className="w-full h-full object-cover" loading="lazy" />
+                  </div>
+                ) : (
+                  <div className="w-full aspect-square rounded-lg bg-primary/10 flex items-center justify-center">
+                    <span className="font-display font-bold text-primary/60 text-lg">
+                      {(a.product_name || '?').charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                )}
+                <p className="text-[11px] font-semibold leading-tight line-clamp-2">{a.product_name}</p>
                 {a.brand && <p className="text-[10px] text-muted-foreground line-clamp-1">{a.brand}</p>}
-                <span className="mt-auto text-[10px] text-primary font-medium">Ver análisis →</span>
               </button>
             );
           })}
