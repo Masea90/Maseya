@@ -7,16 +7,16 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SYSTEM_PROMPT = `You are an ingredient extraction expert. Extract ONLY the ingredient list from the product label photo. Return ONLY a JSON object with this exact format, nothing else:
+const SYSTEM_PROMPT = `You are an expert at reading product labels. Extract the following and return ONLY valid JSON:
 {
-  "product_name": "name if visible, empty string if not",
-  "brand": "brand if visible, empty string if not",
+  "product_name": "full product name as shown",
+  "brand": "brand name",
   "category": "food or cosmetic",
-  "ingredients_text": "full ingredient list as text, comma separated"
+  "ingredients_text": "complete ingredient list"
 }
-If no ingredient list is readable, set ingredients_text to an empty string.`;
+Use empty string if field not found. Include ALL ingredients exactly as written.`;
 
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5 MB of base64 payload
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 const json = (body: unknown, status: number) =>
   new Response(JSON.stringify(body), {
@@ -24,17 +24,19 @@ const json = (body: unknown, status: number) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
+const toDataUrl = (img: string) =>
+  img.startsWith("data:") ? img : `data:image/jpeg;base64,${img}`;
+
+const measure = (img: string) =>
+  (img.startsWith("data:") ? img.slice(img.indexOf(",") + 1) : img).length;
+
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    // --- Auth check (mirror chat function) ---
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return json({ error: "Unauthorized" }, 401);
-    }
+    if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
+
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
@@ -43,52 +45,55 @@ serve(async (req) => {
     const token = authHeader.replace("Bearer ", "");
     const { data: claimsData, error: claimsError } =
       await supabaseClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      return json({ error: "Unauthorized" }, 401);
-    }
+    if (claimsError || !claimsData?.claims) return json({ error: "Unauthorized" }, 401);
 
-    const { image } = await req.json();
-    if (!image || typeof image !== "string") {
-      return json({ error: "Missing image" }, 400);
-    }
+    const body = await req.json();
+    // Accept new (front_image + ingredients_image) or legacy (image)
+    const front = body.front_image as string | undefined;
+    const ingr = body.ingredients_image as string | undefined;
+    const single = body.image as string | undefined;
 
-    // Strip data URL prefix when measuring
-    const base64Part = image.startsWith("data:")
-      ? image.slice(image.indexOf(",") + 1)
-      : image;
-    if (base64Part.length > MAX_IMAGE_BYTES) {
-      return json({ error: "image_too_large" }, 413);
+    const images: string[] = [];
+    if (front) images.push(front);
+    if (ingr) images.push(ingr);
+    if (!images.length && single) images.push(single);
+
+    if (!images.length) return json({ error: "Missing image" }, 400);
+
+    for (const i of images) {
+      if (typeof i !== "string") return json({ error: "Invalid image" }, 400);
+      if (measure(i) > MAX_IMAGE_BYTES) return json({ error: "image_too_large" }, 413);
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const imageUrl = image.startsWith("data:") ? image : `data:image/jpeg;base64,${image}`;
-
-    const response = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
+    const userContent: any[] = [
       {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [
-            { role: "system", content: SYSTEM_PROMPT },
-            {
-              role: "user",
-              content: [
-                { type: "text", text: "Extract the ingredients from this product label." },
-                { type: "image_url", image_url: { url: imageUrl } },
-              ],
-            },
-          ],
-          response_format: { type: "json_object" },
-        }),
-      }
-    );
+        type: "text",
+        text:
+          images.length === 2
+            ? "First image is the product front (use for product_name, brand, category). Second image is the ingredients label. Combine both."
+            : "Extract everything from this product label image.",
+      },
+      ...images.map((img) => ({ type: "image_url", image_url: { url: toDataUrl(img) } })),
+    ];
+
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: userContent },
+        ],
+        response_format: { type: "json_object" },
+      }),
+    });
 
     if (!response.ok) {
       const t = await response.text();
@@ -111,9 +116,7 @@ serve(async (req) => {
     }
 
     const ingredients = (extracted.ingredients_text || "").trim();
-    if (!ingredients || ingredients.length < 10) {
-      return json({ error: "no_ingredients" }, 422);
-    }
+    if (!ingredients || ingredients.length < 10) return json({ error: "no_ingredients" }, 422);
 
     const category = extracted.category === "food" ? "food" : "cosmetic";
 
