@@ -1,17 +1,19 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+import { Shield, Lock, Users, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Shield, Lock, Users, ChevronRight, Check } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUser } from '@/contexts/UserContext';
 import { supabase } from '@/integrations/supabase/client';
 
 interface ConsentModalProps {
-  onAcceptAll: () => void;
-  onAcceptEssential: () => void;
+  onAcceptAll?: () => void;
+  onAcceptEssential?: () => void;
 }
 
 const CONSENT_STORAGE_KEY = 'maseya_consent';
+// Routes where the consent banner must NOT appear (welcome / pre-onboarding)
+const HIDE_ON_ROUTES = ['/', '/welcome'];
 
 export const getStoredConsent = () => {
   const stored = localStorage.getItem(CONSENT_STORAGE_KEY);
@@ -44,122 +46,119 @@ const saveConsentToDb = async (userId: string, analytics: boolean, personalizati
   }
 };
 
-export const ConsentModal = ({ onAcceptAll, onAcceptEssential }: ConsentModalProps) => {
-  const [isOpen, setIsOpen] = useState(false);
+export const ConsentModal = ({ onAcceptEssential }: ConsentModalProps) => {
+  const [visible, setVisible] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const { currentUser } = useAuth();
   const { t } = useUser();
+  const location = useLocation();
 
   useEffect(() => {
+    if (HIDE_ON_ROUTES.includes(location.pathname)) {
+      setVisible(false);
+      return;
+    }
     const existingConsent = getStoredConsent();
     if (!existingConsent) {
-      const timer = setTimeout(() => setIsOpen(true), 500);
+      const timer = setTimeout(() => setVisible(true), 600);
       return () => clearTimeout(timer);
     }
-  }, []);
+  }, [location.pathname]);
 
-  const handleAcceptAll = async () => {
-    const consent = { analytics: true, personalization: true, date: new Date().toISOString() };
-    saveConsent(consent);
-    if (currentUser?.id) {
-      await saveConsentToDb(currentUser.id, true, true);
-    }
-    setIsOpen(false);
-    onAcceptAll();
-  };
-
-  const handleAcceptEssential = async () => {
+  const handleAccept = async () => {
+    // Default = "solo lo esencial" (personalization only, no analytics)
     const consent = { analytics: false, personalization: true, date: new Date().toISOString() };
     saveConsent(consent);
     if (currentUser?.id) {
       await saveConsentToDb(currentUser.id, false, true);
     }
-    setIsOpen(false);
-    onAcceptEssential();
+    setVisible(false);
+    onAcceptEssential?.();
   };
 
-  const dataUsagePoints = [
-    {
-      icon: <Shield className="w-5 h-5" />,
-      title: t('consentPersonalizationTitle'),
-      description: t('consentPersonalizationDesc'),
-    },
-    {
-      icon: <Users className="w-5 h-5" />,
-      title: t('consentImprovementTitle'),
-      description: t('consentImprovementDesc'),
-    },
-    {
-      icon: <Lock className="w-5 h-5" />,
-      title: t('consentPrivacyTitle'),
-      description: t('consentPrivacyDesc'),
-    },
-  ];
+  if (!visible) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="max-w-md mx-auto p-0 overflow-hidden rounded-3xl border-0 bg-card">
-        <DialogHeader className="p-6 pb-0">
-          <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-olive flex items-center justify-center">
-              <Shield className="w-8 h-8 text-primary-foreground" />
-            </div>
-          </div>
-          <DialogTitle className="text-center text-xl font-display">
-            {t('consentTitle')}
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="p-6 space-y-4">
-          <p className="text-center text-muted-foreground text-sm">
-            {t('consentDescription')}
+    <>
+      {/* Bottom banner */}
+      <div
+        role="dialog"
+        aria-live="polite"
+        className="fixed inset-x-0 bottom-0 z-50 px-3 pb-[max(env(safe-area-inset-bottom),12px)] pt-2 animate-fade-in"
+      >
+        <div className="mx-auto max-w-lg rounded-2xl border border-border/60 bg-card/95 backdrop-blur shadow-warm-lg px-4 py-3 flex items-center gap-3">
+          <Shield className="w-5 h-5 text-primary shrink-0" aria-hidden />
+          <p className="text-xs text-foreground/85 leading-snug flex-1">
+            Usamos datos mínimos para personalizar tu experiencia. Sin publicidad.
           </p>
-
-          {!showDetails ? (
+          <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={() => setShowDetails(true)}
-              className="w-full flex items-center justify-between p-4 rounded-2xl bg-secondary/50 hover:bg-secondary transition-colors"
+              className="text-xs font-medium text-muted-foreground underline underline-offset-2"
             >
-              <span className="text-sm font-medium">{t('consentLearnMore')}</span>
-              <ChevronRight className="w-5 h-5 text-muted-foreground" />
+              Más info
             </button>
-          ) : (
-            <div className="space-y-3 animate-fade-in">
-              {dataUsagePoints.map((point, index) => (
-                <div key={index} className="flex items-start gap-3 p-4 rounded-2xl bg-secondary/30">
-                  <div className="text-primary mt-0.5">{point.icon}</div>
-                  <div>
-                    <h4 className="font-medium text-sm">{point.title}</h4>
-                    <p className="text-xs text-muted-foreground mt-1">{point.description}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div className="pt-4 space-y-3">
-            <Button
-              onClick={handleAcceptAll}
-              className="w-full h-14 rounded-2xl bg-gradient-olive text-lg font-medium"
+            <button
+              onClick={handleAccept}
+              className="text-xs font-semibold text-primary-foreground bg-primary rounded-full px-3 py-1.5"
             >
-              <Check className="w-5 h-5 mr-2" />
-              {t('consentAcceptAll')}
-            </Button>
-            <Button
-              onClick={handleAcceptEssential}
-              variant="outline"
-              className="w-full h-12 rounded-2xl"
-            >
-              {t('consentAcceptEssential')}
-            </Button>
+              Aceptar
+            </button>
           </div>
-
-          <p className="text-center text-xs text-muted-foreground">
-            {t('consentChangeAnytime')}
-          </p>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+
+      {/* Optional details dialog */}
+      <Dialog open={showDetails} onOpenChange={setShowDetails}>
+        <DialogContent className="max-w-md mx-auto p-0 overflow-hidden rounded-3xl border-0 bg-card">
+          <DialogHeader className="p-6 pb-2">
+            <div className="flex justify-center mb-3">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-olive flex items-center justify-center">
+                <Shield className="w-7 h-7 text-primary-foreground" />
+              </div>
+            </div>
+            <DialogTitle className="text-center text-lg font-display">
+              {t('consentTitle')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="px-6 pb-6 space-y-3">
+            <div className="flex items-start gap-3 p-3 rounded-2xl bg-secondary/30">
+              <Shield className="w-5 h-5 text-primary mt-0.5" />
+              <div>
+                <h4 className="font-medium text-sm">{t('consentPersonalizationTitle')}</h4>
+                <p className="text-xs text-muted-foreground mt-1">{t('consentPersonalizationDesc')}</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 p-3 rounded-2xl bg-secondary/30">
+              <Users className="w-5 h-5 text-primary mt-0.5" />
+              <div>
+                <h4 className="font-medium text-sm">{t('consentImprovementTitle')}</h4>
+                <p className="text-xs text-muted-foreground mt-1">{t('consentImprovementDesc')}</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 p-3 rounded-2xl bg-secondary/30">
+              <Lock className="w-5 h-5 text-primary mt-0.5" />
+              <div>
+                <h4 className="font-medium text-sm">{t('consentPrivacyTitle')}</h4>
+                <p className="text-xs text-muted-foreground mt-1">{t('consentPrivacyDesc')}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                setShowDetails(false);
+                handleAccept();
+              }}
+              className="w-full h-12 rounded-2xl bg-gradient-olive text-primary-foreground font-medium"
+            >
+              {t('consentAcceptEssential') || 'Solo lo esencial'}
+            </button>
+            <p className="text-center text-xs text-muted-foreground">
+              {t('consentChangeAnytime')}
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
