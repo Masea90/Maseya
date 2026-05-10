@@ -1,178 +1,114 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* MASEYA Design System - Warm & Organic Natural Beauty */
-/* All colors MUST be HSL */
+/* MASEYA Scanner — Clean health-focused design system. All colors HSL. */
 
 @layer base {
   :root {
-    /* Warm Beige Background */
-    --background: 35 30% 96%;
-    --foreground: 25 20% 20%;
+    /* #F8FAF9 off white */
+    --background: 150 18% 98%;
+    --foreground: 0 0% 11%; /* #1B1B1B */
 
-    /* Cream Card */
-    --card: 40 40% 98%;
-    --card-foreground: 25 20% 20%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 11%;
 
-    --popover: 40 40% 98%;
-    --popover-foreground: 25 20% 20%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 11%;
 
-    /* Olive Green Primary */
-    --primary: 85 25% 35%;
-    --primary-foreground: 40 40% 98%;
+    /* #2D6A4F deep green */
+    --primary: 152 41% 30%;
+    --primary-foreground: 0 0% 100%;
 
-    /* Warm Nude Secondary */
-    --secondary: 25 35% 88%;
-    --secondary-foreground: 25 20% 25%;
+    /* #95D5B2 soft mint */
+    --secondary: 142 44% 71%;
+    --secondary-foreground: 152 41% 20%;
 
-    /* Soft Muted Tones */
-    --muted: 30 20% 92%;
-    --muted-foreground: 25 15% 45%;
+    --muted: 150 15% 94%;
+    --muted-foreground: 150 8% 40%;
 
-    /* Warm Terracotta Accent */
-    --accent: 20 50% 75%;
-    --accent-foreground: 25 20% 20%;
+    --accent: 142 44% 71%;
+    --accent-foreground: 152 41% 20%;
 
-    /* Soft Rose Destructive */
-    --destructive: 0 60% 60%;
-    --destructive-foreground: 40 40% 98%;
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 0 0% 100%;
 
-    /* Soft Borders */
-    --border: 30 20% 88%;
-    --input: 30 20% 88%;
-    --ring: 85 25% 35%;
+    --border: 150 12% 90%;
+    --input: 150 12% 90%;
+    --ring: 152 41% 30%;
 
     --radius: 1rem;
 
-    /* Custom MASEYA colors */
-    --maseya-olive: 85 25% 35%;
-    --maseya-olive-light: 85 20% 45%;
-    --maseya-beige: 35 30% 96%;
-    --maseya-cream: 40 40% 98%;
-    --maseya-nude: 25 35% 88%;
-    --maseya-terracotta: 20 50% 65%;
-    --maseya-rose: 350 40% 80%;
-    --maseya-gold: 40 60% 55%;
-    --maseya-sage: 100 15% 75%;
+    /* Score colors */
+    --score-excellent: 152 60% 30%;
+    --score-good: 142 50% 55%;
+    --score-fair: 30 90% 55%;
+    --score-bad: 0 75% 55%;
 
-    /* Glow Score Colors */
-    --glow-skin: 350 50% 70%;
-    --glow-hair: 85 30% 50%;
-    --glow-nutrition: 35 70% 60%;
-
-    /* Sidebar (keeping for compatibility) */
-    --sidebar-background: 40 40% 98%;
-    --sidebar-foreground: 25 20% 25%;
-    --sidebar-primary: 85 25% 35%;
-    --sidebar-primary-foreground: 40 40% 98%;
-    --sidebar-accent: 25 35% 88%;
-    --sidebar-accent-foreground: 25 20% 25%;
-    --sidebar-border: 30 20% 88%;
-    --sidebar-ring: 85 25% 35%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 0 0% 11%;
+    --sidebar-primary: 152 41% 30%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 150 15% 94%;
+    --sidebar-accent-foreground: 152 41% 20%;
+    --sidebar-border: 150 12% 90%;
+    --sidebar-ring: 152 41% 30%;
   }
 
   .dark {
-    /* Dark mode with warm undertones */
-    --background: 25 15% 10%;
-    --foreground: 35 30% 90%;
-
-    --card: 25 15% 14%;
-    --card-foreground: 35 30% 90%;
-
-    --popover: 25 15% 14%;
-    --popover-foreground: 35 30% 90%;
-
-    --primary: 85 30% 55%;
-    --primary-foreground: 25 15% 10%;
-
-    --secondary: 25 20% 20%;
-    --secondary-foreground: 35 30% 90%;
-
-    --muted: 25 15% 18%;
-    --muted-foreground: 30 15% 60%;
-
-    --accent: 20 40% 45%;
-    --accent-foreground: 35 30% 90%;
-
-    --destructive: 0 50% 45%;
-    --destructive-foreground: 35 30% 90%;
-
-    --border: 25 15% 20%;
-    --input: 25 15% 20%;
-    --ring: 85 30% 55%;
-
-    --maseya-olive: 85 30% 55%;
-    --maseya-olive-light: 85 25% 65%;
-    --maseya-beige: 25 15% 10%;
-    --maseya-cream: 25 15% 14%;
-    --maseya-nude: 25 20% 25%;
-    --maseya-terracotta: 20 45% 50%;
-    --maseya-rose: 350 35% 60%;
-    --maseya-gold: 40 50% 50%;
-    --maseya-sage: 100 12% 35%;
-
-    --glow-skin: 350 45% 55%;
-    --glow-hair: 85 35% 45%;
-    --glow-nutrition: 35 60% 50%;
-
-    --sidebar-background: 25 15% 12%;
-    --sidebar-foreground: 35 30% 90%;
-    --sidebar-primary: 85 30% 55%;
-    --sidebar-primary-foreground: 25 15% 10%;
-    --sidebar-accent: 25 20% 20%;
-    --sidebar-accent-foreground: 35 30% 90%;
-    --sidebar-border: 25 15% 20%;
-    --sidebar-ring: 85 30% 55%;
+    --background: 150 15% 8%;
+    --foreground: 150 10% 96%;
+    --card: 150 12% 12%;
+    --card-foreground: 150 10% 96%;
+    --popover: 150 12% 12%;
+    --popover-foreground: 150 10% 96%;
+    --primary: 142 44% 55%;
+    --primary-foreground: 150 15% 8%;
+    --secondary: 152 30% 20%;
+    --secondary-foreground: 150 10% 96%;
+    --muted: 150 12% 18%;
+    --muted-foreground: 150 8% 65%;
+    --accent: 142 44% 35%;
+    --accent-foreground: 150 10% 96%;
+    --destructive: 0 60% 45%;
+    --destructive-foreground: 150 10% 96%;
+    --border: 150 12% 22%;
+    --input: 150 12% 22%;
+    --ring: 142 44% 55%;
   }
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
-
+  * { @apply border-border; }
   body {
-    @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'Inter', sans-serif;
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
   }
-
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Playfair Display', serif;
+    font-family: 'Inter', system-ui, sans-serif;
+    @apply font-semibold tracking-tight;
   }
 }
 
 @layer utilities {
-  .font-display {
-    font-family: 'Playfair Display', serif;
-  }
-  
-  .font-body {
-    font-family: 'Inter', sans-serif;
-  }
-
-  .text-gradient-gold {
-    background: linear-gradient(135deg, hsl(var(--maseya-gold)), hsl(var(--maseya-terracotta)));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
+  .font-display { font-family: 'Inter', system-ui, sans-serif; }
+  .font-body { font-family: 'Inter', system-ui, sans-serif; }
 
   .bg-gradient-warm {
-    background: linear-gradient(135deg, hsl(var(--maseya-cream)), hsl(var(--maseya-nude)));
+    background: linear-gradient(160deg, hsl(var(--background)), hsl(var(--secondary) / 0.35));
   }
-
   .bg-gradient-olive {
-    background: linear-gradient(135deg, hsl(var(--maseya-olive)), hsl(var(--maseya-olive-light)));
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(152 35% 40%));
   }
-
+  .bg-gradient-hero {
+    background: linear-gradient(160deg, hsl(152 41% 30%), hsl(142 44% 45%));
+  }
   .shadow-warm {
-    box-shadow: 0 4px 20px -4px hsl(25 20% 50% / 0.15);
+    box-shadow: 0 4px 20px -6px hsl(152 30% 20% / 0.10);
   }
-
   .shadow-warm-lg {
-    box-shadow: 0 10px 40px -10px hsl(25 20% 50% / 0.2);
+    box-shadow: 0 12px 40px -12px hsl(152 30% 20% / 0.18);
   }
 }

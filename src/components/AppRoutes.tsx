@@ -1,122 +1,74 @@
-import { Routes, Route, Navigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import { useUser } from "@/contexts/UserContext";
-import { Chatbot } from "@/components/chat/Chatbot";
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { useUser } from '@/contexts/UserContext';
 
-// Pages
-import { WelcomeScreen } from "@/components/onboarding/WelcomeScreen";
-import { LanguageSelect } from "@/components/onboarding/LanguageSelect";
-import { OnboardingGuide } from "@/components/onboarding/OnboardingGuide";
-import { OnboardingQuiz } from "@/components/onboarding/OnboardingQuiz";
-import { PremiumScreen } from "@/components/onboarding/PremiumScreen";
-import HomePage from "@/pages/HomePage";
-import DiscoverPage from "@/pages/DiscoverPage";
-import ProductDetailPage from "@/pages/ProductDetailPage";
-import RoutinePage from "@/pages/RoutinePage";
-import RemediesPage from "@/pages/RemediesPage";
-import CommunityPage from "@/pages/CommunityPage";
-import ProfilePage from "@/pages/ProfilePage";
-// ScanPage removed — feature not yet implemented
-import SearchPage from "@/pages/SearchPage";
-import RewardsPage from "@/pages/RewardsPage";
-import LoginPage from "@/pages/LoginPage";
-import LanguageSettingsPage from "@/pages/LanguageSettingsPage";
-import ProfileEditPage from "@/pages/ProfileEditPage";
-import NotificationSettingsPage from "@/pages/NotificationSettingsPage";
-import InstallPage from "@/pages/InstallPage";
-import AdminAffiliatePage from "@/pages/AdminAffiliatePage";
-import AdminDashboardPage from "@/pages/AdminDashboardPage";
-import SettingsPage from "@/pages/SettingsPage";
-import RemedyDetailPage from "@/pages/RemedyDetailPage";
-import PrivacySettingsPage from "@/pages/PrivacySettingsPage";
-import HelpPage from "@/pages/HelpPage";
-// ScanHistoryPage removed — feature not yet implemented
-import ResetPasswordPage from "@/pages/ResetPasswordPage";
-import UpdatePasswordPage from "@/pages/UpdatePasswordPage";
-import UserProfilePage from "@/pages/UserProfilePage";
-import CommunityTagPage from "@/pages/CommunityTagPage";
-import NotFound from "@/pages/NotFound";
+import { WelcomeScreen } from '@/components/onboarding/WelcomeScreen';
+import { OnboardingQuiz } from '@/components/onboarding/OnboardingQuiz';
+import { LanguageSelect } from '@/components/onboarding/LanguageSelect';
+
+import ScannerPage from '@/pages/ScannerPage';
+import HistoryPage from '@/pages/HistoryPage';
+import ProfilePage from '@/pages/ProfilePage';
+import MiraPage from '@/pages/MiraPage';
+
+import LoginPage from '@/pages/LoginPage';
+import ResetPasswordPage from '@/pages/ResetPasswordPage';
+import UpdatePasswordPage from '@/pages/UpdatePasswordPage';
+import NotFound from '@/pages/NotFound';
 
 /**
- * AppRoutes - Contains all route definitions
- * Must be rendered inside AuthProvider and UserProvider
+ * AppRoutes — 4-tab scanner shell.
+ * Auth gate is soft: unauthenticated users still get the welcome + onboarding,
+ * but any persistent feature requires sign-in.
  */
 export function AppRoutes() {
-  const authContext = useAuth();
-  const userContext = useUser();
-  
-  const { isAuthenticated, isLoading: authLoading } = authContext;
-  const { user, isLoading: userLoading } = userContext;
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { user, isLoading: userLoading } = useUser();
 
-  // Show loading while auth or user data is being determined
   if (authLoading || userLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-[100dvh] bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
           <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto animate-pulse">
             <span className="text-3xl">🌿</span>
           </div>
-          <p className="text-muted-foreground">Loading...</p>
+          <p className="text-muted-foreground">Cargando...</p>
         </div>
       </div>
     );
   }
 
-  // Not authenticated -> show login
   if (!isAuthenticated) {
     return (
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/update-password" element={<UpdatePasswordPage />} />
+        <Route path="/welcome" element={<WelcomeScreen />} />
+        <Route path="/onboarding/quiz" element={<OnboardingQuiz />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     );
   }
 
   return (
-    <>
-      <Routes>
-        {/* Onboarding - Language first, then guide (for first-time users), then welcome */}
-        <Route path="/" element={user.onboardingComplete ? <Navigate to="/home" /> : <Navigate to="/onboarding/language" />} />
-        <Route path="/onboarding/language" element={<LanguageSelect />} />
-        <Route path="/onboarding/guide" element={<OnboardingGuide />} />
-        <Route path="/onboarding/welcome" element={<WelcomeScreen />} />
-        <Route path="/onboarding/quiz" element={<OnboardingQuiz />} />
-        <Route path="/onboarding/premium" element={<PremiumScreen />} />
-        
-        {/* Main App */}
-        <Route path="/home" element={<HomePage />} />
-        <Route path="/discover" element={<DiscoverPage />} />
-        <Route path="/product/:id" element={<ProductDetailPage />} />
-        <Route path="/routine" element={<RoutinePage />} />
-        <Route path="/remedies" element={<RemediesPage />} />
-        <Route path="/remedy/:id" element={<RemedyDetailPage />} />
-        <Route path="/community" element={<CommunityPage />} />
-        <Route path="/community/tag/:tag" element={<CommunityTagPage />} />
-        <Route path="/community/post/:id" element={<Navigate to="/community" replace />} />
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/profile/edit" element={<ProfileEditPage />} />
-        <Route path="/scan" element={<Navigate to="/home" replace />} />
-        <Route path="/scan/history" element={<Navigate to="/home" replace />} />
-        <Route path="/search" element={<SearchPage />} />
-        <Route path="/rewards" element={<RewardsPage />} />
-        <Route path="/premium" element={<PremiumScreen />} />
-        <Route path="/settings" element={<SettingsPage />} />
-        <Route path="/settings/language" element={<LanguageSettingsPage />} />
-        <Route path="/settings/notifications" element={<NotificationSettingsPage />} />
-        <Route path="/settings/privacy" element={<PrivacySettingsPage />} />
-        <Route path="/help" element={<HelpPage />} />
-        <Route path="/update-password" element={<UpdatePasswordPage />} />
-        <Route path="/install" element={<InstallPage />} />
-        <Route path="/admin" element={<AdminDashboardPage />} />
-        <Route path="/admin/affiliates" element={<AdminAffiliatePage />} />
-        <Route path="/user/:userId" element={<UserProfilePage />} />
-        
-        {/* Catch-all */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-      {user.onboardingComplete && <Chatbot />}
-    </>
+    <Routes>
+      <Route
+        path="/"
+        element={user.onboardingComplete ? <Navigate to="/scan" /> : <Navigate to="/welcome" />}
+      />
+      <Route path="/welcome" element={<WelcomeScreen />} />
+      <Route path="/onboarding/language" element={<LanguageSelect />} />
+      <Route path="/onboarding/quiz" element={<OnboardingQuiz />} />
+
+      <Route path="/scan" element={<ScannerPage />} />
+      <Route path="/history" element={<HistoryPage />} />
+      <Route path="/profile" element={<ProfilePage />} />
+      <Route path="/mira" element={<MiraPage />} />
+
+      <Route path="/update-password" element={<UpdatePasswordPage />} />
+
+      <Route path="*" element={<NotFound />} />
+    </Routes>
   );
 }
