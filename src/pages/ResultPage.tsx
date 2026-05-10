@@ -252,7 +252,7 @@ const ResultPage = () => {
                   <div className="font-display text-lg font-semibold" style={{ color: sl.bg }}>{sl.label}</div>
                   {!hasIngredientData && hasNutriscore && (
                     <p className="text-xs text-muted-foreground text-center max-w-xs">
-                      Puntuación basada en datos nutricionales. Escanea la etiqueta para análisis de ingredientes completo.
+                      Basado en valor nutricional. Fotografía la etiqueta para análisis completo de ingredientes.
                     </p>
                   )}
                 </>
@@ -264,7 +264,7 @@ const ResultPage = () => {
                   </div>
                   <div className="font-display text-lg font-semibold text-muted-foreground">Datos insuficientes</div>
                   <p className="text-xs text-muted-foreground text-center max-w-xs">
-                    Sin datos suficientes para puntuar este producto. Fotografía la etiqueta para un análisis completo.
+                    Fotografía la etiqueta para obtener tu puntuación personalizada.
                   </p>
                   <Button onClick={() => navigate('/scan/photo')} variant="outline" className="rounded-xl mt-1">
                     <Camera className="w-4 h-4 mr-2" />
