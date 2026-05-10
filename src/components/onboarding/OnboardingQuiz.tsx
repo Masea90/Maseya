@@ -105,11 +105,7 @@ export const OnboardingQuiz = () => {
     navigate('/scan', { replace: true });
   };
 
-  const handleSubmit = () => {
-    localStorage.setItem('maseya_onboarding', JSON.stringify({ skin, allergies }));
-    completeOnboarding();
-    navigate('/scan');
-  };
+
 
   const progress = ((skin.length > 0 ? 1 : 0) + (allergies.length > 0 ? 1 : 0)) * 50;
 
