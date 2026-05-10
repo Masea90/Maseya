@@ -52,16 +52,16 @@ const ResultPage = () => {
     const score = calculateScore(product, flagged);
 
     if (isAuthenticated && currentUser?.id) {
-      supabase.from('scan_history').insert({
+      supabase.from('scan_history').insert([{
         user_id: currentUser.id,
         barcode: product.barcode,
         product_name: product.name,
-        product_image: product.image,
+        product_image: product.image ?? undefined,
         category: product.category,
         source: product.source,
         product_data: product.raw,
         scores: { global: score },
-      }).then(({ error }) => {
+      }]).then(({ error }) => {
         if (error) console.error('[scan_history] insert', error);
       });
     } else {
