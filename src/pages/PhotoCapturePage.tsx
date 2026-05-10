@@ -1,10 +1,19 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Camera, ArrowLeft, Sparkles, RefreshCw, Check } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
 import { supabase } from '@/integrations/supabase/client';
 import { saveToMaseya } from '@/lib/productLookup';
 import { Button } from '@/components/ui/button';
+
+function CameraInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
+  const ref = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (ref.current) ref.current.setAttribute('camera', 'environment');
+  }, []);
+  return <input ref={ref} {...props} />;
+}
+
 
 const COPY = {
   es: {
@@ -244,7 +253,7 @@ const PhotoCapturePage = () => {
             <label className="w-full h-14 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center gap-2 font-medium cursor-pointer hover:bg-primary/90 transition-colors">
               <Camera className="w-5 h-5" />
               {c.front.cta}
-              <input type="file" accept="image/*" capture="environment" className="sr-only" onChange={onPickFront} />
+              <CameraInput type="file" accept="image/*" capture="environment" className="sr-only" onChange={onPickFront} />
             </label>
           </>
         )}
@@ -279,7 +288,7 @@ const PhotoCapturePage = () => {
             <label className="w-full h-14 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center gap-2 font-medium cursor-pointer hover:bg-primary/90 transition-colors">
               <Camera className="w-5 h-5" />
               {c.ingredients.cta}
-              <input type="file" accept="image/*" capture="environment" className="sr-only" onChange={onPickIngredients} />
+              <CameraInput type="file" accept="image/*" capture="environment" className="sr-only" onChange={onPickIngredients} />
             </label>
           </>
         )}
