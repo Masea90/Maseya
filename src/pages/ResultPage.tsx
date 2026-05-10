@@ -193,6 +193,12 @@ const ResultPage = () => {
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-2">
               {product.category === 'food' ? 'Alimentación' : 'Cosmética'}
             </p>
+            {fromPhoto && (
+              <div className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                <span>✅</span>
+                <span>Añadido a nuestra base de datos</span>
+              </div>
+            )}
           </div>
         </div>
 
