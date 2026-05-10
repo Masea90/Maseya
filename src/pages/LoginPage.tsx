@@ -6,8 +6,38 @@ import { Link } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, UserPlus, LogIn, Loader2, ArrowLeft, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { getTranslation, TranslationKey } from '@/lib/i18n';
 import { supabase } from '@/integrations/supabase/client';
+
+// Hardcoded Spanish copy — auth pages are Spanish-only for now.
+const T = {
+  subtitle: 'Bienvenida de nuevo',
+  welcomeBack: 'Bienvenida',
+  createAccount: 'Crear cuenta',
+  signInDesc: 'Inicia sesión para continuar',
+  signUpDesc: 'Comienza tu camino personalizado',
+  email: 'Correo electrónico',
+  password: 'Contraseña',
+  minChars: 'Mín. 6 caracteres',
+  forgotPassword: '¿Olvidaste tu contraseña?',
+  signIn: 'Entrar',
+  signUp: 'Regístrate',
+  or: 'o',
+  continueGoogle: 'Continuar con Google',
+  dontHaveAccount: '¿No tienes cuenta?',
+  alreadyHaveAccount: '¿Ya tienes una cuenta?',
+  checkEmailTitle: 'Revisa tu correo',
+  checkEmailDescription: 'Te enviamos un enlace de verificación para activar tu cuenta.',
+  checkEmailSpamHint: '¿No lo ves? Revisa la carpeta de spam o promociones.',
+  checkEmailResend: 'Reenviar correo de verificación',
+  checkEmailResent: '¡Correo de verificación reenviado!',
+  checkEmailBackToLogin: 'Volver al inicio de sesión',
+  welcomeToast: '¡Bienvenida de nuevo! 🌿',
+  signUpFailed: 'Error al registrarse',
+  loginFailed: 'Error al iniciar sesión',
+  unexpectedError: 'Ha ocurrido un error inesperado',
+  googleSignInFailed: 'Error con el inicio de sesión de Google',
+  emptyFields: 'Introduce tu correo y contraseña',
+};
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -22,14 +52,10 @@ const LoginPage = () => {
   const [signupEmail, setSignupEmail] = useState('');
   const [isResending, setIsResending] = useState(false);
 
-  // Hardcoded Spanish copy — auth pages are Spanish-only for now.
-  const t = (_key: string): string => '';
-  void t;
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !password.trim()) {
-      toast.error(t('loginEmail'));
+      toast.error(T.emptyFields);
       return;
     }
     setIsSubmitting(true);
@@ -40,19 +66,19 @@ const LoginPage = () => {
           setSignupEmail(email.toLowerCase().trim());
           setShowEmailConfirmation(true);
         } else {
-          toast.error(result.error || t('signUpFailed'));
+          toast.error(result.error || T.signUpFailed);
         }
       } else {
         const result = await login(email, password);
         if (result.success) {
-          toast.success(t('welcomeBack'));
+          toast.success(T.welcomeToast);
           navigate('/');
         } else {
-          toast.error(result.error || t('loginFailed'));
+          toast.error(result.error || T.loginFailed);
         }
       }
     } catch {
-      toast.error(t('unexpectedError'));
+      toast.error(T.unexpectedError);
     } finally {
       setIsSubmitting(false);
     }
@@ -72,10 +98,10 @@ const LoginPage = () => {
       if (error) {
         toast.error(error.message);
       } else {
-        toast.success(t('checkEmailResent'));
+        toast.success(T.checkEmailResent);
       }
     } catch {
-      toast.error(t('unexpectedError'));
+      toast.error(T.unexpectedError);
     } finally {
       setIsResending(false);
     }
@@ -86,10 +112,10 @@ const LoginPage = () => {
     try {
       const result = await signInWithGoogle();
       if (!result.success) {
-        toast.error(result.error || t('googleSignInFailed'));
+        toast.error(result.error || T.googleSignInFailed);
       }
     } catch {
-      toast.error(t('unexpectedError'));
+      toast.error(T.unexpectedError);
     } finally {
       setIsGoogleLoading(false);
     }
@@ -106,10 +132,10 @@ const LoginPage = () => {
 
           <div className="space-y-2">
             <h1 className="font-display text-2xl font-bold text-foreground">
-              {t('checkEmailTitle')}
+              {T.checkEmailTitle}
             </h1>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              {t('checkEmailDescription')}
+              {T.checkEmailDescription}
             </p>
             <p className="text-sm font-medium text-foreground mt-2">
               {signupEmail}
@@ -118,7 +144,7 @@ const LoginPage = () => {
 
           <div className="bg-muted/50 rounded-xl p-3">
             <p className="text-xs text-muted-foreground">
-              {t('checkEmailSpamHint')}
+              {T.checkEmailSpamHint}
             </p>
           </div>
 
@@ -134,7 +160,7 @@ const LoginPage = () => {
               ) : (
                 <RefreshCw className="w-4 h-4 mr-2" />
               )}
-              {t('checkEmailResend')}
+              {T.checkEmailResend}
             </Button>
 
             <Button
@@ -146,7 +172,7 @@ const LoginPage = () => {
               }}
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              {t('checkEmailBackToLogin')}
+              {T.checkEmailBackToLogin}
             </Button>
           </div>
         </div>
@@ -165,7 +191,7 @@ const LoginPage = () => {
           <h1 className="font-display text-3xl font-bold text-foreground">
             MASEYA
           </h1>
-          <p className="text-muted-foreground mt-1">{t('loginSubtitle')}</p>
+          <p className="text-muted-foreground mt-1">{T.subtitle}</p>
         </div>
       </div>
 
@@ -173,21 +199,21 @@ const LoginPage = () => {
       <div className="flex-1 px-6 py-4 animate-fade-in">
         <div className="mb-6">
           <h2 className="font-display text-2xl font-bold text-foreground mb-2">
-            {isSignUp ? t('loginCreateAccount') : t('loginWelcomeBack')}
+            {isSignUp ? T.createAccount : T.welcomeBack}
           </h2>
           <p className="text-muted-foreground">
-            {isSignUp ? t('loginSignUpDesc') : t('loginSignInDesc')}
+            {isSignUp ? T.signUpDesc : T.signInDesc}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">{t('loginEmail')}</label>
+            <label className="text-sm font-medium text-foreground">{T.email}</label>
             <div className="relative">
               <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input
                 type="email"
-                placeholder="your@email.com"
+                placeholder="tu@email.com"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 className="h-12 pl-12 rounded-2xl"
@@ -197,12 +223,12 @@ const LoginPage = () => {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">{t('loginPassword')}</label>
+            <label className="text-sm font-medium text-foreground">{T.password}</label>
             <div className="relative">
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input
                 type={showPassword ? 'text' : 'password'}
-                placeholder={isSignUp ? t('loginMinChars') : '••••••••'}
+                placeholder={isSignUp ? T.minChars : '••••••••'}
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 className="h-12 pl-12 pr-12 rounded-2xl"
@@ -225,7 +251,7 @@ const LoginPage = () => {
           {!isSignUp && (
             <div className="text-right">
               <Link to="/reset-password" className="text-sm text-primary font-medium hover:underline">
-                {t('forgotPassword')}
+                {T.forgotPassword}
               </Link>
             </div>
           )}
@@ -240,12 +266,12 @@ const LoginPage = () => {
             ) : isSignUp ? (
               <>
                 <UserPlus className="w-5 h-5 mr-2" />
-                {t('loginCreateAccount')}
+                {T.createAccount}
               </>
             ) : (
               <>
                 <LogIn className="w-5 h-5 mr-2" />
-                {t('loginSignIn')}
+                {T.signIn}
               </>
             )}
           </Button>
@@ -254,7 +280,7 @@ const LoginPage = () => {
         {/* Divider */}
         <div className="flex items-center gap-4 my-6">
           <div className="flex-1 h-px bg-border" />
-          <span className="text-sm text-muted-foreground">{t('loginOr')}</span>
+          <span className="text-sm text-muted-foreground">{T.or}</span>
           <div className="flex-1 h-px bg-border" />
         </div>
 
@@ -276,7 +302,7 @@ const LoginPage = () => {
                 <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
                 <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
               </svg>
-              {t('loginContinueGoogle')}
+              {T.continueGoogle}
             </>
           )}
         </Button>
@@ -285,13 +311,13 @@ const LoginPage = () => {
       {/* Footer */}
       <div className="p-6 text-center">
         <p className="text-sm text-muted-foreground">
-          {isSignUp ? t('loginAlreadyHaveAccount') : t('loginDontHaveAccount')}{' '}
+          {isSignUp ? T.alreadyHaveAccount : T.dontHaveAccount}{' '}
           <button
             onClick={() => setIsSignUp(!isSignUp)}
             className="text-primary font-medium"
             disabled={isSubmitting}
           >
-            {isSignUp ? t('loginSignIn') : t('loginSignUp')}
+            {isSignUp ? T.signIn : T.signUp}
           </button>
         </p>
       </div>
