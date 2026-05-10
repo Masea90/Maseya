@@ -120,18 +120,52 @@ Deno.serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 
-    const { data: rows, error } = await admin
-      .from("maseya_products")
-      .select("barcode, product_name, brand, category, ingredients_text, image_url")
-      .or("image_url.is.null,ingredients_text.is.null,ingredients_text.eq.")
-      .limit(50);
+    // Optional single-barcode mode for real-time enrichment on scan
+    let singleBarcode: string | null = null;
+    if (req.method === "POST") {
+      try {
+        const body = await req.json();
+        if (typeof body?.barcode === "string" && body.barcode.trim()) {
+          singleBarcode = body.barcode.trim();
+        }
+      } catch {}
+    }
 
-    if (error) {
-      console.error("[enrich] query error", error);
-      return new Response(JSON.stringify({ error: "db_error" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    let products: MaseyaRow[] = [];
+
+    if (singleBarcode) {
+      // Look up the existing row (may not exist yet)
+      const { data: existing } = await admin
+        .from("maseya_products")
+        .select("barcode, product_name, brand, category, ingredients_text, image_url")
+        .eq("barcode", singleBarcode)
+        .maybeSingle();
+
+      products = [
+        existing as MaseyaRow ?? {
+          barcode: singleBarcode,
+          product_name: null,
+          brand: null,
+          category: null,
+          ingredients_text: null,
+          image_url: null,
+        },
+      ];
+    } else {
+      const { data: rows, error } = await admin
+        .from("maseya_products")
+        .select("barcode, product_name, brand, category, ingredients_text, image_url")
+        .or("image_url.is.null,ingredients_text.is.null,ingredients_text.eq.")
+        .limit(50);
+
+      if (error) {
+        console.error("[enrich] query error", error);
+        return new Response(JSON.stringify({ error: "db_error" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      products = (rows ?? []) as MaseyaRow[];
     }
 
     const products = (rows ?? []) as MaseyaRow[];
