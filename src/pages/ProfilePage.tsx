@@ -301,9 +301,14 @@ const ProfilePage = () => {
           {saving ? 'Guardando...' : 'Guardar cambios'}
         </Button>
 
-        <Button onClick={() => logout()} variant="outline" className="w-full gap-2">
-          <LogOut className="w-4 h-4" /> Cerrar sesión
+        <Button
+          onClick={() => setPremium(!premium)}
+          variant="outline"
+          className="w-full gap-2"
+        >
+          🧪 {premium ? 'Desactivar Premium (test)' : 'Activar Premium (test)'}
         </Button>
+
         <Button onClick={() => logout()} variant="outline" className="w-full gap-2">
           <LogOut className="w-4 h-4" /> Cerrar sesión
         </Button>
