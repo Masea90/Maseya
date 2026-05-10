@@ -77,6 +77,20 @@ function canonicalKey(name: string): string {
   return norm;
 }
 
+const NUTRITIONAL_MARKERS = [
+  'kcal', ' kj', 'kj/', '/kj', 'proteinas', 'proteínas',
+  'porcion', 'porción', 'dosis', 'adulto medio',
+  'ingesta de referencia', 'fibra alimentaria',
+  'valor energetico', 'valor energético',
+  'hidratos de carbono', 'grasas saturadas',
+];
+
+export function isNutritionalData(text: string | null | undefined): boolean {
+  if (!text) return false;
+  const t = text.toLowerCase();
+  return NUTRITIONAL_MARKERS.some(m => t.includes(m));
+}
+
 function cleanIngredientsText(raw: string): string {
   return raw
     .replace(/\b(ingredients?|ingredientes|ingrédients|inci|composition|composición|composição)\s*[:\-]?\s*/gi, '')
