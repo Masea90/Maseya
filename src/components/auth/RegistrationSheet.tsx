@@ -5,33 +5,41 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 
+const FREE_LIMIT = 3;
+
 const COPY = {
   es: {
     title: 'Guarda tu análisis',
-    desc: 'Cuanto más nos cuentes, más precisos serán tus resultados.',
+    desc: 'Crea una cuenta para guardar tu historial y mejorar tu perfil.',
     google: 'Continuar con Google',
     email: 'Usar email',
-    skip: 'Continuar sin cuenta',
+    skip: 'Ahora no',
+    remaining: (n: number) =>
+      n === 1 ? 'Te queda 1 escaneo gratis' : `Te quedan ${n} escaneos gratis`,
     paywallTitle: 'Has alcanzado el límite gratuito',
     paywallDesc: 'Crea una cuenta para continuar escaneando.',
     create: 'Crear cuenta',
   },
   en: {
     title: 'Save your scan',
-    desc: 'The more you tell us, the more accurate your results.',
+    desc: 'Create an account to save your history and improve your profile.',
     google: 'Continue with Google',
     email: 'Use email',
-    skip: 'Continue without account',
+    skip: 'Not now',
+    remaining: (n: number) =>
+      n === 1 ? '1 free scan left' : `${n} free scans left`,
     paywallTitle: 'You hit the free limit',
     paywallDesc: 'Create an account to keep scanning.',
     create: 'Create account',
   },
   fr: {
     title: 'Enregistre ton analyse',
-    desc: 'Plus tu nous en dis, plus tes résultats sont précis.',
+    desc: 'Crée un compte pour sauvegarder ton historique et améliorer ton profil.',
     google: 'Continuer avec Google',
     email: 'Utiliser email',
-    skip: 'Continuer sans compte',
+    skip: 'Pas maintenant',
+    remaining: (n: number) =>
+      n === 1 ? 'Il te reste 1 scan gratuit' : `Il te reste ${n} scans gratuits`,
     paywallTitle: 'Tu as atteint la limite gratuite',
     paywallDesc: 'Crée un compte pour continuer.',
     create: 'Créer un compte',
@@ -50,6 +58,12 @@ export const RegistrationSheet = ({ open, onOpenChange, variant = 'soft' }: Regi
   const navigate = useNavigate();
   const c = COPY[user.language] ?? COPY.es;
   const [loading, setLoading] = useState(false);
+
+  // Read scan count from localStorage so we can show remaining scans.
+  const scanCount = (() => {
+    try { return Number(localStorage.getItem('maseya_anon_scans') || '0'); } catch { return 0; }
+  })();
+  const remaining = Math.max(FREE_LIMIT - scanCount, 0);
 
   const handleGoogle = async () => {
     setLoading(true);
@@ -86,6 +100,11 @@ export const RegistrationSheet = ({ open, onOpenChange, variant = 'soft' }: Regi
               className="w-full text-sm text-muted-foreground py-2"
             >
               {c.skip}
+              {remaining > 0 && (
+                <span className="block text-xs text-muted-foreground/80 mt-0.5">
+                  {c.remaining(remaining)}
+                </span>
+              )}
             </button>
           )}
         </div>
