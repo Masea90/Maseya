@@ -59,7 +59,7 @@ const ResultPage = () => {
         product_image: product.image ?? undefined,
         category: product.category,
         source: product.source,
-        product_data: product.raw,
+        product_data: JSON.parse(JSON.stringify(product.raw)),
         scores: { global: score },
       }]).then(({ error }) => {
         if (error) console.error('[scan_history] insert', error);
