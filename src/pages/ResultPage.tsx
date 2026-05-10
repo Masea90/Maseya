@@ -22,6 +22,7 @@ const ResultPage = () => {
   const { barcode } = useParams<{ barcode: string }>();
   const navigate = useNavigate();
   const { isAuthenticated, currentUser } = useAuth();
+  const premium = usePremium();
 
   const [product, setProduct] = useState<ProductData | null>(null);
   const [loading, setLoading] = useState(true);
