@@ -156,6 +156,9 @@ export function AppRoutes() {
           <Route path="/scan" element={<ScannerPage />} />
           <Route path="/scan/photo" element={<PhotoCapturePage />} />
           <Route path="/result/:barcode" element={<ResultPage />} />
+          <Route path="/history" element={<Navigate to="/login" replace />} />
+          <Route path="/profile" element={<Navigate to="/login" replace />} />
+          <Route path="/mira" element={<Navigate to="/login" replace />} />
           <Route path="*" element={<Navigate to="/welcome" replace />} />
         </Routes>
       </OnboardingGate>
