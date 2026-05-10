@@ -98,12 +98,32 @@ async function fetchFromMaseya(barcode: string): Promise<ProductData | null> {
   }
   if (!data) return null;
   const cat = (data.category === 'food' || data.category === 'cosmetic') ? data.category : 'unknown';
+  let image: string | null = data.image_url || null;
+  // Auto-fetch image from Open Food/Beauty Facts if missing
+  if (!image) {
+    try {
+      const host = cat === 'food' ? 'world.openfoodfacts.org' : 'world.openbeautyfacts.org';
+      const json = await fetchFrom(host, data.barcode);
+      const p = json?.product;
+      if (p?.image_front_url || p?.image_url) {
+        image = p.image_front_url || p.image_url;
+      } else if (cat !== 'unknown') {
+        // Try the other host as fallback
+        const altHost = cat === 'food' ? 'world.openbeautyfacts.org' : 'world.openfoodfacts.org';
+        const altJson = await fetchFrom(altHost, data.barcode);
+        const ap = altJson?.product;
+        if (ap?.image_front_url || ap?.image_url) image = ap.image_front_url || ap.image_url;
+      }
+    } catch (e) {
+      console.warn('[productLookup] image auto-fetch failed', e);
+    }
+  }
   return {
     barcode: data.barcode,
     source: 'maseya',
     name: data.product_name || 'Producto sin nombre',
     brand: data.brand || '',
-    image: data.image_url || null,
+    image,
     category: cat,
     nutriscore_grade: null,
     ingredients_text: data.ingredients_text || null,

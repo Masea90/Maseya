@@ -58,9 +58,18 @@ export const Alternatives = ({ current, currentScore }: Props) => {
           return { barcode: p.barcode, product_name: p.product_name, brand: p.brand, score };
         })
         .filter(a => a.score >= currentScore)
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 3);
-      setAlts(scored);
+        .sort((a, b) => b.score - a.score);
+      // Dedupe by normalized product_name — keep highest score
+      const seen = new Set<string>();
+      const deduped: Alt[] = [];
+      for (const a of scored) {
+        const key = (a.product_name || '').trim().toLowerCase();
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        deduped.push(a);
+        if (deduped.length === 3) break;
+      }
+      setAlts(deduped);
       setLoading(false);
     })();
     return () => { cancelled = true; };
