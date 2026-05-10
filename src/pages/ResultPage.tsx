@@ -343,7 +343,7 @@ const ResultPage = () => {
                   </div>
 
                   <div className="flex items-center gap-1.5">
-                    <div className="font-display text-lg font-semibold" style={{ color: sl.bg }}>{sl.label}</div>
+                    <div className="font-display text-lg font-semibold" style={{ color: (premium ? psl : sl).bg }}>{(premium ? psl : sl).label}</div>
                     <Popover>
                       <PopoverTrigger asChild>
                         <button
