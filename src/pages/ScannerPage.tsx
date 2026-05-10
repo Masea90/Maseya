@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { BrowserMultiFormatReader, IScannerControls } from '@zxing/browser';
-import { BarcodeFormat, DecodeHintType } from '@zxing/library';
+import { Html5Qrcode } from 'html5-qrcode';
 import { Loader2, Image as ImageIcon } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useUser } from '@/contexts/UserContext';
@@ -33,13 +32,15 @@ const COPY = {
 
 type Phase = 'scanning' | 'analyzing' | 'error';
 
+const READER_ID = 'maseya-scanner-reader';
+
 const ScannerPage = () => {
   const { user } = useUser();
   const navigate = useNavigate();
   const c = COPY[user.language] ?? COPY.es;
 
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const controlsRef = useRef<IScannerControls | null>(null);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const stoppedRef = useRef<boolean>(false);
   const [phase, setPhase] = useState<Phase>('scanning');
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [showTooltip, setShowTooltip] = useState<boolean>(() => {
@@ -58,52 +59,47 @@ const ScannerPage = () => {
     setShowTooltip(false);
   };
 
-  const stop = () => {
-    controlsRef.current?.stop();
-    controlsRef.current = null;
+  const stop = async () => {
+    const inst = scannerRef.current;
+    if (!inst || stoppedRef.current) return;
+    stoppedRef.current = true;
+    try {
+      await inst.stop();
+      await inst.clear();
+    } catch {
+      // ignore
+    }
+    scannerRef.current = null;
   };
 
   const startScanning = async () => {
     setErrorMsg('');
     setPhase('scanning');
+    stoppedRef.current = false;
     try {
-      const hints = new Map();
-      hints.set(DecodeHintType.TRY_HARDER, true);
-      hints.set(DecodeHintType.POSSIBLE_FORMATS, [
-        BarcodeFormat.EAN_13,
-        BarcodeFormat.EAN_8,
-        BarcodeFormat.UPC_A,
-        BarcodeFormat.UPC_E,
-        BarcodeFormat.CODE_128,
-        BarcodeFormat.CODE_39,
-        BarcodeFormat.DATA_MATRIX,
-        BarcodeFormat.QR_CODE,
-      ]);
-      const reader = new BrowserMultiFormatReader(hints);
-      const constraints: MediaStreamConstraints = {
-        video: {
-          facingMode: { ideal: 'environment' },
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          // @ts-expect-error advanced focus hints not in lib.dom yet
-          focusMode: 'continuous',
-          advanced: [{ focusMode: 'continuous' } as MediaTrackConstraintSet],
+      const html5QrCode = new Html5Qrcode(READER_ID, { verbose: false });
+      scannerRef.current = html5QrCode;
+
+      await html5QrCode.start(
+        { facingMode: 'environment' },
+        {
+          fps: 30,
+          qrbox: { width: 250, height: 150 },
+          aspectRatio: 1.777,
+          disableFlip: false,
         },
-      };
-      const controls = await reader.decodeFromConstraints(
-        constraints,
-        videoRef.current!,
-        (result, _err, ctrl) => {
-          if (result) {
-            const code = result.getText();
-            ctrl.stop();
-            controlsRef.current = null;
-            setPhase('analyzing');
-            navigate(`/result/${encodeURIComponent(code)}`);
-          }
+        (decodedText) => {
+          if (stoppedRef.current) return;
+          stoppedRef.current = true;
+          html5QrCode.stop().then(() => html5QrCode.clear()).catch(() => {});
+          scannerRef.current = null;
+          setPhase('analyzing');
+          navigate(`/result/${encodeURIComponent(decodedText)}`);
+        },
+        () => {
+          // scan errors are normal, ignore
         }
       );
-      controlsRef.current = controls;
     } catch (e) {
       console.error('[scanner] camera error', e);
       setErrorMsg(c.cameraError);
@@ -115,16 +111,16 @@ const ScannerPage = () => {
 
   useEffect(() => {
     startScanning();
-    return () => stop();
+    return () => { void stop(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    if (location.pathname !== '/scan') stop();
+    if (location.pathname !== '/scan') void stop();
   }, [location.pathname]);
 
   const handlePhoto = () => {
-    stop();
+    void stop();
     navigate('/scan/photo');
   };
 
@@ -132,11 +128,9 @@ const ScannerPage = () => {
     <AppLayout title={c.title}>
       <div className="px-4 py-6 space-y-6">
         <div className="relative aspect-square rounded-3xl overflow-hidden shadow-warm-lg bg-black">
-          <video
-            ref={videoRef}
-            className={`pointer-events-none w-full h-full object-cover ${phase === 'scanning' ? 'block' : 'hidden'}`}
-            playsInline
-            muted
+          <div
+            id={READER_ID}
+            className={`w-full h-full ${phase === 'scanning' ? 'block' : 'hidden'} [&_video]:!w-full [&_video]:!h-full [&_video]:!object-cover`}
           />
           {phase === 'scanning' && (
             <>
