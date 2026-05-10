@@ -110,6 +110,10 @@ const ResultPage = () => {
   const profile = loadOnboarding();
   const alerts = personalAlerts(product, profile);
   const hasIngredientData = flagged.length >= 3;
+  const hasNutriscore = product.category === 'food' && !!product.nutriscore_grade;
+  const showScore = product.category === 'cosmetic'
+    ? hasIngredientData
+    : (hasNutriscore || hasIngredientData);
 
   const badgeVariant = (lvl: FlaggedIngredient['level']) =>
     lvl === 'avoid' ? 'bg-[#E63946] text-white'
@@ -154,18 +158,39 @@ const ResultPage = () => {
 
         {/* Score */}
         <div className="flex flex-col items-center gap-3">
-          <div
-            className="w-36 h-36 rounded-full flex flex-col items-center justify-center shadow-warm-lg"
-            style={{ backgroundColor: sl.bg, color: sl.color }}
-          >
-            <div className="text-4xl font-bold">{score}</div>
-            <div className="text-xs uppercase tracking-wider opacity-90">/ 100</div>
-          </div>
-          <div className="font-display text-lg font-semibold" style={{ color: sl.bg }}>{sl.label}</div>
-          {!hasIngredientData && (
-            <p className="text-xs text-muted-foreground text-center max-w-xs">
-              Puntuación basada en datos nutricionales. Escanea la etiqueta para análisis de ingredientes completo.
-            </p>
+          {showScore ? (
+            <>
+              <div
+                className="w-36 h-36 rounded-full flex flex-col items-center justify-center shadow-warm-lg"
+                style={{ backgroundColor: sl.bg, color: sl.color }}
+              >
+                <div className="text-4xl font-bold">{score}</div>
+                <div className="text-xs uppercase tracking-wider opacity-90">/ 100</div>
+              </div>
+              <div className="font-display text-lg font-semibold" style={{ color: sl.bg }}>{sl.label}</div>
+              {!hasIngredientData && hasNutriscore && (
+                <p className="text-xs text-muted-foreground text-center max-w-xs">
+                  Puntuación basada en datos nutricionales. Escanea la etiqueta para análisis de ingredientes completo.
+                </p>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="w-36 h-36 rounded-full flex flex-col items-center justify-center bg-muted text-muted-foreground border border-border">
+                <div className="text-2xl">—</div>
+                <div className="text-[10px] uppercase tracking-wider mt-1">Sin datos</div>
+              </div>
+              <div className="font-display text-lg font-semibold text-muted-foreground">Datos insuficientes</div>
+              <p className="text-xs text-muted-foreground text-center max-w-xs">
+                {product.category === 'cosmetic'
+                  ? 'Fotografía la etiqueta para obtener tu puntuación personalizada.'
+                  : 'Sin datos suficientes para puntuar este producto. Fotografía la etiqueta para un análisis completo.'}
+              </p>
+              <Button onClick={() => navigate('/scan/photo')} variant="outline" className="rounded-xl mt-1">
+                <Camera className="w-4 h-4 mr-2" />
+                Fotografiar etiqueta
+              </Button>
+            </>
           )}
         </div>
 
