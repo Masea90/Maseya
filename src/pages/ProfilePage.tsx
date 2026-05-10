@@ -323,6 +323,23 @@ const ProfilePage = () => {
               </div>
               <Switch checked={premium} onCheckedChange={(v) => setPremium(v)} />
             </div>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={async () => {
+                const tid = toast.loading('Enriqueciendo productos...');
+                const { data, error } = await supabase.functions.invoke('enrich-products', { body: {} });
+                toast.dismiss(tid);
+                if (error) {
+                  toast.error('Error al enriquecer productos');
+                  return;
+                }
+                const r = data as { scanned?: number; enriched?: number; still_missing?: number };
+                toast.success(`${r?.enriched ?? 0} productos actualizados (${r?.scanned ?? 0} escaneados)`);
+              }}
+            >
+              🔄 Enriquecer productos ahora
+            </Button>
           </div>
         )}
       </div>
