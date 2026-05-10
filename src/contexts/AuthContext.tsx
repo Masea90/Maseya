@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { lovable } from '@/integrations/lovable';
 
 export interface AuthUser {
   id: string;
@@ -109,15 +110,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signInWithGoogle = async (): Promise<{ success: boolean; error?: string }> => {
     const redirectUrl = `${window.location.origin}/`;
 
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: redirectUrl,
-      },
+    const result = await lovable.auth.signInWithOAuth('google', {
+      redirect_uri: redirectUrl,
     });
 
-    if (error) {
-      return { success: false, error: error.message };
+    if (result.error) {
+      return { success: false, error: result.error.message };
     }
 
     return { success: true };
