@@ -30,6 +30,10 @@ interface OFFResponse {
     nutriscore_grade?: string;
     ingredients_text?: string;
     ingredients_text_es?: string;
+    ingredients_text_en?: string;
+    ingredients_text_fr?: string;
+    composition_en?: string;
+    ingredients?: Array<{ text?: string; id?: string }>;
     ingredients_tags?: string[];
     labels_tags?: string[];
     ingredients_analysis_tags?: string[];
@@ -54,6 +58,17 @@ const normalize = (
   category: 'food' | 'cosmetic'
 ): ProductData => {
   const p = json.product ?? {};
+  const ingredientsFromArray = Array.isArray(p.ingredients)
+    ? p.ingredients.map(i => i?.text).filter(Boolean).join(', ')
+    : '';
+  const ingredients_text =
+    p.ingredients_text_es ||
+    p.ingredients_text ||
+    p.ingredients_text_en ||
+    p.ingredients_text_fr ||
+    p.composition_en ||
+    ingredientsFromArray ||
+    null;
   return {
     barcode,
     source,
@@ -62,7 +77,7 @@ const normalize = (
     brand: p.brands || '',
     image: p.image_front_url || p.image_url || null,
     nutriscore_grade: p.nutriscore_grade || null,
-    ingredients_text: p.ingredients_text_es || p.ingredients_text || null,
+    ingredients_text,
     ingredients_tags: p.ingredients_tags || [],
     labels_tags: p.labels_tags || [],
     ingredients_analysis_tags: p.ingredients_analysis_tags || [],
