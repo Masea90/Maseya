@@ -102,7 +102,7 @@ const ScannerPage = () => {
         <div className="relative aspect-square rounded-3xl overflow-hidden shadow-warm-lg bg-black">
           <video
             ref={videoRef}
-            className={`w-full h-full object-cover ${phase === 'scanning' ? 'block' : 'hidden'}`}
+            className={`pointer-events-none w-full h-full object-cover ${phase === 'scanning' ? 'block' : 'hidden'}`}
             playsInline
             muted
           />
