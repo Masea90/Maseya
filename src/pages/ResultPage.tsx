@@ -9,9 +9,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { lookupProduct, ProductData } from '@/lib/productLookup';
 import {
-  flagIngredients, calculateScore, scoreLabel, naturalness, personalAlerts, loadOnboarding,
+  flagIngredients, calculateScore, calculatePersonalScore, scoreLabel, naturalness, personalAlerts, loadOnboarding,
   FlaggedIngredient, PersonalAlert,
 } from '@/lib/scoring';
+import { usePremium } from '@/lib/premium';
+import { Lock } from 'lucide-react';
 import { RegistrationSheet } from '@/components/auth/RegistrationSheet';
 import { MiraAnalysis } from '@/components/result/MiraAnalysis';
 import { Alternatives } from '@/components/result/Alternatives';
