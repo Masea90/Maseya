@@ -124,6 +124,12 @@ export async function saveToMaseya(input: {
   source?: string;
   verified?: boolean;
 }): Promise<void> {
+  const { data: userData } = await supabase.auth.getUser();
+  const uid = userData.user?.id;
+  if (!uid) {
+    console.warn('[productLookup] saveToMaseya skipped: not authenticated');
+    return;
+  }
   const { error } = await supabase
     .from('maseya_products')
     .upsert({
@@ -134,7 +140,8 @@ export async function saveToMaseya(input: {
       ingredients_text: input.ingredients_text,
       image_url: input.image_url ?? null,
       source: input.source ?? 'photo',
-      verified: input.verified ?? false,
+      verified: false,
+      submitted_by: uid,
     }, { onConflict: 'barcode' });
   if (error) console.error('[productLookup] saveToMaseya error', error);
 }
