@@ -62,6 +62,21 @@ export function classifyIngredient(name: string): IngredientLevel {
   return 'safe';
 }
 
+const SYNONYM_GROUPS: string[][] = [
+  ['aqua', 'water', 'eau', 'agua'],
+  ['parfum', 'fragrance', 'perfume', 'perfum'],
+  ['alcohol', 'alcohol denat', 'alcohol denat.', 'ethanol', 'sd alcohol', 'denatured alcohol'],
+  ['tocopherol', 'vitamin e', 'vitamine e', 'alpha-tocopherol', 'dl-alpha-tocopherol'],
+];
+
+function canonicalKey(name: string): string {
+  const norm = name.toLowerCase().trim().replace(/\s+/g, ' ');
+  for (const group of SYNONYM_GROUPS) {
+    if (group.includes(norm)) return group[0];
+  }
+  return norm;
+}
+
 export function flagIngredients(p: ProductData): FlaggedIngredient[] {
   const fromTags = p.ingredients_tags
     .map(t => t.replace(/^[a-z]{2}:/, '').replace(/-/g, ' '))
@@ -70,7 +85,14 @@ export function flagIngredients(p: ProductData): FlaggedIngredient[] {
     .split(/[,;()]/)
     .map(s => s.trim())
     .filter(s => s.length > 1 && s.length < 60);
-  const all = Array.from(new Set([...fromTags, ...fromText]));
+  const seen = new Set<string>();
+  const all: string[] = [];
+  for (const name of [...fromTags, ...fromText]) {
+    const key = canonicalKey(name);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    all.push(name);
+  }
   return all.slice(0, 40).map(name => ({ name, level: classifyIngredient(name) }));
 }
 
