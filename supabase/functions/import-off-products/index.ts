@@ -24,7 +24,7 @@ interface OffProduct {
   ingredients_analysis_tags?: string[];
 }
 
-const fetchPage = async (host: string, page: number): Promise<OffProduct[]> => {
+const fetchPage = async (host: string, page: number, withCountry: boolean): Promise<OffProduct[]> => {
   const fields = [
     "code", "product_name", "product_name_es", "brands",
     "image_front_url", "nutriscore_grade", "ingredients_text",
@@ -32,26 +32,41 @@ const fetchPage = async (host: string, page: number): Promise<OffProduct[]> => {
     "ingredients_analysis_tags",
   ].join(",");
 
+  const countryPart = withCountry
+    ? `&tagtype_0=countries&tag_contains_0=contains&tag_0=spain`
+    : "";
+
   const url = `https://${host}/cgi/search.pl?action=process` +
-    `&tagtype_0=countries&tag_contains_0=contains&tag_0=spain` +
+    countryPart +
     `&sort_by=unique_scans_n&page_size=200&page=${page}` +
     `&json=true&fields=${fields}`;
 
+  console.log("[import] fetching", url);
+
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 30_000);
+  const timer = setTimeout(() => ctrl.abort(), 45_000);
   try {
     const res = await fetch(url, {
       signal: ctrl.signal,
       headers: { "User-Agent": "MASEYA-import/1.0 (https://maseya.es)" },
     });
     if (!res.ok) {
-      console.error("[import] http", host, res.status);
+      const body = await res.text().catch(() => "");
+      console.error(`[import] http ${host} status=${res.status} body=${body.slice(0, 500)}`);
       return [];
     }
-    const j = await res.json();
-    return Array.isArray(j?.products) ? j.products : [];
+    const text = await res.text();
+    let j: any = null;
+    try { j = JSON.parse(text); } catch (e) {
+      console.error(`[import] json parse error host=${host} body=${text.slice(0, 500)}`);
+      return [];
+    }
+    const products = Array.isArray(j?.products) ? j.products : [];
+    console.log(`[import] got ${products.length} products from ${host} (count=${j?.count ?? '?'})`);
+    return products;
   } catch (e) {
-    console.error("[import] fetch error", host, e);
+    const isAbort = (e as Error)?.name === "AbortError";
+    console.error(`[import] fetch error host=${host} aborted=${isAbort}`, e);
     return [];
   } finally {
     clearTimeout(timer);
@@ -82,19 +97,40 @@ Deno.serve(async (req) => {
       if (u.searchParams.get("source") === "obf") source = "obf";
     }
 
-    const host = source === "off"
-      ? "world.openfoodfacts.org"
-      : "world.openbeautyfacts.org";
     const category = source === "off" ? "food" : "cosmetic";
     const sourceTag = source === "off" ? "off_import" : "obf_import";
 
-    const products = await fetchPage(host, page);
+    // Try a sequence of endpoints. For OFF (food), the Spain-filtered query
+    // sometimes returns 503; fall back to the es. subdomain and finally to
+    // world. without the country filter.
+    const attempts: Array<{ host: string; withCountry: boolean }> =
+      source === "off"
+        ? [
+            { host: "es.openfoodfacts.org", withCountry: false },
+            { host: "world.openfoodfacts.org", withCountry: true },
+            { host: "world.openfoodfacts.org", withCountry: false },
+          ]
+        : [
+            { host: "world.openbeautyfacts.org", withCountry: true },
+            { host: "world.openbeautyfacts.org", withCountry: false },
+          ];
+
+    let products: OffProduct[] = [];
+    let usedHost = attempts[0].host;
+    for (const a of attempts) {
+      products = await fetchPage(a.host, page, a.withCountry);
+      usedHost = a.host;
+      if (products.length > 0) break;
+      console.log(`[import] empty result from ${a.host} (country=${a.withCountry}), trying next`);
+    }
+
     if (products.length === 0) {
-      return new Response(JSON.stringify({ imported: 0, skipped: 0, page, total_so_far: 0 }), {
+      return new Response(JSON.stringify({ imported: 0, skipped: 0, page, total_so_far: 0, note: "all_endpoints_empty" }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    console.log(`[import] using ${usedHost} -> ${products.length} products`);
 
     const barcodes = products.map(p => String(p.code || "")).filter(Boolean);
     const { data: existingRows } = await admin
