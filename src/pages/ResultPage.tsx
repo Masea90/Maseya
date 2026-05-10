@@ -145,7 +145,11 @@ const ResultPage = () => {
           {product.image ? (
             <img src={product.image} alt={product.name} className="w-20 h-20 rounded-2xl object-cover bg-muted" />
           ) : (
-            <div className="w-20 h-20 rounded-2xl bg-muted" />
+            <div className="w-20 h-20 rounded-2xl flex items-center justify-center bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/10">
+              {product.category === 'food'
+                ? <Apple className="w-9 h-9 text-primary/70" strokeWidth={1.5} />
+                : <Leaf className="w-9 h-9 text-primary/70" strokeWidth={1.5} />}
+            </div>
           )}
           <div className="flex-1 min-w-0">
             <p className="font-display font-semibold leading-tight">{product.name}</p>
