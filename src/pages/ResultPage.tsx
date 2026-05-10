@@ -394,7 +394,7 @@ const ResultPage = () => {
                 category: product.category,
                 ingredients_text: product.ingredients_text || '',
               }}
-              profile={profile}
+              profile={healthProfile || profile}
               score={score}
             />
 
