@@ -120,21 +120,54 @@ Deno.serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 
-    const { data: rows, error } = await admin
-      .from("maseya_products")
-      .select("barcode, product_name, brand, category, ingredients_text, image_url")
-      .or("image_url.is.null,ingredients_text.is.null,ingredients_text.eq.")
-      .limit(50);
-
-    if (error) {
-      console.error("[enrich] query error", error);
-      return new Response(JSON.stringify({ error: "db_error" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    // Optional single-barcode mode for real-time enrichment on scan
+    let singleBarcode: string | null = null;
+    if (req.method === "POST") {
+      try {
+        const body = await req.json();
+        if (typeof body?.barcode === "string" && body.barcode.trim()) {
+          singleBarcode = body.barcode.trim();
+        }
+      } catch {}
     }
 
-    const products = (rows ?? []) as MaseyaRow[];
+    let products: MaseyaRow[] = [];
+
+    if (singleBarcode) {
+      // Look up the existing row (may not exist yet)
+      const { data: existing } = await admin
+        .from("maseya_products")
+        .select("barcode, product_name, brand, category, ingredients_text, image_url")
+        .eq("barcode", singleBarcode)
+        .maybeSingle();
+
+      products = [
+        existing as MaseyaRow ?? {
+          barcode: singleBarcode,
+          product_name: null,
+          brand: null,
+          category: null,
+          ingredients_text: null,
+          image_url: null,
+        },
+      ];
+    } else {
+      const { data: rows, error } = await admin
+        .from("maseya_products")
+        .select("barcode, product_name, brand, category, ingredients_text, image_url")
+        .or("image_url.is.null,ingredients_text.is.null,ingredients_text.eq.")
+        .limit(50);
+
+      if (error) {
+        console.error("[enrich] query error", error);
+        return new Response(JSON.stringify({ error: "db_error" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      products = (rows ?? []) as MaseyaRow[];
+    }
+
     let enriched = 0;
     let stillMissing = 0;
 
@@ -155,9 +188,30 @@ Deno.serve(async (req) => {
         continue;
       }
 
+      // For single-barcode mode, the row may not exist yet — upsert with sensible defaults
+      if (singleBarcode && !row.product_name && !row.image_url && !row.ingredients_text) {
+        const newRow = {
+          barcode: row.barcode,
+          product_name: patch.product_name || 'Producto sin nombre',
+          brand: patch.brand ?? null,
+          category: patch.category ?? row.category ?? 'unknown',
+          ingredients_text: patch.ingredients_text ?? null,
+          image_url: patch.image_url ?? null,
+          source: 'enrich_lookup',
+          verified: false,
+          last_enriched_at: new Date().toISOString(),
+        };
+        const { error: upErr } = await admin
+          .from("maseya_products")
+          .upsert(newRow, { onConflict: 'barcode' });
+        if (upErr) { console.error("[enrich] insert error", row.barcode, upErr); stillMissing++; }
+        else enriched++;
+        continue;
+      }
+
       const { error: upErr } = await admin
         .from("maseya_products")
-        .update(patch)
+        .update({ ...patch, last_enriched_at: new Date().toISOString() })
         .eq("barcode", row.barcode);
       if (upErr) {
         console.error("[enrich] update error", row.barcode, upErr);

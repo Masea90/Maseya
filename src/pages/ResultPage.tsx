@@ -22,6 +22,7 @@ const ResultPage = () => {
 
   const [product, setProduct] = useState<ProductData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [enriching, setEnriching] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [showSheet, setShowSheet] = useState(false);
   const [paywall, setPaywall] = useState(false);
@@ -111,7 +112,23 @@ const ResultPage = () => {
       const data = await lookupProduct(barcode);
       if (cancelled) return;
       if (!data) {
-        setNotFound(true);
+        // Try real-time enrichment before giving up
+        setEnriching(true);
+        try {
+          await supabase.functions.invoke('enrich-products', { body: { barcode } });
+        } catch (e) {
+          console.error('[result] enrich error', e);
+        }
+        if (cancelled) return;
+        const retry = await lookupProduct(barcode);
+        if (cancelled) return;
+        setEnriching(false);
+        if (!retry) {
+          setNotFound(true);
+          setLoading(false);
+          return;
+        }
+        setProduct(retry);
         setLoading(false);
         return;
       }
@@ -126,6 +143,12 @@ const ResultPage = () => {
     if (!product) return;
     const flagged = flagIngredients(product);
     const score = calculateScore(product, flagged);
+
+    // Track popularity in maseya_products (best-effort, no await)
+    if (product.barcode && product.barcode !== 'photo') {
+      supabase.rpc('increment_product_scan_count', { p_barcode: product.barcode })
+        .then(({ error }) => { if (error) console.warn('[scan_count]', error.message); });
+    }
 
     if (isAuthenticated && currentUser?.id) {
       supabase.from('scan_history').insert([{
@@ -151,9 +174,16 @@ const ResultPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-[100dvh] flex flex-col items-center justify-center gap-3">
+      <div className="min-h-[100dvh] flex flex-col items-center justify-center gap-3 px-6 text-center">
         <Loader2 className="w-10 h-10 text-primary animate-spin" />
-        <p className="text-sm text-muted-foreground">Analizando producto...</p>
+        <p className="text-sm text-muted-foreground">
+          {enriching ? 'Buscando información del producto...' : 'Analizando producto...'}
+        </p>
+        {enriching && (
+          <p className="text-xs text-muted-foreground/80 max-w-xs">
+            Estamos consultando bases de datos internacionales para encontrar este producto.
+          </p>
+        )}
       </div>
     );
   }
