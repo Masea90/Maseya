@@ -134,9 +134,10 @@ const PhotoCapturePage = () => {
     setStep('analyzing');
     try {
       const dataUrl = await fileToBase64(file);
+      const front = frontPhoto ?? localStorage.getItem('maseya_photo_front');
 
       const { data, error: fnError } = await supabase.functions.invoke('extract-ingredients', {
-        body: { image: dataUrl },
+        body: { front_image: front, ingredients_image: dataUrl },
       });
 
       if (fnError || !data || data.error) {
