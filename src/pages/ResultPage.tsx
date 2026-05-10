@@ -205,7 +205,7 @@ const ResultPage = () => {
         </header>
         <div className="w-full sm:max-w-lg sm:mx-auto p-6 space-y-4 text-center">
           <p className="text-muted-foreground">No tenemos información de este producto en nuestras bases.</p>
-          <Button onClick={() => navigate('/scan/photo')} className="w-full h-12 rounded-2xl">
+          <Button onClick={() => navigate(barcode && barcode !== 'photo' ? `/scan/photo?barcode=${barcode}` : '/scan/photo')} className="w-full h-12 rounded-2xl">
             Fotografiar ingredientes
           </Button>
         </div>
@@ -288,7 +288,7 @@ const ResultPage = () => {
               <p className="text-sm text-muted-foreground leading-relaxed">
                 Este producto aún no tiene ingredientes en nuestra base de datos. Fotografía la etiqueta y Mira lo analizará al instante.
               </p>
-              <Button onClick={() => navigate('/scan/photo')} className="w-full h-12 rounded-2xl">
+              <Button onClick={() => navigate(barcode && barcode !== 'photo' ? `/scan/photo?barcode=${barcode}` : '/scan/photo')} className="w-full h-12 rounded-2xl">
                 <Camera className="w-4 h-4 mr-2" />
                 Fotografiar etiqueta
               </Button>
@@ -388,7 +388,7 @@ const ResultPage = () => {
                   <p className="text-xs text-muted-foreground text-center max-w-xs">
                     Fotografía la etiqueta para obtener tu puntuación personalizada.
                   </p>
-                  <Button onClick={() => navigate('/scan/photo')} variant="outline" className="rounded-xl mt-1">
+                  <Button onClick={() => navigate(barcode && barcode !== 'photo' ? `/scan/photo?barcode=${barcode}` : '/scan/photo')} variant="outline" className="rounded-xl mt-1">
                     <Camera className="w-4 h-4 mr-2" />
                     Fotografiar etiqueta
                   </Button>
@@ -410,7 +410,7 @@ const ResultPage = () => {
                         <p className="text-sm text-muted-foreground">
                           Sin lista de ingredientes disponible para este producto. Puedes fotografiar la etiqueta para un análisis completo.
                         </p>
-                        <Button onClick={() => navigate('/scan/photo')} variant="outline" className="rounded-xl">
+                        <Button onClick={() => navigate(barcode && barcode !== 'photo' ? `/scan/photo?barcode=${barcode}` : '/scan/photo')} variant="outline" className="rounded-xl">
                           <Camera className="w-4 h-4 mr-2" />
                           Fotografiar etiqueta
                         </Button>

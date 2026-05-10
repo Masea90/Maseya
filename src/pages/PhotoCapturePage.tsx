@@ -108,6 +108,7 @@ const PhotoCapturePage = () => {
   const { user } = useUser();
   const [searchParams] = useSearchParams();
   const addImageFor = searchParams.get('addImageFor'); // existing barcode needing only an image
+  const realBarcode = searchParams.get('barcode'); // real EAN of a "not found" product
   const c = COPY[user.language] ?? COPY.es;
 
   const [step, setStep] = useState<Step>('front');
@@ -159,11 +160,11 @@ const PhotoCapturePage = () => {
       const brand = (data.brand as string) || '';
       const category = (data.category === 'food' ? 'food' : 'cosmetic') as 'food' | 'cosmetic';
       const ingredients_text = data.ingredients_text as string;
-      const synthBarcode = `photo_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const finalBarcode = realBarcode || `photo_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
       const image = frontPhoto ?? localStorage.getItem('maseya_photo_front');
 
       await saveToMaseya({
-        barcode: synthBarcode,
+        barcode: finalBarcode,
         product_name,
         brand,
         category,
@@ -174,7 +175,7 @@ const PhotoCapturePage = () => {
       });
 
       localStorage.setItem('maseya_photo_product', JSON.stringify({
-        barcode: synthBarcode,
+        barcode: finalBarcode,
         product_name,
         brand,
         category,
@@ -184,7 +185,7 @@ const PhotoCapturePage = () => {
       }));
       localStorage.removeItem('maseya_photo_front');
 
-      navigate('/result/photo');
+      navigate(realBarcode ? `/result/${realBarcode}` : '/result/photo');
     } catch (e) {
       console.error('[photo-capture] ingredients error', e);
       setStep('error');
