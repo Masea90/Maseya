@@ -31,9 +31,21 @@ const ORANGE_KEYWORDS = [
   'cyclopentasiloxane', 'carrageenan', 'monosodium glutamate', 'msg', 'e621',
 ];
 
+// Lactose keyword sets are category-aware: in cosmetics "butter" is almost
+// always a plant butter (shea, cocoa, mango), so we only flag explicit dairy.
+const LACTOSE_FOOD = [
+  'milk', 'lactose', 'dairy', 'whey', 'casein', 'cream',
+  'skimmed milk', 'whole milk', 'milk powder',
+  'lait', 'leche', 'lactosérum', 'caséine', 'lacto', 'lactosa', 'suero',
+];
+const LACTOSE_COSMETIC = [
+  'milk protein', 'dairy', 'lactose', 'whey protein',
+  'protéine de lait', 'proteína de leche',
+];
+
 const ALLERGY_KEYWORDS: Record<string, string[]> = {
   gluten: ['wheat', 'gluten', 'barley', 'rye', 'malt', 'spelt', 'trigo', 'cebada', 'centeno'],
-  lactose: ['milk', 'lactose', 'dairy', 'whey', 'casein', 'butter', 'leche', 'lactosa', 'mantequilla', 'suero'],
+  lactose: LACTOSE_FOOD, // default; cosmetics override in personalAlerts
   nuts: ['almond', 'walnut', 'hazelnut', 'cashew', 'pistachio', 'peanut', 'pecan', 'almendra', 'nuez', 'avellana', 'cacahuete'],
   fish: ['fish', 'shellfish', 'shrimp', 'crab', 'lobster', 'pescado', 'marisco', 'gamba', 'cangrejo'],
 };
@@ -139,7 +151,9 @@ export function personalAlerts(p: ProductData, profile: OnboardingProfile): Pers
   // Allergy rules
   for (const allergy of profile.allergies) {
     if (allergy === 'none') continue;
-    const kws = ALLERGY_KEYWORDS[allergy];
+    const kws = allergy === 'lactose'
+      ? (p.category === 'cosmetic' ? LACTOSE_COSMETIC : LACTOSE_FOOD)
+      : ALLERGY_KEYWORDS[allergy];
     if (!kws) continue;
     const found = containsAny(text, kws);
     const labels: Record<string, string> = {
