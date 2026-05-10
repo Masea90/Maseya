@@ -9,6 +9,28 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim());
 });
 
+// SPA navigation fallback: if a navigation request 404s (or fails), serve '/'
+self.addEventListener('fetch', (event) => {
+  const req = event.request;
+  if (req.mode !== 'navigate') return;
+  event.respondWith(
+    (async () => {
+      try {
+        const res = await fetch(req);
+        if (res && res.status === 404) {
+          const fallback = await fetch('/');
+          if (fallback && fallback.ok) return fallback;
+        }
+        return res;
+      } catch (e) {
+        const fallback = await fetch('/').catch(() => null);
+        if (fallback) return fallback;
+        return new Response('', { status: 504 });
+      }
+    })()
+  );
+});
+
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
