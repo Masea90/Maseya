@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Camera, ArrowLeft, Sparkles, RefreshCw, Check } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
