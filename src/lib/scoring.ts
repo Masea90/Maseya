@@ -80,22 +80,16 @@ export function calculateScore(p: ProductData, flagged: FlaggedIngredient[]): nu
   const isOrganic = p.labels_tags.some(t => t.includes('organic') || t.includes('bio'));
 
   if (p.category === 'food' && p.nutriscore_grade) {
-    const map: Record<string, number> = { a: 90, b: 75, c: 55, d: 35, e: 15 };
-    let score = map[p.nutriscore_grade.toLowerCase()] ?? 50;
-
-    // Count distinct ingredients (from tags + parsed text)
-    const ingredientCount = flagged.length;
-
-    // Bonuses
-    if (ingredientCount > 0 && ingredientCount < 5) score += 10;
-    if (reds === 0 && oranges === 0 && ingredientCount > 0) score += 8;
-    if (isOrganic) score += 5;
-    if (ingredientCount > 0 && reds === 0 && oranges === 0) score += 5; // all natural
-
-    // Penalties
-    score -= reds * 10;
-    score -= oranges * 5;
-
+    // Yuka-like: clean Nutriscore mapping when no bad ingredients,
+    // otherwise penalise per flagged ingredient.
+    const cleanMap: Record<string, number> = { a: 95, b: 82, c: 62, d: 40, e: 18 };
+    const grade = p.nutriscore_grade.toLowerCase();
+    let score = cleanMap[grade] ?? 50;
+    if (reds > 0 || oranges > 0) {
+      score -= reds * 10;
+      score -= oranges * 5;
+    }
+    if (isOrganic) score += 3;
     return Math.max(0, Math.min(100, Math.round(score)));
   }
 
@@ -108,6 +102,81 @@ export function calculateScore(p: ProductData, flagged: FlaggedIngredient[]): nu
   score += positives * 4;
 
   if (isOrganic) score += 6;
+
+  return Math.max(0, Math.min(100, Math.round(score)));
+}
+
+// Generic profile shape — accepts either onboarding localStorage or health_profiles row
+export interface PersonalProfileLike {
+  skin?: string[];
+  skin_type?: string[];
+  skin_conditions?: string[];
+  skin_sensitivities?: string[];
+  allergies?: string[];
+  diet?: string;
+  nutrition_goals?: string[];
+  pregnancy_or_lactation?: boolean;
+}
+
+const ANIMAL_KEYWORDS = ['milk', 'lactose', 'whey', 'casein', 'cream', 'egg', 'honey', 'gelatin', 'meat', 'beef', 'pork', 'chicken', 'fish', 'lait', 'leche', 'huevo', 'miel', 'gelatina', 'carne'];
+const PREGNANCY_RISKY = ['retinol', 'retinyl', 'retinal', 'salicylic acid', 'salicylate', 'hydroquinone', 'formaldehyde', 'phthalate', 'caffeine', 'cafeína'];
+
+export function calculatePersonalScore(
+  p: ProductData,
+  flagged: FlaggedIngredient[],
+  profile: PersonalProfileLike,
+  baseScore: number,
+): number {
+  const text = lower(p.ingredients_text || '') + ' ' + p.ingredients_tags.join(' ');
+  const has = (kw: string) => text.includes(kw);
+  const hasAny = (kws: string[]) => kws.some(k => text.includes(k));
+
+  const skin = [
+    ...(profile.skin || []),
+    ...(profile.skin_type || []),
+    ...(profile.skin_conditions || []),
+  ].map(s => String(s).toLowerCase());
+  const allergies = (profile.allergies || []).map(a => String(a).toLowerCase());
+  const diet = String(profile.diet || '').toLowerCase();
+  const isVegan = diet.includes('vegan') || allergies.includes('vegan');
+  const isPregnant = !!profile.pregnancy_or_lactation;
+
+  let score = baseScore;
+  const isCosmetic = p.category === 'cosmetic';
+  const isFood = p.category === 'food';
+
+  // Skin (cosmetics)
+  if (isCosmetic) {
+    if (skin.includes('atopic') && (has('sulfate') || has('sulphate') || has('fragrance') || has('parfum') || has('mineral oil') || has('paraffinum'))) {
+      score -= 30;
+    }
+    if (skin.includes('dry') && (has('sulfate') || has('sulphate') || has('alcohol denat'))) {
+      score -= 20;
+    }
+    if (skin.includes('oily') && (has('mineral oil') || has('paraffinum') || has('silicone') || has('dimethicone'))) {
+      score -= 15;
+    }
+  }
+
+  // Food allergies
+  if (isFood) {
+    if (allergies.includes('gluten') && hasAny(ALLERGY_KEYWORDS.gluten)) score -= 50;
+    if (allergies.includes('lactose') && hasAny(LACTOSE_FOOD)) score -= 50;
+    if (allergies.includes('nuts') && hasAny(ALLERGY_KEYWORDS.nuts)) score -= 50;
+    if (allergies.includes('fish') && hasAny(ALLERGY_KEYWORDS.fish)) score -= 50;
+    if (isVegan && hasAny(ANIMAL_KEYWORDS)) score -= 30;
+    // Diet alignment bonus
+    if (diet && (p.labels_tags.some(t => t.includes(diet)) || (isVegan && p.ingredients_analysis_tags.includes('en:vegan')))) {
+      score += 5;
+    }
+  }
+
+  // Pregnancy (both categories)
+  if (isPregnant && hasAny(PREGNANCY_RISKY)) score -= 40;
+
+  // Beneficial ingredient bonus for known-good actives
+  const beneficial = ['aloe', 'panthenol', 'niacinamide', 'hyaluronic', 'glycerin', 'oat', 'avena', 'centella'];
+  if (isCosmetic && skin.length > 0 && hasAny(beneficial)) score += 10;
 
   return Math.max(0, Math.min(100, Math.round(score)));
 }
