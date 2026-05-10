@@ -24,10 +24,46 @@ const ResultPage = () => {
   const [showSheet, setShowSheet] = useState(false);
   const [paywall, setPaywall] = useState(false);
 
+  const [fromPhoto, setFromPhoto] = useState(false);
+
   useEffect(() => {
-    if (!barcode || barcode === 'photo') {
+    if (!barcode) {
       setLoading(false);
-      setNotFound(barcode !== 'photo');
+      setNotFound(true);
+      return;
+    }
+    if (barcode === 'photo') {
+      try {
+        const raw = localStorage.getItem('maseya_photo_product');
+        if (!raw) {
+          setNotFound(true);
+          setLoading(false);
+          return;
+        }
+        const p = JSON.parse(raw);
+        const cat: ProductData['category'] =
+          p.category === 'food' ? 'food' : p.category === 'cosmetic' ? 'cosmetic' : 'unknown';
+        setProduct({
+          barcode: p.barcode,
+          source: 'photo',
+          name: p.product_name || 'Producto fotografiado',
+          brand: p.brand || '',
+          image: p.image || null,
+          category: cat,
+          nutriscore_grade: null,
+          ingredients_text: p.ingredients_text || null,
+          ingredients_tags: [],
+          labels_tags: [],
+          ingredients_analysis_tags: [],
+          raw: p,
+        });
+        setFromPhoto(true);
+        setLoading(false);
+      } catch (e) {
+        console.error('[result] photo parse failed', e);
+        setNotFound(true);
+        setLoading(false);
+      }
       return;
     }
     let cancelled = false;
