@@ -85,11 +85,17 @@ const ScannerPage = () => {
     }
   };
 
+  const location = useLocation();
+
   useEffect(() => {
     startScanning();
     return () => stop();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (location.pathname !== '/scan') stop();
+  }, [location.pathname]);
 
   const handlePhoto = () => {
     stop();
