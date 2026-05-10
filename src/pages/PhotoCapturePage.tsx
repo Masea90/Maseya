@@ -6,6 +6,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { saveToMaseya } from '@/lib/productLookup';
 import { Button } from '@/components/ui/button';
 
+function CameraInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
+  const ref = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (ref.current) ref.current.setAttribute('camera', 'environment');
+  }, []);
+  return <input ref={ref} {...props} />;
+}
+
+
 const COPY = {
   es: {
     title: 'Añadir producto',
