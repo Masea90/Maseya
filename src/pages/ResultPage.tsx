@@ -112,7 +112,23 @@ const ResultPage = () => {
       const data = await lookupProduct(barcode);
       if (cancelled) return;
       if (!data) {
-        setNotFound(true);
+        // Try real-time enrichment before giving up
+        setEnriching(true);
+        try {
+          await supabase.functions.invoke('enrich-products', { body: { barcode } });
+        } catch (e) {
+          console.error('[result] enrich error', e);
+        }
+        if (cancelled) return;
+        const retry = await lookupProduct(barcode);
+        if (cancelled) return;
+        setEnriching(false);
+        if (!retry) {
+          setNotFound(true);
+          setLoading(false);
+          return;
+        }
+        setProduct(retry);
         setLoading(false);
         return;
       }
