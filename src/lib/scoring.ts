@@ -151,7 +151,9 @@ export function personalAlerts(p: ProductData, profile: OnboardingProfile): Pers
   // Allergy rules
   for (const allergy of profile.allergies) {
     if (allergy === 'none') continue;
-    const kws = ALLERGY_KEYWORDS[allergy];
+    const kws = allergy === 'lactose'
+      ? (p.category === 'cosmetic' ? LACTOSE_COSMETIC : LACTOSE_FOOD)
+      : ALLERGY_KEYWORDS[allergy];
     if (!kws) continue;
     const found = containsAny(text, kws);
     const labels: Record<string, string> = {
