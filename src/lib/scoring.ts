@@ -75,14 +75,31 @@ export function flagIngredients(p: ProductData): FlaggedIngredient[] {
 }
 
 export function calculateScore(p: ProductData, flagged: FlaggedIngredient[]): number {
-  if (p.category === 'food' && p.nutriscore_grade) {
-    const map: Record<string, number> = { a: 90, b: 75, c: 55, d: 35, e: 15 };
-    return map[p.nutriscore_grade.toLowerCase()] ?? 50;
-  }
-  // Cosmetic / fallback: derive from ingredient flags + positive tags
-  const total = flagged.length || 1;
   const reds = flagged.filter(f => f.level === 'avoid').length;
   const oranges = flagged.filter(f => f.level === 'caution').length;
+  const isOrganic = p.labels_tags.some(t => t.includes('organic') || t.includes('bio'));
+
+  if (p.category === 'food' && p.nutriscore_grade) {
+    const map: Record<string, number> = { a: 90, b: 75, c: 55, d: 35, e: 15 };
+    let score = map[p.nutriscore_grade.toLowerCase()] ?? 50;
+
+    // Count distinct ingredients (from tags + parsed text)
+    const ingredientCount = flagged.length;
+
+    // Bonuses
+    if (ingredientCount > 0 && ingredientCount < 5) score += 10;
+    if (reds === 0 && oranges === 0 && ingredientCount > 0) score += 8;
+    if (isOrganic) score += 5;
+    if (ingredientCount > 0 && reds === 0 && oranges === 0) score += 5; // all natural
+
+    // Penalties
+    score -= reds * 10;
+    score -= oranges * 5;
+
+    return Math.max(0, Math.min(100, Math.round(score)));
+  }
+
+  // Cosmetic / fallback: derive from ingredient flags + positive tags
   let score = 100 - (reds * 15) - (oranges * 6);
 
   const positives = p.ingredients_analysis_tags.filter(t =>
@@ -90,7 +107,7 @@ export function calculateScore(p: ProductData, flagged: FlaggedIngredient[]): nu
   ).length;
   score += positives * 4;
 
-  if (p.labels_tags.some(t => t.includes('organic'))) score += 6;
+  if (isOrganic) score += 6;
 
   return Math.max(0, Math.min(100, Math.round(score)));
 }

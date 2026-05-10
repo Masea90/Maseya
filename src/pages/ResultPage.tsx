@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, ChevronDown, Sparkles, Loader2, Camera } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Sparkles, Loader2, Camera, Info } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -304,7 +305,29 @@ const ResultPage = () => {
                     <div className="text-4xl font-bold">{score}</div>
                     <div className="text-xs uppercase tracking-wider opacity-90">/ 100</div>
                   </div>
-                  <div className="font-display text-lg font-semibold" style={{ color: sl.bg }}>{sl.label}</div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="font-display text-lg font-semibold" style={{ color: sl.bg }}>{sl.label}</div>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          aria-label="¿Cómo calculamos la puntuación?"
+                          className="text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          <Info className="w-4 h-4" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-72 text-sm" align="center">
+                        <p className="font-display font-semibold mb-2">¿Cómo calculamos la puntuación?</p>
+                        <p className="text-muted-foreground leading-relaxed">
+                          Para alimentos usamos el Nutriscore oficial europeo + bonificaciones por naturalidad y ausencia de aditivos.
+                        </p>
+                        <p className="text-muted-foreground leading-relaxed mt-2">
+                          Para cosméticos analizamos cada ingrediente individualmente.
+                        </p>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
                   {!hasIngredientData && hasNutriscore && (
                     <p className="text-xs text-muted-foreground text-center max-w-xs">
                       Basado en valor nutricional. Fotografía la etiqueta para análisis completo de ingredientes.
