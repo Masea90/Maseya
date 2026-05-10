@@ -44,19 +44,32 @@ const buildPseudo = (
   raw,
 });
 
+const pickSpecificCategoryTag = (raw: Record<string, unknown> | undefined): string | null => {
+  if (!raw) return null;
+  const tags = (raw as any).categories_tags;
+  if (!Array.isArray(tags) || tags.length === 0) return null;
+  // Most specific tag is typically the last one. Prefer en: prefix.
+  const enTags = tags.filter((t: unknown): t is string => typeof t === 'string' && t.startsWith('en:'));
+  const pool = enTags.length > 0 ? enTags : tags.filter((t: unknown): t is string => typeof t === 'string');
+  if (pool.length === 0) return null;
+  return pool[pool.length - 1];
+};
+
 const fetchOpenFactsAlternatives = async (
   category: 'food' | 'cosmetic',
-  excludeBarcode: string
+  excludeBarcode: string,
+  specificTag?: string | null
 ): Promise<Alt[]> => {
   const host = category === 'food' ? 'world.openfoodfacts.org' : 'world.openbeautyfacts.org';
-  const url = `https://${host}/cgi/search.pl?action=process&tagtype_0=categories&tag_contains_0=contains&tag_0=${encodeURIComponent(category === 'food' ? 'food' : 'cosmetics')}&json=true&page_size=20&fields=code,product_name,brands,image_front_url,nutriscore_grade,ingredients_text`;
+  const tag = specificTag || (category === 'food' ? 'food' : 'cosmetics');
+  const url = `https://${host}/cgi/search.pl?action=process&tagtype_0=categories&tag_contains_0=contains&tag_0=${encodeURIComponent(tag)}&sort_by=unique_scans_n&json=true&page_size=20&fields=code,product_name,brands,image_front_url,nutriscore_grade,ingredients_text`;
   try {
     const res = await fetch(url);
     if (!res.ok) return [];
     const j = await res.json();
     const items: any[] = Array.isArray(j?.products) ? j.products : [];
     return items
-      .filter(p => p.code && p.code !== excludeBarcode && (p.product_name || '').trim())
+      .filter(p => p.code && String(p.code) !== excludeBarcode && (p.product_name || '').trim())
       .map(p => {
         const pseudo = buildPseudo(
           p.code,
