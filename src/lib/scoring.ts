@@ -77,12 +77,22 @@ function canonicalKey(name: string): string {
   return norm;
 }
 
+function cleanIngredientsText(raw: string): string {
+  return raw
+    .replace(/\b(ingredients?|ingredientes|ingrédients|inci|composition|composición|composição)\s*[:\-]?\s*/gi, '')
+    .replace(/[·•]/g, ',')
+    .replace(/\b\d+([.,]\d+)?\s*%?\b/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 export function flagIngredients(p: ProductData): FlaggedIngredient[] {
   const fromTags = p.ingredients_tags
     .map(t => t.replace(/^[a-z]{2}:/, '').replace(/-/g, ' '))
     .filter(Boolean);
-  const fromText = (p.ingredients_text || '')
-    .split(/[,;()]/)
+  const cleanedText = cleanIngredientsText(p.ingredients_text || '');
+  const fromText = cleanedText
+    .split(/[,;()\n\r]/)
     .map(s => s.trim())
     .filter(s => s.length > 1 && s.length < 60);
   const seen = new Set<string>();
