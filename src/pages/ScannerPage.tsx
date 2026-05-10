@@ -75,6 +75,11 @@ const ScannerPage = () => {
     setShowTooltip(false);
   };
 
+  const stop = () => {
+    controlsRef.current?.stop();
+    controlsRef.current = null;
+  };
+
   const startScanning = async () => {
     setErrorMsg('');
     setPhase('scanning');
