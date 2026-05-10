@@ -43,23 +43,33 @@ serve(async (req) => {
       });
     }
 
-    const userMsg = `Analiza este producto para mi perfil:
+    const isFood = product.category === 'food';
+    const userMsg = isFood
+      ? `Analiza este alimento para mi perfil:
 
 Producto: ${product.product_name || ""} de ${product.brand || ""}
-Categoría: ${product.category || ""}
 Puntuación: ${score ?? "—"}/100
 Ingredientes: ${product.ingredients_text || ""}
 
-Mi perfil:
-- Tipo de piel: ${(profile?.skin_type || []).join(", ") || "—"}
-- Condiciones: ${(profile?.skin_conditions || []).join(", ") || "—"}
-- Sensibilidades: ${(profile?.skin_sensitivities || []).join(", ") || "—"}
+Mi perfil alimentario:
 - Alergias: ${(profile?.allergies || []).join(", ") || "—"}
 - Dieta: ${profile?.diet || "—"}
 - Objetivos: ${(profile?.nutrition_goals || []).join(", ") || "—"}
+
+Explícame si este alimento es adecuado para mi perfil y por qué.`
+      : `Analiza este producto cosmético para mi perfil:
+
+Producto: ${product.product_name || ""} de ${product.brand || ""}
+Puntuación: ${score ?? "—"}/100
+Ingredientes: ${product.ingredients_text || ""}
+
+Mi perfil de piel:
+- Tipo de piel: ${(profile?.skin_type || []).join(", ") || "—"}
+- Condiciones: ${(profile?.skin_conditions || []).join(", ") || "—"}
+- Sensibilidades cosméticas: ${(profile?.skin_sensitivities || []).join(", ") || "—"}
 - Embarazo/lactancia: ${profile?.pregnancy_or_lactation ? "sí" : "no"}
 
-Explícame si este producto es adecuado para MI perfil específico y por qué.`;
+Explícame si este cosmético es adecuado para mi piel específicamente y por qué.`;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY missing");
