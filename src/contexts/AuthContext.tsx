@@ -107,14 +107,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signInWithGoogle = async (): Promise<{ success: boolean; error?: string }> => {
-    // Always send users back to the canonical production origin when on
-    // a maseya.es host so the redirect URL matches Supabase's allowlist
-    // exactly. Falls back to the current origin in dev / preview.
-    const host = window.location.hostname;
-    const isProd = host === 'www.maseya.es' || host === 'maseya.es';
-    const redirectUrl = isProd
-      ? 'https://www.maseya.es/'
-      : `${window.location.origin}/`;
+    const redirectUrl = `${window.location.origin}/`;
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
