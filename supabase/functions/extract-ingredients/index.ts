@@ -18,6 +18,18 @@ Use empty string if field not found. Include ALL ingredients exactly as written.
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
+const NUTRITIONAL_MARKERS = [
+  "kcal", " kj", "kj/", "/kj", "proteinas", "proteínas",
+  "porcion", "porción", "dosis", "adulto medio",
+  "ingesta de referencia", "fibra alimentaria",
+  "valor energetico", "valor energético",
+  "hidratos de carbono", "grasas saturadas",
+];
+const isNutritionalData = (t: string) => {
+  const s = t.toLowerCase();
+  return NUTRITIONAL_MARKERS.some((m) => s.includes(m));
+};
+
 const json = (body: unknown, status: number) =>
   new Response(JSON.stringify(body), {
     status,
