@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, ChevronDown, Sparkles, Loader2 } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Sparkles, Loader2, Camera } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -109,6 +109,7 @@ const ResultPage = () => {
   const nat = naturalness(product, flagged);
   const profile = loadOnboarding();
   const alerts = personalAlerts(product, profile);
+  const hasIngredientData = flagged.length >= 3;
 
   const badgeVariant = (lvl: FlaggedIngredient['level']) =>
     lvl === 'avoid' ? 'bg-[#E63946] text-white'
@@ -161,6 +162,11 @@ const ResultPage = () => {
             <div className="text-xs uppercase tracking-wider opacity-90">/ 100</div>
           </div>
           <div className="font-display text-lg font-semibold" style={{ color: sl.bg }}>{sl.label}</div>
+          {!hasIngredientData && (
+            <p className="text-xs text-muted-foreground text-center max-w-xs">
+              Puntuación basada en datos nutricionales. Escanea la etiqueta para análisis de ingredientes completo.
+            </p>
+          )}
         </div>
 
         {/* Cards */}
@@ -171,13 +177,23 @@ const ResultPage = () => {
               <ChevronDown className="w-4 h-4" />
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <div className="p-4 pt-0 flex flex-wrap gap-1.5">
-                {flagged.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Sin información de ingredientes.</p>
+              <div className="p-4 pt-0">
+                {!hasIngredientData ? (
+                  <div className="space-y-3 text-center">
+                    <p className="text-sm text-muted-foreground">
+                      Sin lista de ingredientes disponible para este producto. Puedes fotografiar la etiqueta para un análisis completo.
+                    </p>
+                    <Button onClick={() => navigate('/scan/photo')} variant="outline" className="rounded-xl">
+                      <Camera className="w-4 h-4 mr-2" />
+                      Fotografiar etiqueta
+                    </Button>
+                  </div>
                 ) : (
-                  flagged.slice(0, 20).map((f, i) => (
-                    <Badge key={i} className={`${badgeVariant(f.level)} font-normal capitalize`}>{f.name}</Badge>
-                  ))
+                  <div className="flex flex-wrap gap-1.5">
+                    {flagged.slice(0, 20).map((f, i) => (
+                      <Badge key={i} className={`${badgeVariant(f.level)} font-normal capitalize`}>{f.name}</Badge>
+                    ))}
+                  </div>
                 )}
               </div>
             </CollapsibleContent>
@@ -192,18 +208,26 @@ const ResultPage = () => {
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className="p-4 pt-0 space-y-3">
-                <div>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span>Ingredientes limpios</span><span className="font-semibold">{nat.pct}%</span>
-                  </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full bg-primary" style={{ width: `${nat.pct}%` }} />
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Badge className="bg-primary/10 text-primary border border-primary/20">{nat.level}</Badge>
-                  {nat.organic && <Badge className="bg-[#95D5B2] text-[#1B1B1B]">Bio / Orgánico</Badge>}
-                </div>
+                {!hasIngredientData ? (
+                  <p className="text-sm text-muted-foreground">
+                    Datos insuficientes — fotografía la etiqueta para calcular naturalidad
+                  </p>
+                ) : (
+                  <>
+                    <div>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span>Ingredientes limpios</span><span className="font-semibold">{nat.pct}%</span>
+                      </div>
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
+                        <div className="h-full bg-primary" style={{ width: `${nat.pct}%` }} />
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge className="bg-primary/10 text-primary border border-primary/20">{nat.level}</Badge>
+                      {nat.organic && <Badge className="bg-[#95D5B2] text-[#1B1B1B]">Bio / Orgánico</Badge>}
+                    </div>
+                  </>
+                )}
               </div>
             </CollapsibleContent>
           </div>
