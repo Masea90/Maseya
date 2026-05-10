@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.send-test-push]
 verify_jwt = false
+
+[functions.extract-ingredients]
+verify_jwt = false

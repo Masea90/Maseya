@@ -24,10 +24,46 @@ const ResultPage = () => {
   const [showSheet, setShowSheet] = useState(false);
   const [paywall, setPaywall] = useState(false);
 
+  const [fromPhoto, setFromPhoto] = useState(false);
+
   useEffect(() => {
-    if (!barcode || barcode === 'photo') {
+    if (!barcode) {
       setLoading(false);
-      setNotFound(barcode !== 'photo');
+      setNotFound(true);
+      return;
+    }
+    if (barcode === 'photo') {
+      try {
+        const raw = localStorage.getItem('maseya_photo_product');
+        if (!raw) {
+          setNotFound(true);
+          setLoading(false);
+          return;
+        }
+        const p = JSON.parse(raw);
+        const cat: ProductData['category'] =
+          p.category === 'food' ? 'food' : p.category === 'cosmetic' ? 'cosmetic' : 'unknown';
+        setProduct({
+          barcode: p.barcode,
+          source: 'photo',
+          name: p.product_name || 'Producto fotografiado',
+          brand: p.brand || '',
+          image: p.image || null,
+          category: cat,
+          nutriscore_grade: null,
+          ingredients_text: p.ingredients_text || null,
+          ingredients_tags: [],
+          labels_tags: [],
+          ingredients_analysis_tags: [],
+          raw: p,
+        });
+        setFromPhoto(true);
+        setLoading(false);
+      } catch (e) {
+        console.error('[result] photo parse failed', e);
+        setNotFound(true);
+        setLoading(false);
+      }
       return;
     }
     let cancelled = false;
@@ -157,6 +193,12 @@ const ResultPage = () => {
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-2">
               {product.category === 'food' ? 'Alimentación' : 'Cosmética'}
             </p>
+            {fromPhoto && (
+              <div className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                <span>✅</span>
+                <span>Añadido a nuestra base de datos</span>
+              </div>
+            )}
           </div>
         </div>
 
