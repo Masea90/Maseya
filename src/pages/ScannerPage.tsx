@@ -153,6 +153,20 @@ const ScannerPage = () => {
               <Button onClick={startScanning}>{c.retry}</Button>
             </div>
           )}
+
+          {showTooltip && phase === 'scanning' && (
+            <div className="absolute inset-0 bg-black/55 flex flex-col items-center justify-center gap-4 p-6 text-center animate-in fade-in">
+              <div className="text-white text-3xl animate-bounce">⬇️</div>
+              <p className="text-white font-medium leading-snug max-w-xs">{c.tooltip}</p>
+              <Button
+                onClick={dismissTooltip}
+                size="sm"
+                className="rounded-full bg-white text-primary hover:bg-white/90"
+              >
+                {c.gotIt}
+              </Button>
+            </div>
+          )}
         </div>
 
         <p className="text-center text-muted-foreground text-sm">{c.aim}</p>
