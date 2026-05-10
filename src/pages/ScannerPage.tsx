@@ -59,10 +59,20 @@ const ScannerPage = () => {
   const controlsRef = useRef<IScannerControls | null>(null);
   const [phase, setPhase] = useState<Phase>('scanning');
   const [errorMsg, setErrorMsg] = useState<string>('');
+  const [showTooltip, setShowTooltip] = useState<boolean>(() => {
+    try { return !localStorage.getItem('maseya_scan_tip_seen'); } catch { return false; }
+  });
 
-  const stop = () => {
-    controlsRef.current?.stop();
-    controlsRef.current = null;
+  useEffect(() => {
+    if (!showTooltip) return;
+    const t = setTimeout(() => dismissTooltip(), 3000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showTooltip]);
+
+  const dismissTooltip = () => {
+    try { localStorage.setItem('maseya_scan_tip_seen', '1'); } catch {}
+    setShowTooltip(false);
   };
 
   const startScanning = async () => {
