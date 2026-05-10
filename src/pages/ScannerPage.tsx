@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { BrowserMultiFormatReader, IScannerControls } from '@zxing/browser';
 import { Loader2, Image as ImageIcon } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
