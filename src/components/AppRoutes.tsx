@@ -1,6 +1,8 @@
+import { useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUser } from '@/contexts/UserContext';
+import { supabase } from '@/integrations/supabase/client';
 
 import { WelcomeScreen } from '@/components/onboarding/WelcomeScreen';
 import { OnboardingQuiz } from '@/components/onboarding/OnboardingQuiz';
@@ -32,20 +34,95 @@ const hasLocalOnboarding = (): boolean => {
 };
 
 /**
- * Gate that forces /welcome → /onboarding/quiz before any scanner feature
- * can be reached. Applies to both anonymous and authenticated users.
+ * Routing rules for onboarding:
+ *   1. Auth + health_profiles row → straight to /scan (skip welcome + quiz)
+ *   2. Auth + no health_profiles  → /onboarding/quiz (skip welcome)
+ *   3. Anonymous + localStorage   → straight to /scan
+ *   4. Otherwise                  → /welcome
+ *
+ * For authenticated users we also hydrate localStorage from health_profiles
+ * so cross-device personalization works on first load.
  */
 function OnboardingGate({ children }: { children: React.ReactNode }) {
-  const { user } = useUser();
+  const { currentUser } = useAuth();
   const location = useLocation();
-  const localDone = hasLocalOnboarding();
-  const dbDone = user.onboardingComplete;
-  const done = localDone && dbDone;
+  const userId = currentUser?.id ?? null;
 
-  const allowed = ['/welcome', '/onboarding/quiz', '/onboarding/language', '/update-password', '/login'];
-  if (!done && !allowed.includes(location.pathname)) {
-    return <Navigate to="/welcome" replace />;
+  // null = unknown (still checking), true/false = result
+  const [hasHealthProfile, setHasHealthProfile] = useState<boolean | null>(
+    userId ? null : false,
+  );
+
+  useEffect(() => {
+    if (!userId) {
+      setHasHealthProfile(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from('health_profiles')
+        .select('skin_type, allergies')
+        .eq('user_id', userId)
+        .maybeSingle();
+      if (cancelled) return;
+      if (error) {
+        console.error('[OnboardingGate] health_profiles read error', error);
+        setHasHealthProfile(false);
+        return;
+      }
+      const exists = !!data;
+      setHasHealthProfile(exists);
+      // Hydrate localStorage so the rest of the app (scoring, etc.) works cross-device.
+      if (exists && !hasLocalOnboarding()) {
+        try {
+          localStorage.setItem(ONBOARDING_KEY, JSON.stringify({
+            skin: data?.skin_type ?? [],
+            allergies: data?.allergies ?? [],
+          }));
+        } catch (e) {
+          console.error('[OnboardingGate] hydrate localStorage failed', e);
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [userId]);
+
+  // Wait for the DB check before deciding for authenticated users.
+  if (userId && hasHealthProfile === null) {
+    return (
+      <div className="min-h-[100dvh] bg-background flex items-center justify-center">
+        <div className="w-12 h-12 rounded-full bg-primary/10 animate-pulse" />
+      </div>
+    );
   }
+
+  const onboardingDone = userId ? hasHealthProfile === true : hasLocalOnboarding();
+  const path = location.pathname;
+
+  // Authenticated user without a health profile → force quiz (skip welcome).
+  if (userId && !onboardingDone) {
+    const allowedForQuiz = ['/onboarding/quiz', '/onboarding/language', '/update-password'];
+    if (!allowedForQuiz.includes(path)) {
+      return <Navigate to="/onboarding/quiz" replace />;
+    }
+    return <>{children}</>;
+  }
+
+  // Anonymous user without onboarding → welcome flow.
+  if (!userId && !onboardingDone) {
+    const allowed = ['/welcome', '/onboarding/quiz', '/onboarding/language', '/update-password', '/login', '/reset-password'];
+    if (!allowed.includes(path)) {
+      return <Navigate to="/welcome" replace />;
+    }
+    return <>{children}</>;
+  }
+
+  // Onboarding done → never show welcome/quiz again.
+  if (onboardingDone && (path === '/welcome' || path === '/onboarding/quiz')) {
+    return <Navigate to="/scan" replace />;
+  }
+
   return <>{children}</>;
 }
 
@@ -68,25 +145,27 @@ export function AppRoutes() {
 
   if (!isAuthenticated) {
     return (
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
-        <Route path="/update-password" element={<UpdatePasswordPage />} />
-        <Route path="/welcome" element={<WelcomeScreen />} />
-        <Route path="/onboarding/quiz" element={<OnboardingQuiz />} />
-        <Route path="/onboarding/language" element={<LanguageSelect />} />
-        <Route path="/scan" element={<ScannerPage />} />
-        <Route path="/scan/photo" element={<PhotoCapturePage />} />
-        <Route path="/result/:barcode" element={<ResultPage />} />
-        <Route path="*" element={<Navigate to="/welcome" replace />} />
-      </Routes>
+      <OnboardingGate>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/update-password" element={<UpdatePasswordPage />} />
+          <Route path="/welcome" element={<WelcomeScreen />} />
+          <Route path="/onboarding/quiz" element={<OnboardingQuiz />} />
+          <Route path="/onboarding/language" element={<LanguageSelect />} />
+          <Route path="/scan" element={<ScannerPage />} />
+          <Route path="/scan/photo" element={<PhotoCapturePage />} />
+          <Route path="/result/:barcode" element={<ResultPage />} />
+          <Route path="*" element={<Navigate to="/welcome" replace />} />
+        </Routes>
+      </OnboardingGate>
     );
   }
 
   return (
     <OnboardingGate>
       <Routes>
-        <Route path="/" element={<Navigate to={hasLocalOnboarding() ? '/scan' : '/welcome'} replace />} />
+        <Route path="/" element={<Navigate to="/scan" replace />} />
         <Route path="/welcome" element={<WelcomeScreen />} />
         <Route path="/onboarding/language" element={<LanguageSelect />} />
         <Route path="/onboarding/quiz" element={<OnboardingQuiz />} />
