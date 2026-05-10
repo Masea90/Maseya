@@ -1,8 +1,9 @@
 /**
- * Product lookup — Open Food Facts → Open Beauty Facts fallback.
+ * Product lookup — Maseya DB → Open Food Facts → Open Beauty Facts.
  */
+import { supabase } from '@/integrations/supabase/client';
 
-export type ProductSource = 'off' | 'obf' | 'photo';
+export type ProductSource = 'maseya' | 'off' | 'obf' | 'photo';
 
 export interface ProductData {
   barcode: string;
