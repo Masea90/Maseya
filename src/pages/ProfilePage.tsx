@@ -102,8 +102,16 @@ const ProfilePage = () => {
   const { logout, currentUser } = useAuth();
   const [state, setState] = useState<HealthState>(EMPTY);
   const [saving, setSaving] = useState(false);
+  const [productCount, setProductCount] = useState<number | null>(null);
   const devMode = useDevMode();
   const premium = usePremium();
+
+  const refreshProductCount = async () => {
+    const { count } = await supabase
+      .from('maseya_products')
+      .select('*', { count: 'exact', head: true });
+    setProductCount(count ?? 0);
+  };
 
   useEffect(() => {
     if (!currentUser?.id) return;
@@ -129,6 +137,10 @@ const ProfilePage = () => {
         }
       });
   }, [currentUser?.id]);
+
+  useEffect(() => {
+    if (devMode) refreshProductCount();
+  }, [devMode]);
 
   const pct = computePct(state);
 
