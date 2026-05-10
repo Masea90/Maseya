@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { BrowserMultiFormatReader, IScannerControls } from '@zxing/browser';
 import { Loader2, Image as ImageIcon } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -85,11 +85,17 @@ const ScannerPage = () => {
     }
   };
 
+  const location = useLocation();
+
   useEffect(() => {
     startScanning();
     return () => stop();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (location.pathname !== '/scan') stop();
+  }, [location.pathname]);
 
   const handlePhoto = () => {
     stop();
@@ -102,7 +108,7 @@ const ScannerPage = () => {
         <div className="relative aspect-square rounded-3xl overflow-hidden shadow-warm-lg bg-black">
           <video
             ref={videoRef}
-            className={`w-full h-full object-cover ${phase === 'scanning' ? 'block' : 'hidden'}`}
+            className={`pointer-events-none w-full h-full object-cover ${phase === 'scanning' ? 'block' : 'hidden'}`}
             playsInline
             muted
           />
