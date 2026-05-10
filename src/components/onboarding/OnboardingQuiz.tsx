@@ -51,9 +51,11 @@ const COPY = {
   },
   fr: {
     intro: 'Parle-nous de toi pour personnaliser tes résultats',
+    context: 'Cela nous aide à personnaliser ton analyse. Ça ne prend que 20 secondes.',
+    step: 'Étape 1 sur 2',
     q1: 'Comment est ta peau ?',
     q2: 'As-tu une intolérance ou allergie alimentaire ?',
-    cta: 'Voir ma première analyse',
+    cta: 'Voir ma première analyse →',
     skin: [
       { id: 'atopic', emoji: '🌿', label: 'Atopique ou très sensible' },
       { id: 'dry', emoji: '💧', label: 'Sèche' },
