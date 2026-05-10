@@ -211,7 +211,7 @@ const ResultPage = () => {
           <button onClick={() => navigate('/scan')} aria-label="Volver">
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="font-display text-base font-semibold truncate">{product.name}</h1>
+          
         </div>
       </header>
 
