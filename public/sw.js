@@ -9,35 +9,9 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim());
 });
 
-// SPA navigation fallback: if a navigation request 404s (or fails), serve '/'
-// IMPORTANT: never intercept OAuth / auth callback navigations — they must
-// hit the network so Supabase / Lovable Cloud can complete the flow.
-const AUTH_PATH_RE = /^\/(~oauth|auth\/callback|auth\/v1)/;
-self.addEventListener('fetch', (event) => {
-  const req = event.request;
-  if (req.mode !== 'navigate') return;
-  const url = new URL(req.url);
-  // Skip cross-origin, OAuth paths, and any URL carrying auth tokens / codes
-  if (url.origin !== self.location.origin) return;
-  if (AUTH_PATH_RE.test(url.pathname)) return;
-  if (url.searchParams.has('code') || url.searchParams.has('access_token') || url.hash.includes('access_token')) return;
-  event.respondWith(
-    (async () => {
-      try {
-        const res = await fetch(req);
-        if (res && res.status === 404) {
-          const fallback = await fetch('/');
-          if (fallback && fallback.ok) return fallback;
-        }
-        return res;
-      } catch (e) {
-        const fallback = await fetch('/').catch(() => null);
-        if (fallback) return fallback;
-        return new Response('', { status: 504 });
-      }
-    })()
-  );
-});
+// NOTE: SPA navigation fallback is handled by Lovable hosting at the
+// infrastructure level — do NOT intercept navigation fetches here, as
+// that breaks OAuth redirects and other cross-origin auth flows.
 
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
