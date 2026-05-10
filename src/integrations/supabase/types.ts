@@ -78,6 +78,7 @@ export type Database = {
           ingredients_text: string | null
           product_name: string
           source: string
+          submitted_by: string | null
           updated_at: string
           verified: boolean
         }
@@ -90,6 +91,7 @@ export type Database = {
           ingredients_text?: string | null
           product_name: string
           source?: string
+          submitted_by?: string | null
           updated_at?: string
           verified?: boolean
         }
@@ -102,6 +104,7 @@ export type Database = {
           ingredients_text?: string | null
           product_name?: string
           source?: string
+          submitted_by?: string | null
           updated_at?: string
           verified?: boolean
         }

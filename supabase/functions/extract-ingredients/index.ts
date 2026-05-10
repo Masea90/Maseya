@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,24 +16,53 @@ const SYSTEM_PROMPT = `You are an ingredient extraction expert. Extract ONLY the
 }
 If no ingredient list is readable, set ingredients_text to an empty string.`;
 
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5 MB of base64 payload
+
+const json = (body: unknown, status: number) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // --- Auth check (mirror chat function) ---
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return json({ error: "Unauthorized" }, 401);
+    }
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
+    );
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } =
+      await supabaseClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return json({ error: "Unauthorized" }, 401);
+    }
+
     const { image } = await req.json();
     if (!image || typeof image !== "string") {
-      return new Response(JSON.stringify({ error: "Missing image" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json({ error: "Missing image" }, 400);
+    }
+
+    // Strip data URL prefix when measuring
+    const base64Part = image.startsWith("data:")
+      ? image.slice(image.indexOf(",") + 1)
+      : image;
+    if (base64Part.length > MAX_IMAGE_BYTES) {
+      return json({ error: "image_too_large" }, 413);
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    // Ensure proper data URL format
     const imageUrl = image.startsWith("data:") ? image : `data:image/jpeg;base64,${image}`;
 
     const response = await fetch(
@@ -63,19 +93,9 @@ serve(async (req) => {
     if (!response.ok) {
       const t = await response.text();
       console.error("AI gateway error:", response.status, t);
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "rate_limit" }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "payment_required" }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      return new Response(JSON.stringify({ error: "ai_error" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      if (response.status === 429) return json({ error: "rate_limit" }, 429);
+      if (response.status === 402) return json({ error: "payment_required" }, 402);
+      return json({ error: "ai_error" }, 500);
     }
 
     const data = await response.json();
@@ -83,38 +103,28 @@ serve(async (req) => {
 
     let extracted: { product_name?: string; brand?: string; category?: string; ingredients_text?: string } = {};
     try {
-      // Strip code fences if present
       const cleaned = raw.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim();
       extracted = JSON.parse(cleaned);
-    } catch (e) {
+    } catch {
       console.error("Failed to parse AI response:", raw);
-      return new Response(JSON.stringify({ error: "parse_failed" }), {
-        status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json({ error: "parse_failed" }, 422);
     }
 
     const ingredients = (extracted.ingredients_text || "").trim();
     if (!ingredients || ingredients.length < 10) {
-      return new Response(JSON.stringify({ error: "no_ingredients" }), {
-        status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json({ error: "no_ingredients" }, 422);
     }
 
     const category = extracted.category === "food" ? "food" : "cosmetic";
 
-    return new Response(JSON.stringify({
+    return json({
       product_name: (extracted.product_name || "").trim() || "Producto fotografiado",
       brand: (extracted.brand || "").trim(),
       category,
       ingredients_text: ingredients,
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    }, 200);
   } catch (e) {
-    console.error("extract-ingredients error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.error("extract-ingredients internal error:", e);
+    return json({ error: "internal_error" }, 500);
   }
 });
