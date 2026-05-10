@@ -156,155 +156,174 @@ const ResultPage = () => {
           </div>
         </div>
 
-        {/* Score */}
-        <div className="flex flex-col items-center gap-3">
-          {showScore ? (
-            <>
-              <div
-                className="w-36 h-36 rounded-full flex flex-col items-center justify-center shadow-warm-lg"
-                style={{ backgroundColor: sl.bg, color: sl.color }}
-              >
-                <div className="text-4xl font-bold">{score}</div>
-                <div className="text-xs uppercase tracking-wider opacity-90">/ 100</div>
+        {product.category === 'cosmetic' && !hasIngredientData ? (
+          <>
+            <div className="bg-card rounded-3xl p-6 border border-border flex flex-col items-center text-center gap-4">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                <Camera className="w-8 h-8 text-primary" />
               </div>
-              <div className="font-display text-lg font-semibold" style={{ color: sl.bg }}>{sl.label}</div>
-              {!hasIngredientData && hasNutriscore && (
-                <p className="text-xs text-muted-foreground text-center max-w-xs">
-                  Puntuación basada en datos nutricionales. Escanea la etiqueta para análisis de ingredientes completo.
-                </p>
-              )}
-            </>
-          ) : (
-            <>
-              <div className="w-36 h-36 rounded-full flex flex-col items-center justify-center bg-muted text-muted-foreground border border-border">
-                <div className="text-2xl">—</div>
-                <div className="text-[10px] uppercase tracking-wider mt-1">Sin datos</div>
-              </div>
-              <div className="font-display text-lg font-semibold text-muted-foreground">Datos insuficientes</div>
-              <p className="text-xs text-muted-foreground text-center max-w-xs">
-                {product.category === 'cosmetic'
-                  ? 'Fotografía la etiqueta para obtener tu puntuación personalizada.'
-                  : 'Sin datos suficientes para puntuar este producto. Fotografía la etiqueta para un análisis completo.'}
+              <h2 className="font-display text-lg font-semibold">Ayúdanos a analizar este producto</h2>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Este producto aún no tiene ingredientes en nuestra base de datos. Fotografía la etiqueta y Mira lo analizará al instante.
               </p>
-              <Button onClick={() => navigate('/scan/photo')} variant="outline" className="rounded-xl mt-1">
+              <Button onClick={() => navigate('/scan/photo')} className="w-full h-12 rounded-2xl">
                 <Camera className="w-4 h-4 mr-2" />
                 Fotografiar etiqueta
               </Button>
-            </>
-          )}
-        </div>
-
-        {/* Cards */}
-        <Collapsible defaultOpen>
-          <div className="bg-card rounded-2xl border border-border overflow-hidden">
-            <CollapsibleTrigger className="w-full p-4 flex items-center justify-between">
-              <span className="font-semibold flex items-center gap-2">🔬 Ingredientes generales</span>
-              <ChevronDown className="w-4 h-4" />
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <div className="p-4 pt-0">
-                {!hasIngredientData ? (
-                  <div className="space-y-3 text-center">
-                    <p className="text-sm text-muted-foreground">
-                      {product.category === 'cosmetic'
-                        ? 'Este producto cosmético no tiene ingredientes registrados en nuestra base de datos. Fotografía la etiqueta para análisis completo.'
-                        : 'Sin lista de ingredientes disponible para este producto. Puedes fotografiar la etiqueta para un análisis completo.'}
+            </div>
+            <p className="text-xs text-muted-foreground text-center px-4">
+              También puedes buscar este producto más tarde cuando nuestra base de datos lo incluya.
+            </p>
+          </>
+        ) : (
+          <>
+            {/* Score */}
+            <div className="flex flex-col items-center gap-3">
+              {showScore ? (
+                <>
+                  <div
+                    className="w-36 h-36 rounded-full flex flex-col items-center justify-center shadow-warm-lg"
+                    style={{ backgroundColor: sl.bg, color: sl.color }}
+                  >
+                    <div className="text-4xl font-bold">{score}</div>
+                    <div className="text-xs uppercase tracking-wider opacity-90">/ 100</div>
+                  </div>
+                  <div className="font-display text-lg font-semibold" style={{ color: sl.bg }}>{sl.label}</div>
+                  {!hasIngredientData && hasNutriscore && (
+                    <p className="text-xs text-muted-foreground text-center max-w-xs">
+                      Puntuación basada en datos nutricionales. Escanea la etiqueta para análisis de ingredientes completo.
                     </p>
-                    <Button onClick={() => navigate('/scan/photo')} variant="outline" className="rounded-xl">
-                      <Camera className="w-4 h-4 mr-2" />
-                      Fotografiar etiqueta
-                    </Button>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div className="w-36 h-36 rounded-full flex flex-col items-center justify-center bg-muted text-muted-foreground border border-border">
+                    <div className="text-2xl">—</div>
+                    <div className="text-[10px] uppercase tracking-wider mt-1">Sin datos</div>
                   </div>
-                ) : (
-                  <div className="flex flex-wrap gap-1.5">
-                    {flagged.slice(0, 20).map((f, i) => (
-                      <Badge key={i} className={`${badgeVariant(f.level)} font-normal capitalize`}>{f.name}</Badge>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </CollapsibleContent>
-          </div>
-        </Collapsible>
-
-        <Collapsible defaultOpen>
-          <div className="bg-card rounded-2xl border border-border overflow-hidden">
-            <CollapsibleTrigger className="w-full p-4 flex items-center justify-between">
-              <span className="font-semibold flex items-center gap-2">🌿 ¿Es natural?</span>
-              <ChevronDown className="w-4 h-4" />
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <div className="p-4 pt-0 space-y-3">
-                {!hasIngredientData ? (
-                  <p className="text-sm text-muted-foreground">
-                    Datos insuficientes — fotografía la etiqueta para calcular naturalidad
+                  <div className="font-display text-lg font-semibold text-muted-foreground">Datos insuficientes</div>
+                  <p className="text-xs text-muted-foreground text-center max-w-xs">
+                    Sin datos suficientes para puntuar este producto. Fotografía la etiqueta para un análisis completo.
                   </p>
-                ) : (
-                  <>
-                    <div>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span>Ingredientes limpios</span><span className="font-semibold">{nat.pct}%</span>
+                  <Button onClick={() => navigate('/scan/photo')} variant="outline" className="rounded-xl mt-1">
+                    <Camera className="w-4 h-4 mr-2" />
+                    Fotografiar etiqueta
+                  </Button>
+                </>
+              )}
+            </div>
+
+            {/* Cards */}
+            <Collapsible defaultOpen>
+              <div className="bg-card rounded-2xl border border-border overflow-hidden">
+                <CollapsibleTrigger className="w-full p-4 flex items-center justify-between">
+                  <span className="font-semibold flex items-center gap-2">🔬 Ingredientes generales</span>
+                  <ChevronDown className="w-4 h-4" />
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="p-4 pt-0">
+                    {!hasIngredientData ? (
+                      <div className="space-y-3 text-center">
+                        <p className="text-sm text-muted-foreground">
+                          Sin lista de ingredientes disponible para este producto. Puedes fotografiar la etiqueta para un análisis completo.
+                        </p>
+                        <Button onClick={() => navigate('/scan/photo')} variant="outline" className="rounded-xl">
+                          <Camera className="w-4 h-4 mr-2" />
+                          Fotografiar etiqueta
+                        </Button>
                       </div>
-                      <div className="h-2 bg-muted rounded-full overflow-hidden">
-                        <div className="h-full bg-primary" style={{ width: `${nat.pct}%` }} />
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5">
+                        {flagged.slice(0, 20).map((f, i) => (
+                          <Badge key={i} className={`${badgeVariant(f.level)} font-normal capitalize`}>{f.name}</Badge>
+                        ))}
                       </div>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Badge className="bg-primary/10 text-primary border border-primary/20">{nat.level}</Badge>
-                      {nat.organic && <Badge className="bg-[#95D5B2] text-[#1B1B1B]">Bio / Orgánico</Badge>}
-                    </div>
-                  </>
-                )}
+                    )}
+                  </div>
+                </CollapsibleContent>
               </div>
-            </CollapsibleContent>
-          </div>
-        </Collapsible>
+            </Collapsible>
 
-        <Collapsible defaultOpen>
-          <div className="bg-card rounded-2xl border-2 border-primary/40 overflow-hidden">
-            <CollapsibleTrigger className="w-full p-4 flex items-center justify-between">
-              <span className="font-semibold flex items-center gap-2">👤 ¿Es para ti?</span>
-              <ChevronDown className="w-4 h-4" />
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <div className="p-4 pt-0 space-y-2">
-                {alerts.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Completa tu perfil para ver análisis personalizado.</p>
-                ) : (
-                  alerts.map((a, i) => (
-                    <div key={i} className={`flex gap-2 items-start p-3 rounded-xl border ${alertColor(a.level)}`}>
-                      <span className="text-base leading-none">{alertIcon(a.level)}</span>
-                      <span className="text-sm flex-1">{a.text}</span>
-                    </div>
-                  ))
-                )}
+            <Collapsible defaultOpen>
+              <div className="bg-card rounded-2xl border border-border overflow-hidden">
+                <CollapsibleTrigger className="w-full p-4 flex items-center justify-between">
+                  <span className="font-semibold flex items-center gap-2">🌿 ¿Es natural?</span>
+                  <ChevronDown className="w-4 h-4" />
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="p-4 pt-0 space-y-3">
+                    {!hasIngredientData ? (
+                      <p className="text-sm text-muted-foreground">
+                        Datos insuficientes — fotografía la etiqueta para calcular naturalidad
+                      </p>
+                    ) : (
+                      <>
+                        <div>
+                          <div className="flex justify-between text-sm mb-1">
+                            <span>Ingredientes limpios</span><span className="font-semibold">{nat.pct}%</span>
+                          </div>
+                          <div className="h-2 bg-muted rounded-full overflow-hidden">
+                            <div className="h-full bg-primary" style={{ width: `${nat.pct}%` }} />
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <Badge className="bg-primary/10 text-primary border border-primary/20">{nat.level}</Badge>
+                          {nat.organic && <Badge className="bg-[#95D5B2] text-[#1B1B1B]">Bio / Orgánico</Badge>}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </CollapsibleContent>
               </div>
-            </CollapsibleContent>
-          </div>
-        </Collapsible>
+            </Collapsible>
 
-        {/* Mira summary */}
-        <div className="bg-secondary/40 rounded-2xl p-4 flex gap-3">
-          <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-            <Sparkles className="w-5 h-5 text-primary-foreground" />
-          </div>
-          <p className="text-sm leading-relaxed">
-            He analizado este producto para tu perfil. Revisa las capas anteriores para ver si es adecuado para ti.
-            En la próxima fase recibirás mi análisis completo personalizado.
-          </p>
-        </div>
-
-        {/* Alternatives */}
-        <div>
-          <h3 className="font-display font-semibold mb-3">Mejores opciones para ti</h3>
-          <div className="grid grid-cols-3 gap-2">
-            {[0, 1, 2].map(i => (
-              <div key={i} className="aspect-[3/4] rounded-2xl bg-muted/50 border border-dashed border-border flex items-center justify-center text-xs text-muted-foreground p-2 text-center">
-                Próximamente
+            <Collapsible defaultOpen>
+              <div className="bg-card rounded-2xl border-2 border-primary/40 overflow-hidden">
+                <CollapsibleTrigger className="w-full p-4 flex items-center justify-between">
+                  <span className="font-semibold flex items-center gap-2">👤 ¿Es para ti?</span>
+                  <ChevronDown className="w-4 h-4" />
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="p-4 pt-0 space-y-2">
+                    {alerts.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">Completa tu perfil para ver análisis personalizado.</p>
+                    ) : (
+                      alerts.map((a, i) => (
+                        <div key={i} className={`flex gap-2 items-start p-3 rounded-xl border ${alertColor(a.level)}`}>
+                          <span className="text-base leading-none">{alertIcon(a.level)}</span>
+                          <span className="text-sm flex-1">{a.text}</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </CollapsibleContent>
               </div>
-            ))}
-          </div>
-        </div>
+            </Collapsible>
+
+            {/* Mira summary */}
+            <div className="bg-secondary/40 rounded-2xl p-4 flex gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                <Sparkles className="w-5 h-5 text-primary-foreground" />
+              </div>
+              <p className="text-sm leading-relaxed">
+                He analizado este producto para tu perfil. Revisa las capas anteriores para ver si es adecuado para ti.
+                En la próxima fase recibirás mi análisis completo personalizado.
+              </p>
+            </div>
+
+            {/* Alternatives */}
+            <div>
+              <h3 className="font-display font-semibold mb-3">Mejores opciones para ti</h3>
+              <div className="grid grid-cols-3 gap-2">
+                {[0, 1, 2].map(i => (
+                  <div key={i} className="aspect-[3/4] rounded-2xl bg-muted/50 border border-dashed border-border flex items-center justify-center text-xs text-muted-foreground p-2 text-center">
+                    Próximamente
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       <RegistrationSheet open={showSheet || paywall} onOpenChange={(v) => { setShowSheet(v); if (!v) setPaywall(false); }} variant={paywall ? 'paywall' : 'soft'} />
