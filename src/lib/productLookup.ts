@@ -143,13 +143,14 @@ export async function saveToMaseya(input: {
   image_url?: string | null;
   source?: string;
   verified?: boolean;
-}): Promise<void> {
+}): Promise<{ ok: boolean; error?: string }> {
   const { data: userData } = await supabase.auth.getUser();
   const uid = userData.user?.id;
   if (!uid) {
-    console.warn('[productLookup] saveToMaseya skipped: not authenticated');
-    return;
+    console.warn('[saveToMaseya] skipped: not authenticated');
+    return { ok: false, error: 'not_authenticated' };
   }
+  console.log('[saveToMaseya] upserting', { barcode: input.barcode, name: input.product_name, source: input.source });
   const { error } = await supabase
     .from('maseya_products')
     .upsert({
@@ -163,7 +164,12 @@ export async function saveToMaseya(input: {
       verified: false,
       submitted_by: uid,
     }, { onConflict: 'barcode' });
-  if (error) console.error('[productLookup] saveToMaseya error', error);
+  if (error) {
+    console.error('[saveToMaseya] error', error);
+    return { ok: false, error: error.message };
+  }
+  console.log('[saveToMaseya] success for', input.barcode);
+  return { ok: true };
 }
 
 export async function lookupProduct(barcode: string): Promise<ProductData | null> {
