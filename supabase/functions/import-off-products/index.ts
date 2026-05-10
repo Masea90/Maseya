@@ -24,7 +24,7 @@ interface OffProduct {
   ingredients_analysis_tags?: string[];
 }
 
-const fetchPage = async (host: string, page: number): Promise<OffProduct[]> => {
+const fetchPage = async (host: string, page: number, withCountry: boolean): Promise<OffProduct[]> => {
   const fields = [
     "code", "product_name", "product_name_es", "brands",
     "image_front_url", "nutriscore_grade", "ingredients_text",
@@ -32,26 +32,41 @@ const fetchPage = async (host: string, page: number): Promise<OffProduct[]> => {
     "ingredients_analysis_tags",
   ].join(",");
 
+  const countryPart = withCountry
+    ? `&tagtype_0=countries&tag_contains_0=contains&tag_0=spain`
+    : "";
+
   const url = `https://${host}/cgi/search.pl?action=process` +
-    `&tagtype_0=countries&tag_contains_0=contains&tag_0=spain` +
+    countryPart +
     `&sort_by=unique_scans_n&page_size=200&page=${page}` +
     `&json=true&fields=${fields}`;
 
+  console.log("[import] fetching", url);
+
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 30_000);
+  const timer = setTimeout(() => ctrl.abort(), 45_000);
   try {
     const res = await fetch(url, {
       signal: ctrl.signal,
       headers: { "User-Agent": "MASEYA-import/1.0 (https://maseya.es)" },
     });
     if (!res.ok) {
-      console.error("[import] http", host, res.status);
+      const body = await res.text().catch(() => "");
+      console.error(`[import] http ${host} status=${res.status} body=${body.slice(0, 500)}`);
       return [];
     }
-    const j = await res.json();
-    return Array.isArray(j?.products) ? j.products : [];
+    const text = await res.text();
+    let j: any = null;
+    try { j = JSON.parse(text); } catch (e) {
+      console.error(`[import] json parse error host=${host} body=${text.slice(0, 500)}`);
+      return [];
+    }
+    const products = Array.isArray(j?.products) ? j.products : [];
+    console.log(`[import] got ${products.length} products from ${host} (count=${j?.count ?? '?'})`);
+    return products;
   } catch (e) {
-    console.error("[import] fetch error", host, e);
+    const isAbort = (e as Error)?.name === "AbortError";
+    console.error(`[import] fetch error host=${host} aborted=${isAbort}`, e);
     return [];
   } finally {
     clearTimeout(timer);
