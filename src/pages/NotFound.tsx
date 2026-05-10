@@ -8,7 +8,10 @@ const NotFound = () => {
     console.warn("404: redirecting to / from", location.pathname);
   }, [location.pathname]);
 
-  return <Navigate to="/" replace />;
+  // Preserve URL hash and search — they may carry OAuth tokens
+  // (#access_token=..., ?code=...) that the auth client needs to consume.
+  const target = `/${location.search || ''}${location.hash || ''}`;
+  return <Navigate to={target} replace />;
 };
 
 export default NotFound;
