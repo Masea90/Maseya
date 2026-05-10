@@ -129,6 +129,12 @@ serve(async (req) => {
 
     const ingredients = (extracted.ingredients_text || "").trim();
     if (!ingredients || ingredients.length < 10) return json({ error: "no_ingredients" }, 422);
+    if (isNutritionalData(ingredients)) {
+      return json({
+        error: "nutritional_table_detected",
+        message: "Parece que fotografiaste la tabla nutricional. Por favor fotografía la lista de ingredientes.",
+      }, 422);
+    }
 
     const category = extracted.category === "food" ? "food" : "cosmetic";
 
