@@ -142,7 +142,13 @@ export const Alternatives = ({ current, currentScore }: Props) => {
 
       let combined = fromMaseya;
       if (fromMaseya.filter(a => a.score >= currentScore).length < 3) {
-        const fromOFF = await fetchOpenFactsAlternatives(cat, current.barcode);
+        const specificTag = pickSpecificCategoryTag(current.raw);
+        let fromOFF = await fetchOpenFactsAlternatives(cat, current.barcode, specificTag);
+        if (fromOFF.length < 3 && specificTag) {
+          // Fallback to broad category search
+          const broad = await fetchOpenFactsAlternatives(cat, current.barcode, null);
+          fromOFF = [...fromOFF, ...broad];
+        }
         combined = [...fromMaseya, ...fromOFF];
       }
       if (cancelled) return;
