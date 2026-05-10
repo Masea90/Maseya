@@ -262,7 +262,7 @@ const PhotoCapturePage = () => {
             <label className="w-full h-14 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center gap-2 font-medium cursor-pointer hover:bg-primary/90 transition-colors">
               <Camera className="w-5 h-5" />
               {c.front.cta}
-              <input type="file" accept="image/*" capture="environment" className="sr-only" onChange={onPickFront} />
+              <CameraInput type="file" accept="image/*" capture="environment" className="sr-only" onChange={onPickFront} />
             </label>
           </>
         )}
@@ -297,7 +297,7 @@ const PhotoCapturePage = () => {
             <label className="w-full h-14 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center gap-2 font-medium cursor-pointer hover:bg-primary/90 transition-colors">
               <Camera className="w-5 h-5" />
               {c.ingredients.cta}
-              <input type="file" accept="image/*" capture="environment" className="sr-only" onChange={onPickIngredients} />
+              <CameraInput type="file" accept="image/*" capture="environment" className="sr-only" onChange={onPickIngredients} />
             </label>
           </>
         )}
