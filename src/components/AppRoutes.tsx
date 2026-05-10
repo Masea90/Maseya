@@ -7,6 +7,8 @@ import { OnboardingQuiz } from '@/components/onboarding/OnboardingQuiz';
 import { LanguageSelect } from '@/components/onboarding/LanguageSelect';
 
 import ScannerPage from '@/pages/ScannerPage';
+import PhotoCapturePage from '@/pages/PhotoCapturePage';
+import ResultPage from '@/pages/ResultPage';
 import HistoryPage from '@/pages/HistoryPage';
 import ProfilePage from '@/pages/ProfilePage';
 import MiraPage from '@/pages/MiraPage';
@@ -87,6 +89,8 @@ export function AppRoutes() {
         <Route path="/onboarding/quiz" element={<OnboardingQuiz />} />
 
         <Route path="/scan" element={<ScannerPage />} />
+        <Route path="/scan/photo" element={<PhotoCapturePage />} />
+        <Route path="/result/:barcode" element={<ResultPage />} />
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/mira" element={<MiraPage />} />
