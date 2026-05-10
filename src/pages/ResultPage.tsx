@@ -12,6 +12,8 @@ import {
   FlaggedIngredient, PersonalAlert,
 } from '@/lib/scoring';
 import { RegistrationSheet } from '@/components/auth/RegistrationSheet';
+import { MiraAnalysis } from '@/components/result/MiraAnalysis';
+import { Alternatives } from '@/components/result/Alternatives';
 
 const ResultPage = () => {
   const { barcode } = useParams<{ barcode: string }>();
@@ -361,28 +363,20 @@ const ResultPage = () => {
               </div>
             </Collapsible>
 
-            {/* Mira summary */}
-            <div className="bg-secondary/40 rounded-2xl p-4 flex gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-                <Sparkles className="w-5 h-5 text-primary-foreground" />
-              </div>
-              <p className="text-sm leading-relaxed">
-                He analizado este producto para tu perfil. Revisa las capas anteriores para ver si es adecuado para ti.
-                En la próxima fase recibirás mi análisis completo personalizado.
-              </p>
-            </div>
+            {/* Mira personalised analysis (Premium gated) */}
+            <MiraAnalysis
+              product={{
+                product_name: product.name,
+                brand: product.brand || '',
+                category: product.category,
+                ingredients_text: product.ingredients_text || '',
+              }}
+              profile={profile}
+              score={score}
+            />
 
             {/* Alternatives */}
-            <div>
-              <h3 className="font-display font-semibold mb-3">Mejores opciones para ti</h3>
-              <div className="grid grid-cols-3 gap-2">
-                {[0, 1, 2].map(i => (
-                  <div key={i} className="aspect-[3/4] rounded-2xl bg-muted/50 border border-dashed border-border flex items-center justify-center text-xs text-muted-foreground p-2 text-center">
-                    Próximamente
-                  </div>
-                ))}
-              </div>
-            </div>
+            <Alternatives current={product} currentScore={score} />
           </>
         )}
       </div>

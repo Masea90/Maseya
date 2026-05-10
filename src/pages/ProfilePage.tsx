@@ -9,6 +9,7 @@ import { ChevronDown, LogOut } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useDevMode, usePremium, setPremium } from '@/lib/premium';
 
 interface HealthState {
   skin_type: string[];
@@ -101,6 +102,8 @@ const ProfilePage = () => {
   const { logout, currentUser } = useAuth();
   const [state, setState] = useState<HealthState>(EMPTY);
   const [saving, setSaving] = useState(false);
+  const devMode = useDevMode();
+  const premium = usePremium();
 
   useEffect(() => {
     if (!currentUser?.id) return;
@@ -163,7 +166,14 @@ const ProfilePage = () => {
               {(user.nickname || user.name || '?').charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-semibold truncate">{user.nickname || user.name}</p>
+              <p className="font-semibold truncate flex items-center gap-2">
+                {user.nickname || user.name}
+                {premium && (
+                  <span className="px-1.5 py-0.5 rounded-md bg-primary text-primary-foreground text-[10px] font-bold tracking-wider">
+                    Premium
+                  </span>
+                )}
+              </p>
               <p className="text-xs text-muted-foreground truncate">{currentUser?.email}</p>
             </div>
           </div>
@@ -294,6 +304,22 @@ const ProfilePage = () => {
         <Button onClick={() => logout()} variant="outline" className="w-full gap-2">
           <LogOut className="w-4 h-4" /> Cerrar sesión
         </Button>
+        <Button onClick={() => logout()} variant="outline" className="w-full gap-2">
+          <LogOut className="w-4 h-4" /> Cerrar sesión
+        </Button>
+
+        {devMode && (
+          <div className="mt-6 p-4 rounded-2xl border border-dashed border-primary/40 bg-primary/5 space-y-3">
+            <p className="text-xs font-semibold text-primary uppercase tracking-wider">Dev tools</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-sm">Modo Premium (test)</p>
+                <p className="text-xs text-muted-foreground">Activa funciones Premium localmente</p>
+              </div>
+              <Switch checked={premium} onCheckedChange={(v) => setPremium(v)} />
+            </div>
+          </div>
+        )}
       </div>
     </AppLayout>
   );

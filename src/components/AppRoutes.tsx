@@ -14,6 +14,7 @@ import ResultPage from '@/pages/ResultPage';
 import HistoryPage from '@/pages/HistoryPage';
 import ProfilePage from '@/pages/ProfilePage';
 import MiraPage from '@/pages/MiraPage';
+import PremiumPage from '@/pages/PremiumPage';
 
 import LoginPage from '@/pages/LoginPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
@@ -156,6 +157,7 @@ export function AppRoutes() {
           <Route path="/scan" element={<ScannerPage />} />
           <Route path="/scan/photo" element={<PhotoCapturePage />} />
           <Route path="/result/:barcode" element={<ResultPage />} />
+          <Route path="/premium" element={<PremiumPage />} />
           <Route path="/history" element={<Navigate to="/login" replace />} />
           <Route path="/profile" element={<Navigate to="/login" replace />} />
           <Route path="/mira" element={<Navigate to="/login" replace />} />
@@ -179,6 +181,7 @@ export function AppRoutes() {
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/mira" element={<MiraPage />} />
+        <Route path="/premium" element={<PremiumPage />} />
 
         <Route path="/update-password" element={<UpdatePasswordPage />} />
 

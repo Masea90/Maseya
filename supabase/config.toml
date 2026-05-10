@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.extract-ingredients]
 verify_jwt = false
+
+[functions.mira-analyze]
+verify_jwt = false
