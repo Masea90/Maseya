@@ -82,10 +82,10 @@ const ResetPasswordPage = () => {
       <div className="flex-1 px-6 py-4 animate-fade-in">
         <div className="mb-6">
           <h2 className="font-display text-2xl font-bold text-foreground mb-2">
-            Reset password
+            {t('resetPasswordTitle')}
           </h2>
           <p className="text-muted-foreground">
-            Enter your email and we'll send you a link to reset your password.
+            {t('resetPasswordDesc')}
           </p>
         </div>
 
@@ -114,7 +114,7 @@ const ResetPasswordPage = () => {
             {isSubmitting ? (
               <Loader2 className="w-5 h-5 animate-spin" />
             ) : (
-              'Send reset link'
+              t('sendResetLink')
             )}
           </Button>
         </form>
@@ -125,7 +125,7 @@ const ResetPasswordPage = () => {
             className="inline-flex items-center gap-2 text-primary font-medium text-sm"
           >
             <ChevronLeft className="w-4 h-4" />
-            Back to login
+            {t('backToLogin')}
           </Link>
         </div>
       </div>
