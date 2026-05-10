@@ -1,11 +1,18 @@
-// Service Worker for Push Notifications
+// Service Worker for Push Notifications + Update Detection
 
 self.addEventListener('install', (event) => {
-  self.skipWaiting();
+  // Do NOT auto skipWaiting — wait for explicit message so the app can
+  // show the user an "update available" banner before reloading.
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(clients.claim());
+  event.waitUntil(self.clients.claim());
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('push', (event) => {
