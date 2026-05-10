@@ -95,6 +95,9 @@ const ResultPage = () => {
         </header>
         <div className="w-full sm:max-w-lg sm:mx-auto p-6 space-y-4 text-center">
           <p className="text-muted-foreground">No tenemos información de este producto en nuestras bases.</p>
+          {barcode && barcode !== 'photo' && (
+            <p className="text-xs text-muted-foreground font-mono">Código escaneado: {barcode}</p>
+          )}
           <Button onClick={() => navigate('/scan/photo')} className="w-full h-12 rounded-2xl">
             Fotografiar ingredientes
           </Button>
