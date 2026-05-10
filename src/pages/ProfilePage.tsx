@@ -12,7 +12,7 @@ const COPY = {
 
 const ProfilePage = () => {
   const { user } = useUser();
-  const { signOut, currentUser } = useAuth();
+  const { logout, currentUser } = useAuth();
   const c = COPY[user.language] ?? COPY.es;
 
   return (
@@ -37,7 +37,7 @@ const ProfilePage = () => {
           <Button className="w-full" disabled>{c.edit}</Button>
         </div>
 
-        <Button onClick={() => signOut()} variant="outline" className="w-full gap-2">
+        <Button onClick={() => logout()} variant="outline" className="w-full gap-2">
           <LogOut className="w-4 h-4" /> {c.signOut}
         </Button>
       </div>
