@@ -76,7 +76,9 @@ export type Database = {
           created_at: string
           image_url: string | null
           ingredients_text: string | null
+          last_enriched_at: string | null
           product_name: string
+          scan_count: number
           source: string
           submitted_by: string | null
           updated_at: string
@@ -89,7 +91,9 @@ export type Database = {
           created_at?: string
           image_url?: string | null
           ingredients_text?: string | null
+          last_enriched_at?: string | null
           product_name: string
+          scan_count?: number
           source?: string
           submitted_by?: string | null
           updated_at?: string
@@ -102,7 +106,9 @@ export type Database = {
           created_at?: string
           image_url?: string | null
           ingredients_text?: string | null
+          last_enriched_at?: string | null
           product_name?: string
+          scan_count?: number
           source?: string
           submitted_by?: string | null
           updated_at?: string
@@ -462,6 +468,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      increment_product_scan_count: {
+        Args: { p_barcode: string }
+        Returns: undefined
       }
     }
     Enums: {
