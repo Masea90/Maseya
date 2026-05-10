@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUser } from '@/contexts/UserContext';
 
@@ -16,14 +16,40 @@ import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import UpdatePasswordPage from '@/pages/UpdatePasswordPage';
 import NotFound from '@/pages/NotFound';
 
+const ONBOARDING_KEY = 'maseya_onboarding';
+
+const hasLocalOnboarding = (): boolean => {
+  try {
+    const raw = localStorage.getItem(ONBOARDING_KEY);
+    if (!raw) return false;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed?.skin) && parsed.skin.length > 0;
+  } catch {
+    return false;
+  }
+};
+
 /**
- * AppRoutes — 4-tab scanner shell.
- * Auth gate is soft: unauthenticated users still get the welcome + onboarding,
- * but any persistent feature requires sign-in.
+ * Gate that forces /welcome → /onboarding/quiz before any scanner feature
+ * can be reached. Applies to both anonymous and authenticated users.
  */
+function OnboardingGate({ children }: { children: React.ReactNode }) {
+  const { user } = useUser();
+  const location = useLocation();
+  const localDone = hasLocalOnboarding();
+  const dbDone = user.onboardingComplete;
+  const done = localDone && dbDone;
+
+  const allowed = ['/welcome', '/onboarding/quiz', '/onboarding/language', '/update-password', '/login'];
+  if (!done && !allowed.includes(location.pathname)) {
+    return <Navigate to="/welcome" replace />;
+  }
+  return <>{children}</>;
+}
+
 export function AppRoutes() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
-  const { user, isLoading: userLoading } = useUser();
+  const { isLoading: userLoading } = useUser();
 
   if (authLoading || userLoading) {
     return (
@@ -46,29 +72,29 @@ export function AppRoutes() {
         <Route path="/update-password" element={<UpdatePasswordPage />} />
         <Route path="/welcome" element={<WelcomeScreen />} />
         <Route path="/onboarding/quiz" element={<OnboardingQuiz />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="/onboarding/language" element={<LanguageSelect />} />
+        <Route path="*" element={<Navigate to="/welcome" replace />} />
       </Routes>
     );
   }
 
   return (
-    <Routes>
-      <Route
-        path="/"
-        element={user.onboardingComplete ? <Navigate to="/scan" /> : <Navigate to="/welcome" />}
-      />
-      <Route path="/welcome" element={<WelcomeScreen />} />
-      <Route path="/onboarding/language" element={<LanguageSelect />} />
-      <Route path="/onboarding/quiz" element={<OnboardingQuiz />} />
+    <OnboardingGate>
+      <Routes>
+        <Route path="/" element={<Navigate to={hasLocalOnboarding() ? '/scan' : '/welcome'} replace />} />
+        <Route path="/welcome" element={<WelcomeScreen />} />
+        <Route path="/onboarding/language" element={<LanguageSelect />} />
+        <Route path="/onboarding/quiz" element={<OnboardingQuiz />} />
 
-      <Route path="/scan" element={<ScannerPage />} />
-      <Route path="/history" element={<HistoryPage />} />
-      <Route path="/profile" element={<ProfilePage />} />
-      <Route path="/mira" element={<MiraPage />} />
+        <Route path="/scan" element={<ScannerPage />} />
+        <Route path="/history" element={<HistoryPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/mira" element={<MiraPage />} />
 
-      <Route path="/update-password" element={<UpdatePasswordPage />} />
+        <Route path="/update-password" element={<UpdatePasswordPage />} />
 
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </OnboardingGate>
   );
 }
