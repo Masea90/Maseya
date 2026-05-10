@@ -86,7 +86,63 @@ const normalize = (
   };
 };
 
+async function fetchFromMaseya(barcode: string): Promise<ProductData | null> {
+  const { data, error } = await supabase
+    .from('maseya_products')
+    .select('barcode, product_name, brand, category, ingredients_text, image_url, source')
+    .eq('barcode', barcode)
+    .maybeSingle();
+  if (error) {
+    console.error('[productLookup] maseya_products error', error);
+    return null;
+  }
+  if (!data) return null;
+  const cat = (data.category === 'food' || data.category === 'cosmetic') ? data.category : 'unknown';
+  return {
+    barcode: data.barcode,
+    source: 'maseya',
+    name: data.product_name || 'Producto sin nombre',
+    brand: data.brand || '',
+    image: data.image_url || null,
+    category: cat,
+    nutriscore_grade: null,
+    ingredients_text: data.ingredients_text || null,
+    ingredients_tags: [],
+    labels_tags: [],
+    ingredients_analysis_tags: [],
+    raw: data as unknown as Record<string, unknown>,
+  };
+}
+
+export async function saveToMaseya(input: {
+  barcode: string;
+  product_name: string;
+  brand?: string | null;
+  category: 'food' | 'cosmetic' | 'unknown';
+  ingredients_text: string;
+  image_url?: string | null;
+  source?: string;
+  verified?: boolean;
+}): Promise<void> {
+  const { error } = await supabase
+    .from('maseya_products')
+    .upsert({
+      barcode: input.barcode,
+      product_name: input.product_name,
+      brand: input.brand ?? null,
+      category: input.category,
+      ingredients_text: input.ingredients_text,
+      image_url: input.image_url ?? null,
+      source: input.source ?? 'photo',
+      verified: input.verified ?? false,
+    }, { onConflict: 'barcode' });
+  if (error) console.error('[productLookup] saveToMaseya error', error);
+}
+
 export async function lookupProduct(barcode: string): Promise<ProductData | null> {
+  const maseya = await fetchFromMaseya(barcode);
+  if (maseya) return maseya;
+
   const off = await fetchFrom('world.openfoodfacts.org', barcode);
   if (off?.status === 1 && off.product) return normalize(off, barcode, 'off', 'food');
 
