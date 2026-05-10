@@ -67,9 +67,31 @@ const ScannerPage = () => {
     setErrorMsg('');
     setPhase('scanning');
     try {
-      const reader = new BrowserMultiFormatReader();
-      const controls = await reader.decodeFromVideoDevice(
-        undefined,
+      const hints = new Map();
+      hints.set(DecodeHintType.TRY_HARDER, true);
+      hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+        BarcodeFormat.EAN_13,
+        BarcodeFormat.EAN_8,
+        BarcodeFormat.UPC_A,
+        BarcodeFormat.UPC_E,
+        BarcodeFormat.CODE_128,
+        BarcodeFormat.CODE_39,
+        BarcodeFormat.DATA_MATRIX,
+        BarcodeFormat.QR_CODE,
+      ]);
+      const reader = new BrowserMultiFormatReader(hints);
+      const constraints: MediaStreamConstraints = {
+        video: {
+          facingMode: { ideal: 'environment' },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          // @ts-expect-error advanced focus hints not in lib.dom yet
+          focusMode: 'continuous',
+          advanced: [{ focusMode: 'continuous' } as MediaTrackConstraintSet],
+        },
+      };
+      const controls = await reader.decodeFromConstraints(
+        constraints,
         videoRef.current!,
         (result, _err, ctrl) => {
           if (result) {
