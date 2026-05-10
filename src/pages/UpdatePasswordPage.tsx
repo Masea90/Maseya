@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Lock, Eye, EyeOff, Loader2, CheckCircle2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { getTranslation, TranslationKey } from '@/lib/i18n';
 
 const UpdatePasswordPage = () => {
   const navigate = useNavigate();
@@ -15,6 +16,16 @@ const UpdatePasswordPage = () => {
   const [isSuccess, setIsSuccess] = useState(false);
   const [isValidSession, setIsValidSession] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
+
+  const getSavedLanguage = (): 'en' | 'es' | 'fr' => {
+    try {
+      const stored = localStorage.getItem('maseya_language');
+      if (stored === 'es' || stored === 'fr') return stored;
+    } catch {}
+    return 'en';
+  };
+  const lang = getSavedLanguage();
+  const t = (key: TranslationKey): string => getTranslation(lang, key);
 
   // Check for recovery session from the URL hash
   useEffect(() => {
@@ -51,12 +62,12 @@ const UpdatePasswordPage = () => {
     e.preventDefault();
 
     if (password.length < 6) {
-      toast.error('Password must be at least 6 characters');
+      toast.error(t('passwordTooShort'));
       return;
     }
 
     if (password !== confirmPassword) {
-      toast.error('Passwords do not match');
+      toast.error(t('passwordsDoNotMatch'));
       return;
     }
 
@@ -65,14 +76,14 @@ const UpdatePasswordPage = () => {
       const { error } = await supabase.auth.updateUser({ password });
 
       if (error) {
-        toast.error(error.message || 'Failed to update password');
+        toast.error(error.message || t('passwordUpdateError'));
       } else {
         setIsSuccess(true);
-        toast.success('Password updated successfully!');
+        toast.success(t('passwordUpdatedSuccess'));
         setTimeout(() => navigate('/home'), 2000);
       }
     } catch {
-      toast.error('An unexpected error occurred');
+      toast.error(t('unexpectedError'));
     } finally {
       setIsSubmitting(false);
     }
@@ -90,12 +101,12 @@ const UpdatePasswordPage = () => {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
         <div className="max-w-sm w-full text-center space-y-4">
-          <h1 className="font-display text-xl font-bold">Invalid or expired link</h1>
+          <h1 className="font-display text-xl font-bold">{t('invalidLinkTitle')}</h1>
           <p className="text-muted-foreground text-sm">
-            This password reset link has expired or is invalid. Please request a new one.
+            {t('invalidLinkDesc')}
           </p>
           <Button onClick={() => navigate('/reset-password')} className="bg-gradient-olive">
-            Request new link
+            {t('requestNewLink')}
           </Button>
         </div>
       </div>
@@ -109,8 +120,8 @@ const UpdatePasswordPage = () => {
           <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
             <CheckCircle2 className="w-8 h-8 text-primary" />
           </div>
-          <h1 className="font-display text-xl font-bold">Password updated!</h1>
-          <p className="text-muted-foreground text-sm">Redirecting you to the app…</p>
+          <h1 className="font-display text-xl font-bold">{t('passwordUpdatedTitle')}</h1>
+          <p className="text-muted-foreground text-sm">{t('passwordUpdatedDesc')}</p>
         </div>
       </div>
     );
@@ -130,21 +141,21 @@ const UpdatePasswordPage = () => {
       <div className="flex-1 px-6 py-4 animate-fade-in">
         <div className="mb-6">
           <h2 className="font-display text-2xl font-bold text-foreground mb-2">
-            Set new password
+            {t('setNewPasswordTitle')}
           </h2>
           <p className="text-muted-foreground">
-            Choose a strong password for your account.
+            {t('setNewPasswordDesc')}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">New password</label>
+            <label className="text-sm font-medium text-foreground">{t('newPassword')}</label>
             <div className="relative">
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input
                 type={showPassword ? 'text' : 'password'}
-                placeholder="Minimum 6 characters"
+                placeholder={t('loginMinChars')}
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 className="h-12 pl-12 pr-12 rounded-2xl"
@@ -163,12 +174,12 @@ const UpdatePasswordPage = () => {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Confirm password</label>
+            <label className="text-sm font-medium text-foreground">{t('confirmPasswordLabel')}</label>
             <div className="relative">
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input
                 type={showPassword ? 'text' : 'password'}
-                placeholder="Re-enter password"
+                placeholder={t('reenterPassword')}
                 value={confirmPassword}
                 onChange={e => setConfirmPassword(e.target.value)}
                 className="h-12 pl-12 rounded-2xl"
@@ -187,7 +198,7 @@ const UpdatePasswordPage = () => {
             {isSubmitting ? (
               <Loader2 className="w-5 h-5 animate-spin" />
             ) : (
-              'Update password'
+              t('updatePassword')
             )}
           </Button>
         </form>
