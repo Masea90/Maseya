@@ -75,6 +75,9 @@ export function AppRoutes() {
         <Route path="/welcome" element={<WelcomeScreen />} />
         <Route path="/onboarding/quiz" element={<OnboardingQuiz />} />
         <Route path="/onboarding/language" element={<LanguageSelect />} />
+        <Route path="/scan" element={<ScannerPage />} />
+        <Route path="/scan/photo" element={<PhotoCapturePage />} />
+        <Route path="/result/:barcode" element={<ResultPage />} />
         <Route path="*" element={<Navigate to="/welcome" replace />} />
       </Routes>
     );
