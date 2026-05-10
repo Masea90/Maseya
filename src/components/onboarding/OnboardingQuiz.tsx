@@ -118,11 +118,15 @@ export const OnboardingQuiz = () => {
   return (
     <div className="min-h-[100dvh] bg-background">
       <div className="w-full sm:max-w-lg sm:mx-auto p-6 pb-32">
-        <div className="h-1.5 bg-muted rounded-full overflow-hidden mb-8">
+        <div className="flex items-center justify-between mb-2 text-xs uppercase tracking-wider text-muted-foreground">
+          <span>{c.step}</span>
+        </div>
+        <div className="h-1.5 bg-muted rounded-full overflow-hidden mb-6">
           <div className="h-full bg-primary transition-all" style={{ width: `${Math.max(progress, 30)}%` }} />
         </div>
 
-        <h1 className="font-display text-2xl font-bold mb-8 leading-tight">{c.intro}</h1>
+        <h1 className="font-display text-2xl font-bold mb-2 leading-tight">{c.intro}</h1>
+        <p className="text-sm text-muted-foreground mb-8">{c.context}</p>
 
         <section className="mb-8">
           <h2 className="font-semibold mb-4">{c.q1}</h2>
