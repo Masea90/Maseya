@@ -16,8 +16,72 @@ interface Alt {
   barcode: string;
   product_name: string;
   brand: string | null;
+  image: string | null;
   score: number;
 }
+
+const buildPseudo = (
+  barcode: string,
+  name: string,
+  brand: string | null,
+  category: 'food' | 'cosmetic',
+  image: string | null,
+  ingredients_text: string | null,
+  nutriscore_grade: string | null,
+  raw: Record<string, unknown>
+): ProductData => ({
+  barcode,
+  source: 'maseya',
+  name,
+  brand: brand || '',
+  image,
+  category,
+  nutriscore_grade,
+  ingredients_text,
+  ingredients_tags: [],
+  labels_tags: [],
+  ingredients_analysis_tags: [],
+  raw,
+});
+
+const fetchOpenFactsAlternatives = async (
+  category: 'food' | 'cosmetic',
+  excludeBarcode: string
+): Promise<Alt[]> => {
+  const host = category === 'food' ? 'world.openfoodfacts.org' : 'world.openbeautyfacts.org';
+  const url = `https://${host}/cgi/search.pl?action=process&tagtype_0=categories&tag_contains_0=contains&tag_0=${encodeURIComponent(category === 'food' ? 'food' : 'cosmetics')}&json=true&page_size=20&fields=code,product_name,brands,image_front_url,nutriscore_grade,ingredients_text`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return [];
+    const j = await res.json();
+    const items: any[] = Array.isArray(j?.products) ? j.products : [];
+    return items
+      .filter(p => p.code && p.code !== excludeBarcode && (p.product_name || '').trim())
+      .map(p => {
+        const pseudo = buildPseudo(
+          p.code,
+          p.product_name,
+          p.brands || null,
+          category,
+          p.image_front_url || null,
+          p.ingredients_text || null,
+          p.nutriscore_grade || null,
+          p
+        );
+        const flagged = flagIngredients(pseudo);
+        const score = calculateScore(pseudo, flagged);
+        return {
+          barcode: p.code as string,
+          product_name: p.product_name as string,
+          brand: (p.brands as string) || null,
+          image: (p.image_front_url as string) || null,
+          score,
+        };
+      });
+  } catch {
+    return [];
+  }
+};
 
 export const Alternatives = ({ current, currentScore }: Props) => {
   const premium = usePremium();
@@ -27,42 +91,57 @@ export const Alternatives = ({ current, currentScore }: Props) => {
 
   useEffect(() => {
     if (!premium) { setLoading(false); return; }
+    if (current.category !== 'food' && current.category !== 'cosmetic') {
+      setLoading(false);
+      return;
+    }
+    const cat = current.category;
     let cancelled = false;
     (async () => {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('maseya_products')
         .select('barcode, product_name, brand, category, ingredients_text, image_url')
-        .eq('category', current.category)
+        .eq('category', cat)
         .neq('barcode', current.barcode)
         .limit(20);
+
+      const fromMaseya: Alt[] = (data ?? []).map((p: any) => {
+        const pseudo = buildPseudo(
+          p.barcode,
+          p.product_name,
+          p.brand,
+          cat,
+          p.image_url ?? null,
+          p.ingredients_text || null,
+          null,
+          p
+        );
+        const flagged = flagIngredients(pseudo);
+        const score = calculateScore(pseudo, flagged);
+        return {
+          barcode: p.barcode,
+          product_name: p.product_name,
+          brand: p.brand,
+          image: p.image_url ?? null,
+          score,
+        };
+      });
+
+      let combined = fromMaseya;
+      if (fromMaseya.filter(a => a.score >= currentScore).length < 3) {
+        const fromOFF = await fetchOpenFactsAlternatives(cat, current.barcode);
+        combined = [...fromMaseya, ...fromOFF];
+      }
       if (cancelled) return;
-      if (error || !data) { setLoading(false); return; }
-      const scored: Alt[] = data
-        .map((p: any) => {
-          const pseudo: ProductData = {
-            barcode: p.barcode,
-            source: 'maseya',
-            name: p.product_name,
-            brand: p.brand || '',
-            image: p.image_url ?? null,
-            category: (p.category === 'food' ? 'food' : 'cosmetic'),
-            nutriscore_grade: null,
-            ingredients_text: p.ingredients_text || null,
-            ingredients_tags: [],
-            labels_tags: [],
-            ingredients_analysis_tags: [],
-            raw: p,
-          };
-          const flagged = flagIngredients(pseudo);
-          const score = calculateScore(pseudo, flagged);
-          return { barcode: p.barcode, product_name: p.product_name, brand: p.brand, score };
-        })
+
+      const sorted = combined
         .filter(a => a.score >= currentScore)
         .sort((a, b) => b.score - a.score);
+
       // Dedupe by normalized product_name — keep highest score
       const seen = new Set<string>();
       const deduped: Alt[] = [];
-      for (const a of scored) {
+      for (const a of sorted) {
         const key = (a.product_name || '').trim().toLowerCase();
         if (!key || seen.has(key)) continue;
         seen.add(key);
@@ -121,17 +200,29 @@ export const Alternatives = ({ current, currentScore }: Props) => {
               <button
                 key={a.barcode}
                 onClick={() => navigate(`/result/${encodeURIComponent(a.barcode)}`)}
-                className="aspect-[3/4] rounded-2xl bg-card border border-border p-2 flex flex-col gap-1 text-left hover:border-primary/50 transition-colors"
+                className="aspect-[3/4] rounded-2xl bg-card border border-border p-2 flex flex-col gap-1 text-left hover:border-primary/50 transition-colors overflow-hidden"
               >
-                <div
-                  className="self-start text-[10px] font-bold px-2 py-0.5 rounded-full"
-                  style={{ backgroundColor: sl.bg, color: sl.color }}
-                >
-                  {a.score}
+                <div className="flex items-start justify-between gap-1">
+                  <div
+                    className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                    style={{ backgroundColor: sl.bg, color: sl.color }}
+                  >
+                    {a.score}
+                  </div>
                 </div>
-                <p className="text-[11px] font-semibold leading-tight line-clamp-2 mt-1">{a.product_name}</p>
+                {a.image ? (
+                  <div className="w-full aspect-square rounded-lg overflow-hidden bg-muted">
+                    <img src={a.image} alt={a.product_name} className="w-full h-full object-cover" loading="lazy" />
+                  </div>
+                ) : (
+                  <div className="w-full aspect-square rounded-lg bg-primary/10 flex items-center justify-center">
+                    <span className="font-display font-bold text-primary/60 text-lg">
+                      {(a.product_name || '?').charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                )}
+                <p className="text-[11px] font-semibold leading-tight line-clamp-2">{a.product_name}</p>
                 {a.brand && <p className="text-[10px] text-muted-foreground line-clamp-1">{a.brand}</p>}
-                <span className="mt-auto text-[10px] text-primary font-medium">Ver análisis →</span>
               </button>
             );
           })}
