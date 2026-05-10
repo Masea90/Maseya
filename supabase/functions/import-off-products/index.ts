@@ -97,19 +97,40 @@ Deno.serve(async (req) => {
       if (u.searchParams.get("source") === "obf") source = "obf";
     }
 
-    const host = source === "off"
-      ? "world.openfoodfacts.org"
-      : "world.openbeautyfacts.org";
     const category = source === "off" ? "food" : "cosmetic";
     const sourceTag = source === "off" ? "off_import" : "obf_import";
 
-    const products = await fetchPage(host, page);
+    // Try a sequence of endpoints. For OFF (food), the Spain-filtered query
+    // sometimes returns 503; fall back to the es. subdomain and finally to
+    // world. without the country filter.
+    const attempts: Array<{ host: string; withCountry: boolean }> =
+      source === "off"
+        ? [
+            { host: "es.openfoodfacts.org", withCountry: false },
+            { host: "world.openfoodfacts.org", withCountry: true },
+            { host: "world.openfoodfacts.org", withCountry: false },
+          ]
+        : [
+            { host: "world.openbeautyfacts.org", withCountry: true },
+            { host: "world.openbeautyfacts.org", withCountry: false },
+          ];
+
+    let products: OffProduct[] = [];
+    let usedHost = attempts[0].host;
+    for (const a of attempts) {
+      products = await fetchPage(a.host, page, a.withCountry);
+      usedHost = a.host;
+      if (products.length > 0) break;
+      console.log(`[import] empty result from ${a.host} (country=${a.withCountry}), trying next`);
+    }
+
     if (products.length === 0) {
-      return new Response(JSON.stringify({ imported: 0, skipped: 0, page, total_so_far: 0 }), {
+      return new Response(JSON.stringify({ imported: 0, skipped: 0, page, total_so_far: 0, note: "all_endpoints_empty" }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    console.log(`[import] using ${usedHost} -> ${products.length} products`);
 
     const barcodes = products.map(p => String(p.code || "")).filter(Boolean);
     const { data: existingRows } = await admin
