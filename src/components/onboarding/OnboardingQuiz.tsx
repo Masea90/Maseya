@@ -161,10 +161,10 @@ export const OnboardingQuiz = () => {
         <div className="w-full sm:max-w-lg sm:mx-auto">
           <Button
             onClick={handleSubmit}
-            disabled={skin.length === 0}
+            disabled={skin.length === 0 || saving}
             className="w-full h-14 text-lg font-semibold rounded-2xl"
           >
-            {c.cta}
+            {saving ? '...' : c.cta}
           </Button>
         </div>
       </div>
