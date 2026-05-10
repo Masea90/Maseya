@@ -122,50 +122,54 @@ export function personalAlerts(p: ProductData, profile: OnboardingProfile): Pers
   const text = lower(p.ingredients_text || '') + ' ' + p.ingredients_tags.join(' ');
 
   const has = (kw: string) => text.includes(kw);
+  const isCosmetic = p.category === 'cosmetic';
+  const isFood = p.category === 'food';
 
-  // Skin rules
-  if (profile.skin.includes('atopic')) {
-    const hits: string[] = [];
-    if (has('sulfate') || has('sulphate')) hits.push('Los sulfatos alteran la barrera cutánea atópica');
-    if (has('fragrance') || has('parfum')) hits.push('Las fragancias pueden irritar piel atópica');
-    if (has('alcohol denat')) hits.push('El alcohol puede resecar piel atópica');
-    if (has('mineral oil') || has('paraffinum')) hits.push('El aceite mineral ocluye poros, puede empeorar atopia');
-    if (hits.length === 0) alerts.push({ level: 'good', text: 'Sin ingredientes problemáticos para piel atópica' });
-    else hits.forEach(h => alerts.push({ level: 'warn', text: h }));
-  }
-  if (profile.skin.includes('dry')) {
-    const hits: string[] = [];
-    if (has('sulfate') || has('sulphate')) hits.push('Los sulfatos resecan piel ya seca');
-    if (has('alcohol denat')) hits.push('El alcohol agrava la sequedad');
-    if (hits.length === 0) alerts.push({ level: 'good', text: 'Apto para piel seca' });
-    else hits.forEach(h => alerts.push({ level: 'warn', text: h }));
-  }
-  if (profile.skin.includes('oily')) {
-    const hits: string[] = [];
-    if (has('mineral oil') || has('paraffinum')) hits.push('El aceite mineral puede obstruir poros en piel grasa');
-    if (has('silicone') || has('dimethicone')) hits.push('Las siliconas pueden acumular sebo en piel grasa');
-    if (hits.length === 0) alerts.push({ level: 'good', text: 'Apto para piel grasa' });
-    else hits.forEach(h => alerts.push({ level: 'warn', text: h }));
+  // Skin rules — cosmetics only
+  if (isCosmetic) {
+    if (profile.skin.includes('atopic')) {
+      const hits: string[] = [];
+      if (has('sulfate') || has('sulphate')) hits.push('Los sulfatos alteran la barrera cutánea atópica');
+      if (has('fragrance') || has('parfum')) hits.push('Las fragancias pueden irritar piel atópica');
+      if (has('alcohol denat')) hits.push('El alcohol puede resecar piel atópica');
+      if (has('mineral oil') || has('paraffinum')) hits.push('El aceite mineral ocluye poros, puede empeorar atopia');
+      if (hits.length === 0) alerts.push({ level: 'good', text: 'Sin ingredientes problemáticos para piel atópica' });
+      else hits.forEach(h => alerts.push({ level: 'warn', text: h }));
+    }
+    if (profile.skin.includes('dry')) {
+      const hits: string[] = [];
+      if (has('sulfate') || has('sulphate')) hits.push('Los sulfatos resecan piel ya seca');
+      if (has('alcohol denat')) hits.push('El alcohol agrava la sequedad');
+      if (hits.length === 0) alerts.push({ level: 'good', text: 'Apto para piel seca' });
+      else hits.forEach(h => alerts.push({ level: 'warn', text: h }));
+    }
+    if (profile.skin.includes('oily')) {
+      const hits: string[] = [];
+      if (has('mineral oil') || has('paraffinum')) hits.push('El aceite mineral puede obstruir poros en piel grasa');
+      if (has('silicone') || has('dimethicone')) hits.push('Las siliconas pueden acumular sebo en piel grasa');
+      if (hits.length === 0) alerts.push({ level: 'good', text: 'Apto para piel grasa' });
+      else hits.forEach(h => alerts.push({ level: 'warn', text: h }));
+    }
   }
 
-  // Allergy rules
-  for (const allergy of profile.allergies) {
-    if (allergy === 'none') continue;
-    const kws = allergy === 'lactose'
-      ? (p.category === 'cosmetic' ? LACTOSE_COSMETIC : LACTOSE_FOOD)
-      : ALLERGY_KEYWORDS[allergy];
-    if (!kws) continue;
-    const found = containsAny(text, kws);
-    const labels: Record<string, string> = {
-      gluten: 'gluten — no apto para celiacos',
-      lactose: 'lácteos',
-      nuts: 'frutos secos',
-      fish: 'pescado o marisco',
-    };
-    if (found) {
-      alerts.push({ level: 'danger', text: `Contiene ${labels[allergy]}` });
-    } else {
-      alerts.push({ level: 'good', text: `Sin ${labels[allergy].split(' —')[0]} detectado` });
+  // Food allergy rules — food only
+  if (isFood) {
+    for (const allergy of profile.allergies) {
+      if (allergy === 'none') continue;
+      const kws = allergy === 'lactose' ? LACTOSE_FOOD : ALLERGY_KEYWORDS[allergy];
+      if (!kws) continue;
+      const found = containsAny(text, kws);
+      const labels: Record<string, string> = {
+        gluten: 'gluten — no apto para celiacos',
+        lactose: 'lácteos',
+        nuts: 'frutos secos',
+        fish: 'pescado o marisco',
+      };
+      if (found) {
+        alerts.push({ level: 'danger', text: `Contiene ${labels[allergy]}` });
+      } else {
+        alerts.push({ level: 'good', text: `Sin ${labels[allergy].split(' —')[0]} detectado` });
+      }
     }
   }
 
