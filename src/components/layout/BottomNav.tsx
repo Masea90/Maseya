@@ -1,25 +1,30 @@
-import { Home, Compass, CheckSquare, Users, User } from 'lucide-react';
+import { ScanLine, History, User, Sparkles } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useUser } from '@/contexts/UserContext';
 
 export const BottomNav = () => {
   const location = useLocation();
-  const { t } = useUser();
+  const { user } = useUser();
+
+  const labels = user.language === 'fr'
+    ? { scan: 'Scanner', history: 'Historique', profile: 'Profil', mira: 'Mira' }
+    : user.language === 'en'
+    ? { scan: 'Scan', history: 'History', profile: 'Profile', mira: 'Mira' }
+    : { scan: 'Escanear', history: 'Historial', profile: 'Perfil', mira: 'Mira' };
 
   const navItems = [
-    { icon: Home, label: t('home'), path: '/home' },
-    { icon: Compass, label: t('discover'), path: '/discover' },
-    { icon: CheckSquare, label: t('routineNav'), path: '/routine' },
-    { icon: Users, label: t('communityNav'), path: '/community' },
-    { icon: User, label: t('profile'), path: '/profile' },
+    { icon: ScanLine, label: labels.scan, path: '/scan' },
+    { icon: History, label: labels.history, path: '/history' },
+    { icon: Sparkles, label: labels.mira, path: '/mira' },
+    { icon: User, label: labels.profile, path: '/profile' },
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card/90 backdrop-blur-lg border-t border-border/50 shadow-warm-lg">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-lg border-t border-border shadow-warm-lg">
       <div className="w-full sm:max-w-lg sm:mx-auto flex items-center justify-around h-16">
         {navItems.map(item => {
-          const isActive = location.pathname === item.path;
+          const isActive = location.pathname === item.path || (item.path === '/scan' && location.pathname === '/');
           return (
             <NavLink
               key={item.path}

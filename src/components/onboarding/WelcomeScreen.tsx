@@ -1,69 +1,50 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Sparkles, Leaf, Heart } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
+
+const COPY = {
+  es: {
+    title: 'Tu piel, tu cuerpo, tus reglas.',
+    subtitle: 'Escanea cualquier producto y descubre si es realmente bueno para ti.',
+    cta: 'Empezar',
+  },
+  en: {
+    title: 'Your skin, your body, your rules.',
+    subtitle: 'Scan any product and discover if it’s really good for you.',
+    cta: 'Get started',
+  },
+  fr: {
+    title: 'Ta peau, ton corps, tes règles.',
+    subtitle: 'Scanne n’importe quel produit et découvre s’il est vraiment bon pour toi.',
+    cta: 'Commencer',
+  },
+};
 
 export const WelcomeScreen = () => {
   const navigate = useNavigate();
-  const { t } = useUser();
+  const { user } = useUser();
+  const copy = COPY[user.language] ?? COPY.es;
 
   return (
-    <div className="min-h-screen bg-gradient-warm flex flex-col items-center justify-center p-6 text-center">
-      <div className="animate-fade-in space-y-8 max-w-sm">
-        {/* Logo & Icon */}
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-24 h-24 bg-card rounded-full flex items-center justify-center shadow-warm-lg animate-pulse-soft">
-            <span className="text-5xl">🌿</span>
-          </div>
-          <h1 className="font-display text-4xl font-bold text-primary">MASEYA</h1>
-          <p className="text-muted-foreground text-lg">
-            {t('tagline')}
-          </p>
+    <div className="min-h-[100dvh] bg-gradient-hero flex flex-col items-center justify-between p-8 text-center text-white">
+      <div className="flex-1 flex flex-col items-center justify-center max-w-sm">
+        <div className="mb-8 w-20 h-20 rounded-3xl bg-white/15 backdrop-blur flex items-center justify-center">
+          <span className="text-4xl">🌿</span>
         </div>
-
-        {/* Features */}
-        <div className="space-y-4 py-6">
-          <div className="flex items-center gap-3 text-left bg-card/60 backdrop-blur-sm rounded-2xl p-4 shadow-warm">
-            <div className="w-10 h-10 bg-glow-skin/20 rounded-full flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-glow-skin" />
-            </div>
-            <div>
-              <p className="font-medium text-foreground">{t('premiumFeature1')}</p>
-              <p className="text-sm text-muted-foreground">{t('tagline')}</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 text-left bg-card/60 backdrop-blur-sm rounded-2xl p-4 shadow-warm">
-            <div className="w-10 h-10 bg-glow-hair/20 rounded-full flex items-center justify-center">
-              <Leaf className="w-5 h-5 text-glow-hair" />
-            </div>
-            <div>
-              <p className="font-medium text-foreground">{t('freeFeature3')}</p>
-              <p className="text-sm text-muted-foreground">{t('natural')}</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 text-left bg-card/60 backdrop-blur-sm rounded-2xl p-4 shadow-warm">
-            <div className="w-10 h-10 bg-glow-nutrition/20 rounded-full flex items-center justify-center">
-              <Heart className="w-5 h-5 text-glow-nutrition" />
-            </div>
-            <div>
-              <p className="font-medium text-foreground">{t('community')}</p>
-              <p className="text-sm text-muted-foreground">{t('freeFeature4')}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* CTA */}
-        <div className="pt-4">
-          <Button
-            onClick={() => navigate('/onboarding/quiz')}
-            className="w-full h-14 text-lg font-medium rounded-2xl bg-gradient-olive hover:opacity-90 transition-all shadow-warm-lg"
-          >
-            {t('getStarted')}
-          </Button>
-        </div>
+        <h1 className="font-display text-4xl font-bold leading-tight mb-4">
+          {copy.title}
+        </h1>
+        <p className="text-white/85 text-lg leading-relaxed">
+          {copy.subtitle}
+        </p>
       </div>
+
+      <Button
+        onClick={() => navigate('/onboarding/quiz')}
+        className="w-full max-w-sm h-14 text-lg font-semibold rounded-2xl bg-white text-primary hover:bg-white/95 shadow-warm-lg"
+      >
+        {copy.cta}
+      </Button>
     </div>
   );
 };
