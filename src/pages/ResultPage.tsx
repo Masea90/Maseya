@@ -219,6 +219,8 @@ const ResultPage = () => {
   const nat = naturalness(product, flagged);
   const profile = loadOnboarding();
   const alerts = personalAlerts(product, profile);
+  const personalScore = calculatePersonalScore(product, flagged, healthProfile || profile, score);
+  const psl = scoreLabel(personalScore);
   const hasIngredientData = flagged.length >= 3;
   const hasNutriscore = product.category === 'food' && !!product.nutriscore_grade;
   const showScore = product.category === 'cosmetic'
