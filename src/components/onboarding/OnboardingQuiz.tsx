@@ -9,9 +9,11 @@ import { cn } from '@/lib/utils';
 const COPY = {
   es: {
     intro: 'Cuéntanos sobre ti para personalizar tus resultados',
+    context: 'Esto nos permite personalizar tu análisis. Solo tarda 20 segundos.',
+    step: 'Paso 1 de 2',
     q1: '¿Cómo es tu piel?',
     q2: '¿Tienes alguna intolerancia o alergia alimentaria?',
-    cta: 'Ver mi primer análisis',
+    cta: 'Ver mi primer análisis →',
     skin: [
       { id: 'atopic', emoji: '🌿', label: 'Atópica o muy sensible' },
       { id: 'dry', emoji: '💧', label: 'Seca' },
@@ -28,9 +30,11 @@ const COPY = {
   },
   en: {
     intro: 'Tell us about you to personalize your results',
+    context: 'This helps us personalize your analysis. Takes only 20 seconds.',
+    step: 'Step 1 of 2',
     q1: 'What’s your skin like?',
     q2: 'Any food intolerance or allergy?',
-    cta: 'See my first analysis',
+    cta: 'See my first analysis →',
     skin: [
       { id: 'atopic', emoji: '🌿', label: 'Atopic or very sensitive' },
       { id: 'dry', emoji: '💧', label: 'Dry' },
@@ -47,9 +51,11 @@ const COPY = {
   },
   fr: {
     intro: 'Parle-nous de toi pour personnaliser tes résultats',
+    context: 'Cela nous aide à personnaliser ton analyse. Ça ne prend que 20 secondes.',
+    step: 'Étape 1 sur 2',
     q1: 'Comment est ta peau ?',
     q2: 'As-tu une intolérance ou allergie alimentaire ?',
-    cta: 'Voir ma première analyse',
+    cta: 'Voir ma première analyse →',
     skin: [
       { id: 'atopic', emoji: '🌿', label: 'Atopique ou très sensible' },
       { id: 'dry', emoji: '💧', label: 'Sèche' },
@@ -112,11 +118,15 @@ export const OnboardingQuiz = () => {
   return (
     <div className="min-h-[100dvh] bg-background">
       <div className="w-full sm:max-w-lg sm:mx-auto p-6 pb-32">
-        <div className="h-1.5 bg-muted rounded-full overflow-hidden mb-8">
+        <div className="flex items-center justify-between mb-2 text-xs uppercase tracking-wider text-muted-foreground">
+          <span>{c.step}</span>
+        </div>
+        <div className="h-1.5 bg-muted rounded-full overflow-hidden mb-6">
           <div className="h-full bg-primary transition-all" style={{ width: `${Math.max(progress, 30)}%` }} />
         </div>
 
-        <h1 className="font-display text-2xl font-bold mb-8 leading-tight">{c.intro}</h1>
+        <h1 className="font-display text-2xl font-bold mb-2 leading-tight">{c.intro}</h1>
+        <p className="text-sm text-muted-foreground mb-8">{c.context}</p>
 
         <section className="mb-8">
           <h2 className="font-semibold mb-4">{c.q1}</h2>

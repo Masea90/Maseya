@@ -17,6 +17,8 @@ const COPY = {
     cameraError: 'No se pudo acceder a la cámara. Revisa los permisos.',
     cancel: 'Cancelar',
     retry: 'Reintentar',
+    tooltip: 'Apunta al código de barras de cualquier producto',
+    gotIt: 'Entendido',
   },
   en: {
     title: 'Scan',
@@ -28,6 +30,8 @@ const COPY = {
     cameraError: 'Camera access blocked. Check permissions.',
     cancel: 'Cancel',
     retry: 'Retry',
+    tooltip: 'Point at the barcode of any product',
+    gotIt: 'Got it',
   },
   fr: {
     title: 'Scanner',
@@ -39,6 +43,8 @@ const COPY = {
     cameraError: 'Accès caméra bloqué. Vérifie les permissions.',
     cancel: 'Annuler',
     retry: 'Réessayer',
+    tooltip: 'Vise le code-barres de n’importe quel produit',
+    gotIt: 'Compris',
   },
 };
 
@@ -53,6 +59,21 @@ const ScannerPage = () => {
   const controlsRef = useRef<IScannerControls | null>(null);
   const [phase, setPhase] = useState<Phase>('scanning');
   const [errorMsg, setErrorMsg] = useState<string>('');
+  const [showTooltip, setShowTooltip] = useState<boolean>(() => {
+    try { return !localStorage.getItem('maseya_scan_tip_seen'); } catch { return false; }
+  });
+
+  useEffect(() => {
+    if (!showTooltip) return;
+    const t = setTimeout(() => dismissTooltip(), 3000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showTooltip]);
+
+  const dismissTooltip = () => {
+    try { localStorage.setItem('maseya_scan_tip_seen', '1'); } catch {}
+    setShowTooltip(false);
+  };
 
   const stop = () => {
     controlsRef.current?.stop();
@@ -130,6 +151,20 @@ const ScannerPage = () => {
             <div className="absolute inset-0 bg-background flex flex-col items-center justify-center gap-3 p-6 text-center">
               <p className="text-sm text-destructive">{errorMsg}</p>
               <Button onClick={startScanning}>{c.retry}</Button>
+            </div>
+          )}
+
+          {showTooltip && phase === 'scanning' && (
+            <div className="absolute inset-0 bg-black/55 flex flex-col items-center justify-center gap-4 p-6 text-center animate-in fade-in">
+              <div className="text-white text-3xl animate-bounce">⬇️</div>
+              <p className="text-white font-medium leading-snug max-w-xs">{c.tooltip}</p>
+              <Button
+                onClick={dismissTooltip}
+                size="sm"
+                className="rounded-full bg-white text-primary hover:bg-white/90"
+              >
+                {c.gotIt}
+              </Button>
             </div>
           )}
         </div>
