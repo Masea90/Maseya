@@ -27,6 +27,44 @@ const ResultPage = () => {
   const [paywall, setPaywall] = useState(false);
 
   const [fromPhoto, setFromPhoto] = useState(false);
+  const [healthProfile, setHealthProfile] = useState<any>(null);
+
+  useEffect(() => {
+    if (!currentUser?.id) {
+      // Fallback to localStorage onboarding data
+      try {
+        const raw = localStorage.getItem('maseya_onboarding');
+        if (raw) setHealthProfile(JSON.parse(raw));
+      } catch {}
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from('health_profiles')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .maybeSingle();
+      if (cancelled) return;
+      if (data) {
+        setHealthProfile({
+          skin_type: data.skin_type || [],
+          skin_conditions: data.skin_conditions || [],
+          skin_sensitivities: data.skin_sensitivities || [],
+          allergies: data.allergies || [],
+          diet: data.diet || '',
+          nutrition_goals: data.nutrition_goals || [],
+          pregnancy_or_lactation: !!data.pregnancy_or_lactation,
+        });
+      } else {
+        try {
+          const raw = localStorage.getItem('maseya_onboarding');
+          if (raw) setHealthProfile(JSON.parse(raw));
+        } catch {}
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [currentUser?.id]);
 
   useEffect(() => {
     if (!barcode) {
@@ -173,7 +211,7 @@ const ResultPage = () => {
           <button onClick={() => navigate('/scan')} aria-label="Volver">
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="font-display text-base font-semibold truncate">{product.name}</h1>
+          
         </div>
       </header>
 
@@ -356,7 +394,7 @@ const ResultPage = () => {
                 category: product.category,
                 ingredients_text: product.ingredients_text || '',
               }}
-              profile={profile}
+              profile={healthProfile || profile}
               score={score}
             />
 
