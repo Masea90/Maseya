@@ -30,9 +30,11 @@ const COPY = {
   },
   en: {
     intro: 'Tell us about you to personalize your results',
+    context: 'This helps us personalize your analysis. Takes only 20 seconds.',
+    step: 'Step 1 of 2',
     q1: 'What’s your skin like?',
     q2: 'Any food intolerance or allergy?',
-    cta: 'See my first analysis',
+    cta: 'See my first analysis →',
     skin: [
       { id: 'atopic', emoji: '🌿', label: 'Atopic or very sensitive' },
       { id: 'dry', emoji: '💧', label: 'Dry' },
