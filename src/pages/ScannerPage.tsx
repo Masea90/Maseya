@@ -17,6 +17,8 @@ const COPY = {
     cameraError: 'No se pudo acceder a la cámara. Revisa los permisos.',
     cancel: 'Cancelar',
     retry: 'Reintentar',
+    tooltip: 'Apunta al código de barras de cualquier producto',
+    gotIt: 'Entendido',
   },
   en: {
     title: 'Scan',
@@ -28,6 +30,8 @@ const COPY = {
     cameraError: 'Camera access blocked. Check permissions.',
     cancel: 'Cancel',
     retry: 'Retry',
+    tooltip: 'Point at the barcode of any product',
+    gotIt: 'Got it',
   },
   fr: {
     title: 'Scanner',
@@ -39,6 +43,8 @@ const COPY = {
     cameraError: 'Accès caméra bloqué. Vérifie les permissions.',
     cancel: 'Annuler',
     retry: 'Réessayer',
+    tooltip: 'Vise le code-barres de n’importe quel produit',
+    gotIt: 'Compris',
   },
 };
 
