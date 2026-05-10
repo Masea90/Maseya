@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useUser } from '@/contexts/UserContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
 const COPY = {
@@ -67,20 +69,43 @@ const COPY = {
 export const OnboardingQuiz = () => {
   const navigate = useNavigate();
   const { user, completeOnboarding } = useUser();
+  const { currentUser } = useAuth();
   const c = COPY[user.language] ?? COPY.es;
 
   const [skin, setSkin] = useState<string[]>([]);
   const [allergies, setAllergies] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
 
   const toggle = (val: string, list: string[], setList: (v: string[]) => void) => {
     setList(list.includes(val) ? list.filter(x => x !== val) : [...list, val]);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (skin.length === 0 || saving) return;
+    setSaving(true);
     localStorage.setItem('maseya_onboarding', JSON.stringify({ skin, allergies }));
-    completeOnboarding();
-    navigate('/scan');
+
+    if (currentUser?.id) {
+      const cleanAllergies = allergies.filter(a => a !== 'none');
+      const { error } = await supabase
+        .from('health_profiles')
+        .upsert(
+          {
+            user_id: currentUser.id,
+            skin_type: skin,
+            allergies: cleanAllergies,
+            completion_pct: 25,
+          },
+          { onConflict: 'user_id' }
+        );
+      if (error) console.error('health_profiles upsert error:', error);
+      completeOnboarding();
+    }
+
+    navigate('/scan', { replace: true });
   };
+
+
 
   const progress = ((skin.length > 0 ? 1 : 0) + (allergies.length > 0 ? 1 : 0)) * 50;
 
@@ -136,10 +161,10 @@ export const OnboardingQuiz = () => {
         <div className="w-full sm:max-w-lg sm:mx-auto">
           <Button
             onClick={handleSubmit}
-            disabled={skin.length === 0}
+            disabled={skin.length === 0 || saving}
             className="w-full h-14 text-lg font-semibold rounded-2xl"
           >
-            {c.cta}
+            {saving ? '...' : c.cta}
           </Button>
         </div>
       </div>
