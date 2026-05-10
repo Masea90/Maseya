@@ -22,16 +22,9 @@ const LoginPage = () => {
   const [signupEmail, setSignupEmail] = useState('');
   const [isResending, setIsResending] = useState(false);
 
-  const getSavedLanguage = (): 'en' | 'es' | 'fr' => {
-    try {
-      const stored = localStorage.getItem('maseya_language');
-      if (stored === 'es' || stored === 'fr') return stored;
-    } catch {}
-    return 'en';
-  };
-
-  const lang = getSavedLanguage();
-  const t = (key: TranslationKey): string => getTranslation(lang, key);
+  // Hardcoded Spanish copy — auth pages are Spanish-only for now.
+  const t = (_key: string): string => '';
+  void t;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
