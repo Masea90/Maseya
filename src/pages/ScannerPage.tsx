@@ -140,8 +140,13 @@ const ScannerPage = () => {
           />
           {phase === 'scanning' && (
             <>
-              <div className="pointer-events-none absolute inset-8 border-2 border-white/80 rounded-2xl" />
+              <div className="pointer-events-none absolute inset-8 rounded-2xl border-2 border-primary/80 animate-pulse shadow-[0_0_24px_rgba(74,222,128,0.45)]" />
               <div className="pointer-events-none absolute inset-x-12 top-1/2 h-0.5 bg-primary animate-pulse" />
+              <div className="pointer-events-none absolute left-0 right-0 bottom-4 px-6 text-center">
+                <p className="inline-block text-white text-xs font-medium bg-black/45 rounded-full px-3 py-1.5 backdrop-blur-sm">
+                  {c.center}
+                </p>
+              </div>
             </>
           )}
 
