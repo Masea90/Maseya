@@ -181,7 +181,9 @@ const ResultPage = () => {
                 {!hasIngredientData ? (
                   <div className="space-y-3 text-center">
                     <p className="text-sm text-muted-foreground">
-                      Sin lista de ingredientes disponible para este producto. Puedes fotografiar la etiqueta para un análisis completo.
+                      {product.category === 'cosmetic'
+                        ? 'Este producto cosmético no tiene ingredientes registrados en nuestra base de datos. Fotografía la etiqueta para análisis completo.'
+                        : 'Sin lista de ingredientes disponible para este producto. Puedes fotografiar la etiqueta para un análisis completo.'}
                     </p>
                     <Button onClick={() => navigate('/scan/photo')} variant="outline" className="rounded-xl">
                       <Camera className="w-4 h-4 mr-2" />

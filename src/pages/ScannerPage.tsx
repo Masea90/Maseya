@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BrowserMultiFormatReader, IScannerControls } from '@zxing/browser';
-import { Camera, Loader2, X, Image as ImageIcon } from 'lucide-react';
+import { Loader2, Image as ImageIcon } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useUser } from '@/contexts/UserContext';
 import { Button } from '@/components/ui/button';
@@ -42,7 +42,7 @@ const COPY = {
   },
 };
 
-type Phase = 'idle' | 'scanning' | 'analyzing' | 'notfound' | 'error';
+type Phase = 'scanning' | 'analyzing' | 'error';
 
 const ScannerPage = () => {
   const { user } = useUser();
@@ -51,7 +51,7 @@ const ScannerPage = () => {
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const controlsRef = useRef<IScannerControls | null>(null);
-  const [phase, setPhase] = useState<Phase>('idle');
+  const [phase, setPhase] = useState<Phase>('scanning');
   const [errorMsg, setErrorMsg] = useState<string>('');
 
   const stop = () => {
@@ -86,7 +86,9 @@ const ScannerPage = () => {
   };
 
   useEffect(() => {
+    startScanning();
     return () => stop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handlePhoto = () => {
@@ -98,17 +100,6 @@ const ScannerPage = () => {
     <AppLayout title={c.title}>
       <div className="px-4 py-6 space-y-6">
         <div className="relative aspect-square rounded-3xl overflow-hidden shadow-warm-lg bg-black">
-          {phase === 'idle' && (
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/90 to-primary flex items-center justify-center">
-              <button
-                onClick={startScanning}
-                className="bg-white/15 backdrop-blur rounded-2xl px-6 py-4 text-white flex items-center gap-2 font-medium hover:bg-white/25 transition-colors"
-              >
-                <Camera className="w-5 h-5" /> Activar cámara
-              </button>
-            </div>
-          )}
-
           <video
             ref={videoRef}
             className={`w-full h-full object-cover ${phase === 'scanning' ? 'block' : 'hidden'}`}
@@ -119,13 +110,6 @@ const ScannerPage = () => {
             <>
               <div className="pointer-events-none absolute inset-8 border-2 border-white/80 rounded-2xl" />
               <div className="pointer-events-none absolute inset-x-12 top-1/2 h-0.5 bg-primary animate-pulse" />
-              <button
-                onClick={() => { stop(); setPhase('idle'); }}
-                className="absolute top-3 right-3 w-9 h-9 bg-black/50 rounded-full flex items-center justify-center text-white"
-                aria-label={c.cancel}
-              >
-                <X className="w-5 h-5" />
-              </button>
             </>
           )}
 
