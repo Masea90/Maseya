@@ -9,9 +9,11 @@ import { cn } from '@/lib/utils';
 const COPY = {
   es: {
     intro: 'Cuéntanos sobre ti para personalizar tus resultados',
+    context: 'Esto nos permite personalizar tu análisis. Solo tarda 20 segundos.',
+    step: 'Paso 1 de 2',
     q1: '¿Cómo es tu piel?',
     q2: '¿Tienes alguna intolerancia o alergia alimentaria?',
-    cta: 'Ver mi primer análisis',
+    cta: 'Ver mi primer análisis →',
     skin: [
       { id: 'atopic', emoji: '🌿', label: 'Atópica o muy sensible' },
       { id: 'dry', emoji: '💧', label: 'Seca' },
