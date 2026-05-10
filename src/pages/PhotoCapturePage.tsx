@@ -191,6 +191,15 @@ const PhotoCapturePage = () => {
     if (f) void handleIngredientsPhoto(f);
   };
 
+  const cameraInputProps = (onChange: React.ChangeEventHandler<HTMLInputElement>): Record<string, unknown> => ({
+    type: 'file',
+    accept: 'image/*',
+    capture: 'environment',
+    camera: 'environment',
+    className: 'sr-only',
+    onChange,
+  });
+
   const stepNumber = addImageFor ? 1 : (step === 'front' ? 1 : 2);
   const showProgress = step === 'front' || step === 'ingredients';
 
