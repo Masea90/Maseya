@@ -51,10 +51,9 @@ const ResetPasswordPage = () => {
             <CheckCircle2 className="w-8 h-8 text-primary" />
           </div>
           <div>
-            <h1 className="font-display text-2xl font-bold mb-2">Check your email</h1>
+            <h1 className="font-display text-2xl font-bold mb-2">{t('resetEmailSentTitle')}</h1>
             <p className="text-muted-foreground text-sm">
-              If an account exists for <strong>{email}</strong>, we've sent a password reset link.
-              Check your inbox (and spam folder).
+              {t('resetEmailSentDesc').replace('{email}', email)}
             </p>
           </div>
           <Link
@@ -62,7 +61,7 @@ const ResetPasswordPage = () => {
             className="inline-flex items-center gap-2 text-primary font-medium text-sm"
           >
             <ChevronLeft className="w-4 h-4" />
-            Back to login
+            {t('backToLogin')}
           </Link>
         </div>
       </div>
