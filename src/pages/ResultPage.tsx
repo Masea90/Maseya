@@ -110,6 +110,10 @@ const ResultPage = () => {
   const profile = loadOnboarding();
   const alerts = personalAlerts(product, profile);
   const hasIngredientData = flagged.length >= 3;
+  const hasNutriscore = product.category === 'food' && !!product.nutriscore_grade;
+  const showScore = product.category === 'cosmetic'
+    ? hasIngredientData
+    : (hasNutriscore || hasIngredientData);
 
   const badgeVariant = (lvl: FlaggedIngredient['level']) =>
     lvl === 'avoid' ? 'bg-[#E63946] text-white'
