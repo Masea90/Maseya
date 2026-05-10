@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { BrowserMultiFormatReader, IScannerControls } from '@zxing/browser';
+import { BarcodeFormat, DecodeHintType } from '@zxing/library';
 import { Loader2, Image as ImageIcon } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useUser } from '@/contexts/UserContext';
@@ -8,43 +9,25 @@ import { Button } from '@/components/ui/button';
 
 const COPY = {
   es: {
-    title: 'Escanear',
-    aim: 'Apunta al código de barras',
-    photo: 'Fotografiar ingredientes',
-    analyzing: 'Analizando producto...',
-    notFound: 'Producto no encontrado',
-    photoCta: 'Fotografiar ingredientes',
-    cameraError: 'No se pudo acceder a la cámara. Revisa los permisos.',
-    cancel: 'Cancelar',
-    retry: 'Reintentar',
-    tooltip: 'Apunta al código de barras de cualquier producto',
-    gotIt: 'Entendido',
+    title: 'Escanear', aim: 'Apunta al código de barras', photo: 'Fotografiar ingredientes',
+    analyzing: 'Analizando producto...', notFound: 'Producto no encontrado',
+    photoCta: 'Fotografiar ingredientes', cameraError: 'No se pudo acceder a la cámara. Revisa los permisos.',
+    cancel: 'Cancelar', retry: 'Reintentar', tooltip: 'Apunta al código de barras de cualquier producto',
+    gotIt: 'Entendido', center: 'Mantén el código de barras centrado y quieto',
   },
   en: {
-    title: 'Scan',
-    aim: 'Point at the barcode',
-    photo: 'Photograph ingredients',
-    analyzing: 'Analyzing product...',
-    notFound: 'Product not found',
-    photoCta: 'Photograph ingredients',
-    cameraError: 'Camera access blocked. Check permissions.',
-    cancel: 'Cancel',
-    retry: 'Retry',
-    tooltip: 'Point at the barcode of any product',
-    gotIt: 'Got it',
+    title: 'Scan', aim: 'Point at the barcode', photo: 'Photograph ingredients',
+    analyzing: 'Analyzing product...', notFound: 'Product not found',
+    photoCta: 'Photograph ingredients', cameraError: 'Camera access blocked. Check permissions.',
+    cancel: 'Cancel', retry: 'Retry', tooltip: 'Point at the barcode of any product',
+    gotIt: 'Got it', center: 'Keep the barcode centered and still',
   },
   fr: {
-    title: 'Scanner',
-    aim: 'Vise le code-barres',
-    photo: 'Photographier les ingrédients',
-    analyzing: 'Analyse du produit...',
-    notFound: 'Produit non trouvé',
-    photoCta: 'Photographier les ingrédients',
-    cameraError: 'Accès caméra bloqué. Vérifie les permissions.',
-    cancel: 'Annuler',
-    retry: 'Réessayer',
-    tooltip: 'Vise le code-barres de n’importe quel produit',
-    gotIt: 'Compris',
+    title: 'Scanner', aim: 'Vise le code-barres', photo: 'Photographier les ingrédients',
+    analyzing: 'Analyse du produit...', notFound: 'Produit non trouvé',
+    photoCta: 'Photographier les ingrédients', cameraError: 'Accès caméra bloqué. Vérifie les permissions.',
+    cancel: 'Annuler', retry: 'Réessayer', tooltip: 'Vise le code-barres de n’importe quel produit',
+    gotIt: 'Compris', center: 'Garde le code-barres centré et immobile',
   },
 };
 
@@ -84,9 +67,31 @@ const ScannerPage = () => {
     setErrorMsg('');
     setPhase('scanning');
     try {
-      const reader = new BrowserMultiFormatReader();
-      const controls = await reader.decodeFromVideoDevice(
-        undefined,
+      const hints = new Map();
+      hints.set(DecodeHintType.TRY_HARDER, true);
+      hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+        BarcodeFormat.EAN_13,
+        BarcodeFormat.EAN_8,
+        BarcodeFormat.UPC_A,
+        BarcodeFormat.UPC_E,
+        BarcodeFormat.CODE_128,
+        BarcodeFormat.CODE_39,
+        BarcodeFormat.DATA_MATRIX,
+        BarcodeFormat.QR_CODE,
+      ]);
+      const reader = new BrowserMultiFormatReader(hints);
+      const constraints: MediaStreamConstraints = {
+        video: {
+          facingMode: { ideal: 'environment' },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          // @ts-expect-error advanced focus hints not in lib.dom yet
+          focusMode: 'continuous',
+          advanced: [{ focusMode: 'continuous' } as MediaTrackConstraintSet],
+        },
+      };
+      const controls = await reader.decodeFromConstraints(
+        constraints,
         videoRef.current!,
         (result, _err, ctrl) => {
           if (result) {
@@ -135,8 +140,13 @@ const ScannerPage = () => {
           />
           {phase === 'scanning' && (
             <>
-              <div className="pointer-events-none absolute inset-8 border-2 border-white/80 rounded-2xl" />
+              <div className="pointer-events-none absolute inset-8 rounded-2xl border-2 border-primary/80 animate-pulse shadow-[0_0_24px_rgba(74,222,128,0.45)]" />
               <div className="pointer-events-none absolute inset-x-12 top-1/2 h-0.5 bg-primary animate-pulse" />
+              <div className="pointer-events-none absolute left-0 right-0 bottom-4 px-6 text-center">
+                <p className="inline-block text-white text-xs font-medium bg-black/45 rounded-full px-3 py-1.5 backdrop-blur-sm">
+                  {c.center}
+                </p>
+              </div>
             </>
           )}
 
