@@ -101,6 +101,7 @@ function cleanIngredientsText(raw: string): string {
 }
 
 export function flagIngredients(p: ProductData): FlaggedIngredient[] {
+  if (isNutritionalData(p.ingredients_text)) return [];
   const fromTags = p.ingredients_tags
     .map(t => t.replace(/^[a-z]{2}:/, '').replace(/-/g, ' '))
     .filter(Boolean);
