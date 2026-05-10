@@ -22,6 +22,7 @@ const ResultPage = () => {
 
   const [product, setProduct] = useState<ProductData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [enriching, setEnriching] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [showSheet, setShowSheet] = useState(false);
   const [paywall, setPaywall] = useState(false);
