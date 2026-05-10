@@ -14,92 +14,81 @@ export type Database = {
   }
   public: {
     Tables: {
-      affiliate_clicks: {
+      health_profiles: {
         Row: {
-          clicked_at: string | null
+          allergies: string[] | null
+          completion_pct: number | null
+          created_at: string
+          diet: string | null
+          hair_concerns: string[] | null
+          hair_condition: string | null
+          hair_type: string | null
           id: string
-          link_id: string | null
-          product_id: number
-          retailer_name: string
-          user_id: string | null
+          nutrition_goals: string[] | null
+          pregnancy_or_lactation: boolean | null
+          skin_conditions: string[] | null
+          skin_sensitivities: string[] | null
+          skin_type: string[] | null
+          updated_at: string
+          user_id: string
         }
         Insert: {
-          clicked_at?: string | null
+          allergies?: string[] | null
+          completion_pct?: number | null
+          created_at?: string
+          diet?: string | null
+          hair_concerns?: string[] | null
+          hair_condition?: string | null
+          hair_type?: string | null
           id?: string
-          link_id?: string | null
-          product_id: number
-          retailer_name: string
-          user_id?: string | null
+          nutrition_goals?: string[] | null
+          pregnancy_or_lactation?: boolean | null
+          skin_conditions?: string[] | null
+          skin_sensitivities?: string[] | null
+          skin_type?: string[] | null
+          updated_at?: string
+          user_id: string
         }
         Update: {
-          clicked_at?: string | null
+          allergies?: string[] | null
+          completion_pct?: number | null
+          created_at?: string
+          diet?: string | null
+          hair_concerns?: string[] | null
+          hair_condition?: string | null
+          hair_type?: string | null
           id?: string
-          link_id?: string | null
-          product_id?: number
-          retailer_name?: string
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "affiliate_clicks_link_id_fkey"
-            columns: ["link_id"]
-            isOneToOne: false
-            referencedRelation: "product_affiliate_links"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      community_posts: {
-        Row: {
-          category: string | null
-          comments_count: number | null
-          content: string
-          created_at: string | null
-          id: string
-          image_url: string | null
-          is_staff_pick: boolean | null
-          likes_count: number | null
-          moderation_reason: string | null
-          moderation_status: string | null
-          product_id: number | null
-          tags: string[] | null
-          updated_at: string | null
-          user_id: string
-          visibility: string | null
-        }
-        Insert: {
-          category?: string | null
-          comments_count?: number | null
-          content: string
-          created_at?: string | null
-          id?: string
-          image_url?: string | null
-          is_staff_pick?: boolean | null
-          likes_count?: number | null
-          moderation_reason?: string | null
-          moderation_status?: string | null
-          product_id?: number | null
-          tags?: string[] | null
-          updated_at?: string | null
-          user_id: string
-          visibility?: string | null
-        }
-        Update: {
-          category?: string | null
-          comments_count?: number | null
-          content?: string
-          created_at?: string | null
-          id?: string
-          image_url?: string | null
-          is_staff_pick?: boolean | null
-          likes_count?: number | null
-          moderation_reason?: string | null
-          moderation_status?: string | null
-          product_id?: number | null
-          tags?: string[] | null
-          updated_at?: string | null
+          nutrition_goals?: string[] | null
+          pregnancy_or_lactation?: boolean | null
+          skin_conditions?: string[] | null
+          skin_sensitivities?: string[] | null
+          skin_type?: string[] | null
+          updated_at?: string
           user_id?: string
-          visibility?: string | null
+        }
+        Relationships: []
+      }
+      monthly_scan_counts: {
+        Row: {
+          count: number
+          id: string
+          updated_at: string
+          user_id: string
+          year_month: string
+        }
+        Insert: {
+          count?: number
+          id?: string
+          updated_at?: string
+          user_id: string
+          year_month: string
+        }
+        Update: {
+          count?: number
+          id?: string
+          updated_at?: string
+          user_id?: string
+          year_month?: string
         }
         Relationships: []
       }
@@ -136,165 +125,24 @@ export type Database = {
         }
         Relationships: []
       }
-      point_transactions: {
+      products_cache: {
         Row: {
-          amount: number
-          badge_id: string | null
-          created_at: string
-          id: string
-          reason: string
-          user_id: string
+          barcode: string
+          last_updated: string
+          product_data: Json
+          source: string
         }
         Insert: {
-          amount: number
-          badge_id?: string | null
-          created_at?: string
-          id?: string
-          reason: string
-          user_id: string
+          barcode: string
+          last_updated?: string
+          product_data: Json
+          source: string
         }
         Update: {
-          amount?: number
-          badge_id?: string | null
-          created_at?: string
-          id?: string
-          reason?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      post_comments: {
-        Row: {
-          content: string
-          created_at: string | null
-          id: string
-          post_id: string
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          content: string
-          created_at?: string | null
-          id?: string
-          post_id: string
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          content?: string
-          created_at?: string | null
-          id?: string
-          post_id?: string
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "post_comments_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "community_posts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      post_likes: {
-        Row: {
-          created_at: string | null
-          id: string
-          post_id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          post_id: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          post_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "post_likes_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "community_posts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      post_reactions: {
-        Row: {
-          created_at: string | null
-          id: string
-          post_id: string
-          reaction_type: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          post_id: string
-          reaction_type: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          post_id?: string
-          reaction_type?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "post_reactions_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "community_posts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      product_affiliate_links: {
-        Row: {
-          affiliate_url: string
-          click_count: number | null
-          created_at: string | null
-          id: string
-          is_primary: boolean | null
-          product_id: number
-          retailer_icon: string | null
-          retailer_name: string
-          sort_order: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          affiliate_url: string
-          click_count?: number | null
-          created_at?: string | null
-          id?: string
-          is_primary?: boolean | null
-          product_id: number
-          retailer_icon?: string | null
-          retailer_name: string
-          sort_order?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          affiliate_url?: string
-          click_count?: number | null
-          created_at?: string | null
-          id?: string
-          is_primary?: boolean | null
-          product_id?: number
-          retailer_icon?: string | null
-          retailer_name?: string
-          sort_order?: number | null
-          updated_at?: string | null
+          barcode?: string
+          last_updated?: string
+          product_data?: Json
+          source?: string
         }
         Relationships: []
       }
@@ -309,24 +157,18 @@ export type Database = {
           consent_personalization: boolean | null
           country: string | null
           created_at: string | null
-          custom_routine: Json | null
           email_confirmed: boolean | null
-          first_routine_completed: boolean | null
           goals: string[] | null
           guide_completed: boolean | null
           hair_concerns: string[] | null
           hair_type: string | null
           has_profile_photo: boolean | null
           id: string
-          is_premium: boolean | null
           language: string | null
           nickname: string | null
           onboarding_complete: boolean | null
-          points: number | null
-          routine_reminders_enabled: boolean | null
           sensitivities: string[] | null
           skin_concerns: string[] | null
-          streak: number | null
           timezone: string | null
           updated_at: string | null
           user_id: string
@@ -341,24 +183,18 @@ export type Database = {
           consent_personalization?: boolean | null
           country?: string | null
           created_at?: string | null
-          custom_routine?: Json | null
           email_confirmed?: boolean | null
-          first_routine_completed?: boolean | null
           goals?: string[] | null
           guide_completed?: boolean | null
           hair_concerns?: string[] | null
           hair_type?: string | null
           has_profile_photo?: boolean | null
           id?: string
-          is_premium?: boolean | null
           language?: string | null
           nickname?: string | null
           onboarding_complete?: boolean | null
-          points?: number | null
-          routine_reminders_enabled?: boolean | null
           sensitivities?: string[] | null
           skin_concerns?: string[] | null
-          streak?: number | null
           timezone?: string | null
           updated_at?: string | null
           user_id: string
@@ -373,24 +209,18 @@ export type Database = {
           consent_personalization?: boolean | null
           country?: string | null
           created_at?: string | null
-          custom_routine?: Json | null
           email_confirmed?: boolean | null
-          first_routine_completed?: boolean | null
           goals?: string[] | null
           guide_completed?: boolean | null
           hair_concerns?: string[] | null
           hair_type?: string | null
           has_profile_photo?: boolean | null
           id?: string
-          is_premium?: boolean | null
           language?: string | null
           nickname?: string | null
           onboarding_complete?: boolean | null
-          points?: number | null
-          routine_reminders_enabled?: boolean | null
           sensitivities?: string[] | null
           skin_concerns?: string[] | null
-          streak?: number | null
           timezone?: string | null
           updated_at?: string | null
           user_id?: string
@@ -424,81 +254,119 @@ export type Database = {
         }
         Relationships: []
       }
-      routine_completions: {
+      scan_alternatives: {
         Row: {
-          completed_steps: string[] | null
-          completion_date: string
-          created_at: string | null
+          alt_barcode: string | null
+          alt_data: Json
+          created_at: string
           id: string
-          is_fully_completed: boolean | null
-          time_of_day: string
-          total_steps: number | null
-          updated_at: string | null
+          position: number | null
+          reason: string | null
+          scan_id: string
+        }
+        Insert: {
+          alt_barcode?: string | null
+          alt_data: Json
+          created_at?: string
+          id?: string
+          position?: number | null
+          reason?: string | null
+          scan_id: string
+        }
+        Update: {
+          alt_barcode?: string | null
+          alt_data?: Json
+          created_at?: string
+          id?: string
+          position?: number | null
+          reason?: string | null
+          scan_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scan_alternatives_scan_id_fkey"
+            columns: ["scan_id"]
+            isOneToOne: false
+            referencedRelation: "scan_history"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scan_history: {
+        Row: {
+          ai_explanation: string | null
+          barcode: string | null
+          category: string | null
+          id: string
+          product_data: Json
+          product_image: string | null
+          product_name: string | null
+          scanned_at: string
+          scores: Json
+          source: string
           user_id: string
         }
         Insert: {
-          completed_steps?: string[] | null
-          completion_date?: string
-          created_at?: string | null
+          ai_explanation?: string | null
+          barcode?: string | null
+          category?: string | null
           id?: string
-          is_fully_completed?: boolean | null
-          time_of_day: string
-          total_steps?: number | null
-          updated_at?: string | null
+          product_data?: Json
+          product_image?: string | null
+          product_name?: string | null
+          scanned_at?: string
+          scores?: Json
+          source: string
           user_id: string
         }
         Update: {
-          completed_steps?: string[] | null
-          completion_date?: string
-          created_at?: string | null
+          ai_explanation?: string | null
+          barcode?: string | null
+          category?: string | null
           id?: string
-          is_fully_completed?: boolean | null
-          time_of_day?: string
-          total_steps?: number | null
-          updated_at?: string | null
+          product_data?: Json
+          product_image?: string | null
+          product_name?: string | null
+          scanned_at?: string
+          scores?: Json
+          source?: string
           user_id?: string
         }
         Relationships: []
       }
-      user_badges: {
-        Row: {
-          badge_id: string
-          earned_at: string
-          id: string
-          user_id: string
-        }
-        Insert: {
-          badge_id: string
-          earned_at?: string
-          id?: string
-          user_id: string
-        }
-        Update: {
-          badge_id?: string
-          earned_at?: string
-          id?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      user_follows: {
+      subscriptions: {
         Row: {
           created_at: string
-          follower_id: string
-          following_id: string
+          current_period_end: string | null
           id: string
+          period: string | null
+          provider: string | null
+          provider_customer_id: string | null
+          tier: string
+          updated_at: string
+          user_id: string
         }
         Insert: {
           created_at?: string
-          follower_id: string
-          following_id: string
+          current_period_end?: string | null
           id?: string
+          period?: string | null
+          provider?: string | null
+          provider_customer_id?: string | null
+          tier?: string
+          updated_at?: string
+          user_id: string
         }
         Update: {
           created_at?: string
-          follower_id?: string
-          following_id?: string
+          current_period_end?: string | null
           id?: string
+          period?: string | null
+          provider?: string | null
+          provider_customer_id?: string | null
+          tier?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -523,54 +391,11 @@ export type Database = {
         }
         Relationships: []
       }
-      user_saved_posts: {
-        Row: {
-          created_at: string
-          id: string
-          post_id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          post_id: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          post_id?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      user_wishlist: {
-        Row: {
-          created_at: string
-          id: string
-          product_id: number
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          product_id: number
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          product_id?: number
-          user_id?: string
-        }
-        Relationships: []
-      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      get_post_reaction_counts: { Args: { p_post_id: string }; Returns: Json }
       get_public_profile: {
         Args: { p_user_id: string }
         Returns: {
