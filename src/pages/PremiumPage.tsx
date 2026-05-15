@@ -4,11 +4,11 @@ import { Button } from '@/components/ui/button';
 import { setPremium } from '@/lib/premium';
 
 const FEATURES: { title: string; sub: string }[] = [
-  { title: 'Tu puntuación personal', sub: 'Descubre si cada producto es realmente bueno para TI, no para todos' },
-  { title: 'Análisis completo de Mira', sub: 'Mira explica exactamente por qué un producto es o no adecuado para tu perfil' },
-  { title: "Capa '¿Es para ti?' completa", sub: 'Alertas personalizadas para tu piel, alergias y objetivos' },
-  { title: 'Escaneos ilimitados', sub: 'Sin límite mensual' },
-  { title: 'Historial completo', sub: 'Todos tus escaneos guardados sin límite' },
+  { title: 'Análisis profundo de Mira', sub: 'Mira analiza cada producto en detalle para tu perfil específico con IA' },
+  { title: 'Alternativas personalizadas para ti', sub: 'No las mejores en general — las mejores para tu piel, alergias y objetivos' },
+  { title: 'Historial completo sin límite', sub: 'Todos tus escaneos guardados para siempre' },
+  { title: 'Modo sin conexión (próximamente)', sub: 'Escanea sin internet en el supermercado' },
+  { title: 'Búsqueda sin escanear (próximamente)', sub: 'Busca cualquier producto por nombre' },
 ];
 
 const PremiumPage = () => {

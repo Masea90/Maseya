@@ -4,6 +4,8 @@ import { Sparkles, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePremium } from '@/lib/premium';
 import { supabase } from '@/integrations/supabase/client';
+import { personalAlerts } from '@/lib/scoring';
+
 
 interface Props {
   product: {
@@ -16,6 +18,43 @@ interface Props {
   score: number;
 }
 
+// Generates a 1-2 sentence basic summary using the highest-priority personal alert.
+// No AI call — pure local logic so it's free for everyone.
+function buildBasicSummary(
+  product: Props['product'],
+  profile: any,
+  score: number,
+): string {
+  const productLike: any = {
+    name: product.product_name,
+    brand: product.brand,
+    category: product.category === 'food' ? 'food' : 'cosmetic',
+    ingredients_text: product.ingredients_text || '',
+    ingredients_tags: [],
+    labels_tags: [],
+    ingredients_analysis_tags: [],
+    nutriscore_grade: null,
+    image: null,
+    barcode: '',
+    source: 'basic',
+    raw: {},
+  };
+  const alerts = personalAlerts(productLike, profile);
+  const top = alerts.find(a => a.level === 'danger') || alerts.find(a => a.level === 'warn') || alerts[0];
+  const productLabel = product.product_name || 'Este producto';
+
+  if (top) {
+    return `${productLabel}: ${top.text}`;
+  }
+  if (score >= 70) {
+    return `${productLabel} parece una buena opción según tu perfil.`;
+  }
+  if (score >= 40) {
+    return `${productLabel} es aceptable, aunque no destaca para tu perfil.`;
+  }
+  return `${productLabel} no es ideal según tu perfil — revisa los ingredientes destacados.`;
+}
+
 export const MiraAnalysis = ({ product, profile, score }: Props) => {
   const premium = usePremium();
   const navigate = useNavigate();
@@ -23,6 +62,9 @@ export const MiraAnalysis = ({ product, profile, score }: Props) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const startedRef = useRef(false);
+
+  // Free basic summary (always available, no AI call)
+  const basicSummary = buildBasicSummary(product, profile, score);
 
   useEffect(() => {
     if (!premium || startedRef.current) return;
@@ -90,26 +132,40 @@ export const MiraAnalysis = ({ product, profile, score }: Props) => {
 
   if (!premium) {
     return (
-      <div className="bg-card rounded-2xl border border-border p-5 space-y-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center opacity-40">
-            <Sparkles className="w-5 h-5 text-primary" />
+      <div className="space-y-3">
+        {/* Basic summary — free */}
+        <div className="bg-secondary/40 rounded-2xl p-4 flex gap-3">
+          <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+            <Sparkles className="w-5 h-5 text-primary-foreground" />
           </div>
-          <div className="flex-1">
-            <p className="font-semibold text-sm">Análisis personalizado de Mira</p>
-            <p className="text-[11px] text-muted-foreground">Solo para Premium</p>
+          <div className="flex-1 min-w-0">
+            <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Mira · Resumen</p>
+            <p className="text-sm leading-relaxed">{basicSummary}</p>
           </div>
-          <Lock className="w-4 h-4 text-muted-foreground" />
         </div>
-        <div className="space-y-1.5 select-none" style={{ filter: 'blur(4px)' }} aria-hidden>
-          <div className="h-3 bg-muted rounded w-11/12" />
-          <div className="h-3 bg-muted rounded w-full" />
-          <div className="h-3 bg-muted rounded w-9/12" />
+
+        {/* Deep analysis upsell */}
+        <div className="bg-card rounded-2xl border border-border p-5 space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center opacity-60">
+              <Sparkles className="w-5 h-5 text-primary" />
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold text-sm">Análisis profundo de Mira</p>
+              <p className="text-[11px] text-muted-foreground">Análisis detallado con IA · Premium</p>
+            </div>
+            <Lock className="w-4 h-4 text-muted-foreground" />
+          </div>
+          <div className="space-y-1.5 select-none" style={{ filter: 'blur(4px)' }} aria-hidden>
+            <div className="h-3 bg-muted rounded w-11/12" />
+            <div className="h-3 bg-muted rounded w-full" />
+            <div className="h-3 bg-muted rounded w-9/12" />
+          </div>
+          <Button onClick={() => navigate('/premium')} className="w-full rounded-xl">
+            Desbloquear con Premium
+          </Button>
+          <p className="text-[11px] text-center text-muted-foreground">3,99€/mes · 7 días gratis</p>
         </div>
-        <Button onClick={() => navigate('/premium')} className="w-full rounded-xl">
-          Desbloquear con Premium
-        </Button>
-        <p className="text-[11px] text-center text-muted-foreground">3,99€/mes · 7 días gratis</p>
       </div>
     );
   }
