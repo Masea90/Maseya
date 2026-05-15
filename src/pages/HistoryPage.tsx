@@ -74,12 +74,19 @@ const HistoryPage = () => {
       setLoading(false);
       return;
     }
-    supabase
+    // Free users: last 3 months only. Premium: full history.
+    const isPremium = (() => {
+      try { return localStorage.getItem('maseya_premium_test') === 'true'; } catch { return false; }
+    })();
+    const threeMonthsAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+    let q = supabase
       .from('scan_history')
       .select('id,barcode,product_name,product_image,category,scanned_at,scores')
       .eq('user_id', currentUser.id)
       .order('scanned_at', { ascending: false })
-      .limit(50)
+      .limit(isPremium ? 500 : 100);
+    if (!isPremium) q = q.gte('scanned_at', threeMonthsAgo);
+    q
       .then(({ data, error }) => {
         if (error) {
           console.error('[history] load', error);
