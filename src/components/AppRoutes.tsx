@@ -162,6 +162,7 @@ export function AppRoutes() {
           <Route path="/history" element={<Navigate to="/login" replace />} />
           <Route path="/profile" element={<Navigate to="/login" replace />} />
           <Route path="/mira" element={<Navigate to="/login" replace />} />
+          <Route path="/admin" element={<Navigate to="/login" replace />} />
           <Route path="*" element={<Navigate to="/welcome" replace />} />
         </Routes>
       </OnboardingGate>
