@@ -141,6 +141,35 @@ export default function AdminPage() {
 
         <Card>
           <CardHeader>
+            <CardTitle className="text-base">🚀 Importación automática</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Importa automáticamente las páginas 1–10 de alimentos y cosméticos de España.
+            </p>
+            <Button
+              className="w-full"
+              disabled={autoBusy || !!busy}
+              onClick={runAutoImport}
+            >
+              {autoBusy ? 'Importando…' : '🚀 Importar todo automáticamente'}
+            </Button>
+            {(autoBusy || autoStatus) && (
+              <div className="space-y-2">
+                <Progress value={autoProgress} className="h-2" />
+                <p className="text-xs text-muted-foreground">{autoStatus}</p>
+                {autoTotalImported > 0 && (
+                  <p className="text-xs font-medium">
+                    Total importados: {autoTotalImported.toLocaleString('es-ES')}
+                  </p>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle className="text-base">📥 Importar alimentos España</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
