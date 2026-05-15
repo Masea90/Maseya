@@ -448,7 +448,11 @@ const ResultPage = () => {
                 <CollapsibleContent>
                   <div className="p-4 pt-0 space-y-2">
                     {alerts.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">Completa tu perfil para ver análisis personalizado.</p>
+                      <p className="text-sm text-muted-foreground">
+                        {hasIngredientData
+                          ? 'Completa tu perfil para ver análisis personalizado.'
+                          : 'Fotografía la etiqueta para ver si este producto es adecuado para ti.'}
+                      </p>
                     ) : (
                       alerts.map((a, i) => (
                         <div key={i} className={`flex gap-2 items-start p-3 rounded-xl border ${alertColor(a.level)}`}>
