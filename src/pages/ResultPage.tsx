@@ -317,34 +317,21 @@ const ResultPage = () => {
                       <div className="text-xs font-medium text-muted-foreground">General</div>
                     </div>
 
-                    {/* Personal score (premium) */}
+                    {/* Personal score (free for everyone) */}
                     <div className="flex flex-col items-center gap-1.5">
-                      {premium ? (
-                        <div
-                          className="w-32 h-32 rounded-full flex flex-col items-center justify-center shadow-warm-lg ring-4 ring-primary/40"
-                          style={{ backgroundColor: psl.bg, color: psl.color }}
-                        >
-                          <div className="text-4xl font-bold">{personalScore}</div>
-                          <div className="text-[10px] uppercase tracking-wider opacity-90">/ 100</div>
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => navigate('/premium')}
-                          className="w-32 h-32 rounded-full flex flex-col items-center justify-center bg-muted text-muted-foreground ring-4 ring-primary/30 relative overflow-hidden"
-                          aria-label="Desbloquear puntuación personal"
-                        >
-                          <div className="absolute inset-0 backdrop-blur-md bg-background/30" />
-                          <Lock className="w-6 h-6 relative z-10" />
-                          <div className="text-[10px] uppercase tracking-wider mt-1 relative z-10">Tu puntuación</div>
-                        </button>
-                      )}
+                      <div
+                        className="w-32 h-32 rounded-full flex flex-col items-center justify-center shadow-warm-lg ring-4 ring-primary/40"
+                        style={{ backgroundColor: psl.bg, color: psl.color }}
+                      >
+                        <div className="text-4xl font-bold">{personalScore}</div>
+                        <div className="text-[10px] uppercase tracking-wider opacity-90">/ 100</div>
+                      </div>
                       <div className="text-xs font-semibold text-primary">Para ti</div>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-1.5">
-                    <div className="font-display text-lg font-semibold" style={{ color: (premium ? psl : sl).bg }}>{(premium ? psl : sl).label}</div>
+                    <div className="font-display text-lg font-semibold" style={{ color: psl.bg }}>{psl.label}</div>
                     <Popover>
                       <PopoverTrigger asChild>
                         <button
@@ -366,12 +353,6 @@ const ResultPage = () => {
                       </PopoverContent>
                     </Popover>
                   </div>
-
-                  {!premium && (
-                    <Button onClick={() => navigate('/premium')} variant="outline" size="sm" className="rounded-xl">
-                      Desbloquear puntuación personal
-                    </Button>
-                  )}
 
                   {!hasIngredientData && hasNutriscore && (
                     <p className="text-xs text-muted-foreground text-center max-w-xs">
