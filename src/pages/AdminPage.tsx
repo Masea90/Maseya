@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
+import { Progress } from '@/components/ui/progress';
 
 const OWNER_EMAIL = 'oumanzou.asmae@gmail.com';
 
@@ -24,6 +25,10 @@ export default function AdminPage() {
   const [cosmoPage, setCosmoPage] = useState(1);
   const [busy, setBusy] = useState<string | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [autoBusy, setAutoBusy] = useState(false);
+  const [autoStatus, setAutoStatus] = useState<string>('');
+  const [autoProgress, setAutoProgress] = useState(0);
+  const [autoTotalImported, setAutoTotalImported] = useState(0);
 
   const refreshCount = async () => {
     const { count } = await supabase
