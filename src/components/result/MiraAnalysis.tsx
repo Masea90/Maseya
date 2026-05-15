@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { usePremium } from '@/lib/premium';
 import { supabase } from '@/integrations/supabase/client';
 import { personalAlerts } from '@/lib/scoring';
-import { lookupProduct } from '@/lib/productLookup';
+
 
 interface Props {
   product: {
