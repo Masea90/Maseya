@@ -75,6 +75,48 @@ export default function AdminPage() {
 
   const pageOptions = Array.from({ length: 10 }, (_, i) => i + 1);
 
+  const runAutoImport = async () => {
+    setAutoBusy(true);
+    setAutoTotalImported(0);
+    setAutoProgress(0);
+    setAutoStatus('Iniciando importación…');
+    log('Auto-import: iniciado');
+    let totalImported = 0;
+    const sources: Array<{ source: 'off' | 'obf'; label: string }> = [
+      { source: 'off', label: 'alimentos' },
+      { source: 'obf', label: 'cosméticos' },
+    ];
+    const totalSteps = sources.length * 10;
+    let step = 0;
+    try {
+      for (const { source, label } of sources) {
+        for (let page = 1; page <= 10; page++) {
+          step++;
+          setAutoStatus(`Importando ${label} página ${page}/10… (${totalImported} productos)`);
+          try {
+            const { data, error } = await supabase.functions.invoke('import-off-products', {
+              body: { source, page },
+            });
+            if (error) throw error;
+            const imported = Number((data as { imported?: number })?.imported ?? 0);
+            totalImported += imported;
+            setAutoTotalImported(totalImported);
+            log(`Auto ${label} p${page}: +${imported} (total ${totalImported})`);
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            log(`Auto ${label} p${page}: ERROR ${msg}`);
+          }
+          setAutoProgress(Math.round((step / totalSteps) * 100));
+        }
+      }
+      setAutoStatus(`✅ Importación completa: ${totalImported} productos en total`);
+      toast({ title: 'Importación completa', description: `${totalImported} productos importados` });
+      await refreshCount();
+    } finally {
+      setAutoBusy(false);
+    }
+  };
+
   return (
     <div className="min-h-[100dvh] bg-background">
       <div className="mx-auto w-full max-w-lg p-4 space-y-4">
