@@ -12,8 +12,6 @@ import {
   flagIngredients, calculateScore, calculatePersonalScore, scoreLabel, naturalness, personalAlerts, loadOnboarding,
   FlaggedIngredient, PersonalAlert,
 } from '@/lib/scoring';
-import { usePremium } from '@/lib/premium';
-import { Lock } from 'lucide-react';
 import { RegistrationSheet } from '@/components/auth/RegistrationSheet';
 import { MiraAnalysis } from '@/components/result/MiraAnalysis';
 import { Alternatives } from '@/components/result/Alternatives';
@@ -22,14 +20,14 @@ const ResultPage = () => {
   const { barcode } = useParams<{ barcode: string }>();
   const navigate = useNavigate();
   const { isAuthenticated, currentUser } = useAuth();
-  const premium = usePremium();
+  
 
   const [product, setProduct] = useState<ProductData | null>(null);
   const [loading, setLoading] = useState(true);
   const [enriching, setEnriching] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [showSheet, setShowSheet] = useState(false);
-  const [paywall, setPaywall] = useState(false);
+  
 
   const [fromPhoto, setFromPhoto] = useState(false);
   const [healthProfile, setHealthProfile] = useState<any>(null);
@@ -483,7 +481,7 @@ const ResultPage = () => {
         )}
       </div>
 
-      <RegistrationSheet open={showSheet || paywall} onOpenChange={(v) => { setShowSheet(v); if (!v) setPaywall(false); }} variant={paywall ? 'paywall' : 'soft'} />
+      <RegistrationSheet open={showSheet} onOpenChange={setShowSheet} variant="soft" />
     </div>
   );
 };
