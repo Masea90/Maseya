@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
+import { Progress } from '@/components/ui/progress';
 
 const OWNER_EMAIL = 'oumanzou.asmae@gmail.com';
 
@@ -24,6 +25,10 @@ export default function AdminPage() {
   const [cosmoPage, setCosmoPage] = useState(1);
   const [busy, setBusy] = useState<string | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [autoBusy, setAutoBusy] = useState(false);
+  const [autoStatus, setAutoStatus] = useState<string>('');
+  const [autoProgress, setAutoProgress] = useState(0);
+  const [autoTotalImported, setAutoTotalImported] = useState(0);
 
   const refreshCount = async () => {
     const { count } = await supabase
@@ -70,6 +75,48 @@ export default function AdminPage() {
 
   const pageOptions = Array.from({ length: 10 }, (_, i) => i + 1);
 
+  const runAutoImport = async () => {
+    setAutoBusy(true);
+    setAutoTotalImported(0);
+    setAutoProgress(0);
+    setAutoStatus('Iniciando importación…');
+    log('Auto-import: iniciado');
+    let totalImported = 0;
+    const sources: Array<{ source: 'off' | 'obf'; label: string }> = [
+      { source: 'off', label: 'alimentos' },
+      { source: 'obf', label: 'cosméticos' },
+    ];
+    const totalSteps = sources.length * 10;
+    let step = 0;
+    try {
+      for (const { source, label } of sources) {
+        for (let page = 1; page <= 10; page++) {
+          step++;
+          setAutoStatus(`Importando ${label} página ${page}/10… (${totalImported} productos)`);
+          try {
+            const { data, error } = await supabase.functions.invoke('import-off-products', {
+              body: { source, page },
+            });
+            if (error) throw error;
+            const imported = Number((data as { imported?: number })?.imported ?? 0);
+            totalImported += imported;
+            setAutoTotalImported(totalImported);
+            log(`Auto ${label} p${page}: +${imported} (total ${totalImported})`);
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            log(`Auto ${label} p${page}: ERROR ${msg}`);
+          }
+          setAutoProgress(Math.round((step / totalSteps) * 100));
+        }
+      }
+      setAutoStatus(`✅ Importación completa: ${totalImported} productos en total`);
+      toast({ title: 'Importación completa', description: `${totalImported} productos importados` });
+      await refreshCount();
+    } finally {
+      setAutoBusy(false);
+    }
+  };
+
   return (
     <div className="min-h-[100dvh] bg-background">
       <div className="mx-auto w-full max-w-lg p-4 space-y-4">
@@ -89,6 +136,35 @@ export default function AdminPage() {
             <Button variant="outline" size="sm" onClick={refreshCount}>
               Actualizar
             </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">🚀 Importación automática</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Importa automáticamente las páginas 1–10 de alimentos y cosméticos de España.
+            </p>
+            <Button
+              className="w-full"
+              disabled={autoBusy || !!busy}
+              onClick={runAutoImport}
+            >
+              {autoBusy ? 'Importando…' : '🚀 Importar todo automáticamente'}
+            </Button>
+            {(autoBusy || autoStatus) && (
+              <div className="space-y-2">
+                <Progress value={autoProgress} className="h-2" />
+                <p className="text-xs text-muted-foreground">{autoStatus}</p>
+                {autoTotalImported > 0 && (
+                  <p className="text-xs font-medium">
+                    Total importados: {autoTotalImported.toLocaleString('es-ES')}
+                  </p>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
