@@ -17,6 +17,7 @@ import MiraPage from '@/pages/MiraPage';
 import PremiumPage from '@/pages/PremiumPage';
 
 import LoginPage from '@/pages/LoginPage';
+import AdminPage from '@/pages/AdminPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import UpdatePasswordPage from '@/pages/UpdatePasswordPage';
 import NotFound from '@/pages/NotFound';
