@@ -184,6 +184,7 @@ export function AppRoutes() {
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/mira" element={<MiraPage />} />
         <Route path="/premium" element={<PremiumPage />} />
+        <Route path="/admin" element={<AdminPage />} />
 
         <Route path="/update-password" element={<UpdatePasswordPage />} />
 
