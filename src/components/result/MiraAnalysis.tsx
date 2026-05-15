@@ -16,6 +16,7 @@ interface Props {
   };
   profile: any;
   score: number;
+  hasIngredientData?: boolean;
 }
 
 // Generates a 1-2 sentence basic summary using the highest-priority personal alert.
@@ -55,7 +56,7 @@ function buildBasicSummary(
   return `${productLabel} no es ideal según tu perfil — revisa los ingredientes destacados.`;
 }
 
-export const MiraAnalysis = ({ product, profile, score }: Props) => {
+export const MiraAnalysis = ({ product, profile, score, hasIngredientData = true }: Props) => {
   const premium = usePremium();
   const navigate = useNavigate();
   const [text, setText] = useState('');
@@ -64,7 +65,9 @@ export const MiraAnalysis = ({ product, profile, score }: Props) => {
   const startedRef = useRef(false);
 
   // Free basic summary (always available, no AI call)
-  const basicSummary = buildBasicSummary(product, profile, score);
+  const basicSummary = hasIngredientData
+    ? buildBasicSummary(product, profile, score)
+    : 'Fotografía la etiqueta para obtener un análisis completo de este producto.';
 
   useEffect(() => {
     if (!premium || startedRef.current) return;

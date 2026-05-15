@@ -147,6 +147,11 @@ const PhotoCapturePage = () => {
     }
   }, [c.cameraDenied, stopCamera]);
 
+  // Debug: log realBarcode on mount to verify URL param is passed correctly
+  useEffect(() => {
+    console.log('[photo-capture] mount — realBarcode URL param =', realBarcode, '| addImageFor =', addImageFor);
+  }, [realBarcode, addImageFor]);
+
   // Start camera when entering a capture step (and no preview pending)
   useEffect(() => {
     const isCaptureStep = (step === 'front' || step === 'ingredients') && !preview;
