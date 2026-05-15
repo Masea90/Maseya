@@ -476,6 +476,7 @@ const ResultPage = () => {
               }}
               profile={healthProfile || profile}
               score={score}
+              hasIngredientData={hasIngredientData}
             />
 
             {/* Alternatives */}
