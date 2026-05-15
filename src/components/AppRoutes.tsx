@@ -17,6 +17,7 @@ import MiraPage from '@/pages/MiraPage';
 import PremiumPage from '@/pages/PremiumPage';
 
 import LoginPage from '@/pages/LoginPage';
+import AdminPage from '@/pages/AdminPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import UpdatePasswordPage from '@/pages/UpdatePasswordPage';
 import NotFound from '@/pages/NotFound';
@@ -103,7 +104,7 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
 
   // Authenticated user without a health profile → force quiz (skip welcome).
   if (userId && !onboardingDone) {
-    const allowedForQuiz = ['/onboarding/quiz', '/onboarding/language', '/update-password'];
+    const allowedForQuiz = ['/onboarding/quiz', '/onboarding/language', '/update-password', '/admin'];
     if (!allowedForQuiz.includes(path)) {
       return <Navigate to="/onboarding/quiz" replace />;
     }
@@ -161,6 +162,7 @@ export function AppRoutes() {
           <Route path="/history" element={<Navigate to="/login" replace />} />
           <Route path="/profile" element={<Navigate to="/login" replace />} />
           <Route path="/mira" element={<Navigate to="/login" replace />} />
+          <Route path="/admin" element={<Navigate to="/login" replace />} />
           <Route path="*" element={<Navigate to="/welcome" replace />} />
         </Routes>
       </OnboardingGate>
@@ -182,6 +184,7 @@ export function AppRoutes() {
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/mira" element={<MiraPage />} />
         <Route path="/premium" element={<PremiumPage />} />
+        <Route path="/admin" element={<AdminPage />} />
 
         <Route path="/update-password" element={<UpdatePasswordPage />} />
 
