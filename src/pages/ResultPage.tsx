@@ -171,8 +171,9 @@ const ResultPage = () => {
       const key = 'maseya_anon_scans';
       const count = Number(localStorage.getItem(key) || '0') + 1;
       localStorage.setItem(key, String(count));
-      if (count >= 3) setPaywall(true);
-      else setShowSheet(true);
+      // Anonymous users: 5 free scans, then registration prompt (not paywall)
+      if (count >= 5) setShowSheet(true);
+      else if (count >= 3) setShowSheet(true);
     }
   }, [product, isAuthenticated, currentUser?.id]);
 

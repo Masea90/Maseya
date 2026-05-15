@@ -5,7 +5,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 
-const FREE_LIMIT = 3;
+const FREE_LIMIT = 5;
 
 const COPY = {
   es: {
