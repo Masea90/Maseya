@@ -104,7 +104,7 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
 
   // Authenticated user without a health profile → force quiz (skip welcome).
   if (userId && !onboardingDone) {
-    const allowedForQuiz = ['/onboarding/quiz', '/onboarding/language', '/update-password'];
+    const allowedForQuiz = ['/onboarding/quiz', '/onboarding/language', '/update-password', '/admin'];
     if (!allowedForQuiz.includes(path)) {
       return <Navigate to="/onboarding/quiz" replace />;
     }
