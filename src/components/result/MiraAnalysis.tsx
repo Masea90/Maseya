@@ -16,6 +16,7 @@ interface Props {
   };
   profile: any;
   score: number;
+  hasIngredientData?: boolean;
 }
 
 // Generates a 1-2 sentence basic summary using the highest-priority personal alert.
