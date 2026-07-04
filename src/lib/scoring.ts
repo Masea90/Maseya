@@ -284,7 +284,7 @@ export function personalAlerts(p: ProductData, profile: OnboardingProfile): Pers
 
   // Skin rules — cosmetics only
   if (isCosmetic) {
-    if (profile.skin.includes('atopic')) {
+    if (skin.includes('atopic')) {
       const hits: string[] = [];
       if (has('sulfate') || has('sulphate')) hits.push('Los sulfatos alteran la barrera cutánea atópica');
       if (has('fragrance') || has('parfum')) hits.push('Las fragancias pueden irritar piel atópica');
@@ -293,14 +293,14 @@ export function personalAlerts(p: ProductData, profile: OnboardingProfile): Pers
       if (hits.length === 0) alerts.push({ level: 'good', text: 'Sin ingredientes problemáticos para piel atópica' });
       else hits.forEach(h => alerts.push({ level: 'warn', text: h }));
     }
-    if (profile.skin.includes('dry')) {
+    if (skin.includes('dry')) {
       const hits: string[] = [];
       if (has('sulfate') || has('sulphate')) hits.push('Los sulfatos resecan piel ya seca');
       if (has('alcohol denat')) hits.push('El alcohol agrava la sequedad');
       if (hits.length === 0) alerts.push({ level: 'good', text: 'Apto para piel seca' });
       else hits.forEach(h => alerts.push({ level: 'warn', text: h }));
     }
-    if (profile.skin.includes('oily')) {
+    if (skin.includes('oily')) {
       const hits: string[] = [];
       if (has('mineral oil') || has('paraffinum')) hits.push('El aceite mineral puede obstruir poros en piel grasa');
       if (has('silicone') || has('dimethicone')) hits.push('Las siliconas pueden acumular sebo en piel grasa');
@@ -313,18 +313,18 @@ export function personalAlerts(p: ProductData, profile: OnboardingProfile): Pers
   // Priority: structured allergens_tags (danger) → traces_tags (warn) → keyword text fallback (warn).
   // Never affirm absence categorically.
   if (isFood) {
-    const hasStructured = p.allergens_tags.length > 0 || p.traces_tags.length > 0;
+    const hasStructured = allergensTags.length > 0 || tracesTags.length > 0;
     const isUntrustedSource = p.source === 'photo' || p.source === 'maseya';
 
-    for (const allergy of profile.allergies) {
+    for (const allergy of allergies) {
       if (allergy === 'none') continue;
       const tagIds = ALLERGY_TAG_IDS[allergy];
       const kws = allergy === 'lactose' ? LACTOSE_FOOD : ALLERGY_KEYWORDS[allergy];
       if (!tagIds && !kws) continue;
       const label = ALLERGY_LABELS[allergy] || allergy;
 
-      const inAllergens = tagIds ? tagMatches(p.allergens_tags, tagIds) : false;
-      const inTraces = tagIds ? tagMatches(p.traces_tags, tagIds) : false;
+      const inAllergens = tagIds ? tagMatches(allergensTags, tagIds) : false;
+      const inTraces = tagIds ? tagMatches(tracesTags, tagIds) : false;
       const inText = kws ? containsAny(text, kws) : false;
 
       if (inAllergens) {
@@ -344,7 +344,7 @@ export function personalAlerts(p: ProductData, profile: OnboardingProfile): Pers
       }
     }
 
-    if (profile.allergies.some(a => a !== 'none') && (isUntrustedSource || !hasStructured)) {
+    if (allergies.some(a => a !== 'none') && (isUntrustedSource || !hasStructured)) {
       alerts.push({
         level: 'warn',
         text: 'Análisis basado en foto o datos de la comunidad: la información puede estar incompleta. Verifica siempre el envase original.',
