@@ -31,6 +31,7 @@ const COPY = {
     errorPayment: 'Servicio de análisis temporalmente no disponible',
     errorUnexpected: 'Error inesperado. Reintenta en unos segundos',
     errorNutritional: 'Parece que fotografiaste la tabla nutricional. Fotografía la lista de ingredientes.',
+    errorTooLarge: 'La foto es demasiado grande. Reintenta acercándote al producto.',
     loginCta: 'Iniciar sesión',
     retry: 'Reintentar',
     addImageOnly: 'Añadir foto del producto',
@@ -64,6 +65,7 @@ const COPY = {
     errorPayment: 'Analysis service temporarily unavailable',
     errorUnexpected: 'Unexpected error. Try again in a few seconds',
     errorNutritional: 'Looks like you photographed the nutrition table. Photograph the ingredient list instead.',
+    errorTooLarge: 'Photo is too large. Try getting closer to the product.',
     loginCta: 'Log in',
     retry: 'Try again',
     addImageOnly: 'Add product photo',
@@ -97,6 +99,7 @@ const COPY = {
     errorPayment: "Service d'analyse temporairement indisponible",
     errorUnexpected: 'Erreur inattendue. Réessayez dans quelques secondes',
     errorNutritional: "Il semble que vous ayez photographié le tableau nutritionnel. Photographiez la liste d'ingrédients.",
+    errorTooLarge: 'La photo est trop grande. Essayez de vous rapprocher du produit.',
     loginCta: 'Se connecter',
     retry: 'Réessayer',
     addImageOnly: 'Ajouter une photo',
@@ -108,7 +111,7 @@ const COPY = {
   },
 };
 
-type ErrorKind = 'lighting' | 'session' | 'rate' | 'payment' | 'nutritional' | 'unexpected';
+type ErrorKind = 'lighting' | 'session' | 'rate' | 'payment' | 'nutritional' | 'too_large' | 'unexpected';
 type Step = 'front' | 'ingredients' | 'analyzing' | 'error' | 'image-saved';
 
 const PhotoCapturePage = () => {
@@ -181,20 +184,35 @@ const PhotoCapturePage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, preview]);
 
-  const captureFrame = (): string | null => {
+  const captureFrame = async (): Promise<string | null> => {
     const v = videoRef.current;
     if (!v || !v.videoWidth) return null;
-    const canvas = document.createElement('canvas');
-    canvas.width = v.videoWidth;
-    canvas.height = v.videoHeight;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return null;
-    ctx.drawImage(v, 0, 0);
-    return canvas.toDataURL('image/jpeg', 0.85);
+    const srcCanvas = document.createElement('canvas');
+    srcCanvas.width = v.videoWidth;
+    srcCanvas.height = v.videoHeight;
+    const srcCtx = srcCanvas.getContext('2d');
+    if (!srcCtx) return null;
+    srcCtx.drawImage(v, 0, 0);
+
+    // Downscale: longest side max 1600px, JPEG quality 0.8 → keeps payload
+    // well under the 5MB edge-function limit and speeds up upload/analysis.
+    const MAX_SIDE = 1600;
+    const longest = Math.max(srcCanvas.width, srcCanvas.height);
+    const scale = longest > MAX_SIDE ? MAX_SIDE / longest : 1;
+    const outW = Math.round(srcCanvas.width * scale);
+    const outH = Math.round(srcCanvas.height * scale);
+    const outCanvas = document.createElement('canvas');
+    outCanvas.width = outW;
+    outCanvas.height = outH;
+    const outCtx = outCanvas.getContext('2d');
+    if (!outCtx) return null;
+    outCtx.imageSmoothingQuality = 'high';
+    outCtx.drawImage(srcCanvas, 0, 0, outW, outH);
+    return outCanvas.toDataURL('image/jpeg', 0.8);
   };
 
-  const onCapture = () => {
-    const dataUrl = captureFrame();
+  const onCapture = async () => {
+    const dataUrl = await captureFrame();
     if (!dataUrl) return;
     setPreview(dataUrl);
     stopCamera();
@@ -256,6 +274,7 @@ const PhotoCapturePage = () => {
           setServerErrorMessage(typeof data?.message === 'string' ? data.message : null);
           if (res.status === 401 || data?.error === 'session_expired' || data?.error === 'Unauthorized') setErrorKind('session');
           else if (res.status === 429) setErrorKind('rate');
+          else if (res.status === 413 || data?.error === 'image_too_large') setErrorKind('too_large');
           else if (res.status === 402) setErrorKind('payment');
           else if (data?.error === 'nutritional_table_detected') setErrorKind('nutritional');
           else if (data?.error === 'no_ingredients' || data?.error === 'parse_failed') setErrorKind('lighting');
@@ -449,6 +468,7 @@ const PhotoCapturePage = () => {
             errorKind === 'session' ? c.errorSession :
             errorKind === 'rate' ? c.errorRate :
             errorKind === 'payment' ? c.errorPayment :
+            errorKind === 'too_large' ? c.errorTooLarge :
             errorKind === 'nutritional' ? (serverErrorMessage ?? c.errorNutritional) :
             errorKind === 'unexpected' ? c.errorUnexpected :
             c.error;

@@ -189,19 +189,30 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    const raw = data.choices?.[0]?.message?.content || "";
+    const raw: string = data.choices?.[0]?.message?.content || "";
 
     let extracted: { product_name?: string; brand?: string; category?: string; ingredients_text?: string } = {};
-    try {
-      const cleaned = raw.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim();
-      extracted = JSON.parse(cleaned);
-    } catch {
-      console.error("Failed to parse AI response:", raw);
+    const tryParse = (s: string) => {
+      try { return JSON.parse(s); } catch { return null; }
+    };
+    const cleaned = raw.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim();
+    let parsed = tryParse(cleaned);
+    if (!parsed) {
+      // Fallback: extract first {...} block from noisy responses
+      const match = cleaned.match(/\{[\s\S]*\}/);
+      if (match) parsed = tryParse(match[0]);
+    }
+    if (!parsed) {
+      console.error("Failed to parse AI response. Raw content:", raw);
       return json({ error: "parse_failed" }, 422);
     }
+    extracted = parsed as typeof extracted;
 
     const ingredients = (extracted.ingredients_text || "").trim();
-    if (!ingredients || ingredients.length < 10) return json({ error: "no_ingredients" }, 422);
+    if (!ingredients || ingredients.length < 5) {
+      console.warn("no_ingredients — extracted:", JSON.stringify(extracted).slice(0, 400), "raw:", raw.slice(0, 400));
+      return json({ error: "no_ingredients" }, 422);
+    }
     if (isNutritionalData(ingredients)) {
       return json({
         error: "nutritional_table_detected",
