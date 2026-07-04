@@ -111,7 +111,7 @@ const COPY = {
   },
 };
 
-type ErrorKind = 'lighting' | 'session' | 'rate' | 'payment' | 'nutritional' | 'unexpected';
+type ErrorKind = 'lighting' | 'session' | 'rate' | 'payment' | 'nutritional' | 'too_large' | 'unexpected';
 type Step = 'front' | 'ingredients' | 'analyzing' | 'error' | 'image-saved';
 
 const PhotoCapturePage = () => {
