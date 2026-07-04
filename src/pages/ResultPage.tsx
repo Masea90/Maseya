@@ -302,7 +302,14 @@ const ResultPage = () => {
     ? calculatePersonalScore(product, flagged, healthProfile || profile, score)
     : score;
   const psl = scoreLabel(personalScore);
-  const hasIngredientData = flagged.length >= 3;
+  // Consider ingredient data available when we have ANY flagged item OR when
+  // there's non-nutritional ingredients text. Many legit products are
+  // mono-ingredient (coconut oil, honey, salt, rice, legumes) — the old
+  // `flagged.length >= 3` heuristic wrongly hid them.
+  const rawText = (product.ingredients_text || '').trim();
+  const hasIngredientData =
+    flagged.length >= 1 ||
+    (rawText.length > 0 && !isNutritionalData(rawText));
   const hasNutriscore = product.category === 'food' && !!product.nutriscore_grade;
   const showScore = product.category === 'cosmetic'
     ? hasIngredientData
