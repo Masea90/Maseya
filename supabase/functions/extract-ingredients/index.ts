@@ -51,14 +51,42 @@ const getBearerToken = (req: Request) => {
   return authHeader.replace("Bearer ", "").trim();
 };
 
-const getAnonKeys = () =>
-  [
+const getAnonKeys = () => {
+  const keys = [
     Deno.env.get("SUPABASE_ANON_KEY"),
     Deno.env.get("SUPABASE_PUBLISHABLE_KEY"),
     Deno.env.get("VITE_SUPABASE_PUBLISHABLE_KEY"),
   ].filter((key): key is string => Boolean(key));
 
-const isPublishableToken = (token: string) => getAnonKeys().includes(token);
+  const keyList = Deno.env.get("SUPABASE_PUBLISHABLE_KEYS");
+  if (keyList) {
+    try {
+      const parsed = JSON.parse(keyList);
+      if (Array.isArray(parsed)) keys.push(...parsed.filter((key): key is string => typeof key === "string"));
+    } catch {
+      keys.push(...keyList.split(",").map((key) => key.trim()).filter(Boolean));
+    }
+  }
+
+  return keys;
+};
+
+const decodeJwtPayload = (token: string): Record<string, unknown> | null => {
+  try {
+    const payload = token.split(".")[1];
+    if (!payload) return null;
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
+    return JSON.parse(atob(padded));
+  } catch {
+    return null;
+  }
+};
+
+const isPublishableToken = (token: string) => {
+  if (getAnonKeys().includes(token)) return true;
+  return decodeJwtPayload(token)?.role === "anon";
+};
 
 const getClientId = (req: Request) =>
   req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
