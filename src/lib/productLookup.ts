@@ -88,6 +88,8 @@ const normalize = (
     ingredients_tags: p.ingredients_tags || [],
     labels_tags: p.labels_tags || [],
     ingredients_analysis_tags: p.ingredients_analysis_tags || [],
+    allergens_tags: p.allergens_tags || [],
+    traces_tags: p.traces_tags || [],
     raw: (p as unknown as Record<string, unknown>) ?? {},
   };
 };

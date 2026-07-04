@@ -98,6 +98,8 @@ const ResultPage = () => {
           ingredients_tags: [],
           labels_tags: [],
           ingredients_analysis_tags: [],
+          allergens_tags: [],
+          traces_tags: [],
           raw: p,
         });
         setFromPhoto(true);
