@@ -350,17 +350,19 @@ const ResultPage = () => {
                       <div className="text-xs font-medium text-muted-foreground">General</div>
                     </div>
 
-                    {/* Personal score (free for everyone) */}
-                    <div className="flex flex-col items-center gap-1.5">
-                      <div
-                        className="w-32 h-32 rounded-full flex flex-col items-center justify-center shadow-warm-lg ring-4 ring-primary/40"
-                        style={{ backgroundColor: psl.bg, color: psl.color }}
-                      >
-                        <div className="text-4xl font-bold">{personalScore}</div>
-                        <div className="text-[10px] uppercase tracking-wider opacity-90">/ 100</div>
+                    {/* Personal score — only when health-data consent is given */}
+                    {healthConsent && (
+                      <div className="flex flex-col items-center gap-1.5">
+                        <div
+                          className="w-32 h-32 rounded-full flex flex-col items-center justify-center shadow-warm-lg ring-4 ring-primary/40"
+                          style={{ backgroundColor: psl.bg, color: psl.color }}
+                        >
+                          <div className="text-4xl font-bold">{personalScore}</div>
+                          <div className="text-[10px] uppercase tracking-wider opacity-90">/ 100</div>
+                        </div>
+                        <div className="text-xs font-semibold text-primary">Para ti</div>
                       </div>
-                      <div className="text-xs font-semibold text-primary">Para ti</div>
-                    </div>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-1.5">
