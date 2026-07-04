@@ -199,6 +199,7 @@ export function AppRoutes() {
         <Route path="/mira" element={<MiraPage />} />
         <Route path="/premium" element={<PremiumPage />} />
         <Route path="/admin" element={<AdminPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
 
         <Route path="/update-password" element={<UpdatePasswordPage />} />
 
