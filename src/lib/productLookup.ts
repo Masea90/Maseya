@@ -17,6 +17,10 @@ export interface ProductData {
   ingredients_tags: string[];
   labels_tags: string[];
   ingredients_analysis_tags: string[];
+  /** Structured allergen tags from OFF/OBF (e.g. "en:gluten"). Empty for maseya/photo sources. */
+  allergens_tags: string[];
+  /** Structured trace-allergen tags from OFF/OBF (e.g. "en:milk"). Empty for maseya/photo sources. */
+  traces_tags: string[];
   raw: Record<string, unknown>;
 }
 
@@ -38,6 +42,8 @@ interface OFFResponse {
     ingredients_tags?: string[];
     labels_tags?: string[];
     ingredients_analysis_tags?: string[];
+    allergens_tags?: string[];
+    traces_tags?: string[];
   };
 }
 
@@ -82,6 +88,8 @@ const normalize = (
     ingredients_tags: p.ingredients_tags || [],
     labels_tags: p.labels_tags || [],
     ingredients_analysis_tags: p.ingredients_analysis_tags || [],
+    allergens_tags: p.allergens_tags || [],
+    traces_tags: p.traces_tags || [],
     raw: (p as unknown as Record<string, unknown>) ?? {},
   };
 };
@@ -130,6 +138,8 @@ async function fetchFromMaseya(barcode: string): Promise<ProductData | null> {
     ingredients_tags: [],
     labels_tags: [],
     ingredients_analysis_tags: [],
+    allergens_tags: [],
+    traces_tags: [],
     raw: data as unknown as Record<string, unknown>,
   };
 }
