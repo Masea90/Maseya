@@ -221,13 +221,88 @@ serve(async (req) => {
     }
 
     const category = extracted.category === "food" ? "food" : "cosmetic";
+    const product_name = (extracted.product_name || "").trim() || "Producto fotografiado";
+    const brand = (extracted.brand || "").trim();
+
+    // Optional server-side contribution to maseya_products (bypass RLS via
+    // service role) so anonymous scans also feed the shared database.
+    let saved = false;
+    const rawBarcode = typeof body.barcode === "string" ? body.barcode.trim() : "";
+    const isRealBarcode = rawBarcode.length > 0 && !rawBarcode.startsWith("photo_");
+    if (isRealBarcode) {
+      try {
+        const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+        const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+        if (serviceKey && supabaseUrl) {
+          const admin = createClient(supabaseUrl, serviceKey);
+
+          // Upload front image to Storage (private bucket, permanent signed URL)
+          let imageUrl: string | null = null;
+          if (front) {
+            try {
+              const b64 = front.startsWith("data:") ? front.slice(front.indexOf(",") + 1) : front;
+              const bin = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+              const path = `contrib/${rawBarcode}-${Date.now()}.jpg`;
+              const { error: upErr } = await admin.storage
+                .from("product-images")
+                .upload(path, bin, { contentType: "image/jpeg", upsert: true });
+              if (upErr) {
+                console.warn("[extract] storage upload failed:", upErr.message);
+              } else {
+                const { data: signed } = await admin.storage
+                  .from("product-images")
+                  .createSignedUrl(path, 60 * 60 * 24 * 365 * 10); // 10 years
+                imageUrl = signed?.signedUrl ?? null;
+              }
+            } catch (e) {
+              console.warn("[extract] image processing failed:", e);
+            }
+          }
+
+          // Don't overwrite verified rows
+          const { data: existing } = await admin
+            .from("maseya_products")
+            .select("verified")
+            .eq("barcode", rawBarcode)
+            .maybeSingle();
+
+          if (!existing?.verified) {
+            const payload: Record<string, unknown> = {
+              barcode: rawBarcode,
+              product_name,
+              brand: brand || null,
+              category,
+              ingredients_text: ingredients,
+              source: "photo",
+              verified: false,
+              submitted_by: null,
+            };
+            if (imageUrl) payload.image_url = imageUrl;
+            const { error: upsertErr } = await admin
+              .from("maseya_products")
+              .upsert(payload, { onConflict: "barcode" });
+            if (upsertErr) {
+              console.error("[extract] maseya_products upsert failed:", upsertErr.message);
+            } else {
+              saved = true;
+            }
+          } else {
+            console.info("[extract] skipping upsert — verified row exists for", rawBarcode);
+          }
+        }
+      } catch (e) {
+        console.error("[extract] contribution error:", e);
+      }
+    }
 
     return json({
-      product_name: (extracted.product_name || "").trim() || "Producto fotografiado",
-      brand: (extracted.brand || "").trim(),
+      product_name,
+      brand,
       category,
       ingredients_text: ingredients,
+      saved,
     }, 200);
+
   } catch (e) {
     console.error("extract-ingredients internal error:", e);
     return json({ error: "internal_error" }, 500);

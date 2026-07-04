@@ -33,6 +33,8 @@ const ResultPage = () => {
   
 
   const [fromPhoto, setFromPhoto] = useState(false);
+  const [photoSaved, setPhotoSaved] = useState(false);
+
   const [healthProfile, setHealthProfile] = useState<any>(null);
   const [healthConsent, setHealthConsent] = useState<boolean>(() => hasHealthDataConsent());
   const [showConsentDialog, setShowConsentDialog] = useState(false);
@@ -133,7 +135,9 @@ const ResultPage = () => {
           raw: p,
         });
         setFromPhoto(true);
+        setPhotoSaved(p.saved === true);
         setLoading(false);
+
         return true;
       } catch (e) {
         console.error('[result] photo parse failed', e);
@@ -322,10 +326,14 @@ const ResultPage = () => {
             </p>
             {fromPhoto && (
               <div className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                <span>✅</span>
-                <span>Añadido a nuestra base de datos</span>
+                {photoSaved ? (
+                  <><span>✅</span><span>Añadido a nuestra base de datos</span></>
+                ) : (
+                  <><span>📱</span><span>Análisis guardado en tu dispositivo</span></>
+                )}
               </div>
             )}
+
           </div>
         </div>
 
