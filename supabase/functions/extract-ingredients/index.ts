@@ -280,6 +280,7 @@ serve(async (req) => {
               product_name,
               brand: brand || null,
               category,
+              category_tag,
               ingredients_text: ingredients,
               source: "photo",
               verified: false,
