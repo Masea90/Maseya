@@ -26,8 +26,12 @@ interface Candidate {
 const CACHE_PREFIX = 'maseya_alts_v1::';
 const FETCH_TIMEOUT_MS = 8000;
 
-const hostFor = (source: ProductData['source']) =>
-  source === 'obf' ? 'world.openbeautyfacts.org' : 'world.openfoodfacts.org';
+const hostForCategory = (category: 'food' | 'cosmetic') =>
+  category === 'cosmetic' ? 'world.openbeautyfacts.org' : 'world.openfoodfacts.org';
+
+// Best-effort guess for the source of a candidate returned by the search API.
+const sourceForCategory = (category: 'food' | 'cosmetic'): ProductData['source'] =>
+  category === 'cosmetic' ? 'obf' : 'off';
 
 const pickCategoryTag = (raw: Record<string, unknown>): string | null => {
   const tags = (raw as { categories_tags?: string[] })?.categories_tags;
