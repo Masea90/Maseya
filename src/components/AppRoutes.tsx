@@ -22,6 +22,7 @@ import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import UpdatePasswordPage from '@/pages/UpdatePasswordPage';
 import NotFound from '@/pages/NotFound';
 import OAuthConsentPage from '@/pages/OAuthConsentPage';
+import PrivacyPage from '@/pages/PrivacyPage';
 
 const ONBOARDING_KEY = 'maseya_onboarding';
 
