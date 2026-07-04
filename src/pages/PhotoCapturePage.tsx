@@ -258,7 +258,11 @@ const PhotoCapturePage = () => {
           res = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ front_image: front, ingredients_image: ingredientsImage }),
+            body: JSON.stringify({
+              front_image: front,
+              ingredients_image: ingredientsImage,
+              barcode: realBarcode || undefined,
+            }),
           });
         } catch (netErr) {
           console.error('[photo-capture] extract failed', 'network', netErr);
@@ -286,33 +290,34 @@ const PhotoCapturePage = () => {
         const brand = (data.brand as string) || '';
         const category = (data.category === 'food' ? 'food' : 'cosmetic') as 'food' | 'cosmetic';
         const ingredients_text = data.ingredients_text as string;
+        const serverSaved = data.saved === true;
         const finalBarcode = realBarcode || `photo_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
         const image = front;
 
-        console.log('[photo-capture] realBarcode param =', realBarcode);
-        console.log('[photo-capture] saving to maseya_products with barcode =', finalBarcode);
+        console.log('[photo-capture] realBarcode param =', realBarcode, '| server saved =', serverSaved);
 
-        const result = await saveToMaseya({
-          barcode: finalBarcode,
-          product_name,
-          brand,
-          category,
-          ingredients_text,
-          image_url: image,
-          source: 'photo',
-          verified: false,
-        });
-
-        if (!result.ok) {
-          if (result.error === 'not_authenticated') {
-            console.info('[photo-capture] saveToMaseya skipped: user not authenticated. Product kept locally; will be contributable after sign-up.');
+        // Fallback client-side save only if the server didn't persist it.
+        if (!serverSaved) {
+          const result = await saveToMaseya({
+            barcode: finalBarcode,
+            product_name,
+            brand,
+            category,
+            ingredients_text,
+            image_url: image,
+            source: 'photo',
+            verified: false,
+          });
+          if (!result.ok) {
+            if (result.error === 'not_authenticated') {
+              console.info('[photo-capture] saveToMaseya skipped: user not authenticated. Product kept locally; will be contributable after sign-up.');
+            } else {
+              console.error('[photo-capture] saveToMaseya failed', result.error);
+            }
           } else {
-            console.error('[photo-capture] saveToMaseya failed', result.error);
+            console.log('[photo-capture] saveToMaseya (client fallback) OK for', finalBarcode);
           }
-        } else {
-          console.log('[photo-capture] saveToMaseya OK for', finalBarcode);
         }
-
 
         localStorage.setItem('maseya_photo_product', JSON.stringify({
           barcode: finalBarcode,
@@ -321,9 +326,11 @@ const PhotoCapturePage = () => {
           category,
           ingredients_text,
           image,
+          saved: serverSaved,
           savedAt: Date.now(),
         }));
         localStorage.removeItem('maseya_photo_front');
+
 
         navigate(realBarcode ? `/result/${realBarcode}` : '/result/photo');
       } catch (e) {
