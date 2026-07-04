@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Html5Qrcode } from 'html5-qrcode';
+import { BarcodeFormat, BrowserMultiFormatReader, type IScannerControls } from '@zxing/browser';
+import { DecodeHintType } from '@zxing/library';
 import { Loader2, Image as ImageIcon } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useUser } from '@/contexts/UserContext';
@@ -32,14 +33,64 @@ const COPY = {
 
 type Phase = 'scanning' | 'analyzing' | 'error';
 
-const READER_ID = 'maseya-scanner-reader';
+const POSSIBLE_FORMATS = [
+  BarcodeFormat.EAN_13,
+  BarcodeFormat.EAN_8,
+  BarcodeFormat.UPC_A,
+  BarcodeFormat.UPC_E,
+  BarcodeFormat.CODE_128,
+];
+
+type ExtendedMediaTrackCapabilities = MediaTrackCapabilities & {
+  focusMode?: string[];
+  zoom?: { min?: number; max?: number; step?: number } | number;
+};
+
+type ExtendedMediaTrackConstraintSet = MediaTrackConstraintSet & {
+  focusMode?: string;
+  zoom?: number;
+};
+
+const getCameraConstraints = (): MediaStreamConstraints => ({
+  video: {
+    facingMode: { ideal: 'environment' },
+    width: { ideal: 1920 },
+    height: { ideal: 1080 },
+  },
+  audio: false,
+});
+
+const getScanHints = () => {
+  const hints = new Map<DecodeHintType, boolean | BarcodeFormat[]>();
+  hints.set(DecodeHintType.POSSIBLE_FORMATS, POSSIBLE_FORMATS);
+  hints.set(DecodeHintType.TRY_HARDER, true);
+  return hints;
+};
+
+const buildAdvancedConstraints = (capabilities: ExtendedMediaTrackCapabilities) => {
+  const advanced: ExtendedMediaTrackConstraintSet[] = [];
+
+  if (capabilities.focusMode?.includes('continuous')) {
+    advanced.push({ focusMode: 'continuous' });
+  }
+
+  if (typeof capabilities.zoom === 'object') {
+    const min = capabilities.zoom.min ?? 1;
+    const max = capabilities.zoom.max ?? min;
+    const targetZoom = Math.min(Math.max(2, min), max);
+    if (targetZoom > min) advanced.push({ zoom: targetZoom });
+  }
+
+  return advanced.length ? { advanced } : null;
+};
 
 const ScannerPage = () => {
   const { user } = useUser();
   const navigate = useNavigate();
   const c = COPY[user.language] ?? COPY.es;
 
-  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const controlsRef = useRef<IScannerControls | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const stoppedRef = useRef<boolean>(false);
   const [phase, setPhase] = useState<Phase>('scanning');
   const [errorMsg, setErrorMsg] = useState<string>('');
@@ -60,16 +111,30 @@ const ScannerPage = () => {
   };
 
   const stop = async () => {
-    const inst = scannerRef.current;
+    const inst = controlsRef.current;
     if (!inst || stoppedRef.current) return;
     stoppedRef.current = true;
     try {
-      await inst.stop();
-      await inst.clear();
+      inst.stop();
     } catch {
       // ignore
     }
-    scannerRef.current = null;
+    controlsRef.current = null;
+  };
+
+  const improveVideoTrack = async (controls: IScannerControls) => {
+    const getCapabilities = controls.streamVideoCapabilitiesGet;
+    const applyConstraints = controls.streamVideoConstraintsApply;
+    if (!getCapabilities || !applyConstraints) return;
+
+    try {
+      const constraints = buildAdvancedConstraints(
+        getCapabilities((track) => track.kind === 'video') as ExtendedMediaTrackCapabilities
+      );
+      if (constraints) await applyConstraints(constraints, (track) => [track]);
+    } catch (e) {
+      console.warn('[scanner] advanced camera constraints not supported', e);
+    }
   };
 
   const startScanning = async () => {
@@ -77,29 +142,27 @@ const ScannerPage = () => {
     setPhase('scanning');
     stoppedRef.current = false;
     try {
-      const html5QrCode = new Html5Qrcode(READER_ID, { verbose: false });
-      scannerRef.current = html5QrCode;
+      const codeReader = new BrowserMultiFormatReader(getScanHints(), {
+        delayBetweenScanAttempts: 120,
+        delayBetweenScanSuccess: 250,
+      });
 
-      await html5QrCode.start(
-        { facingMode: 'environment' },
-        {
-          fps: 30,
-          qrbox: { width: 250, height: 150 },
-          aspectRatio: 1.777,
-          disableFlip: false,
-        },
-        (decodedText) => {
-          if (stoppedRef.current) return;
+      const controls = await codeReader.decodeFromConstraints(
+        getCameraConstraints(),
+        videoRef.current ?? undefined,
+        (result) => {
+          if (!result || stoppedRef.current) return;
+          const decodedText = result.getText();
+          if (!decodedText) return;
           stoppedRef.current = true;
-          html5QrCode.stop().then(() => html5QrCode.clear()).catch(() => {});
-          scannerRef.current = null;
+          controlsRef.current?.stop();
+          controlsRef.current = null;
           setPhase('analyzing');
           navigate(`/result/${encodeURIComponent(decodedText)}`);
-        },
-        () => {
-          // scan errors are normal, ignore
         }
       );
+      controlsRef.current = controls;
+      await improveVideoTrack(controls);
     } catch (e) {
       console.error('[scanner] camera error', e);
       setErrorMsg(c.cameraError);
@@ -128,9 +191,12 @@ const ScannerPage = () => {
     <AppLayout title={c.title}>
       <div className="px-4 py-6 space-y-6">
         <div className="relative aspect-square rounded-3xl overflow-hidden shadow-warm-lg bg-black">
-          <div
-            id={READER_ID}
-            className={`w-full h-full ${phase === 'scanning' ? 'block' : 'hidden'} [&_video]:!w-full [&_video]:!h-full [&_video]:!object-cover`}
+          <video
+            ref={videoRef}
+            className={`w-full h-full object-cover ${phase === 'scanning' ? 'block' : 'hidden'}`}
+            playsInline
+            muted
+            autoPlay
           />
           {phase === 'scanning' && (
             <>
