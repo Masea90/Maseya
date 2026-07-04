@@ -97,7 +97,7 @@ const normalize = (
 async function fetchFromMaseya(barcode: string): Promise<ProductData | null> {
   const { data, error } = await supabase
     .from('maseya_products')
-    .select('barcode, product_name, brand, category, ingredients_text, image_url, source')
+    .select('barcode, product_name, brand, category, category_tag, ingredients_text, image_url, source')
     .eq('barcode', barcode)
     .maybeSingle();
   if (error) {
@@ -126,6 +126,9 @@ async function fetchFromMaseya(barcode: string): Promise<ProductData | null> {
       console.warn('[productLookup] image auto-fetch failed', e);
     }
   }
+  const categoryTag = (data as { category_tag?: string | null }).category_tag || null;
+  const rawObj: Record<string, unknown> = { ...(data as unknown as Record<string, unknown>) };
+  if (categoryTag) rawObj.categories_tags = [categoryTag];
   return {
     barcode: data.barcode,
     source: 'maseya',
@@ -140,7 +143,7 @@ async function fetchFromMaseya(barcode: string): Promise<ProductData | null> {
     ingredients_analysis_tags: [],
     allergens_tags: [],
     traces_tags: [],
-    raw: data as unknown as Record<string, unknown>,
+    raw: rawObj,
   };
 }
 
