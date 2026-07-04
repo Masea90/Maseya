@@ -298,6 +298,7 @@ const PhotoCapturePage = () => {
         navigate(realBarcode ? `/result/${realBarcode}` : '/result/photo');
       } catch (e) {
         console.error('[photo-capture] ingredients error', e);
+        setErrorKind('network');
         setStep('error');
       }
     }
