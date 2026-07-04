@@ -198,7 +198,7 @@ export function AppRoutes() {
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/mira" element={<MiraPage />} />
-        <Route path="/premium" element={<PremiumPage />} />
+        <Route path="/premium" element={<Navigate to="/scan" replace />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
 
