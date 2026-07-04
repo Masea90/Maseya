@@ -548,6 +548,52 @@ const ResultPage = () => {
       </div>
 
       <RegistrationSheet open={showSheet} onOpenChange={setShowSheet} variant="soft" />
+
+      <Dialog open={showConsentDialog} onOpenChange={setShowConsentDialog}>
+        <DialogContent className="max-w-md mx-auto rounded-3xl">
+          <DialogHeader>
+            <div className="flex justify-center mb-3">
+              <div className="w-12 h-12 rounded-2xl bg-primary/15 flex items-center justify-center">
+                <HeartPulse className="w-6 h-6 text-primary" />
+              </div>
+            </div>
+            <DialogTitle className="text-center font-display">
+              Activar personalización
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm text-foreground/90">
+            <p>
+              Acepto el tratamiento de mis datos de salud (alergias, tipo de piel, embarazo) para
+              personalizar los análisis.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Sin este consentimiento la app sigue funcionando, pero solo con análisis generales.
+              Puedes cambiarlo en cualquier momento.{' '}
+              <a
+                href="/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-2"
+              >
+                Política de privacidad
+              </a>
+              .
+            </p>
+          </div>
+          <DialogFooter className="flex flex-row gap-2 sm:justify-end">
+            <Button
+              variant="outline"
+              className="flex-1 rounded-xl"
+              onClick={() => setShowConsentDialog(false)}
+            >
+              Ahora no
+            </Button>
+            <Button className="flex-1 rounded-xl" onClick={grantHealthConsent}>
+              Acepto
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
