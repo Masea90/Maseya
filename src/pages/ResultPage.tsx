@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { lookupProduct, ProductData } from '@/lib/productLookup';
 import {
   flagIngredients, calculateScore, calculatePersonalScore, scoreLabel, naturalness, personalAlerts, loadOnboarding,
+  isNutritionalData,
   FlaggedIngredient, PersonalAlert,
 } from '@/lib/scoring';
 import { RegistrationSheet } from '@/components/auth/RegistrationSheet';
