@@ -33,6 +33,8 @@ const ResultPage = () => {
   
 
   const [fromPhoto, setFromPhoto] = useState(false);
+  const [photoSaved, setPhotoSaved] = useState(false);
+
   const [healthProfile, setHealthProfile] = useState<any>(null);
   const [healthConsent, setHealthConsent] = useState<boolean>(() => hasHealthDataConsent());
   const [showConsentDialog, setShowConsentDialog] = useState(false);
