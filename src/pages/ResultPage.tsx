@@ -121,6 +121,11 @@ const ResultPage = () => {
         if (matchBarcode && p.barcode !== matchBarcode) return false;
         const cat: ProductData['category'] =
           p.category === 'food' ? 'food' : p.category === 'cosmetic' ? 'cosmetic' : 'unknown';
+        const categoryTag = typeof p.category_tag === 'string' && /^en:[a-z0-9-]+$/.test(p.category_tag)
+          ? p.category_tag
+          : null;
+        const rawObj: Record<string, unknown> = { ...p };
+        if (categoryTag) rawObj.categories_tags = [categoryTag];
         setProduct({
           barcode: p.barcode,
           source: 'photo',
@@ -135,7 +140,7 @@ const ResultPage = () => {
           ingredients_analysis_tags: [],
           allergens_tags: [],
           traces_tags: [],
-          raw: p,
+          raw: rawObj,
         });
         setFromPhoto(true);
         setPhotoSaved(p.saved === true);

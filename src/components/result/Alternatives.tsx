@@ -26,8 +26,12 @@ interface Candidate {
 const CACHE_PREFIX = 'maseya_alts_v1::';
 const FETCH_TIMEOUT_MS = 8000;
 
-const hostFor = (source: ProductData['source']) =>
-  source === 'obf' ? 'world.openbeautyfacts.org' : 'world.openfoodfacts.org';
+const hostForCategory = (category: 'food' | 'cosmetic') =>
+  category === 'cosmetic' ? 'world.openbeautyfacts.org' : 'world.openfoodfacts.org';
+
+// Best-effort guess for the source of a candidate returned by the search API.
+const sourceForCategory = (category: 'food' | 'cosmetic'): ProductData['source'] =>
+  category === 'cosmetic' ? 'obf' : 'off';
 
 const pickCategoryTag = (raw: Record<string, unknown>): string | null => {
   const tags = (raw as { categories_tags?: string[] })?.categories_tags;
@@ -89,9 +93,10 @@ export const Alternatives = ({ current, currentScore }: Props) => {
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<Candidate[] | null>(null);
 
-  const eligible =
-    (current.source === 'off' || current.source === 'obf') &&
-    (current.category === 'food' || current.category === 'cosmetic');
+  // Eligible when the product has any category (food/cosmetic) AND its raw
+  // payload includes a categories_tags array — regardless of the source
+  // (off/obf/maseya/photo). The search host is chosen by category, not source.
+  const eligible = current.category === 'food' || current.category === 'cosmetic';
   const categoryTag = eligible ? pickCategoryTag(current.raw) : null;
 
   useEffect(() => {
@@ -117,7 +122,9 @@ export const Alternatives = ({ current, currentScore }: Props) => {
 
     (async () => {
       try {
-        const host = hostFor(current.source);
+        const cat = current.category as 'food' | 'cosmetic';
+        const host = hostForCategory(cat);
+        const candidateSource = sourceForCategory(cat);
         const fields = [
           'code', 'product_name', 'product_name_es', 'brands', 'image_front_url',
           'nutriscore_grade', 'ingredients_text', 'ingredients_tags',
@@ -134,13 +141,12 @@ export const Alternatives = ({ current, currentScore }: Props) => {
 
         const consent = hasHealthDataConsent();
         const profile = consent ? loadProfile() : null;
-        const cat = current.category as 'food' | 'cosmetic';
 
         const scored: Candidate[] = [];
         for (const raw of json.products || []) {
           if (!raw.code || raw.code === current.barcode) continue;
           if (!raw.ingredients_text && !raw.nutriscore_grade) continue;
-          const pd = toProductData(raw, current.source, cat);
+          const pd = toProductData(raw, candidateSource, cat);
           if (!pd) continue;
           const flagged = flagIngredients(pd);
           const general = calculateScore(pd, flagged);

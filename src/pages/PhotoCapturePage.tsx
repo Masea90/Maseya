@@ -290,6 +290,9 @@ const PhotoCapturePage = () => {
         const brand = (data.brand as string) || '';
         const category = (data.category === 'food' ? 'food' : 'cosmetic') as 'food' | 'cosmetic';
         const ingredients_text = data.ingredients_text as string;
+        const category_tag = typeof data.category_tag === 'string' && /^en:[a-z0-9-]+$/.test(data.category_tag)
+          ? data.category_tag
+          : null;
         const serverSaved = data.saved === true;
         const finalBarcode = realBarcode || `photo_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
         const image = front;
@@ -324,6 +327,7 @@ const PhotoCapturePage = () => {
           product_name,
           brand,
           category,
+          category_tag,
           ingredients_text,
           image,
           saved: serverSaved,

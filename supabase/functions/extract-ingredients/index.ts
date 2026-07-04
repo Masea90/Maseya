@@ -12,9 +12,15 @@ const SYSTEM_PROMPT = `You are an expert at reading product labels. Extract the 
   "product_name": "full product name as shown",
   "brand": "brand name",
   "category": "food or cosmetic",
-  "ingredients_text": "complete ingredient list"
+  "ingredients_text": "complete ingredient list",
+  "category_tag": "most specific Open Food Facts / Open Beauty Facts category tag"
 }
-Use empty string if field not found. Include ALL ingredients exactly as written.`;
+Rules for "category_tag":
+- Always in English, prefixed with "en:", lowercase, words separated by hyphens.
+- Choose the MOST SPECIFIC reasonable category (e.g. "en:coconut-oils" not just "en:vegetable-oils"; "en:face-creams" not just "en:cosmetics").
+- Examples: "en:vegetable-oils", "en:coconut-oils", "en:biscuits", "en:yogurts", "en:breakfast-cereals", "en:shampoos", "en:face-creams", "en:body-lotions", "en:toothpastes".
+- If unsure, fall back to a more generic valid category. Never invent tags.
+Use empty string if any field is not found. Include ALL ingredients exactly as written.`;
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const ANON_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -191,7 +197,7 @@ serve(async (req) => {
     const data = await response.json();
     const raw: string = data.choices?.[0]?.message?.content || "";
 
-    let extracted: { product_name?: string; brand?: string; category?: string; ingredients_text?: string } = {};
+    let extracted: { product_name?: string; brand?: string; category?: string; ingredients_text?: string; category_tag?: string } = {};
     const tryParse = (s: string) => {
       try { return JSON.parse(s); } catch { return null; }
     };
@@ -223,6 +229,8 @@ serve(async (req) => {
     const category = extracted.category === "food" ? "food" : "cosmetic";
     const product_name = (extracted.product_name || "").trim() || "Producto fotografiado";
     const brand = (extracted.brand || "").trim();
+    const rawTag = (extracted.category_tag || "").trim().toLowerCase();
+    const category_tag = /^en:[a-z0-9-]+$/.test(rawTag) ? rawTag : null;
 
     // Optional server-side contribution to maseya_products (bypass RLS via
     // service role) so anonymous scans also feed the shared database.
@@ -272,6 +280,7 @@ serve(async (req) => {
               product_name,
               brand: brand || null,
               category,
+              category_tag,
               ingredients_text: ingredients,
               source: "photo",
               verified: false,
@@ -299,6 +308,7 @@ serve(async (req) => {
       product_name,
       brand,
       category,
+      category_tag,
       ingredients_text: ingredients,
       saved,
     }, 200);
