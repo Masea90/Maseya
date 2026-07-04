@@ -184,20 +184,35 @@ const PhotoCapturePage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, preview]);
 
-  const captureFrame = (): string | null => {
+  const captureFrame = async (): Promise<string | null> => {
     const v = videoRef.current;
     if (!v || !v.videoWidth) return null;
-    const canvas = document.createElement('canvas');
-    canvas.width = v.videoWidth;
-    canvas.height = v.videoHeight;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return null;
-    ctx.drawImage(v, 0, 0);
-    return canvas.toDataURL('image/jpeg', 0.85);
+    const srcCanvas = document.createElement('canvas');
+    srcCanvas.width = v.videoWidth;
+    srcCanvas.height = v.videoHeight;
+    const srcCtx = srcCanvas.getContext('2d');
+    if (!srcCtx) return null;
+    srcCtx.drawImage(v, 0, 0);
+
+    // Downscale: longest side max 1600px, JPEG quality 0.8 → keeps payload
+    // well under the 5MB edge-function limit and speeds up upload/analysis.
+    const MAX_SIDE = 1600;
+    const longest = Math.max(srcCanvas.width, srcCanvas.height);
+    const scale = longest > MAX_SIDE ? MAX_SIDE / longest : 1;
+    const outW = Math.round(srcCanvas.width * scale);
+    const outH = Math.round(srcCanvas.height * scale);
+    const outCanvas = document.createElement('canvas');
+    outCanvas.width = outW;
+    outCanvas.height = outH;
+    const outCtx = outCanvas.getContext('2d');
+    if (!outCtx) return null;
+    outCtx.imageSmoothingQuality = 'high';
+    outCtx.drawImage(srcCanvas, 0, 0, outW, outH);
+    return outCanvas.toDataURL('image/jpeg', 0.8);
   };
 
-  const onCapture = () => {
-    const dataUrl = captureFrame();
+  const onCapture = async () => {
+    const dataUrl = await captureFrame();
     if (!dataUrl) return;
     setPreview(dataUrl);
     stopCamera();
