@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, ChevronDown, Sparkles, Loader2, Camera, Info } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { lookupProduct, ProductData } from '@/lib/productLookup';
 import {
   flagIngredients, calculateScore, calculatePersonalScore, scoreLabel, naturalness, personalAlerts, loadOnboarding,
+  isNutritionalData,
   FlaggedIngredient, PersonalAlert,
 } from '@/lib/scoring';
 import { RegistrationSheet } from '@/components/auth/RegistrationSheet';
@@ -197,9 +198,19 @@ const ResultPage = () => {
   }, [barcode]);
 
 
-  // Persist + soft paywall logic
+  // Persist + soft paywall logic. Guarded so it only fires ONCE per product,
+  // regardless of how many times deps like isAuthenticated/currentUser?.id
+  // hydrate (previously this incremented the anon counter multiple times and
+  // could also toggle showSheet back and forth on re-renders).
+  const persistedRef = useRef<string | null>(null);
   useEffect(() => {
     if (!product) return;
+    // Wait until we know the auth state (avoids racing anon-vs-authed writes).
+    if (isAuthenticated && !currentUser?.id) return;
+    const key = `${product.barcode}::${isAuthenticated ? currentUser?.id : 'anon'}`;
+    if (persistedRef.current === key) return;
+    persistedRef.current = key;
+
     const flagged = flagIngredients(product);
     const score = calculateScore(product, flagged);
 
@@ -223,13 +234,26 @@ const ResultPage = () => {
         if (error) console.error('[scan_history] insert', error);
       });
     } else {
-      const key = 'maseya_anon_scans';
-      const count = Number(localStorage.getItem(key) || '0') + 1;
-      localStorage.setItem(key, String(count));
-      // Anonymous users: 5 free scans then registration prompt
-      if (count >= 5) setShowSheet(true);
+      const ck = 'maseya_anon_scans';
+      const count = Number(localStorage.getItem(ck) || '0') + 1;
+      localStorage.setItem(ck, String(count));
+      // Anonymous users: prompt registration from the 5th scan onwards, but
+      // don't spam — only show once every 24h so the user can keep browsing
+      // if they dismissed it.
+      if (count >= 5) {
+        const lastShown = Number(localStorage.getItem('maseya_regsheet_shown_at') || '0');
+        const dayMs = 24 * 60 * 60 * 1000;
+        if (Date.now() - lastShown > dayMs) {
+          localStorage.setItem('maseya_regsheet_shown_at', String(Date.now()));
+          // Defer to next tick so the result page has painted first — some
+          // browsers otherwise skip the sheet's enter animation and it appears
+          // to never open.
+          setTimeout(() => setShowSheet(true), 400);
+        }
+      }
     }
   }, [product, isAuthenticated, currentUser?.id]);
+
 
   if (loading) {
     return (
@@ -278,7 +302,14 @@ const ResultPage = () => {
     ? calculatePersonalScore(product, flagged, healthProfile || profile, score)
     : score;
   const psl = scoreLabel(personalScore);
-  const hasIngredientData = flagged.length >= 3;
+  // Consider ingredient data available when we have ANY flagged item OR when
+  // there's non-nutritional ingredients text. Many legit products are
+  // mono-ingredient (coconut oil, honey, salt, rice, legumes) — the old
+  // `flagged.length >= 3` heuristic wrongly hid them.
+  const rawText = (product.ingredients_text || '').trim();
+  const hasIngredientData =
+    flagged.length >= 1 ||
+    (rawText.length > 0 && !isNutritionalData(rawText));
   const hasNutriscore = product.category === 'food' && !!product.nutriscore_grade;
   const showScore = product.category === 'cosmetic'
     ? hasIngredientData

@@ -1,4 +1,3 @@
-import { Sparkles } from 'lucide-react';
 import type { ProductData } from '@/lib/productLookup';
 
 interface Props {
@@ -6,18 +5,18 @@ interface Props {
   currentScore: number;
 }
 
-export const Alternatives = ({}: Props) => {
-  return (
-    <div>
-      <h3 className="font-display font-semibold mb-3">Mejores opciones para ti</h3>
-      <div className="rounded-2xl border border-border bg-card p-5 flex flex-col items-center gap-2 text-center">
-        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-          <Sparkles className="w-5 h-5 text-primary" />
-        </div>
-        <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
-          Estamos trabajando en recomendaciones personalizadas. Próximamente.
-        </p>
-      </div>
-    </div>
-  );
+// Alternatives are only meaningful when we have OFF/OBF category data to
+// compare against. For photo-contributed products (source: 'photo') or items
+// without a real category, we render nothing instead of a placeholder.
+export const Alternatives = ({ current }: Props) => {
+  const hasCategoryData =
+    current.source !== 'photo' &&
+    current.category !== 'unknown' &&
+    !!current.category;
+
+  if (!hasCategoryData) return null;
+
+  // TODO: real recommendation engine. Until it ships we render nothing
+  // rather than a "coming soon" placeholder.
+  return null;
 };
