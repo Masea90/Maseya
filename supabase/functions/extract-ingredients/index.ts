@@ -197,7 +197,7 @@ serve(async (req) => {
     const data = await response.json();
     const raw: string = data.choices?.[0]?.message?.content || "";
 
-    let extracted: { product_name?: string; brand?: string; category?: string; ingredients_text?: string } = {};
+    let extracted: { product_name?: string; brand?: string; category?: string; ingredients_text?: string; category_tag?: string } = {};
     const tryParse = (s: string) => {
       try { return JSON.parse(s); } catch { return null; }
     };
@@ -229,6 +229,8 @@ serve(async (req) => {
     const category = extracted.category === "food" ? "food" : "cosmetic";
     const product_name = (extracted.product_name || "").trim() || "Producto fotografiado";
     const brand = (extracted.brand || "").trim();
+    const rawTag = (extracted.category_tag || "").trim().toLowerCase();
+    const category_tag = /^en:[a-z0-9-]+$/.test(rawTag) ? rawTag : null;
 
     // Optional server-side contribution to maseya_products (bypass RLS via
     // service role) so anonymous scans also feed the shared database.
