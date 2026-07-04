@@ -31,6 +31,9 @@ function buildBasicSummary(
     ingredients_tags: [],
     labels_tags: [],
     ingredients_analysis_tags: [],
+    allergens_tags: [],
+    traces_tags: [],
+
     nutriscore_grade: null,
     image: null,
     barcode: '',
