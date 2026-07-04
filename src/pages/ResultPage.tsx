@@ -250,8 +250,10 @@ const ResultPage = () => {
   const sl = scoreLabel(score);
   const nat = naturalness(product, flagged);
   const profile = loadOnboarding();
-  const alerts = personalAlerts(product, profile);
-  const personalScore = calculatePersonalScore(product, flagged, healthProfile || profile, score);
+  const alerts = healthConsent ? personalAlerts(product, profile) : [];
+  const personalScore = healthConsent
+    ? calculatePersonalScore(product, flagged, healthProfile || profile, score)
+    : score;
   const psl = scoreLabel(personalScore);
   const hasIngredientData = flagged.length >= 3;
   const hasNutriscore = product.category === 'food' && !!product.nutriscore_grade;
