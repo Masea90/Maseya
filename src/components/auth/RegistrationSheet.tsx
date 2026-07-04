@@ -9,42 +9,43 @@ const FREE_LIMIT = 5;
 
 const COPY = {
   es: {
-    title: 'Guarda tu análisis',
-    desc: 'Crea una cuenta para guardar tu historial y mejorar tu perfil.',
+    title: 'Crea tu cuenta gratis',
+    desc: 'Guarda tu historial de escaneos, sincroniza tu perfil en todos tus dispositivos y contribuye a que la base de datos crezca para todos.',
     google: 'Continuar con Google',
     email: 'Usar email',
-    skip: 'Ahora no',
+    skip: 'Continuar sin cuenta',
     remaining: (n: number) =>
-      n === 1 ? 'Te queda 1 escaneo gratis' : `Te quedan ${n} escaneos gratis`,
-    paywallTitle: 'Has alcanzado el límite gratuito',
-    paywallDesc: 'Crea una cuenta para continuar escaneando.',
-    create: 'Crear cuenta',
+      n === 1 ? 'Te queda 1 escaneo antes de registrarte' : `Te quedan ${n} escaneos antes de registrarte`,
+    paywallTitle: 'Crea tu cuenta gratis para seguir',
+    paywallDesc: 'Guarda tu historial, sincroniza tu perfil en todos tus dispositivos y ayúdanos a mejorar la base de datos.',
+    create: 'Crear cuenta gratis',
   },
   en: {
-    title: 'Save your scan',
-    desc: 'Create an account to save your history and improve your profile.',
+    title: 'Create your free account',
+    desc: 'Save your scan history, sync your profile across devices, and help grow the database for everyone.',
     google: 'Continue with Google',
     email: 'Use email',
-    skip: 'Not now',
+    skip: 'Continue without an account',
     remaining: (n: number) =>
-      n === 1 ? '1 free scan left' : `${n} free scans left`,
-    paywallTitle: 'You hit the free limit',
-    paywallDesc: 'Create an account to keep scanning.',
-    create: 'Create account',
+      n === 1 ? '1 scan left before signing up' : `${n} scans left before signing up`,
+    paywallTitle: 'Create your free account to continue',
+    paywallDesc: 'Save your history, sync your profile across devices, and help improve the database.',
+    create: 'Create free account',
   },
   fr: {
-    title: 'Enregistre ton analyse',
-    desc: 'Crée un compte pour sauvegarder ton historique et améliorer ton profil.',
+    title: 'Crée ton compte gratuit',
+    desc: 'Sauvegarde ton historique de scans, synchronise ton profil sur tous tes appareils et aide à enrichir la base de données pour tous.',
     google: 'Continuer avec Google',
     email: 'Utiliser email',
-    skip: 'Pas maintenant',
+    skip: 'Continuer sans compte',
     remaining: (n: number) =>
-      n === 1 ? 'Il te reste 1 scan gratuit' : `Il te reste ${n} scans gratuits`,
-    paywallTitle: 'Tu as atteint la limite gratuite',
-    paywallDesc: 'Crée un compte pour continuer.',
-    create: 'Créer un compte',
+      n === 1 ? 'Il te reste 1 scan avant inscription' : `Il te reste ${n} scans avant inscription`,
+    paywallTitle: 'Crée ton compte gratuit pour continuer',
+    paywallDesc: "Sauvegarde ton historique, synchronise ton profil et aide à améliorer la base de données.",
+    create: 'Créer un compte gratuit',
   },
 };
+
 
 interface RegistrationSheetProps {
   open: boolean;
