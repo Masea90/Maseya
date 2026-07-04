@@ -437,18 +437,32 @@ const PhotoCapturePage = () => {
           </div>
         )}
 
-        {step === 'error' && (
-          <div className="py-12 flex flex-col items-center gap-4 text-center">
-            <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center">
-              <Camera className="w-8 h-8 text-destructive" />
+        {step === 'error' && (() => {
+          const msg =
+            errorKind === 'session' ? (c as any).errorSession :
+            errorKind === 'rate' ? (c as any).errorRate :
+            errorKind === 'network' ? (c as any).errorNetwork :
+            errorKind === 'nutritional' ? (c as any).errorNutritional :
+            c.error;
+          return (
+            <div className="py-12 flex flex-col items-center gap-4 text-center">
+              <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center">
+                <Camera className="w-8 h-8 text-destructive" />
+              </div>
+              <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">{msg}</p>
+              {errorKind === 'session' ? (
+                <Button onClick={() => navigate('/login')} className="h-12 rounded-2xl px-6">
+                  {(c as any).loginCta}
+                </Button>
+              ) : (
+                <Button onClick={() => setStep(addImageFor ? 'front' : 'ingredients')} className="h-12 rounded-2xl px-6">
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  {c.retry}
+                </Button>
+              )}
             </div>
-            <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">{c.error}</p>
-            <Button onClick={() => setStep(addImageFor ? 'front' : 'ingredients')} className="h-12 rounded-2xl px-6">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              {c.retry}
-            </Button>
-          </div>
-        )}
+          );
+        })()}
       </div>
     </div>
   );
