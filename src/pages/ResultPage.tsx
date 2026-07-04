@@ -135,7 +135,9 @@ const ResultPage = () => {
           raw: p,
         });
         setFromPhoto(true);
+        setPhotoSaved(p.saved === true);
         setLoading(false);
+
         return true;
       } catch (e) {
         console.error('[result] photo parse failed', e);
