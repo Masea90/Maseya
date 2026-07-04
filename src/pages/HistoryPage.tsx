@@ -74,18 +74,14 @@ const HistoryPage = () => {
       setLoading(false);
       return;
     }
-    // Free users: last 3 months only. Premium: full history.
-    const isPremium = (() => {
-      try { return localStorage.getItem('maseya_premium_test') === 'true'; } catch { return false; }
-    })();
-    const threeMonthsAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
-    let q = supabase
+    // Full history available for all users — Maseya is 100% free.
+    const q = supabase
       .from('scan_history')
       .select('id,barcode,product_name,product_image,category,scanned_at,scores')
       .eq('user_id', currentUser.id)
       .order('scanned_at', { ascending: false })
-      .limit(isPremium ? 500 : 100);
-    if (!isPremium) q = q.gte('scanned_at', threeMonthsAgo);
+      .limit(500);
+
     q
       .then(({ data, error }) => {
         if (error) {
