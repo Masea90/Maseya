@@ -163,6 +163,7 @@ export function AppRoutes() {
       <OnboardingGate>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/update-password" element={<UpdatePasswordPage />} />
           <Route path="/welcome" element={<WelcomeScreen />} />
