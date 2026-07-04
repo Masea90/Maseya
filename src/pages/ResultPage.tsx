@@ -547,7 +547,7 @@ const ResultPage = () => {
               </div>
             </Collapsible>
 
-            {/* Mira personalised analysis (Premium gated) */}
+            {/* Mira personalised analysis — free for everyone */}
             <MiraAnalysis
               product={{
                 product_name: product.name,
