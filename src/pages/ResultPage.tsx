@@ -565,6 +565,9 @@ const ResultPage = () => {
           </>
         )}
 
+        {/* PWA install prompt — shown after the first scan result renders */}
+        <InstallPrompt />
+
         {/* Medical / legal disclaimer — always visible on results */}
         <div className="mt-4 rounded-2xl border border-border/70 bg-muted/40 p-4">
           <p className="text-[11px] leading-relaxed text-muted-foreground">
@@ -573,6 +576,7 @@ const ResultPage = () => {
           </p>
         </div>
       </div>
+
 
       <RegistrationSheet open={showSheet} onOpenChange={setShowSheet} variant="soft" />
 
