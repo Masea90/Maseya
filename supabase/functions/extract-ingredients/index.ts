@@ -308,6 +308,7 @@ serve(async (req) => {
       product_name,
       brand,
       category,
+      category_tag,
       ingredients_text: ingredients,
       saved,
     }, 200);
