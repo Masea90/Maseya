@@ -271,7 +271,12 @@ const tagMatches = (tags: string[], ids: string[]) =>
 
 export function personalAlerts(p: ProductData, profile: OnboardingProfile): PersonalAlert[] {
   const alerts: PersonalAlert[] = [];
-  const text = lower(p.ingredients_text || '') + ' ' + p.ingredients_tags.join(' ');
+  const ingredientsTags = Array.isArray(p.ingredients_tags) ? p.ingredients_tags : [];
+  const allergensTags = Array.isArray(p.allergens_tags) ? p.allergens_tags : [];
+  const tracesTags = Array.isArray(p.traces_tags) ? p.traces_tags : [];
+  const skin = Array.isArray(profile?.skin) ? profile.skin : [];
+  const allergies = Array.isArray(profile?.allergies) ? profile.allergies : [];
+  const text = lower(p.ingredients_text || '') + ' ' + ingredientsTags.join(' ');
 
   const has = (kw: string) => text.includes(kw);
   const isCosmetic = p.category === 'cosmetic';
