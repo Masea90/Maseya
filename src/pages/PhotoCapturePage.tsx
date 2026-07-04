@@ -105,6 +105,7 @@ const COPY = {
   },
 };
 
+type ErrorKind = 'lighting' | 'session' | 'rate' | 'network' | 'nutritional';
 type Step = 'front' | 'ingredients' | 'analyzing' | 'error' | 'image-saved';
 
 const PhotoCapturePage = () => {
