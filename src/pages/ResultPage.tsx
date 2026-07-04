@@ -34,6 +34,35 @@ const ResultPage = () => {
 
   const [fromPhoto, setFromPhoto] = useState(false);
   const [healthProfile, setHealthProfile] = useState<any>(null);
+  const [healthConsent, setHealthConsent] = useState<boolean>(() => hasHealthDataConsent());
+  const [showConsentDialog, setShowConsentDialog] = useState(false);
+
+  const grantHealthConsent = async () => {
+    const current = getStoredConsent();
+    saveConsent({
+      analytics: !!current?.analytics,
+      personalization: current?.personalization ?? true,
+      health_data: true,
+      date: new Date().toISOString(),
+    });
+    setHealthConsent(true);
+    setShowConsentDialog(false);
+    if (currentUser?.id) {
+      try {
+        await supabase
+          .from('profiles')
+          .update({
+            consent_analytics: !!current?.analytics,
+            consent_personalization: current?.personalization ?? true,
+            consent_health_data: true,
+            consent_date: new Date().toISOString(),
+          })
+          .eq('user_id', currentUser.id);
+      } catch (e) {
+        console.error('[consent] db sync failed', e);
+      }
+    }
+  };
 
   useEffect(() => {
     if (!currentUser?.id) {
