@@ -172,7 +172,8 @@ export function AppRoutes() {
           <Route path="/scan" element={<ScannerPage />} />
           <Route path="/scan/photo" element={<PhotoCapturePage />} />
           <Route path="/result/:barcode" element={<ResultPage />} />
-          <Route path="/premium" element={<PremiumPage />} />
+          <Route path="/premium" element={<Navigate to="/scan" replace />} />
+
           <Route path="/history" element={<Navigate to="/login" replace />} />
           <Route path="/profile" element={<Navigate to="/login" replace />} />
           <Route path="/mira" element={<Navigate to="/login" replace />} />
