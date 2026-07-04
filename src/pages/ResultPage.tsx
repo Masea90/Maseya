@@ -15,6 +15,9 @@ import {
 import { RegistrationSheet } from '@/components/auth/RegistrationSheet';
 import { MiraAnalysis } from '@/components/result/MiraAnalysis';
 import { Alternatives } from '@/components/result/Alternatives';
+import { hasHealthDataConsent, getStoredConsent, saveConsent } from '@/components/consent/ConsentModal';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { HeartPulse } from 'lucide-react';
 
 const ResultPage = () => {
   const { barcode } = useParams<{ barcode: string }>();
@@ -31,6 +34,35 @@ const ResultPage = () => {
 
   const [fromPhoto, setFromPhoto] = useState(false);
   const [healthProfile, setHealthProfile] = useState<any>(null);
+  const [healthConsent, setHealthConsent] = useState<boolean>(() => hasHealthDataConsent());
+  const [showConsentDialog, setShowConsentDialog] = useState(false);
+
+  const grantHealthConsent = async () => {
+    const current = getStoredConsent();
+    saveConsent({
+      analytics: !!current?.analytics,
+      personalization: current?.personalization ?? true,
+      health_data: true,
+      date: new Date().toISOString(),
+    });
+    setHealthConsent(true);
+    setShowConsentDialog(false);
+    if (currentUser?.id) {
+      try {
+        await supabase
+          .from('profiles')
+          .update({
+            consent_analytics: !!current?.analytics,
+            consent_personalization: current?.personalization ?? true,
+            consent_health_data: true,
+            consent_date: new Date().toISOString(),
+          })
+          .eq('user_id', currentUser.id);
+      } catch (e) {
+        console.error('[consent] db sync failed', e);
+      }
+    }
+  };
 
   useEffect(() => {
     if (!currentUser?.id) {
@@ -218,8 +250,10 @@ const ResultPage = () => {
   const sl = scoreLabel(score);
   const nat = naturalness(product, flagged);
   const profile = loadOnboarding();
-  const alerts = personalAlerts(product, profile);
-  const personalScore = calculatePersonalScore(product, flagged, healthProfile || profile, score);
+  const alerts = healthConsent ? personalAlerts(product, profile) : [];
+  const personalScore = healthConsent
+    ? calculatePersonalScore(product, flagged, healthProfile || profile, score)
+    : score;
   const psl = scoreLabel(personalScore);
   const hasIngredientData = flagged.length >= 3;
   const hasNutriscore = product.category === 'food' && !!product.nutriscore_grade;
@@ -316,17 +350,19 @@ const ResultPage = () => {
                       <div className="text-xs font-medium text-muted-foreground">General</div>
                     </div>
 
-                    {/* Personal score (free for everyone) */}
-                    <div className="flex flex-col items-center gap-1.5">
-                      <div
-                        className="w-32 h-32 rounded-full flex flex-col items-center justify-center shadow-warm-lg ring-4 ring-primary/40"
-                        style={{ backgroundColor: psl.bg, color: psl.color }}
-                      >
-                        <div className="text-4xl font-bold">{personalScore}</div>
-                        <div className="text-[10px] uppercase tracking-wider opacity-90">/ 100</div>
+                    {/* Personal score — only when health-data consent is given */}
+                    {healthConsent && (
+                      <div className="flex flex-col items-center gap-1.5">
+                        <div
+                          className="w-32 h-32 rounded-full flex flex-col items-center justify-center shadow-warm-lg ring-4 ring-primary/40"
+                          style={{ backgroundColor: psl.bg, color: psl.color }}
+                        >
+                          <div className="text-4xl font-bold">{personalScore}</div>
+                          <div className="text-[10px] uppercase tracking-wider opacity-90">/ 100</div>
+                        </div>
+                        <div className="text-xs font-semibold text-primary">Para ti</div>
                       </div>
-                      <div className="text-xs font-semibold text-primary">Para ti</div>
-                    </div>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-1.5">
@@ -449,10 +485,26 @@ const ResultPage = () => {
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <div className="p-4 pt-0 space-y-2">
-                    {alerts.length === 0 ? (
+                    {!healthConsent ? (
+                      <div className="flex gap-3 items-start p-3 rounded-xl border border-primary/30 bg-primary/5">
+                        <HeartPulse className="w-5 h-5 text-primary mt-0.5 shrink-0" />
+                        <div className="flex-1 space-y-2">
+                          <p className="text-sm text-foreground/90">
+                            Activa la personalización para saber si este producto es adecuado para tu perfil.
+                          </p>
+                          <Button
+                            size="sm"
+                            className="rounded-xl"
+                            onClick={() => setShowConsentDialog(true)}
+                          >
+                            Activar personalización
+                          </Button>
+                        </div>
+                      </div>
+                    ) : alerts.length === 0 ? (
                       <p className="text-sm text-muted-foreground">
                         {hasIngredientData
-                          ? 'Completa tu perfil para ver análisis personalizado.'
+                          ? 'No hemos detectado incompatibilidades con tu perfil. Verifica siempre el etiquetado.'
                           : 'Fotografía la etiqueta para ver si este producto es adecuado para ti.'}
                       </p>
                     ) : (
@@ -476,7 +528,7 @@ const ResultPage = () => {
                 category: product.category,
                 ingredients_text: product.ingredients_text || '',
               }}
-              profile={healthProfile || profile}
+              profile={healthConsent ? (healthProfile || profile) : null}
               score={score}
               hasIngredientData={hasIngredientData}
             />
@@ -496,6 +548,52 @@ const ResultPage = () => {
       </div>
 
       <RegistrationSheet open={showSheet} onOpenChange={setShowSheet} variant="soft" />
+
+      <Dialog open={showConsentDialog} onOpenChange={setShowConsentDialog}>
+        <DialogContent className="max-w-md mx-auto rounded-3xl">
+          <DialogHeader>
+            <div className="flex justify-center mb-3">
+              <div className="w-12 h-12 rounded-2xl bg-primary/15 flex items-center justify-center">
+                <HeartPulse className="w-6 h-6 text-primary" />
+              </div>
+            </div>
+            <DialogTitle className="text-center font-display">
+              Activar personalización
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm text-foreground/90">
+            <p>
+              Acepto el tratamiento de mis datos de salud (alergias, tipo de piel, embarazo) para
+              personalizar los análisis.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Sin este consentimiento la app sigue funcionando, pero solo con análisis generales.
+              Puedes cambiarlo en cualquier momento.{' '}
+              <a
+                href="/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-2"
+              >
+                Política de privacidad
+              </a>
+              .
+            </p>
+          </div>
+          <DialogFooter className="flex flex-row gap-2 sm:justify-end">
+            <Button
+              variant="outline"
+              className="flex-1 rounded-xl"
+              onClick={() => setShowConsentDialog(false)}
+            >
+              Ahora no
+            </Button>
+            <Button className="flex-1 rounded-xl" onClick={grantHealthConsent}>
+              Acepto
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -22,6 +22,7 @@ import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import UpdatePasswordPage from '@/pages/UpdatePasswordPage';
 import NotFound from '@/pages/NotFound';
 import OAuthConsentPage from '@/pages/OAuthConsentPage';
+import PrivacyPage from '@/pages/PrivacyPage';
 
 const ONBOARDING_KEY = 'maseya_onboarding';
 
@@ -105,7 +106,7 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
 
   // Authenticated user without a health profile → force quiz (skip welcome).
   if (userId && !onboardingDone) {
-    const allowedForQuiz = ['/onboarding/quiz', '/onboarding/language', '/update-password', '/admin'];
+    const allowedForQuiz = ['/onboarding/quiz', '/onboarding/language', '/update-password', '/admin', '/privacy'];
     if (!allowedForQuiz.includes(path)) {
       return <Navigate to="/onboarding/quiz" replace />;
     }
@@ -114,7 +115,7 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
 
   // Anonymous user without onboarding → welcome flow.
   if (!userId && !onboardingDone) {
-    const allowed = ['/welcome', '/onboarding/quiz', '/onboarding/language', '/update-password', '/login', '/reset-password'];
+    const allowed = ['/welcome', '/onboarding/quiz', '/onboarding/language', '/update-password', '/login', '/reset-password', '/privacy'];
     if (!allowed.includes(path)) {
       return <Navigate to="/welcome" replace />;
     }
@@ -162,6 +163,7 @@ export function AppRoutes() {
       <OnboardingGate>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/update-password" element={<UpdatePasswordPage />} />
           <Route path="/welcome" element={<WelcomeScreen />} />
@@ -197,6 +199,7 @@ export function AppRoutes() {
         <Route path="/mira" element={<MiraPage />} />
         <Route path="/premium" element={<PremiumPage />} />
         <Route path="/admin" element={<AdminPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
 
         <Route path="/update-password" element={<UpdatePasswordPage />} />
 

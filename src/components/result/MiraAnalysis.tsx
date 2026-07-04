@@ -65,9 +65,11 @@ export const MiraAnalysis = ({ product, profile, score, hasIngredientData = true
   const startedRef = useRef(false);
 
   // Free basic summary (always available, no AI call)
-  const basicSummary = hasIngredientData
-    ? buildBasicSummary(product, profile, score)
-    : 'Fotografía la etiqueta para obtener un análisis completo de este producto.';
+  const basicSummary = !hasIngredientData
+    ? 'Fotografía la etiqueta para obtener un análisis completo de este producto.'
+    : profile
+      ? buildBasicSummary(product, profile, score)
+      : 'Análisis general del producto. Activa la personalización para ver si es adecuado para tu perfil.';
 
   useEffect(() => {
     if (!premium || startedRef.current) return;
