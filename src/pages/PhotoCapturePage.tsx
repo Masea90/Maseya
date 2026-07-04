@@ -228,11 +228,32 @@ const PhotoCapturePage = () => {
       setStep('analyzing');
       try {
         const front = frontPhoto ?? localStorage.getItem('maseya_photo_front');
-        const { data, error: fnError } = await supabase.functions.invoke('extract-ingredients', {
-          body: { front_image: front, ingredients_image: ingredientsImage },
-        });
-        if (fnError || !data || data.error) {
-          console.error('[photo-capture] extract failed', fnError, data);
+        const { data: sess } = await supabase.auth.getSession();
+        const token = sess.session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+        const url = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/extract-ingredients`;
+        let res: Response;
+        try {
+          res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ front_image: front, ingredients_image: ingredientsImage }),
+          });
+        } catch (netErr) {
+          console.error('[photo-capture] network error', netErr);
+          setErrorKind('network');
+          setStep('error');
+          return;
+        }
+        let data: any = null;
+        try { data = await res.json(); } catch {}
+        if (!res.ok || !data || data.error) {
+          console.error('[photo-capture] extract failed', res.status, data);
+          if (res.status === 401) setErrorKind('session');
+          else if (res.status === 429 || res.status === 402) setErrorKind('rate');
+          else if (data?.error === 'nutritional_table_detected') setErrorKind('nutritional');
+          else if (data?.error === 'no_ingredients' || data?.error === 'parse_failed') setErrorKind('lighting');
+          else if (res.status >= 500) setErrorKind('network');
+          else setErrorKind('lighting');
           setStep('error');
           return;
         }
