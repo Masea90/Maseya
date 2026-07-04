@@ -592,7 +592,7 @@ const ResultPage = () => {
             />
 
             {/* Alternatives */}
-            <Alternatives current={product} currentScore={score} />
+            <Alternatives current={product} currentScore={healthConsent ? personalScore : score} />
           </>
         )}
 
