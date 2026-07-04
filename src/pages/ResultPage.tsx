@@ -483,10 +483,26 @@ const ResultPage = () => {
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <div className="p-4 pt-0 space-y-2">
-                    {alerts.length === 0 ? (
+                    {!healthConsent ? (
+                      <div className="flex gap-3 items-start p-3 rounded-xl border border-primary/30 bg-primary/5">
+                        <HeartPulse className="w-5 h-5 text-primary mt-0.5 shrink-0" />
+                        <div className="flex-1 space-y-2">
+                          <p className="text-sm text-foreground/90">
+                            Activa la personalización para saber si este producto es adecuado para tu perfil.
+                          </p>
+                          <Button
+                            size="sm"
+                            className="rounded-xl"
+                            onClick={() => setShowConsentDialog(true)}
+                          >
+                            Activar personalización
+                          </Button>
+                        </div>
+                      </div>
+                    ) : alerts.length === 0 ? (
                       <p className="text-sm text-muted-foreground">
                         {hasIngredientData
-                          ? 'Completa tu perfil para ver análisis personalizado.'
+                          ? 'No hemos detectado incompatibilidades con tu perfil. Verifica siempre el etiquetado.'
                           : 'Fotografía la etiqueta para ver si este producto es adecuado para ti.'}
                       </p>
                     ) : (
@@ -510,7 +526,7 @@ const ResultPage = () => {
                 category: product.category,
                 ingredients_text: product.ingredients_text || '',
               }}
-              profile={healthProfile || profile}
+              profile={healthConsent ? (healthProfile || profile) : null}
               score={score}
               hasIngredientData={hasIngredientData}
             />
