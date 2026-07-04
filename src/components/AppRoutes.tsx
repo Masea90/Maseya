@@ -14,7 +14,7 @@ import ResultPage from '@/pages/ResultPage';
 import HistoryPage from '@/pages/HistoryPage';
 import ProfilePage from '@/pages/ProfilePage';
 import MiraPage from '@/pages/MiraPage';
-import PremiumPage from '@/pages/PremiumPage';
+
 
 import LoginPage from '@/pages/LoginPage';
 import AdminPage from '@/pages/AdminPage';
