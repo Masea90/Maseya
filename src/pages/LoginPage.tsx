@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Link } from 'react-router-dom';
@@ -41,6 +41,9 @@ const T = {
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const rawNext = searchParams.get('next');
+  const nextPath = rawNext && rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/';
   const { login, signUp, signInWithGoogle } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -72,7 +75,7 @@ const LoginPage = () => {
         const result = await login(email, password);
         if (result.success) {
           toast.success(T.welcomeToast);
-          navigate('/');
+          navigate(nextPath);
         } else {
           toast.error(result.error || T.loginFailed);
         }
@@ -110,7 +113,7 @@ const LoginPage = () => {
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     try {
-      const result = await signInWithGoogle();
+      const result = await signInWithGoogle(nextPath);
       if (!result.success) {
         toast.error(result.error || T.googleSignInFailed);
       }
