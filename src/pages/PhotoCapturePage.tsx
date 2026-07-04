@@ -65,7 +65,7 @@ const COPY = {
     errorPayment: 'Analysis service temporarily unavailable',
     errorUnexpected: 'Unexpected error. Try again in a few seconds',
     errorNutritional: 'Looks like you photographed the nutrition table. Photograph the ingredient list instead.',
-    loginCta: 'Log in',
+    errorTooLarge: 'Photo is too large. Try getting closer to the product.',
     retry: 'Try again',
     addImageOnly: 'Add product photo',
     savedImage: 'Thanks! Image added.',
