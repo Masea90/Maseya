@@ -107,15 +107,13 @@ const ResultPage = () => {
       setNotFound(true);
       return;
     }
-    if (barcode === 'photo') {
+
+    const loadFromPhotoLocalStorage = (matchBarcode?: string): boolean => {
       try {
         const raw = localStorage.getItem('maseya_photo_product');
-        if (!raw) {
-          setNotFound(true);
-          setLoading(false);
-          return;
-        }
+        if (!raw) return false;
         const p = JSON.parse(raw);
+        if (matchBarcode && p.barcode !== matchBarcode) return false;
         const cat: ProductData['category'] =
           p.category === 'food' ? 'food' : p.category === 'cosmetic' ? 'cosmetic' : 'unknown';
         setProduct({
@@ -136,13 +134,28 @@ const ResultPage = () => {
         });
         setFromPhoto(true);
         setLoading(false);
+        return true;
       } catch (e) {
         console.error('[result] photo parse failed', e);
+        return false;
+      }
+    };
+
+    if (barcode === 'photo') {
+      if (!loadFromPhotoLocalStorage()) {
         setNotFound(true);
         setLoading(false);
       }
       return;
     }
+
+    // Anonymous photo flow: if the user just photographed this exact barcode,
+    // saveToMaseya may have failed silently (not_authenticated). Use the
+    // in-memory capture from localStorage before hitting the network.
+    if (loadFromPhotoLocalStorage(barcode)) {
+      return;
+    }
+
     let cancelled = false;
     (async () => {
       const data = await lookupProduct(barcode);
@@ -160,6 +173,9 @@ const ResultPage = () => {
         if (cancelled) return;
         setEnriching(false);
         if (!retry) {
+          // Symmetric fallback: if a photo capture for this barcode exists
+          // locally, surface it instead of a dead-end "not found".
+          if (loadFromPhotoLocalStorage(barcode)) return;
           setNotFound(true);
           setLoading(false);
           return;
@@ -173,6 +189,7 @@ const ResultPage = () => {
     })();
     return () => { cancelled = true; };
   }, [barcode]);
+
 
   // Persist + soft paywall logic
   useEffect(() => {
