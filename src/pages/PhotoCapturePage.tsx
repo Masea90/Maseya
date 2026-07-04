@@ -31,6 +31,7 @@ const COPY = {
     errorPayment: 'Servicio de análisis temporalmente no disponible',
     errorUnexpected: 'Error inesperado. Reintenta en unos segundos',
     errorNutritional: 'Parece que fotografiaste la tabla nutricional. Fotografía la lista de ingredientes.',
+    errorTooLarge: 'La foto es demasiado grande. Reintenta acercándote al producto.',
     loginCta: 'Iniciar sesión',
     retry: 'Reintentar',
     addImageOnly: 'Añadir foto del producto',
