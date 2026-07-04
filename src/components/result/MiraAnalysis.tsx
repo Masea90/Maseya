@@ -1,8 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Sparkles, Lock } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { usePremium } from '@/lib/premium';
+import { Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { personalAlerts } from '@/lib/scoring';
 
@@ -57,14 +54,13 @@ function buildBasicSummary(
 }
 
 export const MiraAnalysis = ({ product, profile, score, hasIngredientData = true }: Props) => {
-  const premium = usePremium();
-  const navigate = useNavigate();
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const startedRef = useRef(false);
 
-  // Free basic summary (always available, no AI call)
+  // Free basic summary (always available, no AI call). Used as a fallback while
+  // the streaming AI response arrives or if it fails.
   const basicSummary = !hasIngredientData
     ? 'Fotografía la etiqueta para obtener un análisis completo de este producto.'
     : profile
@@ -72,7 +68,8 @@ export const MiraAnalysis = ({ product, profile, score, hasIngredientData = true
       : 'Análisis general del producto. Activa la personalización para ver si es adecuado para tu perfil.';
 
   useEffect(() => {
-    if (!premium || startedRef.current) return;
+    if (startedRef.current) return;
+    if (!hasIngredientData) return;
     startedRef.current = true;
     setLoading(true);
     setText('');
@@ -81,12 +78,7 @@ export const MiraAnalysis = ({ product, profile, score, hasIngredientData = true
     (async () => {
       try {
         const { data: sess } = await supabase.auth.getSession();
-        const token = sess.session?.access_token;
-        if (!token) {
-          setError('Inicia sesión para ver el análisis personalizado.');
-          setLoading(false);
-          return;
-        }
+        const token = sess.session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
         const url = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/mira-analyze`;
         const res = await fetch(url, {
           method: 'POST',
@@ -97,7 +89,7 @@ export const MiraAnalysis = ({ product, profile, score, hasIngredientData = true
           body: JSON.stringify({ product, profile, score }),
         });
         if (!res.ok || !res.body) {
-          setError('Mira no está disponible ahora mismo.');
+          setError(null); // silently fall back to basic summary
           setLoading(false);
           return;
         }
@@ -129,63 +121,28 @@ export const MiraAnalysis = ({ product, profile, score, hasIngredientData = true
         setLoading(false);
       } catch (e) {
         console.error('[mira] stream error', e);
-        setError('Mira no está disponible ahora mismo.');
+        setError(null);
         setLoading(false);
       }
     })();
-  }, [premium, product, profile, score]);
+  }, [product, profile, score, hasIngredientData]);
 
-  if (!premium) {
-    return (
-      <div className="space-y-3">
-        {/* Basic summary — free */}
-        <div className="bg-secondary/40 rounded-2xl p-4 flex gap-3">
-          <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-            <Sparkles className="w-5 h-5 text-primary-foreground" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Mira · Resumen</p>
-            <p className="text-sm leading-relaxed">{basicSummary}</p>
-          </div>
-        </div>
-
-        {/* Deep analysis upsell */}
-        <div className="bg-card rounded-2xl border border-border p-5 space-y-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center opacity-60">
-              <Sparkles className="w-5 h-5 text-primary" />
-            </div>
-            <div className="flex-1">
-              <p className="font-semibold text-sm">Análisis profundo de Mira</p>
-              <p className="text-[11px] text-muted-foreground">Análisis detallado con IA · Premium</p>
-            </div>
-            <Lock className="w-4 h-4 text-muted-foreground" />
-          </div>
-          <div className="space-y-1.5 select-none" style={{ filter: 'blur(4px)' }} aria-hidden>
-            <div className="h-3 bg-muted rounded w-11/12" />
-            <div className="h-3 bg-muted rounded w-full" />
-            <div className="h-3 bg-muted rounded w-9/12" />
-          </div>
-          <Button onClick={() => navigate('/premium')} className="w-full rounded-xl">
-            Desbloquear con Premium
-          </Button>
-          <p className="text-[11px] text-center text-muted-foreground">3,99€/mes · 7 días gratis</p>
-        </div>
-      </div>
-    );
-  }
+  const displayText = text || basicSummary;
 
   return (
     <div className="bg-secondary/40 rounded-2xl p-4 flex gap-3">
-      <div className={`w-10 h-10 rounded-full bg-primary flex items-center justify-center flex-shrink-0 ${loading ? 'animate-pulse' : ''}`}>
+      <div className={`w-10 h-10 rounded-full bg-primary flex items-center justify-center flex-shrink-0 ${loading && !text ? 'animate-pulse' : ''}`}>
         <Sparkles className="w-5 h-5 text-primary-foreground" />
       </div>
       <div className="flex-1 min-w-0">
-        {loading && !text && (
-          <p className="text-sm text-muted-foreground italic">Mira está analizando para tu perfil...</p>
+        <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Mira</p>
+        {loading && !text ? (
+          <p className="text-sm text-muted-foreground italic">Mira está analizando...</p>
+        ) : error ? (
+          <p className="text-sm leading-relaxed">{basicSummary}</p>
+        ) : (
+          <p className="text-sm leading-relaxed whitespace-pre-wrap">{displayText}</p>
         )}
-        {error && <p className="text-sm text-destructive">{error}</p>}
-        {text && <p className="text-sm leading-relaxed whitespace-pre-wrap">{text}</p>}
       </div>
     </div>
   );

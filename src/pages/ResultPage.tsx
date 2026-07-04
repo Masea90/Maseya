@@ -15,6 +15,8 @@ import {
 import { RegistrationSheet } from '@/components/auth/RegistrationSheet';
 import { MiraAnalysis } from '@/components/result/MiraAnalysis';
 import { Alternatives } from '@/components/result/Alternatives';
+import { InstallPrompt } from '@/components/InstallPrompt';
+
 import { hasHealthDataConsent, getStoredConsent, saveConsent } from '@/components/consent/ConsentModal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { HeartPulse } from 'lucide-react';
@@ -545,7 +547,7 @@ const ResultPage = () => {
               </div>
             </Collapsible>
 
-            {/* Mira personalised analysis (Premium gated) */}
+            {/* Mira personalised analysis — free for everyone */}
             <MiraAnalysis
               product={{
                 product_name: product.name,
@@ -563,6 +565,9 @@ const ResultPage = () => {
           </>
         )}
 
+        {/* PWA install prompt — shown after the first scan result renders */}
+        <InstallPrompt />
+
         {/* Medical / legal disclaimer — always visible on results */}
         <div className="mt-4 rounded-2xl border border-border/70 bg-muted/40 p-4">
           <p className="text-[11px] leading-relaxed text-muted-foreground">
@@ -571,6 +576,7 @@ const ResultPage = () => {
           </p>
         </div>
       </div>
+
 
       <RegistrationSheet open={showSheet} onOpenChange={setShowSheet} variant="soft" />
 

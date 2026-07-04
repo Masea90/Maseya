@@ -9,7 +9,7 @@ import { ChevronDown, LogOut } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { useDevMode, usePremium, setPremium } from '@/lib/premium';
+import { useDevMode } from '@/lib/premium';
 
 interface HealthState {
   skin_type: string[];
@@ -104,7 +104,7 @@ const ProfilePage = () => {
   const [saving, setSaving] = useState(false);
   const [productCount, setProductCount] = useState<number | null>(null);
   const devMode = useDevMode();
-  const premium = usePremium();
+  
 
   const refreshProductCount = async () => {
     const { count } = await supabase
@@ -178,14 +178,10 @@ const ProfilePage = () => {
               {(user.nickname || user.name || '?').charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-semibold truncate flex items-center gap-2">
+              <p className="font-semibold truncate">
                 {user.nickname || user.name}
-                {premium && (
-                  <span className="px-1.5 py-0.5 rounded-md bg-primary text-primary-foreground text-[10px] font-bold tracking-wider">
-                    Premium
-                  </span>
-                )}
               </p>
+
               <p className="text-xs text-muted-foreground truncate">{currentUser?.email}</p>
             </div>
           </div>
@@ -313,14 +309,6 @@ const ProfilePage = () => {
           {saving ? 'Guardando...' : 'Guardar cambios'}
         </Button>
 
-        <Button
-          onClick={() => setPremium(!premium)}
-          variant="outline"
-          className="w-full gap-2"
-        >
-          🧪 {premium ? 'Desactivar Premium (test)' : 'Activar Premium (test)'}
-        </Button>
-
         <Button onClick={() => logout()} variant="outline" className="w-full gap-2">
           <LogOut className="w-4 h-4" /> Cerrar sesión
         </Button>
@@ -328,15 +316,9 @@ const ProfilePage = () => {
         {devMode && (
           <div className="mt-6 p-4 rounded-2xl border border-dashed border-primary/40 bg-primary/5 space-y-3">
             <p className="text-xs font-semibold text-primary uppercase tracking-wider">Dev tools</p>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-sm">Modo Premium (test)</p>
-                <p className="text-xs text-muted-foreground">Activa funciones Premium localmente</p>
-              </div>
-              <Switch checked={premium} onCheckedChange={(v) => setPremium(v)} />
-            </div>
 
-            <div className="pt-3 border-t border-primary/20 space-y-2">
+
+            <div className="space-y-2">
               <p className="text-xs font-semibold text-primary uppercase tracking-wider">Base de datos</p>
               <p className="text-sm">
                 Productos en base de datos:{' '}
