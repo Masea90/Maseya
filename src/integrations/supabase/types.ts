@@ -202,6 +202,7 @@ export type Database = {
           climate_type: string | null
           consent_analytics: boolean | null
           consent_date: string | null
+          consent_health_data: boolean
           consent_personalization: boolean | null
           country: string | null
           created_at: string | null
@@ -228,6 +229,7 @@ export type Database = {
           climate_type?: string | null
           consent_analytics?: boolean | null
           consent_date?: string | null
+          consent_health_data?: boolean
           consent_personalization?: boolean | null
           country?: string | null
           created_at?: string | null
@@ -254,6 +256,7 @@ export type Database = {
           climate_type?: string | null
           consent_analytics?: boolean | null
           consent_date?: string | null
+          consent_health_data?: boolean
           consent_personalization?: boolean | null
           country?: string | null
           created_at?: string | null
