@@ -66,6 +66,7 @@ const COPY = {
     errorUnexpected: 'Unexpected error. Try again in a few seconds',
     errorNutritional: 'Looks like you photographed the nutrition table. Photograph the ingredient list instead.',
     errorTooLarge: 'Photo is too large. Try getting closer to the product.',
+    loginCta: 'Log in',
     retry: 'Try again',
     addImageOnly: 'Add product photo',
     savedImage: 'Thanks! Image added.',
