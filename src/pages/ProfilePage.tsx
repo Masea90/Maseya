@@ -318,7 +318,7 @@ const ProfilePage = () => {
             <p className="text-xs font-semibold text-primary uppercase tracking-wider">Dev tools</p>
 
 
-            <div className="pt-3 border-t border-primary/20 space-y-2">
+            <div className="space-y-2">
               <p className="text-xs font-semibold text-primary uppercase tracking-wider">Base de datos</p>
               <p className="text-sm">
                 Productos en base de datos:{' '}
