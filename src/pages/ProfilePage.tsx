@@ -178,14 +178,10 @@ const ProfilePage = () => {
               {(user.nickname || user.name || '?').charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-semibold truncate flex items-center gap-2">
+              <p className="font-semibold truncate">
                 {user.nickname || user.name}
-                {premium && (
-                  <span className="px-1.5 py-0.5 rounded-md bg-primary text-primary-foreground text-[10px] font-bold tracking-wider">
-                    Premium
-                  </span>
-                )}
               </p>
+
               <p className="text-xs text-muted-foreground truncate">{currentUser?.email}</p>
             </div>
           </div>
