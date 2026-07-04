@@ -250,6 +250,25 @@ export function naturalness(p: ProductData, flagged: FlaggedIngredient[]): Natur
   return { pct, level, organic };
 }
 
+// Map user-facing allergy keys to Open Food Facts structured allergen tag ids.
+// Multiple tag ids per allergy handle OFF's granularity (e.g. nuts vs peanuts).
+const ALLERGY_TAG_IDS: Record<string, string[]> = {
+  gluten: ['en:gluten', 'en:cereals-containing-gluten', 'en:wheat', 'en:barley', 'en:rye', 'en:spelt', 'en:oats'],
+  lactose: ['en:milk', 'en:dairy', 'en:lactose'],
+  nuts: ['en:nuts', 'en:tree-nuts', 'en:peanuts', 'en:almonds', 'en:hazelnuts', 'en:walnuts', 'en:cashew-nuts', 'en:pistachios', 'en:pecan-nuts'],
+  fish: ['en:fish', 'en:crustaceans', 'en:molluscs', 'en:shellfish'],
+};
+
+const ALLERGY_LABELS: Record<string, string> = {
+  gluten: 'gluten',
+  lactose: 'lácteos',
+  nuts: 'frutos secos',
+  fish: 'pescado o marisco',
+};
+
+const tagMatches = (tags: string[], ids: string[]) =>
+  tags.some(t => ids.includes(t));
+
 export function personalAlerts(p: ProductData, profile: OnboardingProfile): PersonalAlert[] {
   const alerts: PersonalAlert[] = [];
   const text = lower(p.ingredients_text || '') + ' ' + p.ingredients_tags.join(' ');
@@ -285,24 +304,46 @@ export function personalAlerts(p: ProductData, profile: OnboardingProfile): Pers
     }
   }
 
-  // Food allergy rules — food only
+  // Food allergy rules — food only.
+  // Priority: structured allergens_tags (danger) → traces_tags (warn) → keyword text fallback (warn).
+  // Never affirm absence categorically.
   if (isFood) {
+    const hasStructured = p.allergens_tags.length > 0 || p.traces_tags.length > 0;
+    const isUntrustedSource = p.source === 'photo' || p.source === 'maseya';
+
     for (const allergy of profile.allergies) {
       if (allergy === 'none') continue;
+      const tagIds = ALLERGY_TAG_IDS[allergy];
       const kws = allergy === 'lactose' ? LACTOSE_FOOD : ALLERGY_KEYWORDS[allergy];
-      if (!kws) continue;
-      const found = containsAny(text, kws);
-      const labels: Record<string, string> = {
-        gluten: 'gluten — no apto para celiacos',
-        lactose: 'lácteos',
-        nuts: 'frutos secos',
-        fish: 'pescado o marisco',
-      };
-      if (found) {
-        alerts.push({ level: 'danger', text: `Contiene ${labels[allergy]}` });
+      if (!tagIds && !kws) continue;
+      const label = ALLERGY_LABELS[allergy] || allergy;
+
+      const inAllergens = tagIds ? tagMatches(p.allergens_tags, tagIds) : false;
+      const inTraces = tagIds ? tagMatches(p.traces_tags, tagIds) : false;
+      const inText = kws ? containsAny(text, kws) : false;
+
+      if (inAllergens) {
+        alerts.push({ level: 'danger', text: `Contiene ${label} (declarado por el fabricante).` });
+      } else if (inTraces) {
+        alerts.push({ level: 'warn', text: `Puede contener trazas de ${label} (declarado por el fabricante).` });
+      } else if (inText) {
+        alerts.push({
+          level: 'warn',
+          text: `Posible presencia de ${label} detectada en los ingredientes. Verifica el etiquetado del envase.`,
+        });
       } else {
-        alerts.push({ level: 'good', text: `Sin ${labels[allergy].split(' —')[0]} detectado` });
+        alerts.push({
+          level: 'good',
+          text: `No hemos detectado ${label} en la información disponible. Verifica siempre el etiquetado del envase.`,
+        });
       }
+    }
+
+    if (profile.allergies.some(a => a !== 'none') && (isUntrustedSource || !hasStructured)) {
+      alerts.push({
+        level: 'warn',
+        text: 'Análisis basado en foto o datos de la comunidad: la información puede estar incompleta. Verifica siempre el envase original.',
+      });
     }
   }
 
