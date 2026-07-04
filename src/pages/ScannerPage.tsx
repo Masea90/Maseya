@@ -122,16 +122,14 @@ const ScannerPage = () => {
     controlsRef.current = null;
   };
 
-  const improveVideoTrack = async (controls: IScannerControls) => {
-    const getCapabilities = controls.streamVideoCapabilitiesGet;
-    const applyConstraints = controls.streamVideoConstraintsApply;
-    if (!getCapabilities || !applyConstraints) return;
+  const improveVideoTrack = async () => {
+    const stream = videoRef.current?.srcObject as MediaStream | null;
+    const track = stream?.getVideoTracks()[0];
+    if (!track?.getCapabilities) return;
 
     try {
-      const constraints = buildAdvancedConstraints(
-        getCapabilities((track) => track.kind === 'video') as ExtendedMediaTrackCapabilities
-      );
-      if (constraints) await applyConstraints(constraints, (track) => [track]);
+      const constraints = buildAdvancedConstraints(track.getCapabilities() as ExtendedMediaTrackCapabilities);
+      if (constraints) await track.applyConstraints(constraints);
     } catch (e) {
       console.warn('[scanner] advanced camera constraints not supported', e);
     }
@@ -162,7 +160,7 @@ const ScannerPage = () => {
         }
       );
       controlsRef.current = controls;
-      await improveVideoTrack(controls);
+      await improveVideoTrack();
     } catch (e) {
       console.error('[scanner] camera error', e);
       setErrorMsg(c.cameraError);
