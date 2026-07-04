@@ -73,6 +73,7 @@ export type Database = {
           barcode: string
           brand: string | null
           category: string
+          category_tag: string | null
           created_at: string
           image_url: string | null
           ingredients_text: string | null
@@ -88,6 +89,7 @@ export type Database = {
           barcode: string
           brand?: string | null
           category: string
+          category_tag?: string | null
           created_at?: string
           image_url?: string | null
           ingredients_text?: string | null
@@ -103,6 +105,7 @@ export type Database = {
           barcode?: string
           brand?: string | null
           category?: string
+          category_tag?: string | null
           created_at?: string
           image_url?: string | null
           ingredients_text?: string | null
