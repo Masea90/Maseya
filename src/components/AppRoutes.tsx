@@ -106,7 +106,7 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
 
   // Authenticated user without a health profile → force quiz (skip welcome).
   if (userId && !onboardingDone) {
-    const allowedForQuiz = ['/onboarding/quiz', '/onboarding/language', '/update-password', '/admin'];
+    const allowedForQuiz = ['/onboarding/quiz', '/onboarding/language', '/update-password', '/admin', '/privacy'];
     if (!allowedForQuiz.includes(path)) {
       return <Navigate to="/onboarding/quiz" replace />;
     }
@@ -115,7 +115,7 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
 
   // Anonymous user without onboarding → welcome flow.
   if (!userId && !onboardingDone) {
-    const allowed = ['/welcome', '/onboarding/quiz', '/onboarding/language', '/update-password', '/login', '/reset-password'];
+    const allowed = ['/welcome', '/onboarding/quiz', '/onboarding/language', '/update-password', '/login', '/reset-password', '/privacy'];
     if (!allowed.includes(path)) {
       return <Navigate to="/welcome" replace />;
     }
