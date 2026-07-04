@@ -26,6 +26,11 @@ const COPY = {
     analyzing: 'Mira está analizando los ingredientes...',
     analyzingSub: 'Esto puede tardar unos segundos',
     error: 'No pude leer los ingredientes. Intenta con mejor iluminación o más cerca de la etiqueta.',
+    errorSession: 'Tu sesión ha caducado. Inicia sesión de nuevo.',
+    errorRate: 'El servicio de análisis está saturado. Espera un minuto y reinténtalo.',
+    errorNetwork: 'No hemos podido conectar con el servidor. Comprueba tu conexión.',
+    errorNutritional: 'Parece que fotografiaste la tabla nutricional. Fotografía la lista de ingredientes.',
+    loginCta: 'Iniciar sesión',
     retry: 'Reintentar',
     addImageOnly: 'Añadir foto del producto',
     savedImage: '¡Gracias! Imagen añadida.',
@@ -53,6 +58,11 @@ const COPY = {
     analyzing: 'Mira is analyzing the ingredients...',
     analyzingSub: 'This may take a few seconds',
     error: "I couldn't read the ingredients. Try better lighting or get closer.",
+    errorSession: 'Your session has expired. Please log in again.',
+    errorRate: 'Analysis service is busy. Wait a minute and try again.',
+    errorNetwork: "Couldn't reach the server. Check your connection.",
+    errorNutritional: 'Looks like you photographed the nutrition table. Photograph the ingredient list instead.',
+    loginCta: 'Log in',
     retry: 'Try again',
     addImageOnly: 'Add product photo',
     savedImage: 'Thanks! Image added.',
@@ -80,6 +90,11 @@ const COPY = {
     analyzing: 'Mira analyse les ingrédients...',
     analyzingSub: 'Cela peut prendre quelques secondes',
     error: "Je n'ai pas pu lire les ingrédients. Essayez avec un meilleur éclairage.",
+    errorSession: 'Votre session a expiré. Reconnectez-vous.',
+    errorRate: "Le service d'analyse est saturé. Attendez une minute et réessayez.",
+    errorNetwork: "Impossible de contacter le serveur. Vérifiez votre connexion.",
+    errorNutritional: "Il semble que vous ayez photographié le tableau nutritionnel. Photographiez la liste d'ingrédients.",
+    loginCta: 'Se connecter',
     retry: 'Réessayer',
     addImageOnly: 'Ajouter une photo',
     savedImage: 'Merci ! Image ajoutée.',
@@ -90,6 +105,7 @@ const COPY = {
   },
 };
 
+type ErrorKind = 'lighting' | 'session' | 'rate' | 'network' | 'nutritional';
 type Step = 'front' | 'ingredients' | 'analyzing' | 'error' | 'image-saved';
 
 const PhotoCapturePage = () => {
@@ -101,6 +117,7 @@ const PhotoCapturePage = () => {
   const c = COPY[user.language] ?? COPY.es;
 
   const [step, setStep] = useState<Step>('front');
+  const [errorKind, setErrorKind] = useState<ErrorKind>('lighting');
   const [frontPhoto, setFrontPhoto] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null); // freshly captured, awaiting confirm
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -211,11 +228,32 @@ const PhotoCapturePage = () => {
       setStep('analyzing');
       try {
         const front = frontPhoto ?? localStorage.getItem('maseya_photo_front');
-        const { data, error: fnError } = await supabase.functions.invoke('extract-ingredients', {
-          body: { front_image: front, ingredients_image: ingredientsImage },
-        });
-        if (fnError || !data || data.error) {
-          console.error('[photo-capture] extract failed', fnError, data);
+        const { data: sess } = await supabase.auth.getSession();
+        const token = sess.session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+        const url = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/extract-ingredients`;
+        let res: Response;
+        try {
+          res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ front_image: front, ingredients_image: ingredientsImage }),
+          });
+        } catch (netErr) {
+          console.error('[photo-capture] network error', netErr);
+          setErrorKind('network');
+          setStep('error');
+          return;
+        }
+        let data: any = null;
+        try { data = await res.json(); } catch {}
+        if (!res.ok || !data || data.error) {
+          console.error('[photo-capture] extract failed', res.status, data);
+          if (res.status === 401) setErrorKind('session');
+          else if (res.status === 429 || res.status === 402) setErrorKind('rate');
+          else if (data?.error === 'nutritional_table_detected') setErrorKind('nutritional');
+          else if (data?.error === 'no_ingredients' || data?.error === 'parse_failed') setErrorKind('lighting');
+          else if (res.status >= 500) setErrorKind('network');
+          else setErrorKind('lighting');
           setStep('error');
           return;
         }
@@ -260,6 +298,7 @@ const PhotoCapturePage = () => {
         navigate(realBarcode ? `/result/${realBarcode}` : '/result/photo');
       } catch (e) {
         console.error('[photo-capture] ingredients error', e);
+        setErrorKind('network');
         setStep('error');
       }
     }
@@ -398,18 +437,32 @@ const PhotoCapturePage = () => {
           </div>
         )}
 
-        {step === 'error' && (
-          <div className="py-12 flex flex-col items-center gap-4 text-center">
-            <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center">
-              <Camera className="w-8 h-8 text-destructive" />
+        {step === 'error' && (() => {
+          const msg =
+            errorKind === 'session' ? (c as any).errorSession :
+            errorKind === 'rate' ? (c as any).errorRate :
+            errorKind === 'network' ? (c as any).errorNetwork :
+            errorKind === 'nutritional' ? (c as any).errorNutritional :
+            c.error;
+          return (
+            <div className="py-12 flex flex-col items-center gap-4 text-center">
+              <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center">
+                <Camera className="w-8 h-8 text-destructive" />
+              </div>
+              <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">{msg}</p>
+              {errorKind === 'session' ? (
+                <Button onClick={() => navigate('/login')} className="h-12 rounded-2xl px-6">
+                  {(c as any).loginCta}
+                </Button>
+              ) : (
+                <Button onClick={() => setStep(addImageFor ? 'front' : 'ingredients')} className="h-12 rounded-2xl px-6">
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  {c.retry}
+                </Button>
+              )}
             </div>
-            <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">{c.error}</p>
-            <Button onClick={() => setStep(addImageFor ? 'front' : 'ingredients')} className="h-12 rounded-2xl px-6">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              {c.retry}
-            </Button>
-          </div>
-        )}
+          );
+        })()}
       </div>
     </div>
   );

@@ -46,18 +46,24 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    // Auth: require any Bearer (user JWT or anon key). Anonymous scans allowed
+    // (rate/size limits still enforced). If a real user JWT is passed and it's
+    // invalid/expired, reject with 401 so the client can prompt re-login.
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
-
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      { global: { headers: { Authorization: authHeader } } }
-    );
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } =
-      await supabaseClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) return json({ error: "Unauthorized" }, 401);
+    const token = authHeader.replace("Bearer ", "").trim();
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+    const isAnonKey = token === anonKey;
+    if (!isAnonKey) {
+      const supabaseClient = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        anonKey,
+        { global: { headers: { Authorization: authHeader } } }
+      );
+      const { data: claimsData, error: claimsError } =
+        await supabaseClient.auth.getClaims(token);
+      if (claimsError || !claimsData?.claims) return json({ error: "session_expired" }, 401);
+    }
 
     const body = await req.json();
     // Accept new (front_image + ingredients_image) or legacy (image)
