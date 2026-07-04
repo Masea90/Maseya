@@ -18,7 +18,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signUp: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  signInWithGoogle: () => Promise<{ success: boolean; error?: string }>;
+  signInWithGoogle: (redirectPath?: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
 }
 
@@ -107,8 +107,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return { success: true };
   };
 
-  const signInWithGoogle = async (): Promise<{ success: boolean; error?: string }> => {
-    const redirectUrl = `${window.location.origin}/`;
+  const signInWithGoogle = async (redirectPath?: string): Promise<{ success: boolean; error?: string }> => {
+    const safe = redirectPath && redirectPath.startsWith('/') && !redirectPath.startsWith('//') ? redirectPath : '/';
+    const redirectUrl = `${window.location.origin}${safe}`;
 
     const result = await lovable.auth.signInWithOAuth('google', {
       redirect_uri: redirectUrl,

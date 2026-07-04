@@ -21,6 +21,7 @@ import AdminPage from '@/pages/AdminPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import UpdatePasswordPage from '@/pages/UpdatePasswordPage';
 import NotFound from '@/pages/NotFound';
+import OAuthConsentPage from '@/pages/OAuthConsentPage';
 
 const ONBOARDING_KEY = 'maseya_onboarding';
 
@@ -144,6 +145,17 @@ export function AppRoutes() {
       </div>
     );
   }
+
+  // OAuth consent must bypass the onboarding gate so it can render for any signed-in
+  // user (and redirect anonymous users to /login with a `next` back to this URL).
+  if (typeof window !== 'undefined' && window.location.pathname === '/.lovable/oauth/consent') {
+    return (
+      <Routes>
+        <Route path="/.lovable/oauth/consent" element={<OAuthConsentPage />} />
+      </Routes>
+    );
+  }
+
 
   if (!isAuthenticated) {
     return (

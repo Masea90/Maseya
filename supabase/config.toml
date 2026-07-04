@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.import-off-products]
 verify_jwt = false
+
+[functions.mcp]
+verify_jwt = false
