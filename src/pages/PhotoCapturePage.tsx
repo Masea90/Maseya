@@ -117,6 +117,7 @@ const PhotoCapturePage = () => {
   const c = COPY[user.language] ?? COPY.es;
 
   const [step, setStep] = useState<Step>('front');
+  const [errorKind, setErrorKind] = useState<ErrorKind>('lighting');
   const [frontPhoto, setFrontPhoto] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null); // freshly captured, awaiting confirm
   const [cameraError, setCameraError] = useState<string | null>(null);
