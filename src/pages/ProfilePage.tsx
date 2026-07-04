@@ -309,14 +309,6 @@ const ProfilePage = () => {
           {saving ? 'Guardando...' : 'Guardar cambios'}
         </Button>
 
-        <Button
-          onClick={() => setPremium(!premium)}
-          variant="outline"
-          className="w-full gap-2"
-        >
-          🧪 {premium ? 'Desactivar Premium (test)' : 'Activar Premium (test)'}
-        </Button>
-
         <Button onClick={() => logout()} variant="outline" className="w-full gap-2">
           <LogOut className="w-4 h-4" /> Cerrar sesión
         </Button>
@@ -324,13 +316,7 @@ const ProfilePage = () => {
         {devMode && (
           <div className="mt-6 p-4 rounded-2xl border border-dashed border-primary/40 bg-primary/5 space-y-3">
             <p className="text-xs font-semibold text-primary uppercase tracking-wider">Dev tools</p>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-sm">Modo Premium (test)</p>
-                <p className="text-xs text-muted-foreground">Activa funciones Premium localmente</p>
-              </div>
-              <Switch checked={premium} onCheckedChange={(v) => setPremium(v)} />
-            </div>
+
 
             <div className="pt-3 border-t border-primary/20 space-y-2">
               <p className="text-xs font-semibold text-primary uppercase tracking-wider">Base de datos</p>
