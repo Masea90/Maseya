@@ -274,6 +274,7 @@ const PhotoCapturePage = () => {
           setServerErrorMessage(typeof data?.message === 'string' ? data.message : null);
           if (res.status === 401 || data?.error === 'session_expired' || data?.error === 'Unauthorized') setErrorKind('session');
           else if (res.status === 429) setErrorKind('rate');
+          else if (res.status === 413 || data?.error === 'image_too_large') setErrorKind('too_large');
           else if (res.status === 402) setErrorKind('payment');
           else if (data?.error === 'nutritional_table_detected') setErrorKind('nutritional');
           else if (data?.error === 'no_ingredients' || data?.error === 'parse_failed') setErrorKind('lighting');
