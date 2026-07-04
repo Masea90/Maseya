@@ -17,6 +17,9 @@ const SYSTEM_PROMPT = `You are an expert at reading product labels. Extract the 
 Use empty string if field not found. Include ALL ingredients exactly as written.`;
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const ANON_WINDOW_MS = 24 * 60 * 60 * 1000;
+const ANON_MAX_REQUESTS = 3;
+const anonRequests = new Map<string, { count: number; resetAt: number }>();
 
 const NUTRITIONAL_MARKERS = [
   "kcal", " kj", "kj/", "/kj", "proteinas", "proteínas",
@@ -42,19 +45,83 @@ const toDataUrl = (img: string) =>
 const measure = (img: string) =>
   (img.startsWith("data:") ? img.slice(img.indexOf(",") + 1) : img).length;
 
+const getBearerToken = (req: Request) => {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) return "";
+  return authHeader.replace("Bearer ", "").trim();
+};
+
+const getAnonKeys = () => {
+  const keys = [
+    Deno.env.get("SUPABASE_ANON_KEY"),
+    Deno.env.get("SUPABASE_PUBLISHABLE_KEY"),
+    Deno.env.get("VITE_SUPABASE_PUBLISHABLE_KEY"),
+  ].filter((key): key is string => Boolean(key));
+
+  const keyList = Deno.env.get("SUPABASE_PUBLISHABLE_KEYS");
+  if (keyList) {
+    try {
+      const parsed = JSON.parse(keyList);
+      if (Array.isArray(parsed)) keys.push(...parsed.filter((key): key is string => typeof key === "string"));
+    } catch {
+      keys.push(...keyList.split(",").map((key) => key.trim()).filter(Boolean));
+    }
+  }
+
+  return keys;
+};
+
+const decodeJwtPayload = (token: string): Record<string, unknown> | null => {
+  try {
+    const payload = token.split(".")[1];
+    if (!payload) return null;
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
+    return JSON.parse(atob(padded));
+  } catch {
+    return null;
+  }
+};
+
+const isPublishableToken = (token: string) => {
+  if (getAnonKeys().includes(token)) return true;
+  return decodeJwtPayload(token)?.role === "anon";
+};
+
+const getClientId = (req: Request) =>
+  req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+  req.headers.get("cf-connecting-ip") ||
+  req.headers.get("x-real-ip") ||
+  "anonymous";
+
+const allowAnonymousRequest = (req: Request) => {
+  const now = Date.now();
+  const clientId = getClientId(req);
+  const current = anonRequests.get(clientId);
+  if (!current || current.resetAt <= now) {
+    anonRequests.set(clientId, { count: 1, resetAt: now + ANON_WINDOW_MS });
+    return true;
+  }
+  if (current.count >= ANON_MAX_REQUESTS) return false;
+  current.count += 1;
+  return true;
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    // Auth: require any Bearer (user JWT or anon key). Anonymous scans allowed
-    // (rate/size limits still enforced). If a real user JWT is passed and it's
-    // invalid/expired, reject with 401 so the client can prompt re-login.
+    // Auth: accept either a real user JWT or the publishable/anon key.
+    // Anonymous scans are allowed (3 per client/day in-memory); invalid user
+    // JWTs still return 401 so the client can show the login action.
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
-    const token = authHeader.replace("Bearer ", "").trim();
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-    const isAnonKey = token === anonKey;
-    if (!isAnonKey) {
+    const token = getBearerToken(req);
+    if (!token) return json({ error: "Unauthorized" }, 401);
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? "";
+    const isAnonKey = isPublishableToken(token);
+    if (isAnonKey) {
+      if (!allowAnonymousRequest(req)) return json({ error: "rate_limit" }, 429);
+    } else {
       const supabaseClient = createClient(
         Deno.env.get("SUPABASE_URL") ?? "",
         anonKey,

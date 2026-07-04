@@ -26,9 +26,10 @@ const COPY = {
     analyzing: 'Mira está analizando los ingredientes...',
     analyzingSub: 'Esto puede tardar unos segundos',
     error: 'No pude leer los ingredientes. Intenta con mejor iluminación o más cerca de la etiqueta.',
-    errorSession: 'Tu sesión ha caducado. Inicia sesión de nuevo.',
-    errorRate: 'El servicio de análisis está saturado. Espera un minuto y reinténtalo.',
-    errorNetwork: 'No hemos podido conectar con el servidor. Comprueba tu conexión.',
+    errorSession: 'Inicia sesión para analizar productos por foto',
+    errorRate: 'Demasiadas peticiones, espera un momento y reintenta',
+    errorPayment: 'Servicio de análisis temporalmente no disponible',
+    errorUnexpected: 'Error inesperado. Reintenta en unos segundos',
     errorNutritional: 'Parece que fotografiaste la tabla nutricional. Fotografía la lista de ingredientes.',
     loginCta: 'Iniciar sesión',
     retry: 'Reintentar',
@@ -58,9 +59,10 @@ const COPY = {
     analyzing: 'Mira is analyzing the ingredients...',
     analyzingSub: 'This may take a few seconds',
     error: "I couldn't read the ingredients. Try better lighting or get closer.",
-    errorSession: 'Your session has expired. Please log in again.',
-    errorRate: 'Analysis service is busy. Wait a minute and try again.',
-    errorNetwork: "Couldn't reach the server. Check your connection.",
+    errorSession: 'Log in to analyze products by photo',
+    errorRate: 'Too many requests, wait a moment and try again',
+    errorPayment: 'Analysis service temporarily unavailable',
+    errorUnexpected: 'Unexpected error. Try again in a few seconds',
     errorNutritional: 'Looks like you photographed the nutrition table. Photograph the ingredient list instead.',
     loginCta: 'Log in',
     retry: 'Try again',
@@ -90,9 +92,10 @@ const COPY = {
     analyzing: 'Mira analyse les ingrédients...',
     analyzingSub: 'Cela peut prendre quelques secondes',
     error: "Je n'ai pas pu lire les ingrédients. Essayez avec un meilleur éclairage.",
-    errorSession: 'Votre session a expiré. Reconnectez-vous.',
-    errorRate: "Le service d'analyse est saturé. Attendez une minute et réessayez.",
-    errorNetwork: "Impossible de contacter le serveur. Vérifiez votre connexion.",
+    errorSession: 'Connectez-vous pour analyser les produits par photo',
+    errorRate: 'Trop de requêtes, attendez un moment puis réessayez',
+    errorPayment: "Service d'analyse temporairement indisponible",
+    errorUnexpected: 'Erreur inattendue. Réessayez dans quelques secondes',
     errorNutritional: "Il semble que vous ayez photographié le tableau nutritionnel. Photographiez la liste d'ingrédients.",
     loginCta: 'Se connecter',
     retry: 'Réessayer',
@@ -105,7 +108,7 @@ const COPY = {
   },
 };
 
-type ErrorKind = 'lighting' | 'session' | 'rate' | 'network' | 'nutritional';
+type ErrorKind = 'lighting' | 'session' | 'rate' | 'payment' | 'nutritional' | 'unexpected';
 type Step = 'front' | 'ingredients' | 'analyzing' | 'error' | 'image-saved';
 
 const PhotoCapturePage = () => {
@@ -118,6 +121,7 @@ const PhotoCapturePage = () => {
 
   const [step, setStep] = useState<Step>('front');
   const [errorKind, setErrorKind] = useState<ErrorKind>('lighting');
+  const [serverErrorMessage, setServerErrorMessage] = useState<string | null>(null);
   const [frontPhoto, setFrontPhoto] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null); // freshly captured, awaiting confirm
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -239,8 +243,9 @@ const PhotoCapturePage = () => {
             body: JSON.stringify({ front_image: front, ingredients_image: ingredientsImage }),
           });
         } catch (netErr) {
-          console.error('[photo-capture] network error', netErr);
-          setErrorKind('network');
+          console.error('[photo-capture] extract failed', 'network', netErr);
+          setServerErrorMessage(null);
+          setErrorKind('unexpected');
           setStep('error');
           return;
         }
@@ -248,12 +253,13 @@ const PhotoCapturePage = () => {
         try { data = await res.json(); } catch {}
         if (!res.ok || !data || data.error) {
           console.error('[photo-capture] extract failed', res.status, data);
-          if (res.status === 401) setErrorKind('session');
-          else if (res.status === 429 || res.status === 402) setErrorKind('rate');
+          setServerErrorMessage(typeof data?.message === 'string' ? data.message : null);
+          if (res.status === 401 || data?.error === 'session_expired' || data?.error === 'Unauthorized') setErrorKind('session');
+          else if (res.status === 429) setErrorKind('rate');
+          else if (res.status === 402) setErrorKind('payment');
           else if (data?.error === 'nutritional_table_detected') setErrorKind('nutritional');
           else if (data?.error === 'no_ingredients' || data?.error === 'parse_failed') setErrorKind('lighting');
-          else if (res.status >= 500) setErrorKind('network');
-          else setErrorKind('lighting');
+          else setErrorKind('unexpected');
           setStep('error');
           return;
         }
@@ -298,7 +304,8 @@ const PhotoCapturePage = () => {
         navigate(realBarcode ? `/result/${realBarcode}` : '/result/photo');
       } catch (e) {
         console.error('[photo-capture] ingredients error', e);
-        setErrorKind('network');
+        setServerErrorMessage(null);
+        setErrorKind('unexpected');
         setStep('error');
       }
     }
@@ -439,10 +446,11 @@ const PhotoCapturePage = () => {
 
         {step === 'error' && (() => {
           const msg =
-            errorKind === 'session' ? (c as any).errorSession :
-            errorKind === 'rate' ? (c as any).errorRate :
-            errorKind === 'network' ? (c as any).errorNetwork :
-            errorKind === 'nutritional' ? (c as any).errorNutritional :
+            errorKind === 'session' ? c.errorSession :
+            errorKind === 'rate' ? c.errorRate :
+            errorKind === 'payment' ? c.errorPayment :
+            errorKind === 'nutritional' ? (serverErrorMessage ?? c.errorNutritional) :
+            errorKind === 'unexpected' ? c.errorUnexpected :
             c.error;
           return (
             <div className="py-12 flex flex-col items-center gap-4 text-center">
@@ -452,7 +460,7 @@ const PhotoCapturePage = () => {
               <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">{msg}</p>
               {errorKind === 'session' ? (
                 <Button onClick={() => navigate('/login')} className="h-12 rounded-2xl px-6">
-                  {(c as any).loginCta}
+                  {c.loginCta}
                 </Button>
               ) : (
                 <Button onClick={() => setStep(addImageFor ? 'front' : 'ingredients')} className="h-12 rounded-2xl px-6">
