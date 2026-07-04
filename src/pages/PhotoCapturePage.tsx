@@ -99,6 +99,7 @@ const COPY = {
     errorPayment: "Service d'analyse temporairement indisponible",
     errorUnexpected: 'Erreur inattendue. Réessayez dans quelques secondes',
     errorNutritional: "Il semble que vous ayez photographié le tableau nutritionnel. Photographiez la liste d'ingrédients.",
+    errorTooLarge: 'La photo est trop grande. Essayez de vous rapprocher du produit.',
     loginCta: 'Se connecter',
     retry: 'Réessayer',
     addImageOnly: 'Ajouter une photo',
