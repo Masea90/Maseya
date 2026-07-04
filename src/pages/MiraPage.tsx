@@ -13,6 +13,11 @@ const MiraPage = () => {
   const c = COPY[user.language] ?? COPY.es;
   return (
     <AppLayout title={c.title}>
+      <div className="px-4 pt-4">
+        <p className="text-[11px] text-center text-muted-foreground italic">
+          Mira es una IA informativa, no un profesional sanitario.
+        </p>
+      </div>
       <div className="px-4 py-12 flex flex-col items-center text-center">
         <div className="w-20 h-20 rounded-full bg-gradient-hero flex items-center justify-center mb-4 shadow-warm">
           <Sparkles className="w-10 h-10 text-white" />
