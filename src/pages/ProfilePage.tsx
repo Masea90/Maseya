@@ -104,7 +104,7 @@ const ProfilePage = () => {
   const [saving, setSaving] = useState(false);
   const [productCount, setProductCount] = useState<number | null>(null);
   const devMode = useDevMode();
-  const premium = usePremium();
+  
 
   const refreshProductCount = async () => {
     const { count } = await supabase
