@@ -304,10 +304,15 @@ const PhotoCapturePage = () => {
         });
 
         if (!result.ok) {
-          console.error('[photo-capture] saveToMaseya failed', result.error);
+          if (result.error === 'not_authenticated') {
+            console.info('[photo-capture] saveToMaseya skipped: user not authenticated. Product kept locally; will be contributable after sign-up.');
+          } else {
+            console.error('[photo-capture] saveToMaseya failed', result.error);
+          }
         } else {
           console.log('[photo-capture] saveToMaseya OK for', finalBarcode);
         }
+
 
         localStorage.setItem('maseya_photo_product', JSON.stringify({
           barcode: finalBarcode,
