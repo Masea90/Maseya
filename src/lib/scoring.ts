@@ -176,33 +176,125 @@ export function flagIngredients(p: ProductData): FlaggedIngredient[] {
   return all.slice(0, 40).map(name => ({ name, level: classifyIngredient(name) }));
 }
 
-export function calculateScore(p: ProductData, flagged: FlaggedIngredient[]): number {
+// --- Score factor breakdowns -----------------------------------------------
+// Each user-visible score is now accompanied by a short list of factors that
+// explain how it was built (Nutriscore, ingredient counts, personal rules).
+// Keep the rules in ONE place: `calculateScore` and `calculatePersonalScore`
+// are thin wrappers around their *Breakdown counterparts.
+
+export type FactorTone = 'positive' | 'negative' | 'neutral';
+export interface ScoreFactor {
+  label: string;
+  delta: number | null;
+  tone: FactorTone;
+}
+
+export interface ScoreBreakdown {
+  score: number;
+  factors: ScoreFactor[];
+}
+
+const clamp100 = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
+
+export function calculateScoreBreakdown(
+  p: ProductData,
+  flagged: FlaggedIngredient[],
+): ScoreBreakdown {
   const reds = flagged.filter(f => f.level === 'avoid').length;
   const oranges = flagged.filter(f => f.level === 'caution').length;
   const isOrganic = p.labels_tags.some(t => t.includes('organic') || t.includes('bio'));
+  const rawText = (p.ingredients_text || '').trim();
+  const factors: ScoreFactor[] = [];
 
   if (p.category === 'food' && p.nutriscore_grade) {
     const cleanMap: Record<string, number> = { a: 95, b: 82, c: 62, d: 40, e: 18 };
     const grade = p.nutriscore_grade.toLowerCase();
     let score = cleanMap[grade] ?? 50;
-    if (reds > 0 || oranges > 0) {
+    const nutriTone: FactorTone =
+      grade === 'a' || grade === 'b' ? 'positive'
+      : grade === 'c' ? 'neutral'
+      : 'negative';
+    factors.push({ label: `Nutriscore ${grade.toUpperCase()}`, delta: null, tone: nutriTone });
+
+    if (reds > 0) {
+      factors.push({
+        label: `${reds} ingrediente${reds > 1 ? 's' : ''} a evitar`,
+        delta: -reds * 10, tone: 'negative',
+      });
       score -= reds * 10;
+    }
+    if (oranges > 0) {
+      factors.push({
+        label: `${oranges} ingrediente${oranges > 1 ? 's' : ''} con precaución`,
+        delta: -oranges * 5, tone: 'negative',
+      });
       score -= oranges * 5;
     }
-    if (isOrganic) score += 3;
-    return Math.max(0, Math.min(100, Math.round(score)));
+    if (isOrganic) {
+      factors.push({ label: 'Producto ecológico', delta: 3, tone: 'positive' });
+      score += 3;
+    }
+    if (!rawText || isNutritionalData(rawText)) {
+      factors.push({
+        label: 'Lista de ingredientes no disponible: puntuación basada solo en Nutriscore',
+        delta: null, tone: 'neutral',
+      });
+    }
+    return { score: clamp100(score), factors };
+  }
+
+  // Cosmetic or food-without-nutriscore fallback.
+  if (p.category === 'food' && !p.nutriscore_grade) {
+    factors.push({
+      label: 'Datos incompletos: puntuación orientativa',
+      delta: null, tone: 'neutral',
+    });
+    if (!rawText || isNutritionalData(rawText)) {
+      factors.push({
+        label: 'Lista de ingredientes no disponible',
+        delta: null, tone: 'neutral',
+      });
+    }
   }
 
   let score = 100 - (reds * 15) - (oranges * 6);
 
-  const positives = p.ingredients_analysis_tags.filter(t =>
+  if (reds > 0) {
+    factors.push({
+      label: `${reds} ingrediente${reds > 1 ? 's' : ''} a evitar`,
+      delta: -reds * 15, tone: 'negative',
+    });
+  }
+  if (oranges > 0) {
+    factors.push({
+      label: `${oranges} ingrediente${oranges > 1 ? 's' : ''} con precaución`,
+      delta: -oranges * 6, tone: 'negative',
+    });
+  }
+  if (reds === 0 && oranges === 0 && flagged.length > 0) {
+    factors.push({ label: 'Sin ingredientes controvertidos', delta: null, tone: 'positive' });
+  }
+
+  const positiveTags = p.ingredients_analysis_tags.filter(t =>
     ['en:palm-oil-free', 'en:vegan', 'en:vegetarian'].includes(t)
-  ).length;
-  score += positives * 4;
+  );
+  if (positiveTags.length > 0) {
+    factors.push({
+      label: 'Etiquetas positivas (vegano, sin aceite de palma…)',
+      delta: positiveTags.length * 4, tone: 'positive',
+    });
+    score += positiveTags.length * 4;
+  }
+  if (isOrganic) {
+    factors.push({ label: 'Producto ecológico', delta: 6, tone: 'positive' });
+    score += 6;
+  }
 
-  if (isOrganic) score += 6;
+  return { score: clamp100(score), factors };
+}
 
-  return Math.max(0, Math.min(100, Math.round(score)));
+export function calculateScore(p: ProductData, flagged: FlaggedIngredient[]): number {
+  return calculateScoreBreakdown(p, flagged).score;
 }
 
 export interface PersonalProfileLike {
@@ -225,16 +317,23 @@ function tagsAsText(p: ProductData): string {
   return tags.map(t => t.replace(/^[a-z]{2}:/, '').replace(/-/g, ' ')).join(' ');
 }
 
-export function calculatePersonalScore(
+/** Look up the first keyword in the given list that matches, return the term. */
+function firstTerm(text: string, keywords: string[]): string | null {
+  for (const k of keywords) {
+    const m = findKeyword(text, k);
+    if (m) return m;
+  }
+  return null;
+}
+
+export function calculatePersonalScoreBreakdown(
   p: ProductData,
   _flagged: FlaggedIngredient[],
   profile: PersonalProfileLike,
   baseScore: number,
-): number {
+): ScoreBreakdown {
   const rawText = p.ingredients_text || '';
   const combined = `${rawText} ${tagsAsText(p)}`;
-  const has = (kw: string) => matchKeyword(combined, kw);
-  const hasAny = (kws: string[]) => containsAny(combined, kws);
 
   const skin = [
     ...(profile.skin || []),
@@ -246,43 +345,88 @@ export function calculatePersonalScore(
   const isVegan = diet.includes('vegan') || allergies.includes('vegan');
   const isPregnant = !!profile.pregnancy_or_lactation;
 
+  const factors: ScoreFactor[] = [];
   let score = baseScore;
   const isCosmetic = p.category === 'cosmetic';
   const isFood = p.category === 'food';
 
+  const addNeg = (label: string, delta: number) => {
+    factors.push({ label, delta, tone: 'negative' });
+    score += delta;
+  };
+  const addPos = (label: string, delta: number) => {
+    factors.push({ label, delta, tone: 'positive' });
+    score += delta;
+  };
+
   if (isCosmetic) {
-    if (skin.includes('atopic') && (has('sulfate') || has('sulphate') || has('fragrance') || has('parfum') || has('mineral oil') || has('paraffinum'))) {
-      score -= 30;
+    if (skin.includes('atopic')) {
+      const term = firstTerm(combined, ['sulfate', 'sulphate', 'fragrance', 'parfum', 'mineral oil', 'paraffinum']);
+      if (term) addNeg(`Tu piel atópica: ingrediente irritante (${term})`, -30);
     }
-    if (skin.includes('dry') && (has('sulfate') || has('sulphate') || has('alcohol denat'))) {
-      score -= 20;
+    if (skin.includes('dry')) {
+      const term = firstTerm(combined, ['sulfate', 'sulphate', 'alcohol denat']);
+      if (term) addNeg(`Tu piel seca: ingrediente que reseca (${term})`, -20);
     }
-    if (skin.includes('oily') && (has('mineral oil') || has('paraffinum') || has('silicone') || has('dimethicone'))) {
-      score -= 15;
+    if (skin.includes('oily')) {
+      const term = firstTerm(combined, ['mineral oil', 'paraffinum', 'silicone', 'dimethicone']);
+      if (term) addNeg(`Tu piel grasa: oclusivo/comedogénico (${term})`, -15);
     }
   }
 
   if (isFood) {
-    // Strip plant-milk phrases before running lactose keyword checks.
     const lactoseText = stripPlantMilks(norm(combined));
-    const hasLactose = LACTOSE_FOOD.some(k => findKeyword(lactoseText, k));
+    const lactoseTerm = LACTOSE_FOOD.map(k => findKeyword(lactoseText, k)).find(Boolean) || null;
 
-    if (allergies.includes('gluten') && hasAny(ALLERGY_KEYWORDS.gluten)) score -= 50;
-    if (allergies.includes('lactose') && hasLactose) score -= 50;
-    if (allergies.includes('nuts') && hasAny(ALLERGY_KEYWORDS.nuts)) score -= 50;
-    if (allergies.includes('fish') && hasAny(ALLERGY_KEYWORDS.fish)) score -= 50;
-    if (isVegan && hasAny(ANIMAL_KEYWORDS)) score -= 30;
+    if (allergies.includes('gluten')) {
+      const t = firstTerm(combined, ALLERGY_KEYWORDS.gluten);
+      if (t) addNeg(`Alergia a gluten: detectado "${t}"`, -50);
+    }
+    if (allergies.includes('lactose') && lactoseTerm) {
+      addNeg(`Alergia a lácteos: detectado "${lactoseTerm}"`, -50);
+    }
+    if (allergies.includes('nuts')) {
+      const t = firstTerm(combined, ALLERGY_KEYWORDS.nuts);
+      if (t) addNeg(`Alergia a frutos secos: detectado "${t}"`, -50);
+    }
+    if (allergies.includes('fish')) {
+      const t = firstTerm(combined, ALLERGY_KEYWORDS.fish);
+      if (t) addNeg(`Alergia a pescado/marisco: detectado "${t}"`, -50);
+    }
+    if (isVegan) {
+      const t = firstTerm(combined, ANIMAL_KEYWORDS);
+      if (t) addNeg(`Dieta vegana: ingrediente de origen animal (${t})`, -30);
+    }
     if (diet && (p.labels_tags.some(t => t.includes(diet)) || (isVegan && p.ingredients_analysis_tags.includes('en:vegan')))) {
-      score += 5;
+      addPos('Alineado con tu dieta', 5);
     }
   }
 
-  if (isPregnant && hasAny(PREGNANCY_RISKY)) score -= 40;
+  if (isPregnant) {
+    const t = firstTerm(combined, PREGNANCY_RISKY);
+    if (t) addNeg(`Riesgo en embarazo/lactancia: ${t}`, -40);
+  }
 
   const beneficial = ['aloe', 'panthenol', 'niacinamide', 'hyaluronic', 'glycerin', 'oat', 'avena', 'centella'];
-  if (isCosmetic && skin.length > 0 && hasAny(beneficial)) score += 10;
+  if (isCosmetic && skin.length > 0) {
+    const t = firstTerm(combined, beneficial);
+    if (t) addPos(`Activo beneficioso para tu piel (${t})`, 10);
+  }
 
-  return Math.max(0, Math.min(100, Math.round(score)));
+  if (factors.length === 0) {
+    factors.push({ label: 'Sin ajustes: coincide con tu puntuación general', delta: null, tone: 'neutral' });
+  }
+
+  return { score: clamp100(score), factors };
+}
+
+export function calculatePersonalScore(
+  p: ProductData,
+  flagged: FlaggedIngredient[],
+  profile: PersonalProfileLike,
+  baseScore: number,
+): number {
+  return calculatePersonalScoreBreakdown(p, flagged, profile, baseScore).score;
 }
 
 export function scoreLabel(score: number): { label: string; color: string; bg: string } {
