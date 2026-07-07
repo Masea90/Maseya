@@ -14,13 +14,62 @@ import {
 import { toast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
 
-const OWNER_EMAIL = 'oumanzou.asmae@gmail.com';
-
 type LogEntry = { ts: string; text: string };
+type Stats = {
+  total_users: number;
+  total_scans: number;
+  total_products: number;
+  active_users_7d: number;
+  scans_today: number;
+  products_added_7d: number;
+};
+type RecentScan = {
+  id: string;
+  user_id: string;
+  nickname: string | null;
+  product_name: string | null;
+  barcode: string;
+  category: string | null;
+  scanned_at: string;
+};
+type RecentProduct = {
+  barcode: string;
+  product_name: string | null;
+  brand: string | null;
+  category: string | null;
+  source: string | null;
+  verified: boolean | null;
+  submitted_by: string | null;
+  created_at: string;
+};
+type ActiveUser = {
+  user_id: string;
+  nickname: string | null;
+  last_scan_at: string;
+  scan_count: number;
+};
+
+const fmtTime = (iso: string) => {
+  const d = new Date(iso);
+  const diffMs = Date.now() - d.getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'ahora';
+  if (mins < 60) return `hace ${mins} min`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `hace ${hrs} h`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `hace ${days} d`;
+  return d.toLocaleDateString('es-ES');
+};
 
 export default function AdminPage() {
   const { currentUser, isLoading } = useAuth();
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [productCount, setProductCount] = useState<number | null>(null);
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [recentScans, setRecentScans] = useState<RecentScan[]>([]);
+  const [recentProducts, setRecentProducts] = useState<RecentProduct[]>([]);
+  const [activeUsers, setActiveUsers] = useState<ActiveUser[]>([]);
   const [foodPage, setFoodPage] = useState(1);
   const [cosmoPage, setCosmoPage] = useState(1);
   const [busy, setBusy] = useState<string | null>(null);
@@ -37,11 +86,36 @@ export default function AdminPage() {
     setProductCount(count ?? 0);
   };
 
-  useEffect(() => {
-    if (currentUser?.email === OWNER_EMAIL) refreshCount();
-  }, [currentUser?.email]);
+  const loadDashboard = async () => {
+    const [s, sc, rp, au] = await Promise.all([
+      supabase.rpc('admin_stats'),
+      supabase.rpc('admin_recent_scans', { p_limit: 25 }),
+      supabase.rpc('admin_recent_products', { p_limit: 25 }),
+      supabase.rpc('admin_active_users', { p_limit: 25 }),
+    ]);
+    if (s.data && Array.isArray(s.data) && s.data[0]) setStats(s.data[0] as Stats);
+    if (sc.data) setRecentScans(sc.data as RecentScan[]);
+    if (rp.data) setRecentProducts(rp.data as RecentProduct[]);
+    if (au.data) setActiveUsers(au.data as ActiveUser[]);
+  };
 
-  if (isLoading) {
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    (async () => {
+      const { data } = await supabase.rpc('has_role', {
+        _user_id: currentUser.id,
+        _role: 'admin',
+      });
+      const admin = data === true;
+      setIsAdmin(admin);
+      if (admin) {
+        refreshCount();
+        loadDashboard();
+      }
+    })();
+  }, [currentUser?.id]);
+
+  if (isLoading || isAdmin === null) {
     return (
       <div className="min-h-[100dvh] bg-background flex items-center justify-center">
         <div className="w-12 h-12 rounded-full bg-primary/10 animate-pulse" />
@@ -50,7 +124,8 @@ export default function AdminPage() {
   }
 
   if (!currentUser) return <Navigate to="/login" replace />;
-  if (currentUser.email !== OWNER_EMAIL) return <Navigate to="/scan" replace />;
+  if (!isAdmin) return <Navigate to="/scan" replace />;
+
 
   const log = (text: string) =>
     setLogs((l) => [{ ts: new Date().toLocaleTimeString(), text }, ...l].slice(0, 50));
