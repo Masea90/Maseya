@@ -23,6 +23,7 @@ interface Candidate {
   data: ProductData;
   score: number;
   label: ReturnType<typeof scoreLabel>;
+  flagged: ReturnType<typeof flagIngredients>;
 }
 
 // v2: bumped to invalidate old caches without country filter.
@@ -195,12 +196,16 @@ export const Alternatives = ({ current, currentScore }: Props) => {
           const score = consent && profile
             ? calculatePersonalScore(pd, flagged, profile, general)
             : general;
-          if (score <= currentScore) continue;
-          scored.push({ data: pd, score, label: scoreLabel(score) });
+          scored.push({ data: pd, score, label: scoreLabel(score), flagged });
         }
 
         scored.sort((a, b) => b.score - a.score);
-        const top = scored.slice(0, 3);
+        // Prefer strictly-better alternatives; if fewer than 3 exist, backfill
+        // with same-or-slightly-lower (within 5 points) so the user always
+        // sees comparable options instead of an empty section.
+        const better = scored.filter(c => c.score > currentScore);
+        const near = scored.filter(c => c.score <= currentScore && c.score >= currentScore - 5);
+        const top = [...better, ...near].slice(0, 3);
 
         if (cancelled) return;
         try { sessionStorage.setItem(cacheKey, JSON.stringify(top)); } catch {}
@@ -247,42 +252,71 @@ export const Alternatives = ({ current, currentScore }: Props) => {
     <div>
       <h3 className="font-display font-semibold mb-3">{title}</h3>
       <div className="space-y-2">
-        {items.map(({ data, score, label }) => (
-          <button
-            key={data.barcode}
-            onClick={() => navigate(`/result/${data.barcode}`)}
-            className="w-full flex items-center gap-3 rounded-2xl border border-border bg-card p-3 text-left hover:bg-muted/40 transition-colors"
-          >
-            {data.image ? (
-              <img
-                src={data.image}
-                alt={data.name}
-                className="w-14 h-14 rounded-xl object-cover bg-muted shrink-0"
-                loading="lazy"
-              />
-            ) : (
-              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10 flex items-center justify-center shrink-0">
-                <span className="font-display font-bold text-primary text-lg">
-                  {(data.name || '?').charAt(0).toUpperCase()}
-                </span>
-              </div>
-            )}
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-sm leading-tight truncate">{data.name}</p>
-              {data.brand && (
-                <p className="text-xs text-muted-foreground truncate mt-0.5">{data.brand}</p>
-              )}
-            </div>
-            <div
-              className="w-12 h-12 rounded-full flex flex-col items-center justify-center shrink-0"
-              style={{ backgroundColor: label.bg, color: label.color }}
-              aria-label={`Puntuación ${score} sobre 100`}
+        {items.map(({ data, score, label, flagged }) => {
+          // Top 3 ingredients to show as chips: prioritise problematic ones
+          // (avoid/caution) so the user sees at-a-glance what's inside; if
+          // everything is safe, show the first three safe INCI names instead.
+          const chipIngredients = flagged.slice(0, 3);
+          return (
+            <button
+              key={data.barcode}
+              onClick={() => navigate(`/result/${data.barcode}`)}
+              className="w-full flex items-center gap-3 rounded-2xl border border-border bg-card p-3 text-left hover:bg-muted/40 transition-colors"
             >
-              <span className="text-sm font-bold leading-none">{score}</span>
-              <span className="text-[8px] uppercase tracking-wider opacity-90 mt-0.5">/100</span>
-            </div>
-          </button>
-        ))}
+              {data.image ? (
+                <img
+                  src={data.image}
+                  alt={data.name}
+                  className="w-14 h-14 rounded-xl object-cover bg-muted shrink-0"
+                  loading="lazy"
+                />
+              ) : (
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10 flex items-center justify-center shrink-0">
+                  <span className="font-display font-bold text-primary text-lg">
+                    {(data.name || '?').charAt(0).toUpperCase()}
+                  </span>
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm leading-tight truncate">{data.name}</p>
+                {data.brand && (
+                  <p className="text-xs text-muted-foreground truncate mt-0.5">{data.brand}</p>
+                )}
+                {chipIngredients.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1.5">
+                    {chipIngredients.map((ing, i) => {
+                      const bg =
+                        ing.level === 'avoid' ? 'hsl(var(--destructive) / 0.12)' :
+                        ing.level === 'caution' ? 'hsl(45 93% 47% / 0.15)' :
+                        'hsl(var(--muted))';
+                      const color =
+                        ing.level === 'avoid' ? 'hsl(var(--destructive))' :
+                        ing.level === 'caution' ? 'hsl(35 80% 35%)' :
+                        'hsl(var(--muted-foreground))';
+                      return (
+                        <span
+                          key={i}
+                          className="text-[10px] px-1.5 py-0.5 rounded-md font-medium truncate max-w-[110px]"
+                          style={{ backgroundColor: bg, color }}
+                        >
+                          {ing.name}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+              <div
+                className="w-12 h-12 rounded-full flex flex-col items-center justify-center shrink-0"
+                style={{ backgroundColor: label.bg, color: label.color }}
+                aria-label={`Puntuación ${score} sobre 100`}
+              >
+                <span className="text-sm font-bold leading-none">{score}</span>
+                <span className="text-[8px] uppercase tracking-wider opacity-90 mt-0.5">/100</span>
+              </div>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
