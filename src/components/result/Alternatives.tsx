@@ -196,12 +196,16 @@ export const Alternatives = ({ current, currentScore }: Props) => {
           const score = consent && profile
             ? calculatePersonalScore(pd, flagged, profile, general)
             : general;
-          if (score <= currentScore) continue;
-          scored.push({ data: pd, score, label: scoreLabel(score) });
+          scored.push({ data: pd, score, label: scoreLabel(score), flagged });
         }
 
         scored.sort((a, b) => b.score - a.score);
-        const top = scored.slice(0, 3);
+        // Prefer strictly-better alternatives; if fewer than 3 exist, backfill
+        // with same-or-slightly-lower (within 5 points) so the user always
+        // sees comparable options instead of an empty section.
+        const better = scored.filter(c => c.score > currentScore);
+        const near = scored.filter(c => c.score <= currentScore && c.score >= currentScore - 5);
+        const top = [...better, ...near].slice(0, 3);
 
         if (cancelled) return;
         try { sessionStorage.setItem(cacheKey, JSON.stringify(top)); } catch {}
