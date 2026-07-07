@@ -183,13 +183,22 @@ export function flagIngredients(p: ProductData): FlaggedIngredient[] {
     .filter(s => s.length > 1 && s.length < 60);
   const seen = new Set<string>();
   const all: string[] = [];
-  for (const name of [...fromTags, ...fromText]) {
+  // Text first: user-visible INCI is the source of truth for parfum,
+  // sulfates, etc. Tags (which can balloon to 30+ taxonomy entries on OBF)
+  // are appended so they never push problematic text ingredients out of
+  // the display slice.
+  for (const name of [...fromText, ...fromTags]) {
     const key = canonicalKey(name);
     if (!key || seen.has(key)) continue;
     seen.add(key);
     all.push(name);
   }
-  return all.slice(0, 40).map(name => ({ name, level: classifyIngredient(name) }));
+  const flagged = all.map(name => ({ name, level: classifyIngredient(name) }));
+  // Sort avoid → caution → safe so the top slice always shows problematic
+  // ingredients first, regardless of how many total ingredients there are.
+  const order: Record<IngredientLevel, number> = { avoid: 0, caution: 1, safe: 2 };
+  flagged.sort((a, b) => order[a.level] - order[b.level]);
+  return flagged.slice(0, 60);
 }
 
 // --- Score factor breakdowns -----------------------------------------------
