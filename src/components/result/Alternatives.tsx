@@ -27,8 +27,8 @@ interface Candidate {
   flagged: ReturnType<typeof flagIngredients>;
 }
 
-// v5: adds local catalog fallback so alternatives still render in private/incognito sessions.
-const CACHE_PREFIX = 'maseya_alts_v5::';
+// v6: require shared category tag for catalog fallback; add cacao mapping.
+const CACHE_PREFIX = 'maseya_alts_v6::';
 const FETCH_TIMEOUT_MS = 8000;
 // TODO: derive country from user locale/settings when we expand beyond Spain.
 const COUNTRY_TAG = 'en:spain';
@@ -281,7 +281,10 @@ export const Alternatives = ({ current, currentScore }: Props) => {
               row.category_tag,
               ...guessCategoryTagsFromName(row.product_name || '', cat),
             ].filter((tag): tag is string => !!tag);
-            const sharesTag = tagSet.size === 0 || rowTags.some(tag => tagSet.has(tag));
+            // Never accept catalog rows without at least one shared category
+            // signal — otherwise we'd surface unrelated food/cosmetics (e.g.
+            // "aceite de coco" as an alternative to "cacao en polvo").
+            const sharesTag = rowTags.some(tag => tagSet.has(tag));
             const sameCleanserFamily = currentIsCleanserLike && isCleanserLikeName(row.product_name || '');
             if (!sharesTag && !sameCleanserFamily) continue;
             addCandidate(toCatalogProductData(row));
