@@ -221,7 +221,7 @@ export const Alternatives = ({ current, currentScore }: Props) => {
           seenTags.add(t);
           tagCandidates.push(t);
         };
-        pushTag(rawCategoryTag);
+        for (const t of rawCategoryTags) pushTag(t);
         for (const t of guessedCategoryTags) pushTag(t);
 
         const attempts: string[] = [];
