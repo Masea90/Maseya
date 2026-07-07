@@ -460,8 +460,12 @@ export function calculatePersonalScoreBreakdown(
       const t = firstTerm(combined, ANIMAL_KEYWORDS);
       if (t) addNeg(`Dieta vegana: ingrediente de origen animal (${t})`, -30);
     }
-    if (diet && (p.labels_tags.some(t => t.includes(diet)) || (isVegan && p.ingredients_analysis_tags.includes('en:vegan')))) {
+    if (diets.length && (diets.some(d => p.labels_tags.some(t => t.includes(d))) || (isVegan && p.ingredients_analysis_tags.includes('en:vegan')))) {
       addPos('Alineado con tu dieta', 5);
+    }
+    if (isHalal) {
+      const t = firstTerm(combined, ['pork', 'porcino', 'cerdo', 'jamón', 'jamon', 'bacon', 'lard', 'manteca de cerdo', 'gelatin', 'gelatina', 'alcohol', 'wine', 'vino', 'rum', 'ron']);
+      if (t) addNeg(`Dieta halal: ingrediente no permitido (${t})`, -30);
     }
   }
 
