@@ -27,8 +27,8 @@ interface Candidate {
   flagged: ReturnType<typeof flagIngredients>;
 }
 
-// v5: adds local catalog fallback so alternatives still render in private/incognito sessions.
-const CACHE_PREFIX = 'maseya_alts_v5::';
+// v6: require shared category tag for catalog fallback; add cacao mapping.
+const CACHE_PREFIX = 'maseya_alts_v6::';
 const FETCH_TIMEOUT_MS = 8000;
 // TODO: derive country from user locale/settings when we expand beyond Spain.
 const COUNTRY_TAG = 'en:spain';
