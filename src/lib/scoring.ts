@@ -268,15 +268,16 @@ export function calculateScoreBreakdown(
   const rawText = (p.ingredients_text || '').trim();
   const factors: ScoreFactor[] = [];
 
-  if (p.category === 'food' && p.nutriscore_grade) {
+  const nutriGrade = (p.nutriscore_grade || '').toLowerCase();
+  const hasNutri = ['a', 'b', 'c', 'd', 'e'].includes(nutriGrade);
+  if (p.category === 'food' && hasNutri) {
     const cleanMap: Record<string, number> = { a: 95, b: 82, c: 62, d: 40, e: 18 };
-    const grade = p.nutriscore_grade.toLowerCase();
-    let score = cleanMap[grade] ?? 50;
+    let score = cleanMap[nutriGrade] ?? 50;
     const nutriTone: FactorTone =
-      grade === 'a' || grade === 'b' ? 'positive'
-      : grade === 'c' ? 'neutral'
+      nutriGrade === 'a' || nutriGrade === 'b' ? 'positive'
+      : nutriGrade === 'c' ? 'neutral'
       : 'negative';
-    factors.push({ label: `Nutriscore ${grade.toUpperCase()}`, delta: null, tone: nutriTone });
+    factors.push({ label: `Nutriscore ${nutriGrade.toUpperCase()}`, delta: null, tone: nutriTone });
 
     if (reds > 0) {
       factors.push({
@@ -306,7 +307,7 @@ export function calculateScoreBreakdown(
   }
 
   // Cosmetic or food-without-nutriscore fallback.
-  if (p.category === 'food' && !p.nutriscore_grade) {
+  if (p.category === 'food' && !hasNutri) {
     factors.push({
       label: 'Datos incompletos: puntuación orientativa',
       delta: null, tone: 'neutral',

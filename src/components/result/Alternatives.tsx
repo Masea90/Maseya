@@ -41,11 +41,14 @@ const hostForCategory = (category: 'food' | 'cosmetic') =>
 const sourceForCategory = (category: 'food' | 'cosmetic'): ProductData['source'] =>
   category === 'cosmetic' ? 'obf' : 'off';
 
-const pickCategoryTag = (raw: Record<string, unknown>): string | null => {
+// Returns the full category hierarchy from OFF/OBF, ordered most-specific → broadest.
+// This lets us try the tightest match first (e.g. "cocoa-powders") and progressively
+// broaden (e.g. "cocoas" → "sweet-snacks") until we find enough alternatives.
+const pickCategoryTags = (raw: Record<string, unknown>): string[] => {
   const tags = (raw as { categories_tags?: string[] })?.categories_tags;
-  if (!Array.isArray(tags) || tags.length === 0) return null;
-  // Most specific category is typically the last one in OFF/OBF.
-  return tags[tags.length - 1] || null;
+  if (!Array.isArray(tags) || tags.length === 0) return [];
+  // OFF orders from most-general to most-specific; reverse so specific is first.
+  return [...tags].reverse().filter((t): t is string => typeof t === 'string' && t.length > 0);
 };
 
 interface SearchItem {
@@ -154,18 +157,20 @@ export const Alternatives = ({ current, currentScore }: Props) => {
   // (off/obf/maseya/photo). The search host is chosen by category, not source.
   const eligible = current.category === 'food' || current.category === 'cosmetic';
 
-  // Cross-validate: if the product is cosmetic but the raw category is a
-  // clearly-food tag (community mislabel — real case: OBF facial cleanser
-  // tagged en:milks), discard it and rely on the name-based guess.
-  let rawCategoryTag = eligible ? pickCategoryTag(current.raw) : null;
-  if (rawCategoryTag && current.category === 'cosmetic' && isFoodCategoryTag(rawCategoryTag)) {
-    rawCategoryTag = null;
-  }
+  // Cross-validate: if the product is cosmetic but a raw tag is clearly food
+  // (community mislabel — real case: OBF facial cleanser tagged en:milks),
+  // drop those food tags and rely on the name-based guess for that ambiguity.
+  const rawCategoryTags = eligible
+    ? pickCategoryTags(current.raw).filter(
+        (t) => !(current.category === 'cosmetic' && isFoodCategoryTag(t))
+      )
+    : [];
   const guessedCategoryTags = eligible
     ? guessCategoryTagsFromName(current.name, current.category as 'food' | 'cosmetic')
     : [];
-  const hasAnyTag = !!rawCategoryTag || guessedCategoryTags.length > 0;
-  // Stable dep key so the effect doesn't re-run on every render.
+  const hasAnyTag = rawCategoryTags.length > 0 || guessedCategoryTags.length > 0;
+  // Stable dep keys so the effect doesn't re-run on every render.
+  const rawTagsKey = rawCategoryTags.join('|');
   const guessedTagsKey = guessedCategoryTags.join('|');
 
   useEffect(() => {
@@ -216,7 +221,7 @@ export const Alternatives = ({ current, currentScore }: Props) => {
           seenTags.add(t);
           tagCandidates.push(t);
         };
-        pushTag(rawCategoryTag);
+        for (const t of rawCategoryTags) pushTag(t);
         for (const t of guessedCategoryTags) pushTag(t);
 
         const attempts: string[] = [];
@@ -317,7 +322,7 @@ export const Alternatives = ({ current, currentScore }: Props) => {
       controller.abort();
       clearTimeout(timeout);
     };
-  }, [current.barcode, current.source, current.category, current.name, rawCategoryTag, guessedTagsKey, currentScore, eligible]);
+  }, [current.barcode, current.source, current.category, current.name, rawTagsKey, guessedTagsKey, currentScore, eligible]);
 
   if (!eligible) return null;
 
