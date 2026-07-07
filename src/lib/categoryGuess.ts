@@ -129,3 +129,37 @@ export function guessCategoryTagsFromName(name: string, category: Category): str
 export function isFoodCategoryTag(tag: string | null | undefined): boolean {
   return !!tag && FOOD_CATEGORY_TAGS.has(tag);
 }
+
+/**
+ * Tags too broad to identify a similar product. If we let these pass as the
+ * matching criterion, a nut mix would be considered "similar" to vinegar,
+ * water and olives (all tagged en:plant-based-foods). Filter them out both
+ * from the OFF search attempts and from the local catalog sharesTag check.
+ */
+const BROAD_CATEGORY_TAGS = new Set<string>([
+  'en:plant-based-foods-and-beverages',
+  'en:plant-based-foods',
+  'en:plant-based-beverages',
+  'en:beverages',
+  'en:foods',
+  'en:snacks',
+  'en:sweet-snacks',
+  'en:salty-snacks',
+  'en:groceries',
+  'en:fruits-and-vegetables-based-foods',
+  'en:meals',
+  'en:desserts',
+  'en:condiments',
+  'en:dairies',
+  'en:cosmetics',
+  'en:body',
+  'en:hair',
+  'en:face',
+  'en:skin-care',
+  'en:hair-care',
+  'en:body-care',
+]);
+
+export function isBroadCategoryTag(tag: string | null | undefined): boolean {
+  return !!tag && BROAD_CATEGORY_TAGS.has(tag);
+}
