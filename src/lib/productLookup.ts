@@ -41,11 +41,13 @@ interface OFFResponse {
     ingredients?: Array<{ text?: string; id?: string }>;
     ingredients_tags?: string[];
     labels_tags?: string[];
+    categories_tags?: string[];
     ingredients_analysis_tags?: string[];
     allergens_tags?: string[];
     traces_tags?: string[];
   };
 }
+
 
 const fetchFrom = async (host: string, barcode: string): Promise<OFFResponse | null> => {
   try {
@@ -107,28 +109,50 @@ async function fetchFromMaseya(barcode: string): Promise<ProductData | null> {
   if (!data) return null;
   const cat = (data.category === 'food' || data.category === 'cosmetic') ? data.category : 'unknown';
   let image: string | null = data.image_url || null;
-  // Auto-fetch image from Open Food/Beauty Facts if missing
-  if (!image) {
+  let categoryTag: string | null = (data as { category_tag?: string | null }).category_tag || null;
+  let remoteCategoriesTags: string[] | null = null;
+
+  // Auto-fetch from OFF/OBF when we lack the image OR the specific
+  // category_tag (needed to power the Alternatives feature).
+  if (!image || !categoryTag) {
     try {
-      const host = cat === 'food' ? 'world.openfoodfacts.org' : 'world.openbeautyfacts.org';
-      const json = await fetchFrom(host, data.barcode);
-      const p = json?.product;
-      if (p?.image_front_url || p?.image_url) {
-        image = p.image_front_url || p.image_url;
-      } else if (cat !== 'unknown') {
-        // Try the other host as fallback
-        const altHost = cat === 'food' ? 'world.openbeautyfacts.org' : 'world.openfoodfacts.org';
-        const altJson = await fetchFrom(altHost, data.barcode);
-        const ap = altJson?.product;
-        if (ap?.image_front_url || ap?.image_url) image = ap.image_front_url || ap.image_url;
+      const primary = cat === 'cosmetic' ? 'world.openbeautyfacts.org' : 'world.openfoodfacts.org';
+      const alt = cat === 'cosmetic' ? 'world.openfoodfacts.org' : 'world.openbeautyfacts.org';
+      let p = (await fetchFrom(primary, data.barcode))?.product;
+      if (!p && cat !== 'unknown') p = (await fetchFrom(alt, data.barcode))?.product;
+      if (p) {
+        if (!image && (p.image_front_url || p.image_url)) {
+          image = p.image_front_url || p.image_url || null;
+        }
+        if (Array.isArray(p.categories_tags) && p.categories_tags.length > 0) {
+          remoteCategoriesTags = p.categories_tags;
+          if (!categoryTag) {
+            const last = p.categories_tags[p.categories_tags.length - 1];
+            if (last && /^[a-z]{2}:[a-z0-9-]+$/.test(last)) {
+              categoryTag = last;
+              // Best-effort persist so we skip the remote fetch next time.
+              // Ignore permission/RLS errors silently.
+              void supabase
+                .from('maseya_products')
+                .update({ category_tag: categoryTag })
+                .eq('barcode', data.barcode)
+                .then(({ error }) => {
+                  if (error) console.warn('[productLookup] category_tag persist skipped', error.message);
+                });
+            }
+          }
+        }
       }
     } catch (e) {
-      console.warn('[productLookup] image auto-fetch failed', e);
+      console.warn('[productLookup] remote enrichment failed', e);
     }
   }
-  const categoryTag = (data as { category_tag?: string | null }).category_tag || null;
+
   const rawObj: Record<string, unknown> = { ...(data as unknown as Record<string, unknown>) };
-  if (categoryTag) rawObj.categories_tags = [categoryTag];
+  const categoriesTags = remoteCategoriesTags ?? (categoryTag ? [categoryTag] : null);
+  if (categoriesTags) rawObj.categories_tags = categoriesTags;
+  if (categoryTag) rawObj.category_tag = categoryTag;
+
   return {
     barcode: data.barcode,
     source: 'maseya',
@@ -146,6 +170,7 @@ async function fetchFromMaseya(barcode: string): Promise<ProductData | null> {
     raw: rawObj,
   };
 }
+
 
 export async function saveToMaseya(input: {
   barcode: string;
