@@ -11,7 +11,7 @@ import {
   loadOnboarding,
 } from '@/lib/scoring';
 import { hasHealthDataConsent } from '@/components/consent/ConsentModal';
-import { guessCategoryTagsFromName, isFoodCategoryTag } from '@/lib/categoryGuess';
+import { guessCategoryTagsFromName, isFoodCategoryTag, isBroadCategoryTag } from '@/lib/categoryGuess';
 
 
 interface Props {
@@ -27,8 +27,9 @@ interface Candidate {
   flagged: ReturnType<typeof flagIngredients>;
 }
 
-// v6: require shared category tag for catalog fallback; add cacao mapping.
-const CACHE_PREFIX = 'maseya_alts_v6::';
+// v7: drop overly-broad category tags (en:plant-based-foods, en:snacks…) so
+// alternatives match the actual product family (nuts vs vinegar vs olives).
+const CACHE_PREFIX = 'maseya_alts_v7::';
 const FETCH_TIMEOUT_MS = 8000;
 // TODO: derive country from user locale/settings when we expand beyond Spain.
 const COUNTRY_TAG = 'en:spain';
@@ -162,7 +163,9 @@ export const Alternatives = ({ current, currentScore }: Props) => {
   // drop those food tags and rely on the name-based guess for that ambiguity.
   const rawCategoryTags = eligible
     ? pickCategoryTags(current.raw).filter(
-        (t) => !(current.category === 'cosmetic' && isFoodCategoryTag(t))
+        (t) =>
+          !isBroadCategoryTag(t) &&
+          !(current.category === 'cosmetic' && isFoodCategoryTag(t))
       )
     : [];
   const guessedCategoryTags = eligible

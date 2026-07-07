@@ -46,6 +46,23 @@ const FOOD_MAP: Array<[string[], string[]]> = [
   [['pan', 'bread'], ['en:breads']],
   [['aceite de oliva', 'olive oil'], ['en:olive-oils']],
   [['aceite de coco', 'coconut oil'], ['en:coconut-oils']],
+  [['vinagre', 'vinegar'], ['en:vinegars']],
+  [['tomate frito', 'tomate triturado', 'salsa de tomate', 'tomato sauce'], ['en:tomato-sauces', 'en:sauces']],
+  [['crema de cacahuete', 'mantequilla de cacahuete', 'peanut butter'], ['en:peanut-butters', 'en:nut-butters']],
+  [['aceituna', 'olives', 'olive'], ['en:olives']],
+  // Mixes and nuts/seeds/dried fruits — Eroski "Mix cocina nuez, almendra…"
+  [['mix de frutos secos', 'mix frutos secos', 'mezcla de frutos secos', 'trail mix', 'mixed nuts', 'frutos secos'], ['en:mixed-nuts', 'en:nuts']],
+  [['nuez', 'nueces', 'walnut', 'walnuts'], ['en:walnuts', 'en:nuts']],
+  [['almendra', 'almendras', 'almond', 'almonds'], ['en:almonds', 'en:nuts']],
+  [['anacardo', 'anacardos', 'cashew', 'cashews'], ['en:cashew-nuts', 'en:nuts']],
+  [['avellana', 'avellanas', 'hazelnut', 'hazelnuts'], ['en:hazelnuts', 'en:nuts']],
+  [['pistacho', 'pistachos', 'pistachio', 'pistachios'], ['en:pistachios', 'en:nuts']],
+  [['pipa de calabaza', 'pipas de calabaza', 'pumpkin seed', 'pumpkin seeds'], ['en:pumpkin-seeds', 'en:seeds']],
+  [['pipa de girasol', 'pipas de girasol', 'sunflower seed', 'sunflower seeds'], ['en:sunflower-seeds', 'en:seeds']],
+  [['pipas', 'semillas', 'seeds'], ['en:seeds']],
+  [['pasa', 'pasas', 'sultana', 'sultanas', 'raisin', 'raisins'], ['en:raisins', 'en:dried-fruits']],
+  [['datil', 'datiles', 'date', 'dates'], ['en:dates', 'en:dried-fruits']],
+  [['orejones', 'higos secos', 'dried apricot', 'dried fig', 'fruta deshidratada', 'dried fruit'], ['en:dried-fruits']],
   [['leche', 'milk'], ['en:milks']],
 ];
 
@@ -111,4 +128,38 @@ export function guessCategoryTagsFromName(name: string, category: Category): str
  */
 export function isFoodCategoryTag(tag: string | null | undefined): boolean {
   return !!tag && FOOD_CATEGORY_TAGS.has(tag);
+}
+
+/**
+ * Tags too broad to identify a similar product. If we let these pass as the
+ * matching criterion, a nut mix would be considered "similar" to vinegar,
+ * water and olives (all tagged en:plant-based-foods). Filter them out both
+ * from the OFF search attempts and from the local catalog sharesTag check.
+ */
+const BROAD_CATEGORY_TAGS = new Set<string>([
+  'en:plant-based-foods-and-beverages',
+  'en:plant-based-foods',
+  'en:plant-based-beverages',
+  'en:beverages',
+  'en:foods',
+  'en:snacks',
+  'en:sweet-snacks',
+  'en:salty-snacks',
+  'en:groceries',
+  'en:fruits-and-vegetables-based-foods',
+  'en:meals',
+  'en:desserts',
+  'en:condiments',
+  'en:dairies',
+  'en:cosmetics',
+  'en:body',
+  'en:hair',
+  'en:face',
+  'en:skin-care',
+  'en:hair-care',
+  'en:body-care',
+]);
+
+export function isBroadCategoryTag(tag: string | null | undefined): boolean {
+  return !!tag && BROAD_CATEGORY_TAGS.has(tag);
 }
