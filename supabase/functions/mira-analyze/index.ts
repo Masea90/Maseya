@@ -61,7 +61,7 @@ Ingredientes: ${product.ingredients_text || ""}
 
 Mi perfil alimentario:
 - Alergias: ${(profile?.allergies || []).join(", ") || "—"}
-- Dieta: ${profile?.diet || "—"}
+- Dieta: ${(Array.isArray(profile?.diet) ? profile.diet.join(", ") : profile?.diet) || "—"}
 - Objetivos: ${(profile?.nutrition_goals || []).join(", ") || "—"}
 
 Explícame si este alimento es adecuado para mi perfil y por qué.`
