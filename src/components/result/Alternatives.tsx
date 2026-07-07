@@ -10,7 +10,7 @@ import {
   loadOnboarding,
 } from '@/lib/scoring';
 import { hasHealthDataConsent } from '@/components/consent/ConsentModal';
-import { guessCategoryFromName, isFoodCategoryTag } from '@/lib/categoryGuess';
+import { guessCategoryTagsFromName, isFoodCategoryTag } from '@/lib/categoryGuess';
 
 
 interface Props {
