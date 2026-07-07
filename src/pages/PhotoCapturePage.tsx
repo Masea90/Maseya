@@ -1,10 +1,76 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Camera, ArrowLeft, Sparkles, RefreshCw, Check, X } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
 import { supabase } from '@/integrations/supabase/client';
 import { saveToMaseya } from '@/lib/productLookup';
 import { Button } from '@/components/ui/button';
+
+/**
+ * Resize a File/Blob to a JPEG dataURL, longest side capped at MAX_SIDE.
+ * Uses createImageBitmap with `imageOrientation: 'from-image'` when available
+ * so EXIF-rotated photos from the native camera don't come out sideways.
+ * Falls back to an <img> element on browsers without support.
+ */
+async function fileToResizedDataUrl(file: File | Blob, maxSide = 1600, quality = 0.8): Promise<string | null> {
+  try {
+    let width = 0, height = 0;
+    let source: CanvasImageSource | null = null;
+
+    const supportsBitmapOrientation =
+      typeof createImageBitmap === 'function' &&
+      // Feature-detect the options overload; older Safari accepts createImageBitmap but ignores options.
+      true;
+
+    if (supportsBitmapOrientation) {
+      try {
+        const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' } as ImageBitmapOptions);
+        source = bmp;
+        width = bmp.width;
+        height = bmp.height;
+      } catch {
+        source = null;
+      }
+    }
+
+    if (!source) {
+      const url = URL.createObjectURL(file);
+      try {
+        const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+          const el = new Image();
+          el.onload = () => resolve(el);
+          el.onerror = reject;
+          el.src = url;
+        });
+        source = img;
+        width = img.naturalWidth;
+        height = img.naturalHeight;
+      } finally {
+        // Revoke after draw completes below.
+        setTimeout(() => URL.revokeObjectURL(url), 0);
+      }
+    }
+
+    if (!width || !height) return null;
+    const longest = Math.max(width, height);
+    const scale = longest > maxSide ? maxSide / longest : 1;
+    const outW = Math.round(width * scale);
+    const outH = Math.round(height * scale);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = outW;
+    canvas.height = outH;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(source, 0, 0, outW, outH);
+    return canvas.toDataURL('image/jpeg', quality);
+  } catch (e) {
+    console.error('[photo-capture] resize failed', e);
+    return null;
+  }
+}
+
 
 const COPY = {
   es: {
@@ -127,100 +193,40 @@ const PhotoCapturePage = () => {
   const [serverErrorMessage, setServerErrorMessage] = useState<string | null>(null);
   const [frontPhoto, setFrontPhoto] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null); // freshly captured, awaiting confirm
-  const [cameraError, setCameraError] = useState<string | null>(null);
-  const [cameraReady, setCameraReady] = useState(false);
+  const [processing, setProcessing] = useState(false);
 
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-
-  const stopCamera = useCallback(() => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(t => t.stop());
-      streamRef.current = null;
-    }
-    setCameraReady(false);
-  }, []);
-
-  const startCamera = useCallback(async () => {
-    stopCamera();
-    setCameraError(null);
-    setCameraReady(false);
-    try {
-      let stream: MediaStream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { exact: 'environment' } },
-          audio: false,
-        });
-      } catch (e) {
-        console.warn('[camera] exact environment failed, trying loose', e);
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment' },
-          audio: false,
-        });
-      }
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play().catch(() => {});
-      }
-      setCameraReady(true);
-    } catch (e) {
-      console.error('[camera] getUserMedia failed', e);
-      setCameraError(c.cameraDenied);
-    }
-  }, [c.cameraDenied, stopCamera]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Debug: log realBarcode on mount to verify URL param is passed correctly
   useEffect(() => {
     console.log('[photo-capture] mount — realBarcode URL param =', realBarcode, '| addImageFor =', addImageFor);
   }, [realBarcode, addImageFor]);
 
-  // Start camera when entering a capture step (and no preview pending)
-  useEffect(() => {
-    const isCaptureStep = (step === 'front' || step === 'ingredients') && !preview;
-    if (isCaptureStep) void startCamera();
-    return () => stopCamera();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, preview]);
-
-  const captureFrame = async (): Promise<string | null> => {
-    const v = videoRef.current;
-    if (!v || !v.videoWidth) return null;
-    const srcCanvas = document.createElement('canvas');
-    srcCanvas.width = v.videoWidth;
-    srcCanvas.height = v.videoHeight;
-    const srcCtx = srcCanvas.getContext('2d');
-    if (!srcCtx) return null;
-    srcCtx.drawImage(v, 0, 0);
-
-    // Downscale: longest side max 1600px, JPEG quality 0.8 → keeps payload
-    // well under the 5MB edge-function limit and speeds up upload/analysis.
-    const MAX_SIDE = 1600;
-    const longest = Math.max(srcCanvas.width, srcCanvas.height);
-    const scale = longest > MAX_SIDE ? MAX_SIDE / longest : 1;
-    const outW = Math.round(srcCanvas.width * scale);
-    const outH = Math.round(srcCanvas.height * scale);
-    const outCanvas = document.createElement('canvas');
-    outCanvas.width = outW;
-    outCanvas.height = outH;
-    const outCtx = outCanvas.getContext('2d');
-    if (!outCtx) return null;
-    outCtx.imageSmoothingQuality = 'high';
-    outCtx.drawImage(srcCanvas, 0, 0, outW, outH);
-    return outCanvas.toDataURL('image/jpeg', 0.8);
+  const openNativeCamera = () => {
+    // Reset value so selecting the same file twice still fires onChange.
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+      fileInputRef.current.click();
+    }
   };
 
-  const onCapture = async () => {
-    const dataUrl = await captureFrame();
-    if (!dataUrl) return;
-    setPreview(dataUrl);
-    stopCamera();
+  const onFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    // User cancelled the picker → no file → do nothing.
+    if (!file) return;
+    setProcessing(true);
+    try {
+      const dataUrl = await fileToResizedDataUrl(file);
+      if (dataUrl) setPreview(dataUrl);
+    } finally {
+      setProcessing(false);
+    }
   };
 
   const onRetake = () => {
     setPreview(null);
   };
+
 
   const onConfirm = async () => {
     if (!preview) return;
@@ -358,9 +364,9 @@ const PhotoCapturePage = () => {
       setStep('front');
       return;
     }
-    stopCamera();
     navigate(-1);
   };
+
 
   const heading = step === 'front' ? c.front : c.ingredients;
 
@@ -403,37 +409,35 @@ const PhotoCapturePage = () => {
               )}
             </div>
 
-            <div className="relative aspect-[3/4] rounded-3xl overflow-hidden bg-black border border-border">
+            <div className="relative aspect-[3/4] rounded-3xl overflow-hidden bg-gradient-to-br from-muted to-muted/50 border border-border flex items-center justify-center">
               {preview ? (
                 <img src={preview} alt="" className="w-full h-full object-cover" />
+              ) : processing ? (
+                <div className="flex flex-col items-center justify-center text-muted-foreground gap-3">
+                  <Sparkles className="w-10 h-10 animate-pulse text-primary" />
+                  <p className="text-xs">{c.starting}</p>
+                </div>
               ) : (
-                <>
-                  <video
-                    ref={videoRef}
-                    className="w-full h-full object-cover"
-                    playsInline
-                    muted
-                    autoPlay
-                  />
-                  {!cameraReady && !cameraError && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center text-white/80 gap-2">
-                      <Camera className="w-10 h-10 animate-pulse" />
-                      <p className="text-xs">{c.starting}</p>
-                    </div>
-                  )}
-                  {cameraError && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-6 text-center gap-3 bg-black/70">
-                      <Camera className="w-10 h-10 text-destructive" />
-                      <p className="text-sm">{cameraError}</p>
-                      <Button onClick={() => void startCamera()} variant="secondary" size="sm">
-                        <RefreshCw className="w-4 h-4 mr-2" />
-                        {c.retry}
-                      </Button>
-                    </div>
-                  )}
-                </>
+                <div className="flex flex-col items-center justify-center text-muted-foreground gap-3 p-8 text-center">
+                  <Camera className="w-14 h-14 text-primary/70" />
+                  <p className="text-xs leading-relaxed max-w-[220px]">
+                    {step === 'front' ? c.front.tip : c.ingredients.hint}
+                  </p>
+                </div>
               )}
             </div>
+
+            {/* Hidden native camera input — `capture="environment"` opens the
+                rear camera app on mobile with full resolution, autofocus and
+                flash. On desktop it falls back to a normal file picker. */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={onFileSelected}
+            />
 
             {preview ? (
               <div className="flex gap-3">
@@ -448,8 +452,8 @@ const PhotoCapturePage = () => {
               </div>
             ) : (
               <Button
-                onClick={onCapture}
-                disabled={!cameraReady}
+                onClick={openNativeCamera}
+                disabled={processing}
                 className="w-full h-14 rounded-2xl"
               >
                 <Camera className="w-5 h-5 mr-2" />
@@ -457,6 +461,7 @@ const PhotoCapturePage = () => {
               </Button>
             )}
           </>
+
         )}
 
         {step === 'analyzing' && (
