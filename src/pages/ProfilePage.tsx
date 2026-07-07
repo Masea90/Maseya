@@ -274,7 +274,7 @@ const ProfilePage = () => {
             <p className="text-xs text-muted-foreground mb-2">Dieta</p>
             <div className="flex flex-wrap gap-2">
               {OPTIONS.diet.map(o => (
-                <Chip key={o} active={state.diet === o} onClick={() => setSingle('diet', o)}>
+                <Chip key={o} active={state.diet.includes(o)} onClick={() => toggleArr('diet', o)}>
                   {OPTIONS.diet_label[o]}
                 </Chip>
               ))}
