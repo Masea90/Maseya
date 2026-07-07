@@ -709,7 +709,7 @@ export const translations = {
     helpFaq6Q: 'Is KHARM free?',
     helpFaq6A: 'The core features (routines, community, recommendations, rewards) are free. Premium features like advanced insights are available with a premium subscription.',
     helpFaq7Q: 'How do I delete my account?',
-    helpFaq7A: 'Go to Settings → Privacy → Delete my account, or email us at support@maseya.es.',
+    helpFaq7A: 'Go to Settings → Privacy → Delete my account, or email us at support@kharm.es.',
 
     // Remedies i18n - times
     remedyTime5: '5 min',
@@ -1565,7 +1565,7 @@ export const translations = {
     helpFaq6Q: '¿KHARM es gratis?',
     helpFaq6A: 'Las funciones principales (rutinas, comunidad, recomendaciones, recompensas) son gratis. Las funciones premium como los análisis avanzados están disponibles con una suscripción premium.',
     helpFaq7Q: '¿Cómo elimino mi cuenta?',
-    helpFaq7A: 'Ve a Ajustes → Privacidad → Eliminar mi cuenta, o envíanos un correo a support@maseya.es.',
+    helpFaq7A: 'Ve a Ajustes → Privacidad → Eliminar mi cuenta, o envíanos un correo a support@kharm.es.',
 
     // Remedies i18n - times
     remedyTime5: '5 min',
@@ -2420,7 +2420,7 @@ export const translations = {
     helpFaq6Q: 'KHARM est-il gratuit ?',
     helpFaq6A: 'Les fonctionnalités principales (routines, communauté, recommandations, récompenses) sont gratuites. Les fonctionnalités premium comme les analyses avancées sont disponibles avec un abonnement premium.',
     helpFaq7Q: 'Comment supprimer mon compte ?',
-    helpFaq7A: 'Allez dans Paramètres → Confidentialité → Supprimer mon compte, ou envoyez-nous un e-mail à support@maseya.es.',
+    helpFaq7A: 'Allez dans Paramètres → Confidentialité → Supprimer mon compte, ou envoyez-nous un e-mail à support@kharm.es.',
 
     // Remedies i18n
     remedyTime5: '5 min',
