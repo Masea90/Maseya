@@ -365,7 +365,7 @@ export interface PersonalProfileLike {
   skin_conditions?: string[];
   skin_sensitivities?: string[];
   allergies?: string[];
-  diet?: string;
+  diet?: string | string[];
   nutrition_goals?: string[];
   pregnancy_or_lactation?: boolean;
 }
