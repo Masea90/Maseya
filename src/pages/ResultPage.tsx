@@ -9,13 +9,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { lookupProduct, ProductData } from '@/lib/productLookup';
 import {
-  flagIngredients, calculateScore, calculatePersonalScore, scoreLabel, naturalness, personalAlerts, loadOnboarding,
+  flagIngredients, calculateScoreBreakdown, calculatePersonalScoreBreakdown, scoreLabel, naturalness, personalAlerts, loadOnboarding,
   isNutritionalData,
   FlaggedIngredient, PersonalAlert,
 } from '@/lib/scoring';
+import { inciLabel } from '@/lib/inciLabels';
 import { RegistrationSheet } from '@/components/auth/RegistrationSheet';
 import { MiraAnalysis } from '@/components/result/MiraAnalysis';
 import { Alternatives } from '@/components/result/Alternatives';
+import { ScoreBreakdown } from '@/components/result/ScoreBreakdown';
 import { InstallPrompt } from '@/components/InstallPrompt';
 
 import { hasHealthDataConsent, getStoredConsent, saveConsent } from '@/components/consent/ConsentModal';
@@ -217,9 +219,7 @@ const ResultPage = () => {
     persistedRef.current = key;
 
     const flagged = flagIngredients(product);
-    const score = calculateScore(product, flagged);
-
-    // Track popularity in maseya_products (best-effort, no await)
+    const score = calculateScoreBreakdown(product, flagged).score;
     if (product.barcode && product.barcode !== 'photo') {
       supabase.rpc('increment_product_scan_count', { p_barcode: product.barcode })
         .then(({ error }) => { if (error) console.warn('[scan_count]', error.message); });
@@ -298,14 +298,16 @@ const ResultPage = () => {
   }
 
   const flagged = flagIngredients(product);
-  const score = calculateScore(product, flagged);
+  const scoreBreakdown = calculateScoreBreakdown(product, flagged);
+  const score = scoreBreakdown.score;
   const sl = scoreLabel(score);
   const nat = naturalness(product, flagged);
   const profile = loadOnboarding();
   const alerts = healthConsent ? personalAlerts(product, profile) : [];
-  const personalScore = healthConsent
-    ? calculatePersonalScore(product, flagged, healthProfile || profile, score)
-    : score;
+  const personalBreakdown = healthConsent
+    ? calculatePersonalScoreBreakdown(product, flagged, healthProfile || profile, score)
+    : null;
+  const personalScore = personalBreakdown ? personalBreakdown.score : score;
   const psl = scoreLabel(personalScore);
   // Consider ingredient data available when we have ANY flagged item OR when
   // there's non-nutritional ingredients text. Many legit products are
@@ -452,9 +454,17 @@ const ResultPage = () => {
                     </Popover>
                   </div>
 
+                  {/* Score composition: helps users understand where the number comes from. */}
+                  <div className="w-full flex flex-col items-center gap-2">
+                    <ScoreBreakdown factors={scoreBreakdown.factors} title="¿Por qué esta nota general?" />
+                    {personalBreakdown && (
+                      <ScoreBreakdown factors={personalBreakdown.factors} title="¿Por qué tu nota personal?" />
+                    )}
+                  </div>
+
                   {!hasIngredientData && hasNutriscore && (
                     <p className="text-xs text-muted-foreground text-center max-w-xs">
-                      Basado en valor nutricional. Fotografía la etiqueta para análisis completo de ingredientes.
+                      La puntuación se basa solo en el Nutriscore. Fotografía la lista de ingredientes para completar el análisis.
                     </p>
                   )}
                 </>
@@ -497,9 +507,14 @@ const ResultPage = () => {
                       </div>
                     ) : (
                       <div className="flex flex-wrap gap-1.5">
-                        {flagged.slice(0, 20).map((f, i) => (
-                          <Badge key={i} className={`${badgeVariant(f.level)} font-normal capitalize`}>{f.name}</Badge>
-                        ))}
+                        {flagged.slice(0, 20).map((f, i) => {
+                          const es = inciLabel(f.name);
+                          return (
+                            <Badge key={i} className={`${badgeVariant(f.level)} font-normal capitalize`}>
+                              {f.name}{es ? ` (${es})` : ''}
+                            </Badge>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
