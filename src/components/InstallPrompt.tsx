@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { X, Share, Plus, Download } from 'lucide-react';
+import { X, Share, Plus, Download, Compass } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
 
 const DISMISS_KEY = 'maseya_install_dismissed_at';
@@ -17,7 +17,11 @@ const COPY = {
     install: 'Instalar',
     iosStep1: 'Pulsa el botón',
     iosStep2: 'Compartir',
-    iosStep3: "y elige “Añadir a pantalla de inicio”.",
+    iosStep3: 'y elige “Añadir a pantalla de inicio”.',
+    inAppTitle: 'Abre Maseya en Safari para instalarla',
+    inAppBody: 'Estás viendo la web dentro de otra app. Pulsa el menú (•••) y elige “Abrir en Safari” para poder añadirla a tu pantalla de inicio.',
+    inAppCta: 'Copiar enlace',
+    inAppCopied: 'Enlace copiado',
     dismiss: 'Cerrar',
   },
   en: {
@@ -27,6 +31,10 @@ const COPY = {
     iosStep1: 'Tap the',
     iosStep2: 'Share',
     iosStep3: 'button and choose “Add to Home Screen”.',
+    inAppTitle: 'Open Maseya in Safari to install it',
+    inAppBody: "You're viewing the site inside another app. Tap the menu (•••) and choose “Open in Safari” to add it to your home screen.",
+    inAppCta: 'Copy link',
+    inAppCopied: 'Link copied',
     dismiss: 'Close',
   },
   fr: {
@@ -36,6 +44,10 @@ const COPY = {
     iosStep1: 'Appuie sur',
     iosStep2: 'Partager',
     iosStep3: 'puis choisis « Sur l\'écran d\'accueil ».',
+    inAppTitle: 'Ouvre Maseya dans Safari pour l’installer',
+    inAppBody: 'Tu vois le site dans une autre app. Appuie sur le menu (•••) et choisis « Ouvrir dans Safari » pour l’ajouter à ton écran d’accueil.',
+    inAppCta: 'Copier le lien',
+    inAppCopied: 'Lien copié',
     dismiss: 'Fermer',
   },
 };
@@ -53,7 +65,6 @@ const isDismissedRecently = (): boolean => {
 const isStandalone = (): boolean => {
   if (typeof window === 'undefined') return false;
   const mm = window.matchMedia?.('(display-mode: standalone)').matches;
-  // iOS: navigator.standalone
   const iosSA = (window.navigator as any).standalone === true;
   return !!mm || iosSA;
 };
@@ -66,11 +77,18 @@ const isIOS = (): boolean => {
   return iOSDevice || iPadOS;
 };
 
+// In-app browsers can't install PWAs. Detect the common ones.
+const isInAppBrowser = (): boolean => {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent;
+  return /Instagram|FBAN|FBAV|FB_IAB|Messenger|Line|MicroMessenger|Twitter|TikTok|Snapchat|LinkedInApp|Pinterest|GSA/i.test(ua);
+};
+
+// iOS Safari (the only iOS browser that can Add to Home Screen from the share sheet).
 const isIOSSafari = (): boolean => {
   if (!isIOS()) return false;
   const ua = navigator.userAgent;
-  // Exclude Chrome/Firefox/Edge on iOS
-  return /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
+  return /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS/.test(ua) && !isInAppBrowser();
 };
 
 export const InstallPrompt = () => {
@@ -79,6 +97,8 @@ export const InstallPrompt = () => {
   const [visible, setVisible] = useState(false);
   const [deferred, setDeferred] = useState<BIPEvent | null>(null);
   const [iosHint, setIosHint] = useState(false);
+  const [inApp, setInApp] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (isStandalone() || isDismissedRecently()) return;
@@ -90,21 +110,26 @@ export const InstallPrompt = () => {
     };
     window.addEventListener('beforeinstallprompt', onBIP);
 
-    // iOS: no beforeinstallprompt — show hint after short delay
-    if (isIOSSafari()) {
-      const t = setTimeout(() => {
-        if (!isStandalone() && !isDismissedRecently()) {
-          setIosHint(true);
-          setVisible(true);
-        }
-      }, 600);
-      return () => {
-        window.removeEventListener('beforeinstallprompt', onBIP);
-        clearTimeout(t);
-      };
-    }
+    const t = setTimeout(() => {
+      if (isStandalone() || isDismissedRecently()) return;
+      // iOS in-app browser (Instagram, WhatsApp, etc.) — can't install here.
+      if (isIOS() && isInAppBrowser()) {
+        setInApp(true);
+        setVisible(true);
+        return;
+      }
+      // Any iOS browser: show the Add-to-Home-Screen hint. Only Safari can complete
+      // it, but Chrome/Firefox users need to know to switch to Safari.
+      if (isIOSSafari() || isIOS()) {
+        setIosHint(true);
+        setVisible(true);
+      }
+    }, 600);
 
-    return () => window.removeEventListener('beforeinstallprompt', onBIP);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', onBIP);
+      clearTimeout(t);
+    };
   }, []);
 
   const dismiss = () => {
@@ -128,17 +153,37 @@ export const InstallPrompt = () => {
     }
   };
 
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.origin);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {}
+  };
+
   if (!visible) return null;
 
   return (
     <div className="mt-4 rounded-2xl border border-primary/25 bg-primary/5 p-4">
       <div className="flex items-start gap-3">
         <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0">
-          <Download className="w-5 h-5 text-primary" />
+          {inApp ? <Compass className="w-5 h-5 text-primary" /> : <Download className="w-5 h-5 text-primary" />}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-display font-semibold text-sm">{c.title}</p>
-          {iosHint ? (
+          <p className="font-display font-semibold text-sm">
+            {inApp ? c.inAppTitle : c.title}
+          </p>
+          {inApp ? (
+            <>
+              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{c.inAppBody}</p>
+              <button
+                onClick={copyLink}
+                className="mt-3 h-9 px-4 rounded-xl bg-primary text-primary-foreground text-sm font-medium"
+              >
+                {copied ? c.inAppCopied : c.inAppCta}
+              </button>
+            </>
+          ) : iosHint ? (
             <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
               {c.iosStep1}{' '}
               <Share className="w-3.5 h-3.5 inline align-[-2px] mx-0.5 text-primary" />
@@ -149,7 +194,7 @@ export const InstallPrompt = () => {
           ) : (
             <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{c.subtitle}</p>
           )}
-          {!iosHint && deferred && (
+          {!iosHint && !inApp && deferred && (
             <button
               onClick={install}
               className="mt-3 h-9 px-4 rounded-xl bg-primary text-primary-foreground text-sm font-medium"

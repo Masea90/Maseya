@@ -6,6 +6,7 @@ import { Loader2, Image as ImageIcon } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useUser } from '@/contexts/UserContext';
 import { Button } from '@/components/ui/button';
+import { InstallPrompt } from '@/components/InstallPrompt';
 
 const COPY = {
   es: {
@@ -246,6 +247,8 @@ const ScannerPage = () => {
           <ImageIcon className="w-5 h-5 text-primary" />
           {c.photo}
         </button>
+
+        <InstallPrompt />
       </div>
     </AppLayout>
   );
