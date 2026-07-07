@@ -322,7 +322,7 @@ export const Alternatives = ({ current, currentScore }: Props) => {
       controller.abort();
       clearTimeout(timeout);
     };
-  }, [current.barcode, current.source, current.category, current.name, rawCategoryTag, guessedTagsKey, currentScore, eligible]);
+  }, [current.barcode, current.source, current.category, current.name, rawTagsKey, guessedTagsKey, currentScore, eligible]);
 
   if (!eligible) return null;
 
