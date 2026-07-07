@@ -281,7 +281,10 @@ export const Alternatives = ({ current, currentScore }: Props) => {
               row.category_tag,
               ...guessCategoryTagsFromName(row.product_name || '', cat),
             ].filter((tag): tag is string => !!tag);
-            const sharesTag = tagSet.size === 0 || rowTags.some(tag => tagSet.has(tag));
+            // Never accept catalog rows without at least one shared category
+            // signal — otherwise we'd surface unrelated food/cosmetics (e.g.
+            // "aceite de coco" as an alternative to "cacao en polvo").
+            const sharesTag = rowTags.some(tag => tagSet.has(tag));
             const sameCleanserFamily = currentIsCleanserLike && isCleanserLikeName(row.product_name || '');
             if (!sharesTag && !sameCleanserFamily) continue;
             addCandidate(toCatalogProductData(row));
