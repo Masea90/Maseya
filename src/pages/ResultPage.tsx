@@ -9,13 +9,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { lookupProduct, ProductData } from '@/lib/productLookup';
 import {
-  flagIngredients, calculateScore, calculatePersonalScore, scoreLabel, naturalness, personalAlerts, loadOnboarding,
+  flagIngredients, calculateScoreBreakdown, calculatePersonalScoreBreakdown, scoreLabel, naturalness, personalAlerts, loadOnboarding,
   isNutritionalData,
   FlaggedIngredient, PersonalAlert,
 } from '@/lib/scoring';
+import { inciLabel } from '@/lib/inciLabels';
 import { RegistrationSheet } from '@/components/auth/RegistrationSheet';
 import { MiraAnalysis } from '@/components/result/MiraAnalysis';
 import { Alternatives } from '@/components/result/Alternatives';
+import { ScoreBreakdown } from '@/components/result/ScoreBreakdown';
 import { InstallPrompt } from '@/components/InstallPrompt';
 
 import { hasHealthDataConsent, getStoredConsent, saveConsent } from '@/components/consent/ConsentModal';
