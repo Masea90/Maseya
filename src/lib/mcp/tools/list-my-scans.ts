@@ -17,7 +17,7 @@ export default defineTool({
   name: "list_my_scans",
   title: "List my scan history",
   description:
-    "Return the signed-in MASEYA user's most recent product scans (barcode, product name, category, score, scan date).",
+    "Return the signed-in KHARM user's most recent product scans (barcode, product name, category, score, scan date).",
   inputSchema: {
     limit: z.number().int().min(1).max(100).optional().describe("Max results (default 20)."),
   },

@@ -75,7 +75,7 @@ const ResetPasswordPage = () => {
           <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
             <span className="text-3xl">🌿</span>
           </div>
-          <h1 className="font-display text-3xl font-bold text-foreground">MASEYA</h1>
+          <h1 className="font-display text-3xl font-bold text-foreground">KHARM</h1>
         </div>
       </div>
 

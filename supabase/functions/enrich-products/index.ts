@@ -32,7 +32,7 @@ const safeFetchJson = async (url: string, timeoutMs = 6000): Promise<any | null>
   try {
     const res = await fetch(url, {
       signal: ctrl.signal,
-      headers: { "User-Agent": "MASEYA-enrich/1.0 (https://maseya.es)" },
+      headers: { "User-Agent": "KHARM-enrich/1.0 (https://maseya.es)" },
     });
     if (!res.ok) return null;
     return await res.json();

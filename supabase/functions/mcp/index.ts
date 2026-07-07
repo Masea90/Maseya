@@ -19,7 +19,7 @@ function publicSupabase() {
 var search_products_default = defineTool({
   name: "search_products",
   title: "Search products",
-  description: "Search MASEYA's product catalog (food & cosmetics) by name or brand. Returns matching products with barcode, name, brand, category, and image.",
+  description: "Search KHARM's product catalog (food & cosmetics) by name or brand. Returns matching products with barcode, name, brand, category, and image.",
   inputSchema: {
     query: z.string().trim().min(1).describe("Product name or brand to search for."),
     category: z.enum(["food", "cosmetic"]).optional().describe("Optional filter: 'food' or 'cosmetic'."),
@@ -55,7 +55,7 @@ function publicSupabase2() {
 var get_product_default = defineTool2({
   name: "get_product",
   title: "Get product by barcode",
-  description: "Fetch a MASEYA product's full details (name, brand, category, ingredients, image) by barcode.",
+  description: "Fetch a KHARM product's full details (name, brand, category, ingredients, image) by barcode.",
   inputSchema: {
     barcode: z2.string().trim().min(4).describe("Product barcode (EAN/UPC).")
   },
@@ -93,7 +93,7 @@ function supabaseForUser(ctx) {
 var list_my_scans_default = defineTool3({
   name: "list_my_scans",
   title: "List my scan history",
-  description: "Return the signed-in MASEYA user's most recent product scans (barcode, product name, category, score, scan date).",
+  description: "Return the signed-in KHARM user's most recent product scans (barcode, product name, category, score, scan date).",
   inputSchema: {
     limit: z3.number().int().min(1).max(100).optional().describe("Max results (default 20).")
   },
@@ -117,9 +117,9 @@ var list_my_scans_default = defineTool3({
 var projectRef = "tjimqvdnzjivpgkkyylo";
 var mcp_default = defineMcp({
   name: "maseya-mcp",
-  title: "MASEYA",
+  title: "KHARM",
   version: "0.1.0",
-  instructions: "MASEYA tools for natural beauty & food product safety. Use `search_products` to find products by name/brand, `get_product` to fetch a product by barcode, and `list_my_scans` to read the signed-in user's scan history.",
+  instructions: "KHARM tools for natural beauty & food product safety. Use `search_products` to find products by name/brand, `get_product` to fetch a product by barcode, and `list_my_scans` to read the signed-in user's scan history.",
   auth: auth.oauth.issuer({
     issuer: `https://${projectRef}.supabase.co/auth/v1`,
     acceptedAudiences: "authenticated"

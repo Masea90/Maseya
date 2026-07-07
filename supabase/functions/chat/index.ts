@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 const PRODUCT_CATALOG = `
-Available products in the MASEYA catalog (use catalog_id when recommending):
+Available products in the KHARM catalog (use catalog_id when recommending):
 - catalog_id:3 — The Ordinary Niacinamide 10% + Zinc 1% — Vegan, for oiliness/acne/pores, sensitive-safe
 - catalog_id:4 — Olaplex No.7 Bonding Oil — Hair oil, vegan, for all hair types
 - catalog_id:5 — CeraVe Hydrating Cleanser — Gentle cleanser with ceramides, for dryness/sensitivity
@@ -21,7 +21,7 @@ Available products in the MASEYA catalog (use catalog_id when recommending):
 `;
 
 const REMEDY_CATALOG = `
-Available natural remedies in the MASEYA library (use remedy_id when recommending):
+Available natural remedies in the KHARM library (use remedy_id when recommending):
 - remedy_id:1 — Honey & Oatmeal Face Mask — Skin — hydrating, soothing, anti-inflammatory
 - remedy_id:2 — Rosemary Oil Scalp Treatment — Hair — growth, strengthening, shine
 - remedy_id:3 — Rice Water Rinse — Hair — shine, strength, detangling
@@ -63,7 +63,7 @@ const RECOMMEND_TOOL = {
   function: {
     name: "recommend_products",
     description:
-      "Recommend beauty products to the user. ALWAYS use this tool when suggesting products. Include catalog_id if the product is from the MASEYA catalog.",
+      "Recommend beauty products to the user. ALWAYS use this tool when suggesting products. Include catalog_id if the product is from the KHARM catalog.",
     parameters: {
       type: "object",
       properties: {
@@ -76,7 +76,7 @@ const RECOMMEND_TOOL = {
               brand: { type: "string", description: "Brand name" },
               search_query: { type: "string", description: "Amazon search query to find this product" },
               reason: { type: "string", description: "Brief reason why this product fits THIS user's specific profile (reference their concerns/goals directly)" },
-              catalog_id: { type: "number", description: "If from MASEYA catalog, the catalog ID. Otherwise omit." },
+              catalog_id: { type: "number", description: "If from KHARM catalog, the catalog ID. Otherwise omit." },
             },
             required: ["title", "brand", "search_query", "reason"],
             additionalProperties: false,
@@ -84,14 +84,14 @@ const RECOMMEND_TOOL = {
         },
         remedies: {
           type: "array",
-          description: "Optional: natural remedy recommendations from the MASEYA library",
+          description: "Optional: natural remedy recommendations from the KHARM library",
           items: {
             type: "object",
             properties: {
               title: { type: "string", description: "Remedy name" },
               category: { type: "string", description: "Skin, Hair, or Nutrition" },
               reason: { type: "string", description: "Brief reason why this remedy fits THIS user" },
-              remedy_id: { type: "number", description: "If from MASEYA library, the remedy ID." },
+              remedy_id: { type: "number", description: "If from KHARM library, the remedy ID." },
             },
             required: ["title", "category", "reason"],
             additionalProperties: false,
@@ -138,7 +138,7 @@ Example: Instead of "try a hydrating serum", say "Because your skin profile show
 `
     : "User has not completed their profile yet. Encourage them to complete it for personalized advice.";
 
-  return `You are Mira, the AI beauty expert of MASEYA — a personalized natural beauty app.
+  return `You are Mira, the AI beauty expert of KHARM — a personalized natural beauty app.
 
 ${langInstruction}
 
@@ -213,7 +213,7 @@ CRITICAL RULES:
    - "Dado que tu perfil indica..." / "Since your profile shows..." / "Based on your concerns..."
    - "He seleccionado..." / "I've selected..." / "Let me suggest..."
    - Any AI-like opener or filler
-5. Prefer MASEYA catalog products (include catalog_id) but you can recommend any real product
+5. Prefer KHARM catalog products (include catalog_id) but you can recommend any real product
 6. Include 0-1 natural remedy if relevant, aligned with user profile
 7. Recommend 1-3 products max — don't overwhelm
 8. NO repetition, NO generic descriptions

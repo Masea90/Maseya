@@ -25,7 +25,7 @@ const PrivacyPage = () => {
             <Shield className="w-5 h-5 text-primary" />
           </div>
           <p className="text-sm text-muted-foreground">
-            En Maseya tratamos tus datos con el mínimo imprescindible y con respeto al RGPD.
+            En Kharm tratamos tus datos con el mínimo imprescindible y con respeto al RGPD.
           </p>
         </div>
 
@@ -118,7 +118,7 @@ const PrivacyPage = () => {
         <div className="rounded-2xl border border-border/70 bg-muted/40 p-4">
           <p className="text-xs leading-relaxed text-muted-foreground">
             <span className="font-semibold text-foreground/80">Aviso: </span>
-            Maseya ofrece información orientativa y no sustituye el consejo de un médico,
+            Kharm ofrece información orientativa y no sustituye el consejo de un médico,
             dermatólogo o nutricionista.
           </p>
         </div>

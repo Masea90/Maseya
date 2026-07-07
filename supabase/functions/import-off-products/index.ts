@@ -48,7 +48,7 @@ const fetchPage = async (host: string, page: number, withCountry: boolean): Prom
   try {
     const res = await fetch(url, {
       signal: ctrl.signal,
-      headers: { "User-Agent": "MASEYA-import/1.0 (https://maseya.es)" },
+      headers: { "User-Agent": "KHARM-import/1.0 (https://maseya.es)" },
     });
     if (!res.ok) {
       const body = await res.text().catch(() => "");

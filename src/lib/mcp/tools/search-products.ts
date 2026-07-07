@@ -14,7 +14,7 @@ export default defineTool({
   name: "search_products",
   title: "Search products",
   description:
-    "Search MASEYA's product catalog (food & cosmetics) by name or brand. Returns matching products with barcode, name, brand, category, and image.",
+    "Search KHARM's product catalog (food & cosmetics) by name or brand. Returns matching products with barcode, name, brand, category, and image.",
   inputSchema: {
     query: z.string().trim().min(1).describe("Product name or brand to search for."),
     category: z
