@@ -3,6 +3,8 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { lovable } from '@/integrations/lovable';
+import { getStoredConsent, saveConsent } from '@/components/consent/ConsentModal';
+
 
 export interface AuthUser {
   id: string;
@@ -36,6 +38,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setSession(session);
         setUser(session?.user ?? null);
         setIsLoading(false);
+        if (session?.user?.id) {
+          // Defer DB reads (Supabase recommends not calling await inside the callback)
+          setTimeout(() => { void syncConsentFromDb(session.user.id); }, 0);
+        }
       }
     );
 
@@ -44,10 +50,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setIsLoading(false);
+      if (session?.user?.id) {
+        void syncConsentFromDb(session.user.id);
+      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
 
   const currentUser: AuthUser | null = user ? {
     id: user.id,
