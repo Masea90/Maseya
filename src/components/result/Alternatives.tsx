@@ -10,6 +10,8 @@ import {
   loadOnboarding,
 } from '@/lib/scoring';
 import { hasHealthDataConsent } from '@/components/consent/ConsentModal';
+import { guessCategoryFromName, isFoodCategoryTag } from '@/lib/categoryGuess';
+
 
 interface Props {
   current: ProductData;
@@ -101,10 +103,21 @@ export const Alternatives = ({ current, currentScore }: Props) => {
   // payload includes a categories_tags array — regardless of the source
   // (off/obf/maseya/photo). The search host is chosen by category, not source.
   const eligible = current.category === 'food' || current.category === 'cosmetic';
-  const categoryTag = eligible ? pickCategoryTag(current.raw) : null;
+
+  // Cross-validate: if the product is cosmetic but the raw category is a
+  // clearly-food tag (community mislabel — real case: OBF facial cleanser
+  // tagged en:milks), discard it and rely on the name-based guess.
+  let rawCategoryTag = eligible ? pickCategoryTag(current.raw) : null;
+  if (rawCategoryTag && current.category === 'cosmetic' && isFoodCategoryTag(rawCategoryTag)) {
+    rawCategoryTag = null;
+  }
+  const guessedCategoryTag = eligible
+    ? guessCategoryFromName(current.name, current.category as 'food' | 'cosmetic')
+    : null;
+  const hasAnyTag = !!(rawCategoryTag || guessedCategoryTag);
 
   useEffect(() => {
-    if (!eligible || !categoryTag) {
+    if (!eligible || !hasAnyTag) {
       setItems(null);
       return;
     }
@@ -134,28 +147,45 @@ export const Alternatives = ({ current, currentScore }: Props) => {
           'nutriscore_grade', 'ingredients_text', 'ingredients_tags',
           'labels_tags', 'ingredients_analysis_tags', 'allergens_tags', 'traces_tags',
         ].join(',');
-        const baseUrl =
-          `https://${host}/api/v2/search` +
-          `?categories_tags=${encodeURIComponent(categoryTag)}` +
-          `&sort_by=unique_scans_n&page_size=24&fields=${fields}`;
-        const urlWithCountry = `${baseUrl}&countries_tags=${encodeURIComponent(COUNTRY_TAG)}`;
 
-        let res = await fetch(urlWithCountry, { signal: controller.signal });
-        if (!res.ok) throw new Error(`http_${res.status}`);
-        let json = (await res.json()) as { products?: SearchItem[] };
-        // Country-filtered search may return 0 hits for global/imported
-        // products — fall back once to the unfiltered search before giving up.
-        if (!json.products || json.products.length === 0) {
-          res = await fetch(baseUrl, { signal: controller.signal });
-          if (res.ok) json = (await res.json()) as { products?: SearchItem[] };
+        const buildUrl = (tag: string, withCountry: boolean) =>
+          `https://${host}/api/v2/search` +
+          `?categories_tags=${encodeURIComponent(tag)}` +
+          `&sort_by=unique_scans_n&page_size=24&fields=${fields}` +
+          (withCountry ? `&countries_tags=${encodeURIComponent(COUNTRY_TAG)}` : '');
+
+        // Try, in order: raw+ES → raw global → guessed+ES → guessed global.
+        // Skip guessed steps if it equals the raw tag to avoid duplicate requests.
+        const attempts: string[] = [];
+        const seen = new Set<string>();
+        const pushAttempt = (u: string) => {
+          if (!seen.has(u)) { seen.add(u); attempts.push(u); }
+        };
+        if (rawCategoryTag) {
+          pushAttempt(buildUrl(rawCategoryTag, true));
+          pushAttempt(buildUrl(rawCategoryTag, false));
+        }
+        if (guessedCategoryTag && guessedCategoryTag !== rawCategoryTag) {
+          pushAttempt(buildUrl(guessedCategoryTag, true));
+          pushAttempt(buildUrl(guessedCategoryTag, false));
         }
 
+        let products: SearchItem[] = [];
+        for (const url of attempts) {
+          const res = await fetch(url, { signal: controller.signal });
+          if (!res.ok) continue;
+          const json = (await res.json()) as { products?: SearchItem[] };
+          if (json.products && json.products.length > 0) {
+            products = json.products;
+            break;
+          }
+        }
 
         const consent = hasHealthDataConsent();
         const profile = consent ? loadProfile() : null;
 
         const scored: Candidate[] = [];
-        for (const raw of json.products || []) {
+        for (const raw of products) {
           if (!raw.code || raw.code === current.barcode) continue;
           if (!raw.ingredients_text && !raw.nutriscore_grade) continue;
           const pd = toProductData(raw, candidateSource, cat);
@@ -191,9 +221,10 @@ export const Alternatives = ({ current, currentScore }: Props) => {
       controller.abort();
       clearTimeout(timeout);
     };
-  }, [current.barcode, current.source, current.category, categoryTag, currentScore, eligible]);
+  }, [current.barcode, current.source, current.category, current.name, rawCategoryTag, guessedCategoryTag, hasAnyTag, currentScore, eligible]);
 
-  if (!eligible || !categoryTag) return null;
+  if (!eligible || !hasAnyTag) return null;
+
 
   if (loading) {
     return (
