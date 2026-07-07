@@ -26,8 +26,8 @@ interface Candidate {
   flagged: ReturnType<typeof flagIngredients>;
 }
 
-// v3: bumped after fixing category-tag guesses to real OBF tags (cleansers etc).
-const CACHE_PREFIX = 'maseya_alts_v3::';
+// v4: bumped after relaxing the score filter (show top 3 in-category regardless).
+const CACHE_PREFIX = 'maseya_alts_v4::';
 const FETCH_TIMEOUT_MS = 8000;
 // TODO: derive country from user locale/settings when we expand beyond Spain.
 const COUNTRY_TAG = 'en:spain';
@@ -205,12 +205,11 @@ export const Alternatives = ({ current, currentScore }: Props) => {
         }
 
         scored.sort((a, b) => b.score - a.score);
-        // Prefer strictly-better alternatives; if fewer than 3 exist, backfill
-        // with same-or-slightly-lower (within 5 points) so the user always
-        // sees comparable options instead of an empty section.
-        const better = scored.filter(c => c.score > currentScore);
-        const near = scored.filter(c => c.score <= currentScore && c.score >= currentScore - 5);
-        const top = [...better, ...near].slice(0, 3);
+        // Always show up to 3 top-scoring candidates from the same category,
+        // even if none strictly beat the current score. The user asked to see
+        // similar products regardless — the score badge already communicates
+        // whether each option is better, similar, or worse.
+        const top = scored.slice(0, 3);
 
         if (cancelled) return;
         try { sessionStorage.setItem(cacheKey, JSON.stringify(top)); } catch {}
@@ -251,7 +250,10 @@ export const Alternatives = ({ current, currentScore }: Props) => {
   if (!items || items.length === 0) return null;
 
   const consent = hasHealthDataConsent();
-  const title = consent ? '💡 Alternativas mejores para ti' : '💡 Alternativas mejores';
+  const anyBetter = items.some(i => i.score > currentScore);
+  const title = anyBetter
+    ? (consent ? '💡 Alternativas mejores para ti' : '💡 Alternativas mejores')
+    : '💡 Otras opciones similares';
 
   return (
     <div>
