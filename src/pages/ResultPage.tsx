@@ -507,9 +507,14 @@ const ResultPage = () => {
                       </div>
                     ) : (
                       <div className="flex flex-wrap gap-1.5">
-                        {flagged.slice(0, 20).map((f, i) => (
-                          <Badge key={i} className={`${badgeVariant(f.level)} font-normal capitalize`}>{f.name}</Badge>
-                        ))}
+                        {flagged.slice(0, 20).map((f, i) => {
+                          const es = inciLabel(f.name);
+                          return (
+                            <Badge key={i} className={`${badgeVariant(f.level)} font-normal capitalize`}>
+                              {f.name}{es ? ` (${es})` : ''}
+                            </Badge>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
