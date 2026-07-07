@@ -10,7 +10,7 @@ import {
   loadOnboarding,
 } from '@/lib/scoring';
 import { hasHealthDataConsent } from '@/components/consent/ConsentModal';
-import { guessCategoryFromName, isFoodCategoryTag } from '@/lib/categoryGuess';
+import { guessCategoryTagsFromName, isFoodCategoryTag } from '@/lib/categoryGuess';
 
 
 interface Props {
@@ -26,8 +26,8 @@ interface Candidate {
   flagged: ReturnType<typeof flagIngredients>;
 }
 
-// v2: bumped to invalidate old caches without country filter.
-const CACHE_PREFIX = 'maseya_alts_v2::';
+// v3: bumped after fixing category-tag guesses to real OBF tags (cleansers etc).
+const CACHE_PREFIX = 'maseya_alts_v3::';
 const FETCH_TIMEOUT_MS = 8000;
 // TODO: derive country from user locale/settings when we expand beyond Spain.
 const COUNTRY_TAG = 'en:spain';
@@ -112,10 +112,12 @@ export const Alternatives = ({ current, currentScore }: Props) => {
   if (rawCategoryTag && current.category === 'cosmetic' && isFoodCategoryTag(rawCategoryTag)) {
     rawCategoryTag = null;
   }
-  const guessedCategoryTag = eligible
-    ? guessCategoryFromName(current.name, current.category as 'food' | 'cosmetic')
-    : null;
-  const hasAnyTag = !!(rawCategoryTag || guessedCategoryTag);
+  const guessedCategoryTags = eligible
+    ? guessCategoryTagsFromName(current.name, current.category as 'food' | 'cosmetic')
+    : [];
+  const hasAnyTag = !!rawCategoryTag || guessedCategoryTags.length > 0;
+  // Stable dep key so the effect doesn't re-run on every render.
+  const guessedTagsKey = guessedCategoryTags.join('|');
 
   useEffect(() => {
     if (!eligible || !hasAnyTag) {
@@ -155,20 +157,23 @@ export const Alternatives = ({ current, currentScore }: Props) => {
           `&sort_by=unique_scans_n&page_size=24&fields=${fields}` +
           (withCountry ? `&countries_tags=${encodeURIComponent(COUNTRY_TAG)}` : '');
 
-        // Try, in order: raw+ES → raw global → guessed+ES → guessed global.
-        // Skip guessed steps if it equals the raw tag to avoid duplicate requests.
-        const attempts: string[] = [];
-        const seen = new Set<string>();
-        const pushAttempt = (u: string) => {
-          if (!seen.has(u)) { seen.add(u); attempts.push(u); }
+        // Build an ordered attempt list: for each candidate tag, try +ES then
+        // global. Raw tag first (most authoritative), then each guessed tag
+        // from most-specific to broadest (e.g. cleansing-milks → cleansers).
+        const tagCandidates: string[] = [];
+        const seenTags = new Set<string>();
+        const pushTag = (t: string | null | undefined) => {
+          if (!t || seenTags.has(t)) return;
+          seenTags.add(t);
+          tagCandidates.push(t);
         };
-        if (rawCategoryTag) {
-          pushAttempt(buildUrl(rawCategoryTag, true));
-          pushAttempt(buildUrl(rawCategoryTag, false));
-        }
-        if (guessedCategoryTag && guessedCategoryTag !== rawCategoryTag) {
-          pushAttempt(buildUrl(guessedCategoryTag, true));
-          pushAttempt(buildUrl(guessedCategoryTag, false));
+        pushTag(rawCategoryTag);
+        for (const t of guessedCategoryTags) pushTag(t);
+
+        const attempts: string[] = [];
+        for (const tag of tagCandidates) {
+          attempts.push(buildUrl(tag, true));
+          attempts.push(buildUrl(tag, false));
         }
 
         let products: SearchItem[] = [];
@@ -226,7 +231,7 @@ export const Alternatives = ({ current, currentScore }: Props) => {
       controller.abort();
       clearTimeout(timeout);
     };
-  }, [current.barcode, current.source, current.category, current.name, rawCategoryTag, guessedCategoryTag, hasAnyTag, currentScore, eligible]);
+  }, [current.barcode, current.source, current.category, current.name, rawCategoryTag, guessedTagsKey, hasAnyTag, currentScore, eligible]);
 
   if (!eligible || !hasAnyTag) return null;
 
