@@ -104,10 +104,10 @@ export default function OAuthConsentPage() {
         </div>
         <div className="space-y-2">
           <h1 className="font-display text-2xl font-bold">
-            Conectar {clientName} a tu cuenta MASEYA
+            Conectar {clientName} a tu cuenta KHARM
           </h1>
           <p className="text-sm text-muted-foreground">
-            {clientName} podrá usar las herramientas de MASEYA en tu nombre (buscar productos y leer tu historial de escaneos).
+            {clientName} podrá usar las herramientas de KHARM en tu nombre (buscar productos y leer tu historial de escaneos).
           </p>
         </div>
         <div className="flex flex-col gap-3 pt-2">

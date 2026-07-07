@@ -22,8 +22,8 @@ export default defineConfig(({ mode }) => ({
       },
       includeAssets: ["favicon.png", "apple-touch-icon.png"],
       manifest: {
-        name: "MASEYA – Natural beauty, made personal",
-        short_name: "MASEYA",
+        name: "KHARM – Natural beauty, made personal",
+        short_name: "KHARM",
         description: "Your personalized natural beauty companion. Get tailored skin & hair insights, natural remedies, and join a supportive community.",
         theme_color: "#2D5A27",
         background_color: "#FFFDF7",

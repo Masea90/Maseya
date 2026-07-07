@@ -637,7 +637,7 @@ const ResultPage = () => {
         <div className="mt-4 rounded-2xl border border-border/70 bg-muted/40 p-4">
           <p className="text-[11px] leading-relaxed text-muted-foreground">
             <span className="font-semibold text-foreground/80">Aviso: </span>
-            Maseya ofrece información orientativa basada en datos públicos y en tu perfil. No sustituye el consejo de un médico, dermatólogo o nutricionista. Si tienes alergias graves, verifica siempre el etiquetado oficial del producto.
+            Kharm ofrece información orientativa basada en datos públicos y en tu perfil. No sustituye el consejo de un médico, dermatólogo o nutricionista. Si tienes alergias graves, verifica siempre el etiquetado oficial del producto.
           </p>
         </div>
       </div>

@@ -14,7 +14,7 @@ export default defineTool({
   name: "get_product",
   title: "Get product by barcode",
   description:
-    "Fetch a MASEYA product's full details (name, brand, category, ingredients, image) by barcode.",
+    "Fetch a KHARM product's full details (name, brand, category, ingredients, image) by barcode.",
   inputSchema: {
     barcode: z.string().trim().min(4).describe("Product barcode (EAN/UPC)."),
   },

@@ -4,7 +4,7 @@ import { useUser } from '@/contexts/UserContext';
 
 const COPY = {
   es: {
-    brand: 'MASEYA',
+    brand: 'KHARM',
     title: '¿Sabes lo que hay en tus productos?',
     subtitle: 'Escanea cualquier producto y descubre en segundos si es realmente bueno para ti.',
     cta: 'Ver si mis productos son buenos para mí',
@@ -12,7 +12,7 @@ const COPY = {
     skip: 'Continuar sin registrarme',
   },
   en: {
-    brand: 'MASEYA',
+    brand: 'KHARM',
     title: 'Do you know what’s in your products?',
     subtitle: 'Scan any product and find out in seconds if it’s really good for you.',
     cta: 'Check if my products are good for me',
@@ -20,7 +20,7 @@ const COPY = {
     skip: 'Continue without signing up',
   },
   fr: {
-    brand: 'MASEYA',
+    brand: 'KHARM',
     title: 'Sais-tu ce qu’il y a dans tes produits ?',
     subtitle: 'Scanne n’importe quel produit et découvre en quelques secondes s’il est vraiment bon pour toi.',
     cta: 'Voir si mes produits sont bons pour moi',

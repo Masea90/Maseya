@@ -26,7 +26,7 @@ export const LanguageSelect = () => {
             <span className="text-4xl">🌿</span>
           </div>
           <h1 className="font-display text-3xl font-bold text-primary tracking-tight">
-            MASEYA
+            KHARM
           </h1>
         </div>
 

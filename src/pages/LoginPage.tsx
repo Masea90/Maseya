@@ -192,7 +192,7 @@ const LoginPage = () => {
             <span className="text-3xl">🌿</span>
           </div>
           <h1 className="font-display text-3xl font-bold text-foreground">
-            MASEYA
+            KHARM
           </h1>
           <p className="text-muted-foreground mt-1">{T.subtitle}</p>
         </div>
