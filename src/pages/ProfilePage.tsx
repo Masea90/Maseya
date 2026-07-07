@@ -52,8 +52,8 @@ const OPTIONS = {
   hair_concerns_label: { hairloss: 'Caída', dandruff: 'Caspa', frizz: 'Frizz', colored: 'Color tratado' } as Record<string, string>,
   allergies: ['gluten', 'lactose', 'nuts', 'fish'],
   allergies_label: { gluten: 'Gluten', lactose: 'Lactosa', nuts: 'Frutos secos', fish: 'Pescado/marisco' } as Record<string, string>,
-  diet: ['omnivore', 'vegetarian', 'vegan', 'keto', 'no-sugar'],
-  diet_label: { omnivore: 'Omnívora', vegetarian: 'Vegetariana', vegan: 'Vegana', keto: 'Keto', 'no-sugar': 'Sin azúcar' } as Record<string, string>,
+  diet: ['omnivore', 'vegetarian', 'vegan', 'keto', 'no-sugar', 'halal'],
+  diet_label: { omnivore: 'Omnívora', vegetarian: 'Vegetariana', vegan: 'Vegana', keto: 'Keto', 'no-sugar': 'Sin azúcar', halal: 'Halal' } as Record<string, string>,
   nutrition_goals: ['lose-weight', 'gain-muscle', 'more-energy', 'healthy-skin'],
   nutrition_goals_label: { 'lose-weight': 'Perder peso', 'gain-muscle': 'Ganar músculo', 'more-energy': 'Más energía', 'healthy-skin': 'Piel más sana' } as Record<string, string>,
 };
