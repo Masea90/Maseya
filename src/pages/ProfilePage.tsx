@@ -130,7 +130,7 @@ const ProfilePage = () => {
             hair_condition: data.hair_condition || '',
             hair_concerns: data.hair_concerns || [],
             allergies: data.allergies || [],
-            diet: data.diet || '',
+            diet: Array.isArray(data.diet) ? data.diet : (data.diet ? [data.diet] : []),
             nutrition_goals: data.nutrition_goals || [],
             pregnancy_or_lactation: data.pregnancy_or_lactation || false,
           });
