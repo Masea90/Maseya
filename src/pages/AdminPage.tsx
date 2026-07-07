@@ -14,13 +14,73 @@ import {
 import { toast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
 
-const OWNER_EMAIL = 'oumanzou.asmae@gmail.com';
-
 type LogEntry = { ts: string; text: string };
+type Stats = {
+  total_users: number;
+  total_scans: number;
+  total_products: number;
+  active_users_7d: number;
+  scans_today: number;
+  products_added_7d: number;
+};
+type RecentScan = {
+  id: string;
+  user_id: string;
+  nickname: string | null;
+  product_name: string | null;
+  barcode: string;
+  category: string | null;
+  scanned_at: string;
+};
+type RecentProduct = {
+  barcode: string;
+  product_name: string | null;
+  brand: string | null;
+  category: string | null;
+  source: string | null;
+  verified: boolean | null;
+  submitted_by: string | null;
+  created_at: string;
+};
+type ActiveUser = {
+  user_id: string;
+  nickname: string | null;
+  last_scan_at: string;
+  scan_count: number;
+};
+
+const fmtTime = (iso: string) => {
+  const d = new Date(iso);
+  const diffMs = Date.now() - d.getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'ahora';
+  if (mins < 60) return `hace ${mins} min`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `hace ${hrs} h`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `hace ${days} d`;
+  return d.toLocaleDateString('es-ES');
+};
+
+function StatCard({ label, value, accent }: { label: string; value: number | undefined; accent?: boolean }) {
+  return (
+    <div className={`rounded-lg border border-border p-3 ${accent ? 'bg-primary/5' : 'bg-card'}`}>
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="text-2xl font-semibold mt-0.5">
+        {value === undefined ? '—' : value.toLocaleString('es-ES')}
+      </p>
+    </div>
+  );
+}
 
 export default function AdminPage() {
   const { currentUser, isLoading } = useAuth();
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [productCount, setProductCount] = useState<number | null>(null);
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [recentScans, setRecentScans] = useState<RecentScan[]>([]);
+  const [recentProducts, setRecentProducts] = useState<RecentProduct[]>([]);
+  const [activeUsers, setActiveUsers] = useState<ActiveUser[]>([]);
   const [foodPage, setFoodPage] = useState(1);
   const [cosmoPage, setCosmoPage] = useState(1);
   const [busy, setBusy] = useState<string | null>(null);
@@ -37,11 +97,36 @@ export default function AdminPage() {
     setProductCount(count ?? 0);
   };
 
-  useEffect(() => {
-    if (currentUser?.email === OWNER_EMAIL) refreshCount();
-  }, [currentUser?.email]);
+  const loadDashboard = async () => {
+    const [s, sc, rp, au] = await Promise.all([
+      supabase.rpc('admin_stats'),
+      supabase.rpc('admin_recent_scans', { p_limit: 25 }),
+      supabase.rpc('admin_recent_products', { p_limit: 25 }),
+      supabase.rpc('admin_active_users', { p_limit: 25 }),
+    ]);
+    if (s.data && Array.isArray(s.data) && s.data[0]) setStats(s.data[0] as Stats);
+    if (sc.data) setRecentScans(sc.data as RecentScan[]);
+    if (rp.data) setRecentProducts(rp.data as RecentProduct[]);
+    if (au.data) setActiveUsers(au.data as ActiveUser[]);
+  };
 
-  if (isLoading) {
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    (async () => {
+      const { data } = await supabase.rpc('has_role', {
+        _user_id: currentUser.id,
+        _role: 'admin',
+      });
+      const admin = data === true;
+      setIsAdmin(admin);
+      if (admin) {
+        refreshCount();
+        loadDashboard();
+      }
+    })();
+  }, [currentUser?.id]);
+
+  if (isLoading || isAdmin === null) {
     return (
       <div className="min-h-[100dvh] bg-background flex items-center justify-center">
         <div className="w-12 h-12 rounded-full bg-primary/10 animate-pulse" />
@@ -50,7 +135,8 @@ export default function AdminPage() {
   }
 
   if (!currentUser) return <Navigate to="/login" replace />;
-  if (currentUser.email !== OWNER_EMAIL) return <Navigate to="/scan" replace />;
+  if (!isAdmin) return <Navigate to="/scan" replace />;
+
 
   const log = (text: string) =>
     setLogs((l) => [{ ts: new Date().toLocaleTimeString(), text }, ...l].slice(0, 50));
@@ -125,9 +211,101 @@ export default function AdminPage() {
           <p className="text-sm text-muted-foreground">{currentUser.email}</p>
         </header>
 
+        {/* Stats grid */}
+        <div className="grid grid-cols-2 gap-3">
+          <StatCard label="Usuarios" value={stats?.total_users} />
+          <StatCard label="Escaneos totales" value={stats?.total_scans} />
+          <StatCard label="Activos (7d)" value={stats?.active_users_7d} accent />
+          <StatCard label="Escaneos hoy" value={stats?.scans_today} accent />
+          <StatCard label="Productos BD" value={stats?.total_products} />
+          <StatCard label="Nuevos (7d)" value={stats?.products_added_7d} />
+        </div>
+
+        <div className="flex justify-end">
+          <Button variant="outline" size="sm" onClick={() => { refreshCount(); loadDashboard(); }}>
+            🔄 Refrescar
+          </Button>
+        </div>
+
+        {/* Active users */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Productos en la base</CardTitle>
+            <CardTitle className="text-base">👥 Usuarios activos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {activeUsers.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Sin actividad todavía.</p>
+            ) : (
+              <ul className="space-y-2 max-h-72 overflow-auto">
+                {activeUsers.map((u) => (
+                  <li key={u.user_id} className="flex items-center justify-between text-sm border-b border-border pb-1.5">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium">{u.nickname || u.user_id.slice(0, 8)}</p>
+                      <p className="text-xs text-muted-foreground">{fmtTime(u.last_scan_at)}</p>
+                    </div>
+                    <span className="text-xs font-mono ml-2">{u.scan_count} scans</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Recent scans */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">📱 Últimos escaneos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {recentScans.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Ningún escaneo aún.</p>
+            ) : (
+              <ul className="space-y-2 max-h-80 overflow-auto">
+                {recentScans.map((s) => (
+                  <li key={s.id} className="text-sm border-b border-border pb-1.5">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <p className="font-medium truncate">{s.product_name || s.barcode}</p>
+                      <span className="text-xs text-muted-foreground shrink-0">{fmtTime(s.scanned_at)}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {s.nickname || s.user_id.slice(0, 8)} · {s.category || 'sin categoría'}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Recent products added */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">📦 Últimos productos añadidos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {recentProducts.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Ningún producto todavía.</p>
+            ) : (
+              <ul className="space-y-2 max-h-80 overflow-auto">
+                {recentProducts.map((p) => (
+                  <li key={p.barcode} className="text-sm border-b border-border pb-1.5">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <p className="font-medium truncate">{p.product_name || p.barcode}</p>
+                      <span className="text-xs text-muted-foreground shrink-0">{fmtTime(p.created_at)}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {p.brand || '—'} · {p.source || '?'} {p.verified ? '· ✓' : ''}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Productos en la base (contador)</CardTitle>
           </CardHeader>
           <CardContent className="flex items-center justify-between">
             <span className="text-3xl font-semibold">
@@ -138,6 +316,7 @@ export default function AdminPage() {
             </Button>
           </CardContent>
         </Card>
+
 
         <Card>
           <CardHeader>

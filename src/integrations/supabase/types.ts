@@ -450,6 +450,51 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_active_users: {
+        Args: { p_limit?: number }
+        Returns: {
+          last_scan_at: string
+          nickname: string
+          scan_count: number
+          user_id: string
+        }[]
+      }
+      admin_recent_products: {
+        Args: { p_limit?: number }
+        Returns: {
+          barcode: string
+          brand: string
+          category: string
+          created_at: string
+          product_name: string
+          source: string
+          submitted_by: string
+          verified: boolean
+        }[]
+      }
+      admin_recent_scans: {
+        Args: { p_limit?: number }
+        Returns: {
+          barcode: string
+          category: string
+          id: string
+          nickname: string
+          product_name: string
+          scanned_at: string
+          user_id: string
+        }[]
+      }
+      admin_stats: {
+        Args: never
+        Returns: {
+          active_users_7d: number
+          products_added_7d: number
+          scans_today: number
+          total_products: number
+          total_scans: number
+          total_users: number
+        }[]
+      }
       get_public_profile: {
         Args: { p_user_id: string }
         Returns: {
