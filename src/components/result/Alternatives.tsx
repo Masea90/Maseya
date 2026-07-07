@@ -231,7 +231,7 @@ export const Alternatives = ({ current, currentScore }: Props) => {
       controller.abort();
       clearTimeout(timeout);
     };
-  }, [current.barcode, current.source, current.category, current.name, rawCategoryTag, guessedCategoryTag, hasAnyTag, currentScore, eligible]);
+  }, [current.barcode, current.source, current.category, current.name, rawCategoryTag, guessedTagsKey, hasAnyTag, currentScore, eligible]);
 
   if (!eligible || !hasAnyTag) return null;
 
