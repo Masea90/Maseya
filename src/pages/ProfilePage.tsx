@@ -32,7 +32,7 @@ const EMPTY: HealthState = {
   hair_condition: '',
   hair_concerns: [],
   allergies: [],
-  diet: '',
+  diet: [],
   nutrition_goals: [],
   pregnancy_or_lactation: false,
 };
