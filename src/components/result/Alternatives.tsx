@@ -26,8 +26,8 @@ interface Candidate {
   flagged: ReturnType<typeof flagIngredients>;
 }
 
-// v3: bumped after fixing category-tag guesses to real OBF tags (cleansers etc).
-const CACHE_PREFIX = 'maseya_alts_v3::';
+// v4: bumped after relaxing the score filter (show top 3 in-category regardless).
+const CACHE_PREFIX = 'maseya_alts_v4::';
 const FETCH_TIMEOUT_MS = 8000;
 // TODO: derive country from user locale/settings when we expand beyond Spain.
 const COUNTRY_TAG = 'en:spain';
