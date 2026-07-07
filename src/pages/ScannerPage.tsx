@@ -247,6 +247,8 @@ const ScannerPage = () => {
           <ImageIcon className="w-5 h-5 text-primary" />
           {c.photo}
         </button>
+
+        <InstallPrompt />
       </div>
     </AppLayout>
   );
