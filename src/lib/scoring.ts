@@ -307,7 +307,7 @@ export function calculateScoreBreakdown(
   }
 
   // Cosmetic or food-without-nutriscore fallback.
-  if (p.category === 'food' && !p.nutriscore_grade) {
+  if (p.category === 'food' && !hasNutri) {
     factors.push({
       label: 'Datos incompletos: puntuación orientativa',
       delta: null, tone: 'neutral',
