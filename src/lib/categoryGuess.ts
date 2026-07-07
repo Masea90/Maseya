@@ -38,6 +38,8 @@ const FOOD_MAP: Array<[string[], string[]]> = [
   [['agua', 'water'], ['en:mineral-waters']],
   [['galletas', 'biscuits', 'cookies'], ['en:biscuits']],
   [['yogur', 'yoghurt', 'yogurt'], ['en:yogurts']],
+  [['cacao en polvo', 'cocoa powder', 'cacao soluble'], ['en:cocoa-powders', 'en:cocoas']],
+  [['cacao', 'cocoa'], ['en:cocoas', 'en:cocoa-powders']],
   [['chocolate'], ['en:chocolates']],
   [['cereales', 'cereals', 'breakfast cereal'], ['en:breakfast-cereals']],
   [['zumo', 'juice'], ['en:juices']],
