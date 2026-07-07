@@ -62,6 +62,17 @@ const fmtTime = (iso: string) => {
   return d.toLocaleDateString('es-ES');
 };
 
+function StatCard({ label, value, accent }: { label: string; value: number | undefined; accent?: boolean }) {
+  return (
+    <div className={`rounded-lg border border-border p-3 ${accent ? 'bg-primary/5' : 'bg-card'}`}>
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="text-2xl font-semibold mt-0.5">
+        {value === undefined ? '—' : value.toLocaleString('es-ES')}
+      </p>
+    </div>
+  );
+}
+
 export default function AdminPage() {
   const { currentUser, isLoading } = useAuth();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
