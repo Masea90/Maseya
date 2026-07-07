@@ -20,16 +20,44 @@ export interface OnboardingProfile {
   allergies: string[];
 }
 
-const RED_KEYWORDS = [
-  'paraben', 'sulfate', 'sulphate', 'phthalate', 'formaldehyde', 'triclosan',
-  'bha', 'bht', 'mineral oil', 'paraffinum liquidum',
-  'nitrite', 'aspartame', 'tartrazine', 'e102',
+// Category-aware keyword classification.
+// Rationale: a mineral water contains natural mineral "sulfates" which are
+// harmless; the problematic "sulfate" is the cosmetic detergent (SLS/SLES).
+// Split the lists so food products don't get red-flagged for keywords that
+// only make sense in cosmetics, and vice versa.
+const RED_BOTH = ['paraben', 'bha', 'bht'];
+const RED_COSMETIC = [
+  'sulfate', 'sulphate', 'phthalate', 'formaldehyde', 'triclosan',
+  'mineral oil', 'paraffinum liquidum',
+];
+const RED_FOOD = ['nitrite', 'aspartame', 'tartrazine', 'e102'];
+
+const ORANGE_BOTH: string[] = [];
+const ORANGE_COSMETIC = [
+  'alcohol denat', 'fragrance', 'parfum', 'silicone', 'dimethicone',
+  'cyclopentasiloxane',
+];
+const ORANGE_FOOD = [
+  'carrageenan', 'monosodium glutamate', 'msg', 'e621',
+  // Sulfites: real food additive concern (asthma/allergy trigger, wine, dried fruit).
+  'sulfite', 'sulphite', 'sulfito', 'metabisulfite',
+  'e220', 'e221', 'e222', 'e223', 'e224', 'e226', 'e227', 'e228',
 ];
 
-const ORANGE_KEYWORDS = [
-  'alcohol denat', 'fragrance', 'parfum', 'silicone', 'dimethicone',
-  'cyclopentasiloxane', 'carrageenan', 'monosodium glutamate', 'msg', 'e621',
-];
+type ClassifyCategory = 'food' | 'cosmetic' | 'unknown';
+
+function redKeywordsFor(category: ClassifyCategory): string[] {
+  if (category === 'food') return [...RED_BOTH, ...RED_FOOD];
+  if (category === 'cosmetic') return [...RED_BOTH, ...RED_COSMETIC];
+  // Unknown: be conservative and check everything.
+  return [...RED_BOTH, ...RED_COSMETIC, ...RED_FOOD];
+}
+function orangeKeywordsFor(category: ClassifyCategory): string[] {
+  if (category === 'food') return [...ORANGE_BOTH, ...ORANGE_FOOD];
+  if (category === 'cosmetic') return [...ORANGE_BOTH, ...ORANGE_COSMETIC];
+  return [...ORANGE_BOTH, ...ORANGE_COSMETIC, ...ORANGE_FOOD];
+}
+
 
 // Lactose keyword sets are category-aware: in cosmetics "butter" is almost
 // always a plant butter (shea, cocoa, mango), so we only flag explicit dairy.
