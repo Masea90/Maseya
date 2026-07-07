@@ -403,8 +403,9 @@ export function calculatePersonalScoreBreakdown(
     ...(profile.skin_conditions || []),
   ].map(s => String(s).toLowerCase());
   const allergies = (profile.allergies || []).map(a => String(a).toLowerCase());
-  const diet = String(profile.diet || '').toLowerCase();
-  const isVegan = diet.includes('vegan') || allergies.includes('vegan');
+  const diets = (Array.isArray(profile.diet) ? profile.diet : (profile.diet ? [profile.diet] : [])).map(d => String(d).toLowerCase());
+  const isVegan = diets.includes('vegan') || allergies.includes('vegan');
+  const isHalal = diets.includes('halal');
   const isPregnant = !!profile.pregnancy_or_lactation;
 
   const factors: ScoreFactor[] = [];
