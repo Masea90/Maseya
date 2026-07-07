@@ -219,9 +219,7 @@ const ResultPage = () => {
     persistedRef.current = key;
 
     const flagged = flagIngredients(product);
-    const score = calculateScore(product, flagged);
-
-    // Track popularity in maseya_products (best-effort, no await)
+    const score = calculateScoreBreakdown(product, flagged).score;
     if (product.barcode && product.barcode !== 'photo') {
       supabase.rpc('increment_product_scan_count', { p_barcode: product.barcode })
         .then(({ error }) => { if (error) console.warn('[scan_count]', error.message); });
