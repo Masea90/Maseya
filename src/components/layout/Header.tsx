@@ -15,7 +15,7 @@ export const Header = ({ title, className }: HeaderProps) => {
       <div className="flex items-center justify-between h-14 px-4 w-full sm:max-w-lg sm:mx-auto">
         {isScan ? (
           <Link to="/scan" className="flex items-center gap-2">
-            <span className="font-display text-xl font-bold text-primary tracking-tight">KHARM</span>
+            <span className="font-display text-xl font-bold text-primary tracking-tight">MASEYA</span>
           </Link>
         ) : (
           <h1 className="font-display text-lg font-semibold">{title}</h1>

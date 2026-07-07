@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-// Premium is fully deprecated — Kharm is 100% free at launch.
+// Premium is fully deprecated — Maseya is 100% free at launch.
 // These helpers are kept as no-op shims so any lingering imports keep compiling
 // but grant everyone access to every feature.
 export const DEV_KEY = 'maseya_dev_mode';

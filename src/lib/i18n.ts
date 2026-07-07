@@ -91,11 +91,11 @@ export const translations = {
     freeSubtitle: 'Great to start',
    startFree: 'Start Free',
    earlyAccessTitle: "You're in early access",
-   earlyAccessDescription: 'All core features are currently free while KHARM is in early access. Enjoy!',
+   earlyAccessDescription: 'All core features are currently free while MASEYA is in early access. Enjoy!',
    continueToApp: 'Continue',
     premium: 'Premium',
     unlockPremium: 'Unlock Premium',
-    unlockMaseyaPremium: 'Unlock KHARM Premium',
+    unlockMaseyaPremium: 'Unlock MASEYA Premium',
     perMonth: '/ month',
     cancelAnytime: 'Cancel anytime.',
     everythingInFree: 'Everything in Free, plus:',
@@ -362,7 +362,7 @@ export const translations = {
     becauseOfProfile: 'Because of Your Profile',
     becauseOfProfileSubtitle: 'Curated for your skin & hair needs',
     popularInCommunity: 'Popular in the Community',
-    popularSubtitle: 'Loved by KHARM members like you',
+    popularSubtitle: 'Loved by MASEYA members like you',
     solvesYourConcern: 'Solves:',
     usersUsing: 'members use this',
     communityFavorite: 'Community favorite',
@@ -405,8 +405,8 @@ export const translations = {
     completeProfile: 'Complete My Profile',
     
     // Onboarding guide
-    guideStep1Title: 'What is KHARM',
-    guideStep1Desc: 'KHARM is your personal guide for natural skin, hair and self-care.',
+    guideStep1Title: 'What is MASEYA',
+    guideStep1Desc: 'MASEYA is your personal guide for natural skin, hair and self-care.',
     guideStep2Title: 'How it works',
     guideStep2Desc: 'We personalize recommendations based on your skin, hair and goals.',
     guideStep3Title: 'Join our community',
@@ -491,7 +491,7 @@ export const translations = {
     consentChangeAnytime: 'You can change your preferences anytime in Settings → Privacy',
 
     // Login page
-    loginTitle: 'Kharm',
+    loginTitle: 'Maseya',
     loginSubtitle: 'Your glow journey awaits',
     loginCreateAccount: 'Create Account',
     loginWelcomeBack: 'Welcome Back',
@@ -552,7 +552,7 @@ export const translations = {
     recommendedBecause: 'Recommended because you selected',
 
     // Community empty state (welcome)
-    communityWelcomeTitle: 'Welcome to the KHARM community',
+    communityWelcomeTitle: 'Welcome to the MASEYA community',
     communityWelcomeDesc: 'This is a safe space to share what works, ask questions, and support each other on your natural beauty journey.',
     communityWelcomeCta: 'Be the first to share',
     communityWelcomeTip1: 'Share a product or habit that worked for you',
@@ -561,7 +561,7 @@ export const translations = {
     
     // Staff picks & community tabs
     staffPicks: 'Staff Picks',
-    staffPick: 'KHARM Team',
+    staffPick: 'MASEYA Team',
     staffPicksEmpty: 'No staff picks yet — stay tuned!',
     communityNewest: 'Newest',
     communityTrending: 'Trending',
@@ -696,7 +696,7 @@ export const translations = {
     helpContactTitle: 'Contact Us',
     helpContactDesc: 'Have a question or feedback? We\'d love to hear from you.',
     helpFaqTitle: 'Frequently Asked Questions',
-    helpFaq1Q: 'How does KHARM personalize recommendations?',
+    helpFaq1Q: 'How does MASEYA personalize recommendations?',
     helpFaq1A: 'We use your skin concerns, hair type, goals, and sensitivities to match you with clean beauty products that suit your profile. No data is shared with third parties.',
     helpFaq2Q: 'How do I earn points?',
     helpFaq2A: 'Complete routine steps (+2 pts each), finish a full routine (+5 bonus), post in the community (+3 pts), or explore product recommendations (+3 pts).',
@@ -706,10 +706,10 @@ export const translations = {
     helpFaq4A: 'Yes! Tap the edit icon on the Routine page to add, remove, or reorder steps. Your custom routine is saved to your account.',
     helpFaq5Q: 'How do push notifications work?',
     helpFaq5A: 'Enable them in Settings > Notifications. You will receive gentle reminders for your morning and night routines, plus community activity alerts.',
-    helpFaq6Q: 'Is KHARM free?',
+    helpFaq6Q: 'Is MASEYA free?',
     helpFaq6A: 'The core features (routines, community, recommendations, rewards) are free. Premium features like advanced insights are available with a premium subscription.',
     helpFaq7Q: 'How do I delete my account?',
-    helpFaq7A: 'Go to Settings → Privacy → Delete my account, or email us at support@kharm.es.',
+    helpFaq7A: 'Go to Settings → Privacy → Delete my account, or email us at support@maseya.es.',
 
     // Remedies i18n - times
     remedyTime5: '5 min',
@@ -849,8 +849,8 @@ export const translations = {
     backToRemedies: 'Back to Remedies',
 
     // PWA Install
-    installTitle: 'Install KHARM 🌿',
-    installSubtitle: 'Use KHARM like an app on your phone',
+    installTitle: 'Install MASEYA 🌿',
+    installSubtitle: 'Use MASEYA like an app on your phone',
     installBenefit1: 'Faster experience',
     installBenefit2: 'Access from your home screen',
     installBenefit3: 'Better daily routine tracking',
@@ -859,7 +859,7 @@ export const translations = {
     installIOSStep2: 'Tap "Add to Home Screen"',
     installNow: 'Install now',
     maybeLater: 'Maybe later',
-    installBannerText: 'Install KHARM for a better experience',
+    installBannerText: 'Install MASEYA for a better experience',
     install: 'Install',
     installApp: 'Install App',
   },
@@ -947,11 +947,11 @@ export const translations = {
     freeSubtitle: 'Ideal para empezar',
    startFree: 'Empezar gratis',
    earlyAccessTitle: 'Estás en acceso anticipado',
-   earlyAccessDescription: 'Todas las funciones principales son gratuitas mientras KHARM está en acceso anticipado. ¡Disfruta!',
+   earlyAccessDescription: 'Todas las funciones principales son gratuitas mientras MASEYA está en acceso anticipado. ¡Disfruta!',
    continueToApp: 'Continuar',
     premium: 'Premium',
     unlockPremium: 'Desbloquear Premium',
-    unlockMaseyaPremium: 'Desbloquear KHARM Premium',
+    unlockMaseyaPremium: 'Desbloquear MASEYA Premium',
     perMonth: '/ mes',
     cancelAnytime: 'Cancela cuando quieras.',
     everythingInFree: 'Todo lo de Gratis, más:',
@@ -1217,7 +1217,7 @@ export const translations = {
     becauseOfProfile: 'Según tu perfil',
     becauseOfProfileSubtitle: 'Seleccionado para tus necesidades de piel y cabello',
     popularInCommunity: 'Popular en la comunidad',
-    popularSubtitle: 'Amado por miembros de KHARM como tú',
+    popularSubtitle: 'Amado por miembros de MASEYA como tú',
     solvesYourConcern: 'Resuelve:',
     usersUsing: 'miembros lo usan',
     communityFavorite: 'Favorito de la comunidad',
@@ -1260,8 +1260,8 @@ export const translations = {
     completeProfile: 'Completar mi perfil',
     
     // Onboarding guide
-    guideStep1Title: '¿Qué es KHARM?',
-    guideStep1Desc: 'KHARM es tu guía personal para el cuidado natural de tu piel, cabello y bienestar.',
+    guideStep1Title: '¿Qué es MASEYA?',
+    guideStep1Desc: 'MASEYA es tu guía personal para el cuidado natural de tu piel, cabello y bienestar.',
     guideStep2Title: 'Cómo funciona',
     guideStep2Desc: 'Personalizamos las recomendaciones según tu piel, cabello y objetivos.',
     guideStep3Title: 'Únete a nuestra comunidad',
@@ -1346,7 +1346,7 @@ export const translations = {
     consentChangeAnytime: 'Puedes cambiar tus preferencias en cualquier momento en Ajustes → Privacidad',
 
     // Login page
-    loginTitle: 'Kharm',
+    loginTitle: 'Maseya',
     loginSubtitle: 'Bienvenida de nuevo',
     loginCreateAccount: 'Crear cuenta',
     loginWelcomeBack: 'Bienvenida',
@@ -1407,7 +1407,7 @@ export const translations = {
     recommendedBecause: 'Recomendado porque seleccionaste',
 
     // Community empty state (welcome)
-    communityWelcomeTitle: 'Bienvenida a la comunidad KHARM',
+    communityWelcomeTitle: 'Bienvenida a la comunidad MASEYA',
     communityWelcomeDesc: 'Este es un espacio seguro para compartir lo que funciona, hacer preguntas y apoyarnos mutuamente en tu camino de belleza natural.',
     communityWelcomeCta: 'Sé la primera en compartir',
     communityWelcomeTip1: 'Comparte un producto o hábito que te funcionó',
@@ -1416,7 +1416,7 @@ export const translations = {
     
     // Staff picks & community tabs
     staffPicks: 'Selección del equipo',
-    staffPick: 'Equipo KHARM',
+    staffPick: 'Equipo MASEYA',
     staffPicksEmpty: 'Aún no hay selecciones del equipo — ¡pronto!',
     communityNewest: 'Recientes',
     communityTrending: 'Tendencia',
@@ -1552,7 +1552,7 @@ export const translations = {
     helpContactTitle: 'Contáctanos',
     helpContactDesc: '¿Tienes alguna pregunta o comentario? Nos encantaría saber de ti.',
     helpFaqTitle: 'Preguntas frecuentes',
-    helpFaq1Q: '¿Cómo personaliza KHARM las recomendaciones?',
+    helpFaq1Q: '¿Cómo personaliza MASEYA las recomendaciones?',
     helpFaq1A: 'Usamos tus preocupaciones de piel, tipo de cabello, objetivos y sensibilidades para encontrar productos de belleza limpia que se adapten a tu perfil. No se comparten datos con terceros.',
     helpFaq2Q: '¿Cómo gano puntos?',
     helpFaq2A: 'Completa pasos de rutina (+2 pts cada uno), termina una rutina completa (+5 bonus), publica en la comunidad (+3 pts) o explora recomendaciones de productos (+3 pts).',
@@ -1562,10 +1562,10 @@ export const translations = {
     helpFaq4A: '¡Sí! Toca el icono de edición en la página de Rutina para añadir, eliminar o reordenar pasos. Tu rutina personalizada se guarda en tu cuenta.',
     helpFaq5Q: '¿Cómo funcionan las notificaciones push?',
     helpFaq5A: 'Actívalas en Ajustes > Notificaciones. Recibirás recordatorios suaves para tus rutinas de mañana y noche, además de alertas de actividad de la comunidad.',
-    helpFaq6Q: '¿KHARM es gratis?',
+    helpFaq6Q: '¿MASEYA es gratis?',
     helpFaq6A: 'Las funciones principales (rutinas, comunidad, recomendaciones, recompensas) son gratis. Las funciones premium como los análisis avanzados están disponibles con una suscripción premium.',
     helpFaq7Q: '¿Cómo elimino mi cuenta?',
-    helpFaq7A: 'Ve a Ajustes → Privacidad → Eliminar mi cuenta, o envíanos un correo a support@kharm.es.',
+    helpFaq7A: 'Ve a Ajustes → Privacidad → Eliminar mi cuenta, o envíanos un correo a support@maseya.es.',
 
     // Remedies i18n - times
     remedyTime5: '5 min',
@@ -1704,8 +1704,8 @@ export const translations = {
     backToRemedies: 'Volver a remedios',
 
     // PWA Install
-    installTitle: 'Instala KHARM 🌿',
-    installSubtitle: 'Usa KHARM como una app en tu móvil',
+    installTitle: 'Instala MASEYA 🌿',
+    installSubtitle: 'Usa MASEYA como una app en tu móvil',
     installBenefit1: 'Experiencia más rápida',
     installBenefit2: 'Acceso desde tu pantalla de inicio',
     installBenefit3: 'Mejor seguimiento de tu rutina diaria',
@@ -1714,7 +1714,7 @@ export const translations = {
     installIOSStep2: 'Toca "Añadir a pantalla de inicio"',
     installNow: 'Instalar ahora',
     maybeLater: 'Quizás luego',
-    installBannerText: 'Instala KHARM para una mejor experiencia',
+    installBannerText: 'Instala MASEYA para una mejor experiencia',
     install: 'Instalar',
     installApp: 'Instalar App',
   },
@@ -1802,11 +1802,11 @@ export const translations = {
     freeSubtitle: 'Idéal pour commencer',
    startFree: 'Commencer gratuitement',
    earlyAccessTitle: 'Vous êtes en accès anticipé',
-   earlyAccessDescription: 'Toutes les fonctionnalités principales sont gratuites pendant l\'accès anticipé de KHARM. Profitez-en !',
+   earlyAccessDescription: 'Toutes les fonctionnalités principales sont gratuites pendant l\'accès anticipé de MASEYA. Profitez-en !',
    continueToApp: 'Continuer',
     premium: 'Premium',
     unlockPremium: 'Débloquer Premium',
-    unlockMaseyaPremium: 'Débloquer KHARM Premium',
+    unlockMaseyaPremium: 'Débloquer MASEYA Premium',
     perMonth: '/ mois',
     cancelAnytime: 'Annulez à tout moment.',
     everythingInFree: 'Tout de Gratuit, plus :',
@@ -2072,7 +2072,7 @@ export const translations = {
     becauseOfProfile: 'Selon votre profil',
     becauseOfProfileSubtitle: 'Sélectionné pour vos besoins peau et cheveux',
     popularInCommunity: 'Populaire dans la communauté',
-    popularSubtitle: 'Adoré par les membres KHARM comme vous',
+    popularSubtitle: 'Adoré par les membres MASEYA comme vous',
     solvesYourConcern: 'Résout :',
     usersUsing: 'membres l\'utilisent',
     communityFavorite: 'Favori de la communauté',
@@ -2115,8 +2115,8 @@ export const translations = {
     completeProfile: 'Compléter mon profil',
     
     // Onboarding guide
-    guideStep1Title: 'Qu\'est-ce que KHARM',
-    guideStep1Desc: 'KHARM est votre guide personnel pour le soin naturel de la peau, des cheveux et du bien-être.',
+    guideStep1Title: 'Qu\'est-ce que MASEYA',
+    guideStep1Desc: 'MASEYA est votre guide personnel pour le soin naturel de la peau, des cheveux et du bien-être.',
     guideStep2Title: 'Comment ça marche',
     guideStep2Desc: 'Nous personnalisons les recommandations selon votre peau, vos cheveux et vos objectifs.',
     guideStep3Title: 'Rejoignez notre communauté',
@@ -2201,7 +2201,7 @@ export const translations = {
     consentChangeAnytime: 'Vous pouvez modifier vos préférences à tout moment dans Paramètres → Confidentialité',
 
     // Login page
-    loginTitle: 'Kharm',
+    loginTitle: 'Maseya',
     loginSubtitle: 'Votre parcours éclat vous attend',
     loginCreateAccount: 'Créer un compte',
     loginWelcomeBack: 'Bon retour',
@@ -2262,7 +2262,7 @@ export const translations = {
     recommendedBecause: 'Recommandé parce que vous avez sélectionné',
 
     // Community empty state (welcome)
-    communityWelcomeTitle: 'Bienvenue dans la communauté KHARM',
+    communityWelcomeTitle: 'Bienvenue dans la communauté MASEYA',
     communityWelcomeDesc: 'C\'est un espace bienveillant pour partager ce qui fonctionne, poser des questions et se soutenir mutuellement dans votre parcours beauté naturelle.',
     communityWelcomeCta: 'Soyez la première à partager',
     communityWelcomeTip1: 'Partagez un produit ou une habitude qui a fonctionné pour vous',
@@ -2271,7 +2271,7 @@ export const translations = {
     
     // Staff picks & community tabs
     staffPicks: 'Sélection de l\'équipe',
-    staffPick: 'Équipe KHARM',
+    staffPick: 'Équipe MASEYA',
     staffPicksEmpty: 'Pas encore de sélections de l\'équipe — restez à l\'écoute !',
     communityNewest: 'Récents',
     communityTrending: 'Tendance',
@@ -2407,7 +2407,7 @@ export const translations = {
     helpContactTitle: 'Contactez-nous',
     helpContactDesc: 'Vous avez une question ou un commentaire ? Nous serions ravis de vous entendre.',
     helpFaqTitle: 'Questions fréquentes',
-    helpFaq1Q: 'Comment KHARM personnalise-t-elle les recommandations ?',
+    helpFaq1Q: 'Comment MASEYA personnalise-t-elle les recommandations ?',
     helpFaq1A: 'Nous utilisons vos préoccupations de peau, type de cheveux, objectifs et sensibilités pour vous proposer des produits de beauté propre adaptés à votre profil. Aucune donnée n\'est partagée avec des tiers.',
     helpFaq2Q: 'Comment gagner des points ?',
     helpFaq2A: 'Complétez les étapes de routine (+2 pts chacune), terminez une routine complète (+5 bonus), publiez dans la communauté (+3 pts) ou explorez les recommandations de produits (+3 pts).',
@@ -2417,10 +2417,10 @@ export const translations = {
     helpFaq4A: 'Oui ! Appuyez sur l\'icône d\'édition sur la page Routine pour ajouter, supprimer ou réorganiser les étapes. Votre routine personnalisée est sauvegardée dans votre compte.',
     helpFaq5Q: 'Comment fonctionnent les notifications push ?',
     helpFaq5A: 'Activez-les dans Paramètres > Notifications. Vous recevrez des rappels pour vos routines matin et soir, ainsi que des alertes d\'activité communautaire.',
-    helpFaq6Q: 'KHARM est-il gratuit ?',
+    helpFaq6Q: 'MASEYA est-il gratuit ?',
     helpFaq6A: 'Les fonctionnalités principales (routines, communauté, recommandations, récompenses) sont gratuites. Les fonctionnalités premium comme les analyses avancées sont disponibles avec un abonnement premium.',
     helpFaq7Q: 'Comment supprimer mon compte ?',
-    helpFaq7A: 'Allez dans Paramètres → Confidentialité → Supprimer mon compte, ou envoyez-nous un e-mail à support@kharm.es.',
+    helpFaq7A: 'Allez dans Paramètres → Confidentialité → Supprimer mon compte, ou envoyez-nous un e-mail à support@maseya.es.',
 
     // Remedies i18n
     remedyTime5: '5 min',
@@ -2550,8 +2550,8 @@ export const translations = {
     backToRemedies: 'Retour aux remèdes',
 
     // PWA Install
-    installTitle: 'Installez KHARM 🌿',
-    installSubtitle: 'Utilisez KHARM comme une app sur votre téléphone',
+    installTitle: 'Installez MASEYA 🌿',
+    installSubtitle: 'Utilisez MASEYA comme une app sur votre téléphone',
     installBenefit1: 'Expérience plus rapide',
     installBenefit2: 'Accès depuis votre écran d\'accueil',
     installBenefit3: 'Meilleur suivi de votre routine quotidienne',
@@ -2560,7 +2560,7 @@ export const translations = {
     installIOSStep2: 'Appuyez sur "Sur l\'écran d\'accueil"',
     installNow: 'Installer maintenant',
     maybeLater: 'Peut-être plus tard',
-    installBannerText: 'Installez KHARM pour une meilleure expérience',
+    installBannerText: 'Installez MASEYA pour une meilleure expérience',
     install: 'Installer',
     installApp: 'Installer l\'appli',
   },

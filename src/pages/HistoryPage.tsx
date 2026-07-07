@@ -74,7 +74,7 @@ const HistoryPage = () => {
       setLoading(false);
       return;
     }
-    // Full history available for all users — Kharm is 100% free.
+    // Full history available for all users — Maseya is 100% free.
     const q = supabase
       .from('scan_history')
       .select('id,barcode,product_name,product_image,category,scanned_at,scores')

@@ -13,13 +13,13 @@
     "server": {
       "name": "maseya-mcp",
       "version": "0.1.0",
-      "title": "KHARM"
+      "title": "MASEYA"
     },
     "tools": [
       {
         "name": "search_products",
         "title": "Search products",
-        "description": "Search KHARM's product catalog (food & cosmetics) by name or brand. Returns matching products with barcode, name, brand, category, and image.",
+        "description": "Search MASEYA's product catalog (food & cosmetics) by name or brand. Returns matching products with barcode, name, brand, category, and image.",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,
@@ -59,7 +59,7 @@
       {
         "name": "get_product",
         "title": "Get product by barcode",
-        "description": "Fetch a KHARM product's full details (name, brand, category, ingredients, image) by barcode.",
+        "description": "Fetch a MASEYA product's full details (name, brand, category, ingredients, image) by barcode.",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,
@@ -85,7 +85,7 @@
       {
         "name": "list_my_scans",
         "title": "List my scan history",
-        "description": "Return the signed-in KHARM user's most recent product scans (barcode, product name, category, score, scan date).",
+        "description": "Return the signed-in MASEYA user's most recent product scans (barcode, product name, category, score, scan date).",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,

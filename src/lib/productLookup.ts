@@ -1,5 +1,5 @@
 /**
- * Product lookup — Kharm DB → Open Food Facts → Open Beauty Facts.
+ * Product lookup — Maseya DB → Open Food Facts → Open Beauty Facts.
  */
 import { supabase } from '@/integrations/supabase/client';
 

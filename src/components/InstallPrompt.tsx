@@ -12,7 +12,7 @@ interface BIPEvent extends Event {
 
 const COPY = {
   es: {
-    title: 'Instala Kharm en tu pantalla de inicio',
+    title: 'Instala Maseya en tu pantalla de inicio',
     subtitle: 'Accede a tus escaneos con un solo toque, como una app.',
     install: 'Instalar',
     iosStep1: 'Pulsa el botón',
@@ -21,7 +21,7 @@ const COPY = {
     dismiss: 'Cerrar',
   },
   en: {
-    title: 'Install Kharm on your home screen',
+    title: 'Install Maseya on your home screen',
     subtitle: 'One-tap access to your scans, just like an app.',
     install: 'Install',
     iosStep1: 'Tap the',
@@ -30,7 +30,7 @@ const COPY = {
     dismiss: 'Close',
   },
   fr: {
-    title: "Installe Kharm sur ton écran d'accueil",
+    title: "Installe Maseya sur ton écran d'accueil",
     subtitle: 'Accès à tes scans en un clic, comme une app.',
     install: 'Installer',
     iosStep1: 'Appuie sur',

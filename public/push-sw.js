@@ -20,7 +20,7 @@ self.addEventListener('push', (event) => {
     try {
       const data = event.data.json();
       options.body = data.message || data.body || options.body;
-      options.title = data.title || 'KHARM';
+      options.title = data.title || 'MASEYA';
       if (data.url) {
         options.data.url = data.url;
       }
@@ -30,7 +30,7 @@ self.addEventListener('push', (event) => {
   }
 
   event.waitUntil(
-    self.registration.showNotification(options.title || 'KHARM', options)
+    self.registration.showNotification(options.title || 'MASEYA', options)
   );
 });
 
