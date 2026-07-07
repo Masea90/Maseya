@@ -41,11 +41,14 @@ const hostForCategory = (category: 'food' | 'cosmetic') =>
 const sourceForCategory = (category: 'food' | 'cosmetic'): ProductData['source'] =>
   category === 'cosmetic' ? 'obf' : 'off';
 
-const pickCategoryTag = (raw: Record<string, unknown>): string | null => {
+// Returns the full category hierarchy from OFF/OBF, ordered most-specific → broadest.
+// This lets us try the tightest match first (e.g. "cocoa-powders") and progressively
+// broaden (e.g. "cocoas" → "sweet-snacks") until we find enough alternatives.
+const pickCategoryTags = (raw: Record<string, unknown>): string[] => {
   const tags = (raw as { categories_tags?: string[] })?.categories_tags;
-  if (!Array.isArray(tags) || tags.length === 0) return null;
-  // Most specific category is typically the last one in OFF/OBF.
-  return tags[tags.length - 1] || null;
+  if (!Array.isArray(tags) || tags.length === 0) return [];
+  // OFF orders from most-general to most-specific; reverse so specific is first.
+  return [...tags].reverse().filter((t): t is string => typeof t === 'string' && t.length > 0);
 };
 
 interface SearchItem {
