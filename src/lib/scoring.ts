@@ -268,7 +268,9 @@ export function calculateScoreBreakdown(
   const rawText = (p.ingredients_text || '').trim();
   const factors: ScoreFactor[] = [];
 
-  if (p.category === 'food' && p.nutriscore_grade) {
+  const nutriGrade = (p.nutriscore_grade || '').toLowerCase();
+  const hasNutri = ['a', 'b', 'c', 'd', 'e'].includes(nutriGrade);
+  if (p.category === 'food' && hasNutri) {
     const cleanMap: Record<string, number> = { a: 95, b: 82, c: 62, d: 40, e: 18 };
     const grade = p.nutriscore_grade.toLowerCase();
     let score = cleanMap[grade] ?? 50;
