@@ -23,8 +23,12 @@ interface Candidate {
   label: ReturnType<typeof scoreLabel>;
 }
 
-const CACHE_PREFIX = 'maseya_alts_v1::';
+// v2: bumped to invalidate old caches without country filter.
+const CACHE_PREFIX = 'maseya_alts_v2::';
 const FETCH_TIMEOUT_MS = 8000;
+// TODO: derive country from user locale/settings when we expand beyond Spain.
+const COUNTRY_TAG = 'en:spain';
+
 
 const hostForCategory = (category: 'food' | 'cosmetic') =>
   category === 'cosmetic' ? 'world.openbeautyfacts.org' : 'world.openfoodfacts.org';
@@ -130,14 +134,22 @@ export const Alternatives = ({ current, currentScore }: Props) => {
           'nutriscore_grade', 'ingredients_text', 'ingredients_tags',
           'labels_tags', 'ingredients_analysis_tags', 'allergens_tags', 'traces_tags',
         ].join(',');
-        const url =
+        const baseUrl =
           `https://${host}/api/v2/search` +
           `?categories_tags=${encodeURIComponent(categoryTag)}` +
           `&sort_by=unique_scans_n&page_size=24&fields=${fields}`;
+        const urlWithCountry = `${baseUrl}&countries_tags=${encodeURIComponent(COUNTRY_TAG)}`;
 
-        const res = await fetch(url, { signal: controller.signal });
+        let res = await fetch(urlWithCountry, { signal: controller.signal });
         if (!res.ok) throw new Error(`http_${res.status}`);
-        const json = (await res.json()) as { products?: SearchItem[] };
+        let json = (await res.json()) as { products?: SearchItem[] };
+        // Country-filtered search may return 0 hits for global/imported
+        // products — fall back once to the unfiltered search before giving up.
+        if (!json.products || json.products.length === 0) {
+          res = await fetch(baseUrl, { signal: controller.signal });
+          if (res.ok) json = (await res.json()) as { products?: SearchItem[] };
+        }
+
 
         const consent = hasHealthDataConsent();
         const profile = consent ? loadProfile() : null;
