@@ -36,11 +36,11 @@ const ORANGE_KEYWORDS = [
 const LACTOSE_FOOD = [
   'milk', 'lactose', 'dairy', 'whey', 'casein', 'cream',
   'skimmed milk', 'whole milk', 'milk powder',
-  'lait', 'leche', 'lactosérum', 'caséine', 'lacto', 'lactosa', 'suero',
+  'lait', 'leche', 'lactoserum', 'caseine', 'lacto', 'lactosa', 'suero',
 ];
 const LACTOSE_COSMETIC = [
   'milk protein', 'dairy', 'lactose', 'whey protein',
-  'protéine de lait', 'proteína de leche',
+  'proteine de lait', 'proteina de leche',
 ];
 
 const ALLERGY_KEYWORDS: Record<string, string[]> = {
@@ -50,15 +50,70 @@ const ALLERGY_KEYWORDS: Record<string, string[]> = {
   fish: ['fish', 'shellfish', 'shrimp', 'crab', 'lobster', 'pescado', 'marisco', 'gamba', 'cangrejo'],
 };
 
-const lower = (s: string) => s.toLowerCase();
+// --- Text normalization + whole-word keyword matching -----------------------
+// Rationale: previous naive substring matching produced false positives like
+// "sulfate" matching inside "behentrimonium methosulfate", or "milk" matching
+// inside "coconut milk". These helpers normalize (lowercase + strip diacritics)
+// and enforce word boundaries. Multi-word keywords are treated as phrases;
+// single-word keywords allow an optional plural suffix (s/es).
 
-const containsAny = (haystack: string, needles: string[]) =>
-  needles.some(n => haystack.includes(n));
+function stripDiacritics(s: string): string {
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+const norm = (s: string) => stripDiacritics(String(s || '').toLowerCase());
+const escRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/** Return the actual matched substring for `keyword` in `text`, or null. */
+export function findKeyword(text: string, keyword: string): string | null {
+  const t = norm(text);
+  const k = norm(keyword);
+  if (!k) return null;
+  const escaped = escRe(k);
+  const isMulti = /\s/.test(k);
+  // \p{L} = any letter (unicode). Prevents matches inside longer words.
+  const pattern = isMulti
+    ? new RegExp(`(?<!\\p{L})${escaped}(?!\\p{L})`, 'u')
+    : new RegExp(`(?<!\\p{L})${escaped}(?:es|s)?(?!\\p{L})`, 'u');
+  const m = t.match(pattern);
+  return m ? m[0] : null;
+}
+
+export function matchKeyword(text: string, keyword: string): boolean {
+  return findKeyword(text, keyword) !== null;
+}
+
+function findAny(text: string, keywords: string[]): string | null {
+  for (const k of keywords) {
+    const m = findKeyword(text, k);
+    if (m) return m;
+  }
+  return null;
+}
+
+const containsAny = (text: string, keywords: string[]) => findAny(text, keywords) !== null;
+
+// Plant-milk phrases that must not trigger lactose/dairy alerts.
+const PLANT_MILK_PHRASES = [
+  'coconut milk', 'almond milk', 'oat milk', 'soy milk', 'soya milk',
+  'rice milk', 'cashew milk', 'hazelnut milk',
+  'leche de coco', 'leche de almendras', 'leche de almendra',
+  'leche de avena', 'leche de soja', 'leche de soya', 'leche de arroz',
+  'lait de coco', 'lait d amande', 'lait d avoine', 'lait de soja', 'lait de riz',
+];
+
+/** Remove plant-milk phrases from an already-normalized text. */
+function stripPlantMilks(normalizedText: string): string {
+  let t = normalizedText;
+  for (const p of PLANT_MILK_PHRASES) {
+    const re = new RegExp(escRe(norm(p)), 'g');
+    t = t.replace(re, ' ');
+  }
+  return t;
+}
 
 export function classifyIngredient(name: string): IngredientLevel {
-  const n = lower(name);
-  if (containsAny(n, RED_KEYWORDS)) return 'avoid';
-  if (containsAny(n, ORANGE_KEYWORDS)) return 'caution';
+  if (findAny(name, RED_KEYWORDS)) return 'avoid';
+  if (findAny(name, ORANGE_KEYWORDS)) return 'caution';
   return 'safe';
 }
 
@@ -70,11 +125,11 @@ const SYNONYM_GROUPS: string[][] = [
 ];
 
 function canonicalKey(name: string): string {
-  const norm = name.toLowerCase().trim().replace(/\s+/g, ' ');
+  const nrm = name.toLowerCase().trim().replace(/\s+/g, ' ');
   for (const group of SYNONYM_GROUPS) {
-    if (group.includes(norm)) return group[0];
+    if (group.includes(nrm)) return group[0];
   }
-  return norm;
+  return nrm;
 }
 
 const NUTRITIONAL_MARKERS = [
@@ -127,8 +182,6 @@ export function calculateScore(p: ProductData, flagged: FlaggedIngredient[]): nu
   const isOrganic = p.labels_tags.some(t => t.includes('organic') || t.includes('bio'));
 
   if (p.category === 'food' && p.nutriscore_grade) {
-    // Yuka-like: clean Nutriscore mapping when no bad ingredients,
-    // otherwise penalise per flagged ingredient.
     const cleanMap: Record<string, number> = { a: 95, b: 82, c: 62, d: 40, e: 18 };
     const grade = p.nutriscore_grade.toLowerCase();
     let score = cleanMap[grade] ?? 50;
@@ -140,7 +193,6 @@ export function calculateScore(p: ProductData, flagged: FlaggedIngredient[]): nu
     return Math.max(0, Math.min(100, Math.round(score)));
   }
 
-  // Cosmetic / fallback: derive from ingredient flags + positive tags
   let score = 100 - (reds * 15) - (oranges * 6);
 
   const positives = p.ingredients_analysis_tags.filter(t =>
@@ -153,7 +205,6 @@ export function calculateScore(p: ProductData, flagged: FlaggedIngredient[]): nu
   return Math.max(0, Math.min(100, Math.round(score)));
 }
 
-// Generic profile shape — accepts either onboarding localStorage or health_profiles row
 export interface PersonalProfileLike {
   skin?: string[];
   skin_type?: string[];
@@ -166,17 +217,24 @@ export interface PersonalProfileLike {
 }
 
 const ANIMAL_KEYWORDS = ['milk', 'lactose', 'whey', 'casein', 'cream', 'egg', 'honey', 'gelatin', 'meat', 'beef', 'pork', 'chicken', 'fish', 'lait', 'leche', 'huevo', 'miel', 'gelatina', 'carne'];
-const PREGNANCY_RISKY = ['retinol', 'retinyl', 'retinal', 'salicylic acid', 'salicylate', 'hydroquinone', 'formaldehyde', 'phthalate', 'caffeine', 'cafeína'];
+const PREGNANCY_RISKY = ['retinol', 'retinyl', 'retinal', 'salicylic acid', 'salicylate', 'hydroquinone', 'formaldehyde', 'phthalate', 'caffeine', 'cafeina'];
+
+/** Flatten a ProductData's tags list into a plain space-separated string. */
+function tagsAsText(p: ProductData): string {
+  const tags = Array.isArray(p.ingredients_tags) ? p.ingredients_tags : [];
+  return tags.map(t => t.replace(/^[a-z]{2}:/, '').replace(/-/g, ' ')).join(' ');
+}
 
 export function calculatePersonalScore(
   p: ProductData,
-  flagged: FlaggedIngredient[],
+  _flagged: FlaggedIngredient[],
   profile: PersonalProfileLike,
   baseScore: number,
 ): number {
-  const text = lower(p.ingredients_text || '') + ' ' + p.ingredients_tags.join(' ');
-  const has = (kw: string) => text.includes(kw);
-  const hasAny = (kws: string[]) => kws.some(k => text.includes(k));
+  const rawText = p.ingredients_text || '';
+  const combined = `${rawText} ${tagsAsText(p)}`;
+  const has = (kw: string) => matchKeyword(combined, kw);
+  const hasAny = (kws: string[]) => containsAny(combined, kws);
 
   const skin = [
     ...(profile.skin || []),
@@ -192,7 +250,6 @@ export function calculatePersonalScore(
   const isCosmetic = p.category === 'cosmetic';
   const isFood = p.category === 'food';
 
-  // Skin (cosmetics)
   if (isCosmetic) {
     if (skin.includes('atopic') && (has('sulfate') || has('sulphate') || has('fragrance') || has('parfum') || has('mineral oil') || has('paraffinum'))) {
       score -= 30;
@@ -205,23 +262,23 @@ export function calculatePersonalScore(
     }
   }
 
-  // Food allergies
   if (isFood) {
+    // Strip plant-milk phrases before running lactose keyword checks.
+    const lactoseText = stripPlantMilks(norm(combined));
+    const hasLactose = LACTOSE_FOOD.some(k => findKeyword(lactoseText, k));
+
     if (allergies.includes('gluten') && hasAny(ALLERGY_KEYWORDS.gluten)) score -= 50;
-    if (allergies.includes('lactose') && hasAny(LACTOSE_FOOD)) score -= 50;
+    if (allergies.includes('lactose') && hasLactose) score -= 50;
     if (allergies.includes('nuts') && hasAny(ALLERGY_KEYWORDS.nuts)) score -= 50;
     if (allergies.includes('fish') && hasAny(ALLERGY_KEYWORDS.fish)) score -= 50;
     if (isVegan && hasAny(ANIMAL_KEYWORDS)) score -= 30;
-    // Diet alignment bonus
     if (diet && (p.labels_tags.some(t => t.includes(diet)) || (isVegan && p.ingredients_analysis_tags.includes('en:vegan')))) {
       score += 5;
     }
   }
 
-  // Pregnancy (both categories)
   if (isPregnant && hasAny(PREGNANCY_RISKY)) score -= 40;
 
-  // Beneficial ingredient bonus for known-good actives
   const beneficial = ['aloe', 'panthenol', 'niacinamide', 'hyaluronic', 'glycerin', 'oat', 'avena', 'centella'];
   if (isCosmetic && skin.length > 0 && hasAny(beneficial)) score += 10;
 
@@ -250,8 +307,6 @@ export function naturalness(p: ProductData, flagged: FlaggedIngredient[]): Natur
   return { pct, level, organic };
 }
 
-// Map user-facing allergy keys to Open Food Facts structured allergen tag ids.
-// Multiple tag ids per allergy handle OFF's granularity (e.g. nuts vs peanuts).
 const ALLERGY_TAG_IDS: Record<string, string[]> = {
   gluten: ['en:gluten', 'en:cereals-containing-gluten', 'en:wheat', 'en:barley', 'en:rye', 'en:spelt', 'en:oats'],
   lactose: ['en:milk', 'en:dairy', 'en:lactose'],
@@ -269,52 +324,89 @@ const ALLERGY_LABELS: Record<string, string> = {
 const tagMatches = (tags: string[], ids: string[]) =>
   tags.some(t => ids.includes(t));
 
+// --- Verifiable-alert helpers ----------------------------------------------
+// Every warn-level alert must tell the user WHAT and WHERE it was detected.
+type ProbeHit = { source: 'text' | 'tag'; term: string };
+
+function probeInText(text: string, keyword: string): string | null {
+  return findKeyword(text, keyword);
+}
+
+/** Look up keyword in ingredients_text first, then in ingredients_tags. */
+function probe(p: ProductData, keyword: string): ProbeHit | null {
+  const inText = findKeyword(p.ingredients_text || '', keyword);
+  if (inText) return { source: 'text', term: inText };
+  const inTag = findKeyword(tagsAsText(p), keyword);
+  if (inTag) return { source: 'tag', term: inTag };
+  return null;
+}
+
+function probeAny(p: ProductData, keywords: string[]): ProbeHit | null {
+  for (const k of keywords) {
+    const hit = probe(p, k);
+    if (hit) return hit;
+  }
+  return null;
+}
+
+const SOURCE_NOTE_TAG = ' (según la ficha del producto en Open Food/Beauty Facts; puede corresponder a otra versión del etiquetado)';
+function annotate(message: string, hit: ProbeHit): string {
+  if (hit.source === 'text') return `${message} (detectado: "${hit.term}")`;
+  return `${message}${SOURCE_NOTE_TAG}`;
+}
+
 export function personalAlerts(p: ProductData, profile: OnboardingProfile): PersonalAlert[] {
   const alerts: PersonalAlert[] = [];
-  const ingredientsTags = Array.isArray(p.ingredients_tags) ? p.ingredients_tags : [];
   const allergensTags = Array.isArray(p.allergens_tags) ? p.allergens_tags : [];
   const tracesTags = Array.isArray(p.traces_tags) ? p.traces_tags : [];
   const skin = Array.isArray(profile?.skin) ? profile.skin : [];
   const allergies = Array.isArray(profile?.allergies) ? profile.allergies : [];
-  const text = lower(p.ingredients_text || '') + ' ' + ingredientsTags.join(' ');
 
-  const has = (kw: string) => text.includes(kw);
   const isCosmetic = p.category === 'cosmetic';
   const isFood = p.category === 'food';
 
   // Skin rules — cosmetics only
   if (isCosmetic) {
+    const pushHit = (hits: string[], msg: string, kws: string[]) => {
+      const hit = probeAny(p, kws);
+      if (hit) hits.push(annotate(msg, hit));
+    };
+
     if (skin.includes('atopic')) {
       const hits: string[] = [];
-      if (has('sulfate') || has('sulphate')) hits.push('Los sulfatos alteran la barrera cutánea atópica');
-      if (has('fragrance') || has('parfum')) hits.push('Las fragancias pueden irritar piel atópica');
-      if (has('alcohol denat')) hits.push('El alcohol puede resecar piel atópica');
-      if (has('mineral oil') || has('paraffinum')) hits.push('El aceite mineral ocluye poros, puede empeorar atopia');
+      pushHit(hits, 'Los sulfatos alteran la barrera cutánea atópica', ['sulfate', 'sulphate']);
+      pushHit(hits, 'Las fragancias pueden irritar piel atópica', ['fragrance', 'parfum']);
+      pushHit(hits, 'El alcohol puede resecar piel atópica', ['alcohol denat']);
+      pushHit(hits, 'El aceite mineral ocluye poros, puede empeorar atopia', ['mineral oil', 'paraffinum']);
       if (hits.length === 0) alerts.push({ level: 'good', text: 'Sin ingredientes problemáticos para piel atópica' });
       else hits.forEach(h => alerts.push({ level: 'warn', text: h }));
     }
     if (skin.includes('dry')) {
       const hits: string[] = [];
-      if (has('sulfate') || has('sulphate')) hits.push('Los sulfatos resecan piel ya seca');
-      if (has('alcohol denat')) hits.push('El alcohol agrava la sequedad');
+      pushHit(hits, 'Los sulfatos resecan piel ya seca', ['sulfate', 'sulphate']);
+      pushHit(hits, 'El alcohol agrava la sequedad', ['alcohol denat']);
       if (hits.length === 0) alerts.push({ level: 'good', text: 'Apto para piel seca' });
       else hits.forEach(h => alerts.push({ level: 'warn', text: h }));
     }
     if (skin.includes('oily')) {
       const hits: string[] = [];
-      if (has('mineral oil') || has('paraffinum')) hits.push('El aceite mineral puede obstruir poros en piel grasa');
-      if (has('silicone') || has('dimethicone')) hits.push('Las siliconas pueden acumular sebo en piel grasa');
+      pushHit(hits, 'El aceite mineral puede obstruir poros en piel grasa', ['mineral oil', 'paraffinum']);
+      pushHit(hits, 'Las siliconas pueden acumular sebo en piel grasa', ['silicone', 'dimethicone']);
       if (hits.length === 0) alerts.push({ level: 'good', text: 'Apto para piel grasa' });
       else hits.forEach(h => alerts.push({ level: 'warn', text: h }));
     }
   }
 
   // Food allergy rules — food only.
-  // Priority: structured allergens_tags (danger) → traces_tags (warn) → keyword text fallback (warn).
-  // Never affirm absence categorically.
   if (isFood) {
     const hasStructured = allergensTags.length > 0 || tracesTags.length > 0;
     const isUntrustedSource = p.source === 'photo' || p.source === 'maseya';
+
+    // Pre-strip plant-milk phrases for lactose text lookups.
+    const rawText = p.ingredients_text || '';
+    const rawTagsText = tagsAsText(p);
+    const lactoseTextClean = stripPlantMilks(norm(rawText));
+    const lactoseTagsClean = stripPlantMilks(norm(rawTagsText));
 
     for (const allergy of allergies) {
       if (allergy === 'none') continue;
@@ -325,16 +417,33 @@ export function personalAlerts(p: ProductData, profile: OnboardingProfile): Pers
 
       const inAllergens = tagIds ? tagMatches(allergensTags, tagIds) : false;
       const inTraces = tagIds ? tagMatches(tracesTags, tagIds) : false;
-      const inText = kws ? containsAny(text, kws) : false;
+
+      // Text/tag probe with plant-milk exclusion for lactose.
+      let hit: ProbeHit | null = null;
+      if (kws) {
+        if (allergy === 'lactose') {
+          for (const k of kws) {
+            const inTxt = probeInText(lactoseTextClean, k);
+            if (inTxt) { hit = { source: 'text', term: inTxt }; break; }
+            const inTg = probeInText(lactoseTagsClean, k);
+            if (inTg) { hit = { source: 'tag', term: inTg }; break; }
+          }
+        } else {
+          hit = probeAny(p, kws);
+        }
+      }
 
       if (inAllergens) {
         alerts.push({ level: 'danger', text: `Contiene ${label} (declarado por el fabricante).` });
       } else if (inTraces) {
         alerts.push({ level: 'warn', text: `Puede contener trazas de ${label} (declarado por el fabricante).` });
-      } else if (inText) {
+      } else if (hit) {
+        const where = hit.source === 'text'
+          ? ` (detectado: "${hit.term}")`
+          : SOURCE_NOTE_TAG;
         alerts.push({
           level: 'warn',
-          text: `Posible presencia de ${label} detectada en los ingredientes. Verifica el etiquetado del envase.`,
+          text: `Posible presencia de ${label} detectada en los ingredientes. Verifica el etiquetado del envase.${where}`,
         });
       } else {
         alerts.push({
