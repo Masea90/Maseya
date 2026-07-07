@@ -454,9 +454,17 @@ const ResultPage = () => {
                     </Popover>
                   </div>
 
+                  {/* Score composition: helps users understand where the number comes from. */}
+                  <div className="w-full flex flex-col items-center gap-2">
+                    <ScoreBreakdown factors={scoreBreakdown.factors} title="¿Por qué esta nota general?" />
+                    {personalBreakdown && (
+                      <ScoreBreakdown factors={personalBreakdown.factors} title="¿Por qué tu nota personal?" />
+                    )}
+                  </div>
+
                   {!hasIngredientData && hasNutriscore && (
                     <p className="text-xs text-muted-foreground text-center max-w-xs">
-                      Basado en valor nutricional. Fotografía la etiqueta para análisis completo de ingredientes.
+                      La puntuación se basa solo en el Nutriscore. Fotografía la lista de ingredientes para completar el análisis.
                     </p>
                   )}
                 </>
