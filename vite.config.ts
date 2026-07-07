@@ -63,7 +63,6 @@ export default defineConfig(({ mode }) => ({
           {
             urlPattern: ({ request, url }) =>
               request.mode === "navigate" &&
-              url.origin === self.location.origin &&
               !url.pathname.startsWith("/~oauth") &&
               !url.pathname.startsWith("/auth"),
             handler: "NetworkFirst",
