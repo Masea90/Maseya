@@ -21,11 +21,26 @@ if (isPreviewHost || isInIframe) {
     registrations.forEach((r) => r.unregister());
   });
 } else if ('serviceWorker' in navigator) {
-  // Production-only SW registration with update detection
+  // Production-only SW registration with aggressive update detection so
+  // installed PWA users always get the latest version without manual cache
+  // clearing or reinstalling.
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').then((reg) => {
-      // Check for updates periodically (every 60 min)
-      setInterval(() => reg.update().catch(() => {}), 60 * 60 * 1000);
+      const checkForUpdate = () => reg.update().catch(() => {});
+
+      // 1) Check immediately on load
+      checkForUpdate();
+
+      // 2) Check every 15 min while the app is open
+      setInterval(checkForUpdate, 15 * 60 * 1000);
+
+      // 3) Check whenever the user re-focuses the tab / returns to the app
+      //    (critical for installed PWAs that stay open in the background)
+      window.addEventListener('focus', checkForUpdate);
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') checkForUpdate();
+      });
+      window.addEventListener('online', checkForUpdate);
 
       const notify = (worker: ServiceWorker) => {
         worker.addEventListener('statechange', () => {
