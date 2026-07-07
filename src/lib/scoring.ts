@@ -63,19 +63,35 @@ function stripDiacritics(s: string): string {
 const norm = (s: string) => stripDiacritics(String(s || '').toLowerCase());
 const escRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+// Manual word-boundary check (no lookbehind). iOS Safari <16.4 crashes on
+// `(?<!\p{L})`, which was silently breaking classification on older iPhones.
+const LETTER_RE = /\p{L}/u;
+const isLetterChar = (ch: string) => !!ch && LETTER_RE.test(ch);
+
 /** Return the actual matched substring for `keyword` in `text`, or null. */
 export function findKeyword(text: string, keyword: string): string | null {
   const t = norm(text);
   const k = norm(keyword);
   if (!k) return null;
-  const escaped = escRe(k);
   const isMulti = /\s/.test(k);
-  // \p{L} = any letter (unicode). Prevents matches inside longer words.
-  const pattern = isMulti
-    ? new RegExp(`(?<!\\p{L})${escaped}(?!\\p{L})`, 'u')
-    : new RegExp(`(?<!\\p{L})${escaped}(?:es|s)?(?!\\p{L})`, 'u');
-  const m = t.match(pattern);
-  return m ? m[0] : null;
+  let from = 0;
+  while (from <= t.length - k.length) {
+    const idx = t.indexOf(k, from);
+    if (idx === -1) return null;
+    let end = idx + k.length;
+    // Single-word keywords allow an optional plural suffix (s/es).
+    if (!isMulti) {
+      if (t.substr(end, 2) === 'es' && !isLetterChar(t[end + 2] || '')) end += 2;
+      else if (t[end] === 's' && !isLetterChar(t[end + 1] || '')) end += 1;
+    }
+    const before = idx > 0 ? t[idx - 1] : '';
+    const after = end < t.length ? t[end] : '';
+    if (!isLetterChar(before) && !isLetterChar(after)) {
+      return t.substring(idx, end);
+    }
+    from = idx + 1;
+  }
+  return null;
 }
 
 export function matchKeyword(text: string, keyword: string): boolean {
