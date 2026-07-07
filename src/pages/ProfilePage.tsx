@@ -19,7 +19,7 @@ interface HealthState {
   hair_condition: string;
   hair_concerns: string[];
   allergies: string[];
-  diet: string;
+  diet: string[];
   nutrition_goals: string[];
   pregnancy_or_lactation: boolean;
 }
