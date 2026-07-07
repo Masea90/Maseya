@@ -246,7 +246,7 @@ export const Alternatives = ({ current, currentScore }: Props) => {
         const scored: Candidate[] = [];
         const seenCodes = new Set<string>([current.barcode]);
         const addCandidate = (pd: ProductData | null) => {
-          if (!pd) continue;
+          if (!pd) return;
           if (!pd.barcode || seenCodes.has(pd.barcode)) return;
           if (!pd.ingredients_text && !pd.nutriscore_grade) return;
           seenCodes.add(pd.barcode);
