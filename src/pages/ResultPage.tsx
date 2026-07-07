@@ -108,7 +108,7 @@ const ResultPage = () => {
           skin_conditions: data.skin_conditions || [],
           skin_sensitivities: data.skin_sensitivities || [],
           allergies: data.allergies || [],
-          diet: data.diet || '',
+          diet: Array.isArray(data.diet) ? data.diet : (data.diet ? [data.diet] : []),
           nutrition_goals: data.nutrition_goals || [],
           pregnancy_or_lactation: !!data.pregnancy_or_lactation,
         });

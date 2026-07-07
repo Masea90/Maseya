@@ -365,7 +365,7 @@ export interface PersonalProfileLike {
   skin_conditions?: string[];
   skin_sensitivities?: string[];
   allergies?: string[];
-  diet?: string;
+  diet?: string | string[];
   nutrition_goals?: string[];
   pregnancy_or_lactation?: boolean;
 }
@@ -403,8 +403,9 @@ export function calculatePersonalScoreBreakdown(
     ...(profile.skin_conditions || []),
   ].map(s => String(s).toLowerCase());
   const allergies = (profile.allergies || []).map(a => String(a).toLowerCase());
-  const diet = String(profile.diet || '').toLowerCase();
-  const isVegan = diet.includes('vegan') || allergies.includes('vegan');
+  const diets = (Array.isArray(profile.diet) ? profile.diet : (profile.diet ? [profile.diet] : [])).map(d => String(d).toLowerCase());
+  const isVegan = diets.includes('vegan') || allergies.includes('vegan');
+  const isHalal = diets.includes('halal');
   const isPregnant = !!profile.pregnancy_or_lactation;
 
   const factors: ScoreFactor[] = [];
@@ -459,8 +460,12 @@ export function calculatePersonalScoreBreakdown(
       const t = firstTerm(combined, ANIMAL_KEYWORDS);
       if (t) addNeg(`Dieta vegana: ingrediente de origen animal (${t})`, -30);
     }
-    if (diet && (p.labels_tags.some(t => t.includes(diet)) || (isVegan && p.ingredients_analysis_tags.includes('en:vegan')))) {
+    if (diets.length && (diets.some(d => p.labels_tags.some(t => t.includes(d))) || (isVegan && p.ingredients_analysis_tags.includes('en:vegan')))) {
       addPos('Alineado con tu dieta', 5);
+    }
+    if (isHalal) {
+      const t = firstTerm(combined, ['pork', 'porcino', 'cerdo', 'jamón', 'jamon', 'bacon', 'lard', 'manteca de cerdo', 'gelatin', 'gelatina', 'alcohol', 'wine', 'vino', 'rum', 'ron']);
+      if (t) addNeg(`Dieta halal: ingrediente no permitido (${t})`, -30);
     }
   }
 

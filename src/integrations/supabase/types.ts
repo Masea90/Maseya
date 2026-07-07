@@ -19,7 +19,7 @@ export type Database = {
           allergies: string[] | null
           completion_pct: number | null
           created_at: string
-          diet: string | null
+          diet: string[] | null
           hair_concerns: string[] | null
           hair_condition: string | null
           hair_type: string | null
@@ -36,7 +36,7 @@ export type Database = {
           allergies?: string[] | null
           completion_pct?: number | null
           created_at?: string
-          diet?: string | null
+          diet?: string[] | null
           hair_concerns?: string[] | null
           hair_condition?: string | null
           hair_type?: string | null
@@ -53,7 +53,7 @@ export type Database = {
           allergies?: string[] | null
           completion_pct?: number | null
           created_at?: string
-          diet?: string | null
+          diet?: string[] | null
           hair_concerns?: string[] | null
           hair_condition?: string | null
           hair_type?: string | null

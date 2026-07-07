@@ -19,7 +19,7 @@ interface HealthState {
   hair_condition: string;
   hair_concerns: string[];
   allergies: string[];
-  diet: string;
+  diet: string[];
   nutrition_goals: string[];
   pregnancy_or_lactation: boolean;
 }
@@ -32,7 +32,7 @@ const EMPTY: HealthState = {
   hair_condition: '',
   hair_concerns: [],
   allergies: [],
-  diet: '',
+  diet: [],
   nutrition_goals: [],
   pregnancy_or_lactation: false,
 };
@@ -52,8 +52,8 @@ const OPTIONS = {
   hair_concerns_label: { hairloss: 'Caída', dandruff: 'Caspa', frizz: 'Frizz', colored: 'Color tratado' } as Record<string, string>,
   allergies: ['gluten', 'lactose', 'nuts', 'fish'],
   allergies_label: { gluten: 'Gluten', lactose: 'Lactosa', nuts: 'Frutos secos', fish: 'Pescado/marisco' } as Record<string, string>,
-  diet: ['omnivore', 'vegetarian', 'vegan', 'keto', 'no-sugar'],
-  diet_label: { omnivore: 'Omnívora', vegetarian: 'Vegetariana', vegan: 'Vegana', keto: 'Keto', 'no-sugar': 'Sin azúcar' } as Record<string, string>,
+  diet: ['omnivore', 'vegetarian', 'vegan', 'keto', 'no-sugar', 'halal'],
+  diet_label: { omnivore: 'Omnívora', vegetarian: 'Vegetariana', vegan: 'Vegana', keto: 'Keto', 'no-sugar': 'Sin azúcar', halal: 'Halal' } as Record<string, string>,
   nutrition_goals: ['lose-weight', 'gain-muscle', 'more-energy', 'healthy-skin'],
   nutrition_goals_label: { 'lose-weight': 'Perder peso', 'gain-muscle': 'Ganar músculo', 'more-energy': 'Más energía', 'healthy-skin': 'Piel más sana' } as Record<string, string>,
 };
@@ -92,7 +92,7 @@ const computePct = (s: HealthState): number => {
   if (s.hair_condition) filled++;
   if (s.hair_concerns.length) filled++;
   if (s.allergies.length) filled++;
-  if (s.diet) filled++;
+  if (s.diet.length) filled++;
   if (s.nutrition_goals.length) filled++;
   return Math.round((filled / total) * 100);
 };
@@ -130,7 +130,7 @@ const ProfilePage = () => {
             hair_condition: data.hair_condition || '',
             hair_concerns: data.hair_concerns || [],
             allergies: data.allergies || [],
-            diet: data.diet || '',
+            diet: Array.isArray(data.diet) ? data.diet : (data.diet ? [data.diet] : []),
             nutrition_goals: data.nutrition_goals || [],
             pregnancy_or_lactation: data.pregnancy_or_lactation || false,
           });
@@ -274,7 +274,7 @@ const ProfilePage = () => {
             <p className="text-xs text-muted-foreground mb-2">Dieta</p>
             <div className="flex flex-wrap gap-2">
               {OPTIONS.diet.map(o => (
-                <Chip key={o} active={state.diet === o} onClick={() => setSingle('diet', o)}>
+                <Chip key={o} active={state.diet.includes(o)} onClick={() => toggleArr('diet', o)}>
                   {OPTIONS.diet_label[o]}
                 </Chip>
               ))}
