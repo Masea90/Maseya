@@ -16,7 +16,9 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     mcpPlugin(),
     VitePWA({
-      registerType: "autoUpdate",
+      registerType: "prompt",
+      injectRegister: null,
+      manifestFilename: "manifest.json",
       devOptions: {
         enabled: false,
       },
