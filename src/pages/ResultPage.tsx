@@ -44,6 +44,20 @@ const ResultPage = () => {
   const [healthConsent, setHealthConsent] = useState<boolean>(() => hasHealthDataConsent());
   const [showConsentDialog, setShowConsentDialog] = useState(false);
 
+  // Re-evaluate consent when auth hydrates (DB→localStorage sync from AuthContext)
+  // or when the user grants it in another tab/component.
+  useEffect(() => {
+    const refresh = () => setHealthConsent(hasHealthDataConsent());
+    refresh();
+    window.addEventListener('maseya:consent-updated', refresh);
+    window.addEventListener('storage', refresh);
+    return () => {
+      window.removeEventListener('maseya:consent-updated', refresh);
+      window.removeEventListener('storage', refresh);
+    };
+  }, [currentUser?.id]);
+
+
   const grantHealthConsent = async () => {
     const current = getStoredConsent();
     saveConsent({
