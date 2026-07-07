@@ -205,12 +205,11 @@ export const Alternatives = ({ current, currentScore }: Props) => {
         }
 
         scored.sort((a, b) => b.score - a.score);
-        // Prefer strictly-better alternatives; if fewer than 3 exist, backfill
-        // with same-or-slightly-lower (within 5 points) so the user always
-        // sees comparable options instead of an empty section.
-        const better = scored.filter(c => c.score > currentScore);
-        const near = scored.filter(c => c.score <= currentScore && c.score >= currentScore - 5);
-        const top = [...better, ...near].slice(0, 3);
+        // Always show up to 3 top-scoring candidates from the same category,
+        // even if none strictly beat the current score. The user asked to see
+        // similar products regardless — the score badge already communicates
+        // whether each option is better, similar, or worse.
+        const top = scored.slice(0, 3);
 
         if (cancelled) return;
         try { sessionStorage.setItem(cacheKey, JSON.stringify(top)); } catch {}
