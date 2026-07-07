@@ -23,6 +23,7 @@ interface Candidate {
   data: ProductData;
   score: number;
   label: ReturnType<typeof scoreLabel>;
+  flagged: ReturnType<typeof flagIngredients>;
 }
 
 // v2: bumped to invalidate old caches without country filter.
