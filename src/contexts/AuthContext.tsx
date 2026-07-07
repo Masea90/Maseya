@@ -26,6 +26,32 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+async function syncConsentFromDb(userId: string) {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('consent_analytics, consent_personalization, consent_health_data, consent_date')
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (error || !data) return;
+    const stored = getStoredConsent();
+    // Only sync when DB has health consent granted and local doesn't reflect it,
+    // so hasHealthDataConsent() returns true on new devices/incognito sessions.
+    if (data.consent_health_data && !stored?.health_data) {
+      saveConsent({
+        analytics: !!data.consent_analytics,
+        personalization: data.consent_personalization ?? true,
+        health_data: true,
+        date: data.consent_date || new Date().toISOString(),
+      });
+      // Notify listeners (e.g. ResultPage) that consent changed.
+      window.dispatchEvent(new Event('maseya:consent-updated'));
+    }
+  } catch (e) {
+    console.error('[auth] consent sync failed', e);
+  }
+}
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
