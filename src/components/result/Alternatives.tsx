@@ -162,7 +162,9 @@ export const Alternatives = ({ current, currentScore }: Props) => {
   // drop those food tags and rely on the name-based guess for that ambiguity.
   const rawCategoryTags = eligible
     ? pickCategoryTags(current.raw).filter(
-        (t) => !(current.category === 'cosmetic' && isFoodCategoryTag(t))
+        (t) =>
+          !isBroadCategoryTag(t) &&
+          !(current.category === 'cosmetic' && isFoodCategoryTag(t))
       )
     : [];
   const guessedCategoryTags = eligible
