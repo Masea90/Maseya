@@ -364,9 +364,9 @@ const PhotoCapturePage = () => {
       setStep('front');
       return;
     }
-    stopCamera();
     navigate(-1);
   };
+
 
   const heading = step === 'front' ? c.front : c.ingredients;
 
@@ -409,37 +409,35 @@ const PhotoCapturePage = () => {
               )}
             </div>
 
-            <div className="relative aspect-[3/4] rounded-3xl overflow-hidden bg-black border border-border">
+            <div className="relative aspect-[3/4] rounded-3xl overflow-hidden bg-gradient-to-br from-muted to-muted/50 border border-border flex items-center justify-center">
               {preview ? (
                 <img src={preview} alt="" className="w-full h-full object-cover" />
+              ) : processing ? (
+                <div className="flex flex-col items-center justify-center text-muted-foreground gap-3">
+                  <Sparkles className="w-10 h-10 animate-pulse text-primary" />
+                  <p className="text-xs">{c.starting}</p>
+                </div>
               ) : (
-                <>
-                  <video
-                    ref={videoRef}
-                    className="w-full h-full object-cover"
-                    playsInline
-                    muted
-                    autoPlay
-                  />
-                  {!cameraReady && !cameraError && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center text-white/80 gap-2">
-                      <Camera className="w-10 h-10 animate-pulse" />
-                      <p className="text-xs">{c.starting}</p>
-                    </div>
-                  )}
-                  {cameraError && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-6 text-center gap-3 bg-black/70">
-                      <Camera className="w-10 h-10 text-destructive" />
-                      <p className="text-sm">{cameraError}</p>
-                      <Button onClick={() => void startCamera()} variant="secondary" size="sm">
-                        <RefreshCw className="w-4 h-4 mr-2" />
-                        {c.retry}
-                      </Button>
-                    </div>
-                  )}
-                </>
+                <div className="flex flex-col items-center justify-center text-muted-foreground gap-3 p-8 text-center">
+                  <Camera className="w-14 h-14 text-primary/70" />
+                  <p className="text-xs leading-relaxed max-w-[220px]">
+                    {step === 'front' ? c.front.tip : c.ingredients.hint}
+                  </p>
+                </div>
               )}
             </div>
+
+            {/* Hidden native camera input — `capture="environment"` opens the
+                rear camera app on mobile with full resolution, autofocus and
+                flash. On desktop it falls back to a normal file picker. */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={onFileSelected}
+            />
 
             {preview ? (
               <div className="flex gap-3">
@@ -454,8 +452,8 @@ const PhotoCapturePage = () => {
               </div>
             ) : (
               <Button
-                onClick={onCapture}
-                disabled={!cameraReady}
+                onClick={openNativeCamera}
+                disabled={processing}
                 className="w-full h-14 rounded-2xl"
               >
                 <Camera className="w-5 h-5 mr-2" />
@@ -463,6 +461,7 @@ const PhotoCapturePage = () => {
               </Button>
             )}
           </>
+
         )}
 
         {step === 'analyzing' && (
