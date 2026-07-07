@@ -16,7 +16,9 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     mcpPlugin(),
     VitePWA({
-      registerType: "autoUpdate",
+      registerType: "prompt",
+      injectRegister: false,
+      manifestFilename: "manifest.json",
       devOptions: {
         enabled: false,
       },
@@ -51,10 +53,31 @@ export default defineConfig(({ mode }) => ({
         ],
       },
       workbox: {
+        skipWaiting: false,
+        clientsClaim: true,
+        navigateFallback: null,
         navigateFallbackDenylist: [/^\/~oauth/],
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
         importScripts: ["/push-sw.js"],
         runtimeCaching: [
+          {
+            urlPattern: ({ request, url }) =>
+              request.mode === "navigate" &&
+              !url.pathname.startsWith("/~oauth") &&
+              !url.pathname.startsWith("/auth"),
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "maseya-html-cache",
+              networkTimeoutSeconds: 4,
+              expiration: {
+                maxEntries: 24,
+                maxAgeSeconds: 60 * 60 * 24 * 7,
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: "CacheFirst",
