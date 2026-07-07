@@ -92,7 +92,7 @@ const computePct = (s: HealthState): number => {
   if (s.hair_condition) filled++;
   if (s.hair_concerns.length) filled++;
   if (s.allergies.length) filled++;
-  if (s.diet) filled++;
+  if (s.diet.length) filled++;
   if (s.nutrition_goals.length) filled++;
   return Math.round((filled / total) * 100);
 };
