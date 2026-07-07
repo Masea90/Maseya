@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import type { ProductData } from '@/lib/productLookup';
+import { supabase } from '@/integrations/supabase/client';
 import {
   flagIngredients,
   calculateScore,
@@ -26,8 +27,8 @@ interface Candidate {
   flagged: ReturnType<typeof flagIngredients>;
 }
 
-// v4: bumped after relaxing the score filter (show top 3 in-category regardless).
-const CACHE_PREFIX = 'maseya_alts_v4::';
+// v5: adds local catalog fallback so alternatives still render in private/incognito sessions.
+const CACHE_PREFIX = 'maseya_alts_v5::';
 const FETCH_TIMEOUT_MS = 8000;
 // TODO: derive country from user locale/settings when we expand beyond Spain.
 const COUNTRY_TAG = 'en:spain';
@@ -61,6 +62,54 @@ interface SearchItem {
   allergens_tags?: string[];
   traces_tags?: string[];
 }
+
+interface CatalogItem {
+  barcode: string;
+  product_name: string | null;
+  brand: string | null;
+  category: string | null;
+  category_tag: string | null;
+  ingredients_text: string | null;
+  image_url: string | null;
+  source: string | null;
+}
+
+const normalizeSource = (source: string | null): ProductData['source'] => {
+  if (source === 'off' || source === 'obf' || source === 'photo' || source === 'maseya') return source;
+  return 'maseya';
+};
+
+const normalizeCategory = (category: string | null): ProductData['category'] => {
+  if (category === 'food' || category === 'cosmetic') return category;
+  return 'unknown';
+};
+
+const toCatalogProductData = (item: CatalogItem): ProductData | null => {
+  if (!item.barcode) return null;
+  const raw: Record<string, unknown> = { ...item };
+  if (item.category_tag) raw.categories_tags = [item.category_tag];
+  return {
+    barcode: item.barcode,
+    source: normalizeSource(item.source),
+    category: normalizeCategory(item.category),
+    name: item.product_name || 'Producto',
+    brand: item.brand || '',
+    image: item.image_url || null,
+    nutriscore_grade: null,
+    ingredients_text: item.ingredients_text || null,
+    ingredients_tags: [],
+    labels_tags: [],
+    ingredients_analysis_tags: [],
+    allergens_tags: [],
+    traces_tags: [],
+    raw,
+  };
+};
+
+const isCleanserLikeName = (name: string): boolean => {
+  const n = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  return /\b(limpiador|limpiadora|limpieza|cleanser|cleansing|clean|tonico|micelar)\b/.test(n);
+};
 
 const toProductData = (
   item: SearchItem,
@@ -120,7 +169,7 @@ export const Alternatives = ({ current, currentScore }: Props) => {
   const guessedTagsKey = guessedCategoryTags.join('|');
 
   useEffect(() => {
-    if (!eligible || !hasAnyTag) {
+    if (!eligible) {
       setItems(null);
       return;
     }
@@ -178,12 +227,16 @@ export const Alternatives = ({ current, currentScore }: Props) => {
 
         let products: SearchItem[] = [];
         for (const url of attempts) {
-          const res = await fetch(url, { signal: controller.signal });
-          if (!res.ok) continue;
-          const json = (await res.json()) as { products?: SearchItem[] };
-          if (json.products && json.products.length > 0) {
-            products = json.products;
-            break;
+          try {
+            const res = await fetch(url, { signal: controller.signal });
+            if (!res.ok) continue;
+            const json = (await res.json()) as { products?: SearchItem[] };
+            if (json.products && json.products.length > 0) {
+              products = json.products;
+              break;
+            }
+          } catch (e) {
+            if (controller.signal.aborted) throw e;
           }
         }
 
@@ -191,17 +244,48 @@ export const Alternatives = ({ current, currentScore }: Props) => {
         const profile = consent ? loadProfile() : null;
 
         const scored: Candidate[] = [];
-        for (const raw of products) {
-          if (!raw.code || raw.code === current.barcode) continue;
-          if (!raw.ingredients_text && !raw.nutriscore_grade) continue;
-          const pd = toProductData(raw, candidateSource, cat);
+        const seenCodes = new Set<string>([current.barcode]);
+        const addCandidate = (pd: ProductData | null) => {
           if (!pd) continue;
+          if (!pd.barcode || seenCodes.has(pd.barcode)) return;
+          if (!pd.ingredients_text && !pd.nutriscore_grade) return;
+          seenCodes.add(pd.barcode);
           const flagged = flagIngredients(pd);
           const general = calculateScore(pd, flagged);
           const score = consent && profile
             ? calculatePersonalScore(pd, flagged, profile, general)
             : general;
           scored.push({ data: pd, score, label: scoreLabel(score), flagged });
+        };
+
+        for (const raw of products) {
+          addCandidate(toProductData(raw, candidateSource, cat));
+        }
+
+        const tagSet = new Set(tagCandidates);
+        const currentIsCleanserLike = isCleanserLikeName(current.name) || tagSet.has('en:cleansers') || tagSet.has('en:cleansing-milks');
+        const { data: catalogRows, error: catalogError } = await supabase
+          .from('maseya_products')
+          .select('barcode, product_name, brand, category, category_tag, ingredients_text, image_url, source')
+          .eq('category', cat)
+          .neq('barcode', current.barcode)
+          .not('ingredients_text', 'is', null)
+          .order('scan_count', { ascending: false })
+          .limit(80);
+
+        if (catalogError) {
+          console.warn('[alternatives] local catalog fallback failed', catalogError.message);
+        } else {
+          for (const row of (catalogRows || []) as CatalogItem[]) {
+            const rowTags = [
+              row.category_tag,
+              ...guessCategoryTagsFromName(row.product_name || '', cat),
+            ].filter((tag): tag is string => !!tag);
+            const sharesTag = tagSet.size === 0 || rowTags.some(tag => tagSet.has(tag));
+            const sameCleanserFamily = currentIsCleanserLike && isCleanserLikeName(row.product_name || '');
+            if (!sharesTag && !sameCleanserFamily) continue;
+            addCandidate(toCatalogProductData(row));
+          }
         }
 
         scored.sort((a, b) => b.score - a.score);
@@ -230,9 +314,9 @@ export const Alternatives = ({ current, currentScore }: Props) => {
       controller.abort();
       clearTimeout(timeout);
     };
-  }, [current.barcode, current.source, current.category, current.name, rawCategoryTag, guessedTagsKey, hasAnyTag, currentScore, eligible]);
+  }, [current.barcode, current.source, current.category, current.name, rawCategoryTag, guessedTagsKey, currentScore, eligible]);
 
-  if (!eligible || !hasAnyTag) return null;
+  if (!eligible) return null;
 
 
   if (loading) {
