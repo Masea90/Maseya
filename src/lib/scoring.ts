@@ -164,6 +164,9 @@ export function isNutritionalData(text: string | null | undefined): boolean {
 
 function cleanIngredientsText(raw: string): string {
   return raw
+    // Convert newlines into commas BEFORE collapsing whitespace so genuine
+    // list breaks aren't lost when INCI names span multiple lines.
+    .replace(/[\r\n]+/g, ',')
     .replace(/\b(ingredients?|ingredientes|ingrédients|inci|composition|composición|composição)\s*[:\-]?\s*/gi, '')
     .replace(/[·•]/g, ',')
     .replace(/\b\d+([.,]\d+)?\s*%?\b/g, '')
@@ -180,7 +183,12 @@ export function flagIngredients(p: ProductData): FlaggedIngredient[] {
   const fromText = cleanedText
     .split(/[,;()\n\r]/)
     .map(s => s.trim())
-    .filter(s => s.length > 1 && s.length < 60);
+    // Drop label/instruction segments ("TIPO DE PELE:", "MODO DE USO:",
+    // etc.) — real INCI names never contain a colon. Keep the length cap
+    // at 80 to allow long legitimate names like "ACRYLATES/C10-30 ALKYL
+    // ACRYLATE CROSSPOLYMER".
+    .filter(s => s.length > 1 && s.length < 80 && !s.includes(':'));
+
   const seen = new Set<string>();
   const all: string[] = [];
   // Text first: user-visible INCI is the source of truth for parfum,
