@@ -27,8 +27,9 @@ interface Candidate {
   flagged: ReturnType<typeof flagIngredients>;
 }
 
-// v6: require shared category tag for catalog fallback; add cacao mapping.
-const CACHE_PREFIX = 'maseya_alts_v6::';
+// v7: drop overly-broad category tags (en:plant-based-foods, en:snacks…) so
+// alternatives match the actual product family (nuts vs vinegar vs olives).
+const CACHE_PREFIX = 'maseya_alts_v7::';
 const FETCH_TIMEOUT_MS = 8000;
 // TODO: derive country from user locale/settings when we expand beyond Spain.
 const COUNTRY_TAG = 'en:spain';
