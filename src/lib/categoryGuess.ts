@@ -9,38 +9,42 @@
 
 type Category = 'food' | 'cosmetic';
 
-// Order matters: more specific phrases first so "aceite de coco" beats "aceite".
-const COSMETIC_MAP: Array<[string[], string]> = [
-  [['leche limpiadora', 'limpiador facial', 'facial cleanser', 'face cleanser', 'cleanser', 'limpiador'], 'en:face-cleansers'],
-  [['champu', 'shampoo'], 'en:shampoos'],
-  [['acondicionador', 'conditioner'], 'en:hair-conditioners'],
-  [['gel de ducha', 'shower gel', 'gel de bano'], 'en:shower-gels'],
-  [['pasta de dientes', 'pasta dental', 'dentifrico', 'toothpaste'], 'en:toothpastes'],
-  [['desodorante', 'deodorant', 'antitranspirante', 'antiperspirant'], 'en:deodorants'],
-  [['contorno de ojos', 'eye cream', 'eye contour'], 'en:eye-contour-creams'],
-  [['crema facial', 'crema de cara', 'face cream', 'facial cream'], 'en:face-creams'],
-  [['crema corporal', 'body lotion', 'locion corporal', 'locion'], 'en:body-lotions'],
-  [['protector solar', 'proteccion solar', 'sunscreen', 'sun cream'], 'en:sunscreens'],
-  [['after sun', 'aftersun', 'despues del sol'], 'en:after-sun-products'],
-  [['tonico', 'toner'], 'en:facial-toners'],
-  [['serum', 'sérum'], 'en:face-serums'],
-  [['mascarilla', 'face mask', 'mask'], 'en:face-masks'],
-  [['aceite corporal', 'body oil'], 'en:body-oils'],
-  [['jabon', 'soap'], 'en:soaps'],
+// Each entry maps phrases → an ORDERED list of OBF/OFF category_tag candidates,
+// most-specific first, followed by broader fallbacks. All tags below have been
+// verified to return >0 products on OBF/OFF (Nov 2026); using non-existent
+// canonical-looking tags like "en:face-cleansers" silently yields 0 results.
+// Order matters within the outer array: more specific phrases first so
+// "aceite de coco" beats "aceite".
+const COSMETIC_MAP: Array<[string[], string[]]> = [
+  [['leche limpiadora', 'cleansing milk'], ['en:cleansing-milks', 'en:cleansers']],
+  [['limpiador facial', 'facial cleanser', 'face cleanser', 'cleanser', 'limpiador'], ['en:cleansers']],
+  [['champu', 'shampoo'], ['en:shampoos', 'en:hair-care']],
+  [['acondicionador', 'conditioner'], ['en:hair-conditioners', 'en:hair-care']],
+  [['gel de ducha', 'shower gel', 'gel de bano'], ['en:shower-gels']],
+  [['pasta de dientes', 'pasta dental', 'dentifrico', 'toothpaste'], ['en:toothpastes']],
+  [['desodorante', 'deodorant', 'antitranspirante', 'antiperspirant'], ['en:deodorants']],
+  [['contorno de ojos', 'eye cream', 'eye contour'], ['en:face-creams']],
+  [['crema facial', 'crema de cara', 'face cream', 'facial cream'], ['en:face-creams', 'en:moisturizers']],
+  [['crema corporal', 'body lotion', 'locion corporal', 'locion', 'body moisturizer'], ['en:moisturizers']],
+  [['protector solar', 'proteccion solar', 'sunscreen', 'sun cream'], ['en:sunscreens', 'en:sun-care']],
+  [['after sun', 'aftersun', 'despues del sol'], ['en:sun-care']],
+  [['mascarilla', 'face mask', 'mask'], ['en:face-masks']],
+  [['aceite corporal', 'body oil'], ['en:body-oils']],
+  [['jabon', 'soap'], ['en:soaps']],
 ];
 
-const FOOD_MAP: Array<[string[], string]> = [
-  [['agua mineral', 'mineral water'], 'en:mineral-waters'],
-  [['agua', 'water'], 'en:mineral-waters'],
-  [['galletas', 'biscuits', 'cookies'], 'en:biscuits'],
-  [['yogur', 'yoghurt', 'yogurt'], 'en:yogurts'],
-  [['chocolate'], 'en:chocolates'],
-  [['cereales', 'cereals', 'breakfast cereal'], 'en:breakfast-cereals'],
-  [['zumo', 'juice'], 'en:juices'],
-  [['pan', 'bread'], 'en:breads'],
-  [['aceite de oliva', 'olive oil'], 'en:olive-oils'],
-  [['aceite de coco', 'coconut oil'], 'en:coconut-oils'],
-  [['leche', 'milk'], 'en:milks'],
+const FOOD_MAP: Array<[string[], string[]]> = [
+  [['agua mineral', 'mineral water'], ['en:mineral-waters']],
+  [['agua', 'water'], ['en:mineral-waters']],
+  [['galletas', 'biscuits', 'cookies'], ['en:biscuits']],
+  [['yogur', 'yoghurt', 'yogurt'], ['en:yogurts']],
+  [['chocolate'], ['en:chocolates']],
+  [['cereales', 'cereals', 'breakfast cereal'], ['en:breakfast-cereals']],
+  [['zumo', 'juice'], ['en:juices']],
+  [['pan', 'bread'], ['en:breads']],
+  [['aceite de oliva', 'olive oil'], ['en:olive-oils']],
+  [['aceite de coco', 'coconut oil'], ['en:coconut-oils']],
+  [['leche', 'milk'], ['en:milks']],
 ];
 
 /** Category tags that clearly belong to food, used to detect OBF mislabels. */
@@ -75,16 +79,27 @@ function containsPhrase(haystack: string, needle: string): boolean {
   return false;
 }
 
+/** Returns the best-guess category_tag for a product name (first specific tag). */
 export function guessCategoryFromName(name: string, category: Category): string | null {
-  if (!name) return null;
+  const list = guessCategoryTagsFromName(name, category);
+  return list.length > 0 ? list[0] : null;
+}
+
+/**
+ * Returns an ORDERED list of candidate category_tags for a product name.
+ * Most specific first, broader fallbacks last. Alternatives search should try
+ * each in order until one yields products.
+ */
+export function guessCategoryTagsFromName(name: string, category: Category): string[] {
+  if (!name) return [];
   const normalized = stripDiacritics(name.toLowerCase());
   const map = category === 'cosmetic' ? COSMETIC_MAP : FOOD_MAP;
-  for (const [phrases, tag] of map) {
+  for (const [phrases, tags] of map) {
     for (const p of phrases) {
-      if (containsPhrase(normalized, stripDiacritics(p.toLowerCase()))) return tag;
+      if (containsPhrase(normalized, stripDiacritics(p.toLowerCase()))) return tags;
     }
   }
-  return null;
+  return [];
 }
 
 /**
