@@ -250,7 +250,10 @@ export const Alternatives = ({ current, currentScore }: Props) => {
   if (!items || items.length === 0) return null;
 
   const consent = hasHealthDataConsent();
-  const title = consent ? '💡 Alternativas mejores para ti' : '💡 Alternativas mejores';
+  const anyBetter = items.some(i => i.score > currentScore);
+  const title = anyBetter
+    ? (consent ? '💡 Alternativas mejores para ti' : '💡 Alternativas mejores')
+    : '💡 Otras opciones similares';
 
   return (
     <div>
