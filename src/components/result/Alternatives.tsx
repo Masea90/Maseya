@@ -157,18 +157,20 @@ export const Alternatives = ({ current, currentScore }: Props) => {
   // (off/obf/maseya/photo). The search host is chosen by category, not source.
   const eligible = current.category === 'food' || current.category === 'cosmetic';
 
-  // Cross-validate: if the product is cosmetic but the raw category is a
-  // clearly-food tag (community mislabel — real case: OBF facial cleanser
-  // tagged en:milks), discard it and rely on the name-based guess.
-  let rawCategoryTag = eligible ? pickCategoryTag(current.raw) : null;
-  if (rawCategoryTag && current.category === 'cosmetic' && isFoodCategoryTag(rawCategoryTag)) {
-    rawCategoryTag = null;
-  }
+  // Cross-validate: if the product is cosmetic but a raw tag is clearly food
+  // (community mislabel — real case: OBF facial cleanser tagged en:milks),
+  // drop those food tags and rely on the name-based guess for that ambiguity.
+  const rawCategoryTags = eligible
+    ? pickCategoryTags(current.raw).filter(
+        (t) => !(current.category === 'cosmetic' && isFoodCategoryTag(t))
+      )
+    : [];
   const guessedCategoryTags = eligible
     ? guessCategoryTagsFromName(current.name, current.category as 'food' | 'cosmetic')
     : [];
-  const hasAnyTag = !!rawCategoryTag || guessedCategoryTags.length > 0;
-  // Stable dep key so the effect doesn't re-run on every render.
+  const hasAnyTag = rawCategoryTags.length > 0 || guessedCategoryTags.length > 0;
+  // Stable dep keys so the effect doesn't re-run on every render.
+  const rawTagsKey = rawCategoryTags.join('|');
   const guessedTagsKey = guessedCategoryTags.join('|');
 
   useEffect(() => {
