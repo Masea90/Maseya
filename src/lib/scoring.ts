@@ -155,11 +155,12 @@ function stripPlantMilks(normalizedText: string): string {
   return t;
 }
 
-export function classifyIngredient(name: string): IngredientLevel {
-  if (findAny(name, RED_KEYWORDS)) return 'avoid';
-  if (findAny(name, ORANGE_KEYWORDS)) return 'caution';
+export function classifyIngredient(name: string, category: ClassifyCategory = 'unknown'): IngredientLevel {
+  if (findAny(name, redKeywordsFor(category))) return 'avoid';
+  if (findAny(name, orangeKeywordsFor(category))) return 'caution';
   return 'safe';
 }
+
 
 const SYNONYM_GROUPS: string[][] = [
   ['aqua', 'water', 'eau', 'agua'],
@@ -229,7 +230,7 @@ export function flagIngredients(p: ProductData): FlaggedIngredient[] {
     seen.add(key);
     all.push(name);
   }
-  const flagged = all.map(name => ({ name, level: classifyIngredient(name) }));
+  const flagged = all.map(name => ({ name, level: classifyIngredient(name, p.category) }));
   // Sort avoid → caution → safe so the top slice always shows problematic
   // ingredients first, regardless of how many total ingredients there are.
   const order: Record<IngredientLevel, number> = { avoid: 0, caution: 1, safe: 2 };
