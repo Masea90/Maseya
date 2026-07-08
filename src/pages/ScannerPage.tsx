@@ -47,14 +47,19 @@ type ExtendedMediaTrackCapabilities = MediaTrackCapabilities & {
   zoom?: { min?: number; max?: number; step?: number } | number;
 };
 
-const controlsRef = { current: null as IScannerControls | null };
+type ExtendedMediaTrackConstraintSet = MediaTrackConstraintSet & {
+  focusMode?: string;
+  zoom?: number;
+};
 
 type BarcodeDetectorLike = {
   detect: (source: CanvasImageSource) => Promise<Array<{ rawValue: string }>>;
 };
 type BarcodeDetectorCtor = new (opts?: { formats?: string[] }) => BarcodeDetectorLike;
 const NativeBarcodeDetector: BarcodeDetectorCtor | undefined =
-  typeof window !== 'undefined' ? (window as unknown as { BarcodeDetector?: BarcodeDetectorCtor }).BarcodeDetector : undefined;
+  typeof window !== 'undefined'
+    ? (window as unknown as { BarcodeDetector?: BarcodeDetectorCtor }).BarcodeDetector
+    : undefined;
 
 
 const getCameraConstraints = (): MediaStreamConstraints => ({
