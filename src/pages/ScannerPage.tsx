@@ -14,7 +14,7 @@ const COPY = {
     analyzing: 'Analizando producto...', notFound: 'Producto no encontrado',
     photoCta: 'Fotografiar ingredientes', cameraError: 'No se pudo acceder a la cámara. Revisa los permisos.',
     cancel: 'Cancelar', retry: 'Reintentar', tooltip: 'Apunta al código de barras de cualquier producto',
-    gotIt: 'Entendido', center: 'Mantén el código de barras centrado y quieto',
+    gotIt: 'Entendido', center: 'Alinea el código dentro del marco',
   },
   en: {
     title: 'Scan', aim: 'Point at the barcode', photo: 'Photograph ingredients',
@@ -51,6 +51,16 @@ type ExtendedMediaTrackConstraintSet = MediaTrackConstraintSet & {
   focusMode?: string;
   zoom?: number;
 };
+
+type BarcodeDetectorLike = {
+  detect: (source: CanvasImageSource) => Promise<Array<{ rawValue: string }>>;
+};
+type BarcodeDetectorCtor = new (opts?: { formats?: string[] }) => BarcodeDetectorLike;
+const NativeBarcodeDetector: BarcodeDetectorCtor | undefined =
+  typeof window !== 'undefined'
+    ? (window as unknown as { BarcodeDetector?: BarcodeDetectorCtor }).BarcodeDetector
+    : undefined;
+
 
 const getCameraConstraints = (): MediaStreamConstraints => ({
   video: {
@@ -112,15 +122,18 @@ const ScannerPage = () => {
   };
 
   const stop = async () => {
-    const inst = controlsRef.current;
-    if (!inst || stoppedRef.current) return;
+    if (stoppedRef.current) return;
     stoppedRef.current = true;
-    try {
-      inst.stop();
-    } catch {
-      // ignore
-    }
+    try { controlsRef.current?.stop(); } catch {}
     controlsRef.current = null;
+    if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    rafRef.current = null;
+    if (zxingRotateTimerRef.current !== null) {
+      clearInterval(zxingRotateTimerRef.current);
+      zxingRotateTimerRef.current = null;
+    }
+    nativeStreamRef.current?.getTracks().forEach((t) => t.stop());
+    nativeStreamRef.current = null;
   };
 
   const improveVideoTrack = async () => {
@@ -136,32 +149,128 @@ const ScannerPage = () => {
     }
   };
 
+  const rafRef = useRef<number | null>(null);
+  const nativeStreamRef = useRef<MediaStream | null>(null);
+  const zxingRotateTimerRef = useRef<number | null>(null);
+
+  const onDecoded = (decodedText: string) => {
+    if (!decodedText || stoppedRef.current) return;
+    stoppedRef.current = true;
+    try { controlsRef.current?.stop(); } catch {}
+    controlsRef.current = null;
+    if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    rafRef.current = null;
+    nativeStreamRef.current?.getTracks().forEach((t) => t.stop());
+    nativeStreamRef.current = null;
+    setPhase('analyzing');
+    navigate(`/result/${encodeURIComponent(decodedText)}`);
+  };
+
+  const startNative = async (detector: BarcodeDetectorLike) => {
+    const stream = await navigator.mediaDevices.getUserMedia(getCameraConstraints());
+    nativeStreamRef.current = stream;
+    const video = videoRef.current;
+    if (!video) throw new Error('video element missing');
+    video.srcObject = stream;
+    await video.play().catch(() => {});
+    await improveVideoTrack();
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('canvas 2d unsupported');
+
+    let lastTick = 0;
+    const tick = async (now: number) => {
+      if (stoppedRef.current) return;
+      if (now - lastTick >= 120 && video.videoWidth > 0) {
+        lastTick = now;
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0);
+        try {
+          const codes = await detector.detect(canvas);
+          if (codes && codes.length > 0 && codes[0].rawValue) {
+            onDecoded(codes[0].rawValue);
+            return;
+          }
+        } catch {
+          // ignore transient detection errors
+        }
+      }
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+  };
+
+  const startZxingWithRotation = async () => {
+    const codeReader = new BrowserMultiFormatReader(getScanHints(), {
+      delayBetweenScanAttempts: 120,
+      delayBetweenScanSuccess: 250,
+    });
+
+    const controls = await codeReader.decodeFromConstraints(
+      getCameraConstraints(),
+      videoRef.current ?? undefined,
+      (result) => {
+        if (!result) return;
+        const decodedText = result.getText();
+        onDecoded(decodedText);
+      }
+    );
+    controlsRef.current = controls;
+    await improveVideoTrack();
+
+    // Rotation fallback: after ~2s without success, try decoding rotated frames
+    // so vertical/skewed barcodes can be caught on iOS Safari (no BarcodeDetector).
+    const video = videoRef.current;
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const tryRotated = async () => {
+      if (stoppedRef.current || !video || !ctx || video.videoWidth === 0) return;
+      const w = video.videoWidth;
+      const h = video.videoHeight;
+      // Rotate 90°: swap width/height
+      canvas.width = h;
+      canvas.height = w;
+      ctx.save();
+      ctx.translate(h / 2, w / 2);
+      ctx.rotate(Math.PI / 2);
+      ctx.drawImage(video, -w / 2, -h / 2, w, h);
+      ctx.restore();
+      try {
+        const result = await codeReader.decodeFromCanvas(canvas);
+        if (result?.getText()) {
+          onDecoded(result.getText());
+        }
+      } catch {
+        // no code in rotated frame — keep trying
+      }
+    };
+    zxingRotateTimerRef.current = window.setInterval(() => {
+      if (stoppedRef.current) return;
+      void tryRotated();
+    }, 700) as unknown as number;
+    // Delay the first rotated attempt ~2s to let the horizontal path try first.
+    window.setTimeout(() => { void tryRotated(); }, 2000);
+  };
+
   const startScanning = async () => {
     setErrorMsg('');
     setPhase('scanning');
     stoppedRef.current = false;
     try {
-      const codeReader = new BrowserMultiFormatReader(getScanHints(), {
-        delayBetweenScanAttempts: 120,
-        delayBetweenScanSuccess: 250,
-      });
-
-      const controls = await codeReader.decodeFromConstraints(
-        getCameraConstraints(),
-        videoRef.current ?? undefined,
-        (result) => {
-          if (!result || stoppedRef.current) return;
-          const decodedText = result.getText();
-          if (!decodedText) return;
-          stoppedRef.current = true;
-          controlsRef.current?.stop();
-          controlsRef.current = null;
-          setPhase('analyzing');
-          navigate(`/result/${encodeURIComponent(decodedText)}`);
+      if (NativeBarcodeDetector) {
+        try {
+          const detector = new NativeBarcodeDetector({
+            formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128'],
+          });
+          await startNative(detector);
+          return;
+        } catch (e) {
+          console.warn('[scanner] native BarcodeDetector failed, falling back to zxing', e);
         }
-      );
-      controlsRef.current = controls;
-      await improveVideoTrack();
+      }
+      await startZxingWithRotation();
     } catch (e) {
       console.error('[scanner] camera error', e);
       setErrorMsg(c.cameraError);
