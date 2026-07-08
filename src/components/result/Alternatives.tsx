@@ -27,9 +27,11 @@ interface Candidate {
   flagged: ReturnType<typeof flagIngredients>;
 }
 
-// v7: drop overly-broad category tags (en:plant-based-foods, en:snacks…) so
-// alternatives match the actual product family (nuts vs vinegar vs olives).
-const CACHE_PREFIX = 'maseya_alts_v7::';
+// v8: strict Spain country filter — drop the global no-country fallback that
+// was returning products not sold in Spain (French/Moroccan waters). Verified
+// with the OFF v2 API that `countries_tags=en:spain` filters correctly; we
+// also re-check the returned `countries_tags` client-side as a safety net.
+const CACHE_PREFIX = 'maseya_alts_v8::';
 const FETCH_TIMEOUT_MS = 8000;
 // TODO: derive country from user locale/settings when we expand beyond Spain.
 const COUNTRY_TAG = 'en:spain';
@@ -65,6 +67,7 @@ interface SearchItem {
   ingredients_analysis_tags?: string[];
   allergens_tags?: string[];
   traces_tags?: string[];
+  countries_tags?: string[];
 }
 
 interface CatalogItem {
@@ -206,17 +209,18 @@ export const Alternatives = ({ current, currentScore }: Props) => {
           'code', 'product_name', 'product_name_es', 'brands', 'image_front_url',
           'nutriscore_grade', 'ingredients_text', 'ingredients_tags',
           'labels_tags', 'ingredients_analysis_tags', 'allergens_tags', 'traces_tags',
+          'countries_tags',
         ].join(',');
 
-        const buildUrl = (tag: string, withCountry: boolean) =>
+        // Strict Spain filter — we intentionally do NOT fall back to a
+        // no-country query, otherwise we surface products not sold in Spain
+        // (previous bug: French/Moroccan waters appearing as alternatives).
+        const buildUrl = (tag: string) =>
           `https://${host}/api/v2/search` +
           `?categories_tags=${encodeURIComponent(tag)}` +
-          `&sort_by=unique_scans_n&page_size=24&fields=${fields}` +
-          (withCountry ? `&countries_tags=${encodeURIComponent(COUNTRY_TAG)}` : '');
+          `&countries_tags=${encodeURIComponent(COUNTRY_TAG)}` +
+          `&sort_by=unique_scans_n&page_size=24&fields=${fields}`;
 
-        // Build an ordered attempt list: for each candidate tag, try +ES then
-        // global. Raw tag first (most authoritative), then each guessed tag
-        // from most-specific to broadest (e.g. cleansing-milks → cleansers).
         const tagCandidates: string[] = [];
         const seenTags = new Set<string>();
         const pushTag = (t: string | null | undefined) => {
@@ -227,11 +231,7 @@ export const Alternatives = ({ current, currentScore }: Props) => {
         for (const t of rawCategoryTags) pushTag(t);
         for (const t of guessedCategoryTags) pushTag(t);
 
-        const attempts: string[] = [];
-        for (const tag of tagCandidates) {
-          attempts.push(buildUrl(tag, true));
-          attempts.push(buildUrl(tag, false));
-        }
+        const attempts: string[] = tagCandidates.map(buildUrl);
 
         let products: SearchItem[] = [];
         for (const url of attempts) {
@@ -239,8 +239,13 @@ export const Alternatives = ({ current, currentScore }: Props) => {
             const res = await fetch(url, { signal: controller.signal });
             if (!res.ok) continue;
             const json = (await res.json()) as { products?: SearchItem[] };
-            if (json.products && json.products.length > 0) {
-              products = json.products;
+            // Client-side safety net: keep only products with en:spain in
+            // countries_tags (guards against any API-side regression).
+            const spanish = (json.products || []).filter(
+              p => !p.countries_tags || p.countries_tags.includes(COUNTRY_TAG)
+            );
+            if (spanish.length > 0) {
+              products = spanish;
               break;
             }
           } catch (e) {
