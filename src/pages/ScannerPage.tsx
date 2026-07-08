@@ -122,15 +122,18 @@ const ScannerPage = () => {
   };
 
   const stop = async () => {
-    const inst = controlsRef.current;
-    if (!inst || stoppedRef.current) return;
+    if (stoppedRef.current) return;
     stoppedRef.current = true;
-    try {
-      inst.stop();
-    } catch {
-      // ignore
-    }
+    try { controlsRef.current?.stop(); } catch {}
     controlsRef.current = null;
+    if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    rafRef.current = null;
+    if (zxingRotateTimerRef.current !== null) {
+      clearInterval(zxingRotateTimerRef.current);
+      zxingRotateTimerRef.current = null;
+    }
+    nativeStreamRef.current?.getTracks().forEach((t) => t.stop());
+    nativeStreamRef.current = null;
   };
 
   const improveVideoTrack = async () => {
