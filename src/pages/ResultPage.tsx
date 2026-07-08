@@ -477,9 +477,23 @@ const ResultPage = () => {
                   </div>
 
                   {!hasIngredientData && hasNutriscore && (
-                    <p className="text-xs text-muted-foreground text-center max-w-xs">
-                      La puntuación se basa solo en el Nutriscore. Fotografía la lista de ingredientes para completar el análisis.
-                    </p>
+                    <div className="w-full max-w-sm mt-1 rounded-2xl border border-[#F4A261]/50 bg-[#F4A261]/10 p-3 flex gap-2 items-start">
+                      <span className="text-base leading-none">⚠️</span>
+                      <div className="flex-1 space-y-2">
+                        <p className="text-xs text-[#8a4a1e] leading-relaxed">
+                          <strong>Análisis incompleto:</strong> esta nota se basa solo en el Nutriscore. Fotografía la lista de ingredientes para un análisis completo.
+                        </p>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => navigate(barcode && barcode !== 'photo' ? `/scan/photo?barcode=${barcode}` : '/scan/photo')}
+                          className="rounded-xl h-8 text-xs border-[#F4A261]/60 bg-white/60 hover:bg-white"
+                        >
+                          <Camera className="w-3.5 h-3.5 mr-1.5" />
+                          Fotografiar ingredientes
+                        </Button>
+                      </div>
+                    </div>
                   )}
                 </>
               ) : (
