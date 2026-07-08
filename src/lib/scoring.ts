@@ -258,6 +258,45 @@ export interface ScoreBreakdown {
 
 const clamp100 = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
 
+// Alcoholic-beverage detection for the food score cap.
+// A product is considered alcoholic when any of these signals is present:
+// - categories_tags include en:alcoholic-beverages or a known descendant
+//   (beers, wines, spirits, ciders, liqueurs, sparkling-wines…)
+// - raw.alcohol_by_volume or raw.alcohol is a number > 0
+// - "alcohol" / "ethanol" appears as an ingredient AND the product is a
+//   beverage (categories include en:beverages) — avoids flagging sauces or
+//   cosmetics that use trace ethanol.
+// Products explicitly tagged non-alcoholic (or 0.0% ABV) are NOT capped.
+const ALCOHOLIC_CATEGORY_TAGS = new Set<string>([
+  'en:alcoholic-beverages', 'en:beers', 'en:wines', 'en:spirits',
+  'en:red-wines', 'en:white-wines', 'en:rose-wines', 'en:sparkling-wines',
+  'en:champagnes', 'en:ciders', 'en:liqueurs', 'en:cocktails',
+  'en:rums', 'en:whiskies', 'en:whiskys', 'en:vodkas', 'en:gins',
+  'en:tequilas', 'en:brandies', 'en:vermouths',
+]);
+
+function isAlcoholicFood(p: ProductData): boolean {
+  const raw = (p.raw || {}) as Record<string, unknown>;
+  const cats = Array.isArray(raw.categories_tags) ? (raw.categories_tags as string[]) : [];
+
+  if (cats.includes('en:non-alcoholic-beverages')) return false;
+  const abvRaw = raw.alcohol_by_volume ?? raw.alcohol;
+  const abv = typeof abvRaw === 'number' ? abvRaw
+    : typeof abvRaw === 'string' ? parseFloat(abvRaw) : NaN;
+  if (Number.isFinite(abv) && abv === 0) return false;
+
+  if (cats.some(t => ALCOHOLIC_CATEGORY_TAGS.has(t))) return true;
+  if (Number.isFinite(abv) && abv > 0) return true;
+
+  if (cats.includes('en:beverages')) {
+    const txt = p.ingredients_text || '';
+    if (findKeyword(txt, 'alcohol') || findKeyword(txt, 'ethanol') || findKeyword(txt, 'ethyl alcohol')) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export function calculateScoreBreakdown(
   p: ProductData,
   flagged: FlaggedIngredient[],
@@ -270,6 +309,17 @@ export function calculateScoreBreakdown(
 
   const nutriGrade = (p.nutriscore_grade || '').toLowerCase();
   const hasNutri = ['a', 'b', 'c', 'd', 'e'].includes(nutriGrade);
+  const alcoholic = p.category === 'food' && isAlcoholicFood(p);
+  const applyAlcoholCap = (score: number): number => {
+    if (!alcoholic) return score;
+    if (score > 30) {
+      factors.push({ label: 'Bebida alcohólica (nota limitada a 30)', delta: 30 - score, tone: 'negative' });
+      return 30;
+    }
+    factors.push({ label: 'Bebida alcohólica', delta: null, tone: 'negative' });
+    return score;
+  };
+
   if (p.category === 'food' && hasNutri) {
     const cleanMap: Record<string, number> = { a: 95, b: 82, c: 62, d: 40, e: 18 };
     let score = cleanMap[nutriGrade] ?? 50;
@@ -303,6 +353,7 @@ export function calculateScoreBreakdown(
         delta: null, tone: 'neutral',
       });
     }
+    score = applyAlcoholCap(score);
     return { score: clamp100(score), factors };
   }
 
@@ -353,6 +404,7 @@ export function calculateScoreBreakdown(
     score += 6;
   }
 
+  score = applyAlcoholCap(score);
   return { score: clamp100(score), factors };
 }
 

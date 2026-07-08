@@ -211,14 +211,19 @@ export async function saveToMaseya(input: {
 }
 
 export async function lookupProduct(barcode: string): Promise<ProductData | null> {
-  const maseya = await fetchFromMaseya(barcode);
-  if (maseya) return maseya;
-
+  // Public sources first (OFF/OBF) — they carry Nutriscore and richer ingredient
+  // data. maseya_products is used as a fallback for community/photo contributions
+  // not present in the public datasets. Previously maseya was tried first, which
+  // caused imported products (no nutriscore) to hide the richer OFF data and
+  // scored e.g. Coca-Cola as 100/100.
   const off = await fetchFrom('world.openfoodfacts.org', barcode);
   if (off?.status === 1 && off.product) return normalize(off, barcode, 'off', 'food');
 
   const obf = await fetchFrom('world.openbeautyfacts.org', barcode);
   if (obf?.status === 1 && obf.product) return normalize(obf, barcode, 'obf', 'cosmetic');
+
+  const maseya = await fetchFromMaseya(barcode);
+  if (maseya) return maseya;
 
   return null;
 }
