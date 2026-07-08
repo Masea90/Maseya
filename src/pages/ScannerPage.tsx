@@ -14,7 +14,7 @@ const COPY = {
     analyzing: 'Analizando producto...', notFound: 'Producto no encontrado',
     photoCta: 'Fotografiar ingredientes', cameraError: 'No se pudo acceder a la cámara. Revisa los permisos.',
     cancel: 'Cancelar', retry: 'Reintentar', tooltip: 'Apunta al código de barras de cualquier producto',
-    gotIt: 'Entendido', center: 'Mantén el código de barras centrado y quieto',
+    gotIt: 'Entendido', center: 'Alinea el código dentro del marco',
   },
   en: {
     title: 'Scan', aim: 'Point at the barcode', photo: 'Photograph ingredients',
