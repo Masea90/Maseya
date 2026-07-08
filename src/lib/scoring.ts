@@ -695,12 +695,19 @@ function annotate(message: string, hit: ProbeHit): string {
   return `${message}${SOURCE_NOTE_TAG}`;
 }
 
-export function personalAlerts(p: ProductData, profile: OnboardingProfile): PersonalAlert[] {
+export function personalAlerts(
+  p: ProductData,
+  profile: OnboardingProfile & Partial<PersonalProfileLike>,
+): PersonalAlert[] {
   const alerts: PersonalAlert[] = [];
   const allergensTags = Array.isArray(p.allergens_tags) ? p.allergens_tags : [];
   const tracesTags = Array.isArray(p.traces_tags) ? p.traces_tags : [];
   const skin = Array.isArray(profile?.skin) ? profile.skin : [];
   const allergies = Array.isArray(profile?.allergies) ? profile.allergies : [];
+  const diets = (
+    Array.isArray(profile?.diet) ? profile.diet : (profile?.diet ? [profile.diet as string] : [])
+  ).map(d => String(d).toLowerCase());
+  const isHalal = diets.includes('halal');
 
   const isCosmetic = p.category === 'cosmetic';
   const isFood = p.category === 'food';
@@ -774,7 +781,10 @@ export function personalAlerts(p: ProductData, profile: OnboardingProfile): Pers
       }
 
       if (inAllergens) {
-        alerts.push({ level: 'danger', text: `Contiene ${label} (declarado por el fabricante).` });
+        alerts.push({
+          level: 'danger',
+          text: `No apto para ti: contiene ${label} declarado por el fabricante.`,
+        });
       } else if (inTraces) {
         alerts.push({ level: 'warn', text: `Puede contener trazas de ${label} (declarado por el fabricante).` });
       } else if (hit) {
@@ -790,6 +800,51 @@ export function personalAlerts(p: ProductData, profile: OnboardingProfile): Pers
           level: 'good',
           text: `No hemos detectado ${label} en la información disponible. Verifica siempre el etiquetado del envase.`,
         });
+      }
+    }
+
+    // Halal rules — mirror the scoring logic so alerts + score stay in sync.
+    if (isHalal) {
+      const combined = `${rawText} ${rawTagsText}`;
+      const isLabeledHalal =
+        p.labels_tags.some(t => t.includes('halal')) || !!findKeyword(combined, 'halal');
+      if (isLabeledHalal) {
+        alerts.push({ level: 'good', text: 'Etiquetado como halal.' });
+      } else {
+        const pork = firstTerm(combined, HALAL_PORK_KEYWORDS);
+        if (pork) {
+          alerts.push({
+            level: 'danger',
+            text: `Contiene cerdo o derivados — no compatible con tu dieta halal (detectado: "${pork}").`,
+          });
+        }
+        const alcoholTerm = firstTerm(combined, HALAL_ALCOHOL_KEYWORDS);
+        if (isAlcoholicFood(p) || alcoholTerm) {
+          const detail = alcoholTerm ? ` (detectado: "${alcoholTerm}")` : '';
+          alerts.push({
+            level: 'danger',
+            text: `Contiene alcohol — no compatible con tu dieta halal${detail}.`,
+          });
+        }
+        if (!pork) {
+          const gel = firstTerm(combined, HALAL_GENERIC_GELATIN_KEYWORDS);
+          if (gel) {
+            alerts.push({
+              level: 'warn',
+              text: `Contiene gelatina de origen no especificado — verifica que sea halal (detectado: "${gel}").`,
+            });
+          }
+        }
+        const rawObj = (p.raw || {}) as Record<string, unknown>;
+        const catsTags = Array.isArray(rawObj.categories_tags) ? (rawObj.categories_tags as string[]) : [];
+        const isMeatCategory = catsTags.some(t => MEAT_CATEGORY_TAGS.includes(t));
+        const meatTerm = firstTerm(combined, HALAL_NON_PORK_MEAT_KEYWORDS);
+        if (!pork && (isMeatCategory || meatTerm)) {
+          alerts.push({
+            level: 'warn',
+            text: 'Producto cárnico: la app no puede verificar el sacrificio halal — busca la certificación en el envase.',
+          });
+        }
       }
     }
 
