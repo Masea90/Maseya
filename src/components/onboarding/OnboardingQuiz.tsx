@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { useUser } from '@/contexts/UserContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,6 +15,7 @@ const COPY = {
     q1: '¿Cómo es tu piel?',
     q2: '¿Tienes alguna intolerancia o alergia alimentaria?',
     cta: 'Ver mi primer análisis →',
+    skinRequired: 'Selecciona cómo es tu piel para continuar',
     skin: [
       { id: 'atopic', emoji: '🌿', label: 'Atópica o muy sensible' },
       { id: 'dry', emoji: '💧', label: 'Seca' },
@@ -35,6 +37,7 @@ const COPY = {
     q1: 'What’s your skin like?',
     q2: 'Any food intolerance or allergy?',
     cta: 'See my first analysis →',
+    skinRequired: 'Select your skin type to continue',
     skin: [
       { id: 'atopic', emoji: '🌿', label: 'Atopic or very sensitive' },
       { id: 'dry', emoji: '💧', label: 'Dry' },
@@ -56,6 +59,7 @@ const COPY = {
     q1: 'Comment est ta peau ?',
     q2: 'As-tu une intolérance ou allergie alimentaire ?',
     cta: 'Voir ma première analyse →',
+    skinRequired: 'Sélectionne ton type de peau pour continuer',
     skin: [
       { id: 'atopic', emoji: '🌿', label: 'Atopique ou très sensible' },
       { id: 'dry', emoji: '💧', label: 'Sèche' },
@@ -81,13 +85,22 @@ export const OnboardingQuiz = () => {
   const [skin, setSkin] = useState<string[]>([]);
   const [allergies, setAllergies] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [highlightSkin, setHighlightSkin] = useState(false);
+  const skinSectionRef = useRef<HTMLElement>(null);
 
   const toggle = (val: string, list: string[], setList: (v: string[]) => void) => {
     setList(list.includes(val) ? list.filter(x => x !== val) : [...list, val]);
   };
 
   const handleSubmit = async () => {
-    if (skin.length === 0 || saving) return;
+    if (saving) return;
+    if (skin.length === 0) {
+      toast(c.skinRequired);
+      skinSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setHighlightSkin(true);
+      window.setTimeout(() => setHighlightSkin(false), 1500);
+      return;
+    }
     setSaving(true);
     try {
       localStorage.setItem('maseya_onboarding', JSON.stringify({ skin, allergies }));
@@ -132,7 +145,10 @@ export const OnboardingQuiz = () => {
         <h1 className="font-display text-2xl font-bold mb-2 leading-tight">{c.intro}</h1>
         <p className="text-sm text-muted-foreground mb-8">{c.context}</p>
 
-        <section className="mb-8">
+        <section
+          ref={skinSectionRef}
+          className={cn('mb-8 rounded-2xl transition-all', highlightSkin && 'ring-2 ring-primary ring-offset-2 ring-offset-background')}
+        >
           <h2 className="font-semibold mb-4">{c.q1}</h2>
           <div className="grid grid-cols-2 gap-3">
             {c.skin.map(opt => (
@@ -175,7 +191,7 @@ export const OnboardingQuiz = () => {
         <div className="w-full sm:max-w-lg sm:mx-auto">
           <Button
             onClick={handleSubmit}
-            disabled={skin.length === 0 || saving}
+            disabled={saving}
             className="w-full h-14 text-lg font-semibold rounded-2xl"
           >
             {saving ? '...' : c.cta}
