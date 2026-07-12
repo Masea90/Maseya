@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      feedback: {
+        Row: {
+          context: Json | null
+          created_at: string
+          email: string | null
+          id: string
+          message: string | null
+          rating: string | null
+          type: string
+          user_id: string | null
+        }
+        Insert: {
+          context?: Json | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          message?: string | null
+          rating?: string | null
+          type: string
+          user_id?: string | null
+        }
+        Update: {
+          context?: Json | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          message?: string | null
+          rating?: string | null
+          type?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       health_profiles: {
         Row: {
           allergies: string[] | null
