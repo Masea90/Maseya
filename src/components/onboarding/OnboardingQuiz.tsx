@@ -37,6 +37,7 @@ const COPY = {
     q1: 'What’s your skin like?',
     q2: 'Any food intolerance or allergy?',
     cta: 'See my first analysis →',
+    skinRequired: 'Select your skin type to continue',
     skin: [
       { id: 'atopic', emoji: '🌿', label: 'Atopic or very sensitive' },
       { id: 'dry', emoji: '💧', label: 'Dry' },
