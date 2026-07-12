@@ -105,6 +105,8 @@ const ProfilePage = () => {
   const [saving, setSaving] = useState(false);
   const [productCount, setProductCount] = useState<number | null>(null);
   const devMode = useDevMode();
+  const [showFeedback, setShowFeedback] = useState(false);
+  
   
 
   const refreshProductCount = async () => {
