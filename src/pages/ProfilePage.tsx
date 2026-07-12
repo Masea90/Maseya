@@ -380,6 +380,7 @@ const ProfilePage = () => {
           </div>
         )}
       </div>
+      <FeedbackDialog open={showFeedback} onOpenChange={setShowFeedback} />
     </AppLayout>
   );
 };
