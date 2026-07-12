@@ -333,6 +333,13 @@ const ResultPage = () => {
     : null;
   const personalScore = personalBreakdown ? personalBreakdown.score : score;
   const psl = scoreLabel(personalScore);
+  const voiceLine = getVoiceLine(
+    product,
+    score,
+    personalScore,
+    healthConsent ? (healthProfile || loadOnboarding()) : null,
+    user.language,
+  );
   // Consider ingredient data available when we have ANY flagged item OR when
   // there's non-nutritional ingredients text. Many legit products are
   // mono-ingredient (coconut oil, honey, salt, rice, legumes) — the old
@@ -477,6 +484,12 @@ const ResultPage = () => {
                       </PopoverContent>
                     </Popover>
                   </div>
+
+                  {voiceLine && (
+                    <p className="text-sm text-muted-foreground italic text-center px-4 leading-snug">
+                      {voiceLine}
+                    </p>
+                  )}
 
                   {/* Score composition: helps users understand where the number comes from. */}
                   <div className="w-full flex flex-col items-center gap-2">
