@@ -10,21 +10,21 @@ import { InstallPrompt } from '@/components/InstallPrompt';
 
 const COPY = {
   es: {
-    title: 'Escanear', aim: 'Apunta al código de barras', photo: 'Fotografiar ingredientes',
+    title: 'Escanear', photo: 'Fotografiar ingredientes',
     analyzing: 'Analizando producto...', notFound: 'Producto no encontrado',
     photoCta: 'Fotografiar ingredientes', cameraError: 'No se pudo acceder a la cámara. Revisa los permisos.',
     cancel: 'Cancelar', retry: 'Reintentar', tooltip: 'Apunta al código de barras de cualquier producto',
     gotIt: 'Entendido', center: 'Alinea el código dentro del marco',
   },
   en: {
-    title: 'Scan', aim: 'Point at the barcode', photo: 'Photograph ingredients',
+    title: 'Scan', photo: 'Photograph ingredients',
     analyzing: 'Analyzing product...', notFound: 'Product not found',
     photoCta: 'Photograph ingredients', cameraError: 'Camera access blocked. Check permissions.',
     cancel: 'Cancel', retry: 'Retry', tooltip: 'Point at the barcode of any product',
     gotIt: 'Got it', center: 'Keep the barcode centered and still',
   },
   fr: {
-    title: 'Scanner', aim: 'Vise le code-barres', photo: 'Photographier les ingrédients',
+    title: 'Scanner', photo: 'Photographier les ingrédients',
     analyzing: 'Analyse du produit...', notFound: 'Produit non trouvé',
     photoCta: 'Photographier les ingrédients', cameraError: 'Accès caméra bloqué. Vérifie les permissions.',
     cancel: 'Annuler', retry: 'Réessayer', tooltip: 'Vise le code-barres de n’importe quel produit',
@@ -347,7 +347,7 @@ const ScannerPage = () => {
           )}
         </div>
 
-        <p className="text-center text-muted-foreground text-sm">{c.aim}</p>
+        
 
         <button
           onClick={handlePhoto}
