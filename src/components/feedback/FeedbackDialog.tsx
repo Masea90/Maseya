@@ -24,6 +24,7 @@ const COPY: Record<Lang, {
   thanks: string;
   error: string;
   required: string;
+  alsoEmail: string;
 }> = {
   es: {
     title: 'Ayúdanos a mejorar',
