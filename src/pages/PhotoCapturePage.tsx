@@ -243,7 +243,7 @@ const PhotoCapturePage = () => {
           .eq('barcode', addImageFor);
         if (error) console.error('[photo-capture] update image_url failed', error);
         setStep('image-saved');
-        setTimeout(() => navigate(`/result/${addImageFor}`), 900);
+        setTimeout(() => navigate(`/result/${addImageFor}`, { replace: true }), 900);
         return;
       }
       setStep('ingredients');
@@ -342,7 +342,7 @@ const PhotoCapturePage = () => {
         localStorage.removeItem('maseya_photo_front');
 
 
-        navigate(realBarcode ? `/result/${realBarcode}` : '/result/photo');
+        navigate(realBarcode ? `/result/${realBarcode}` : '/result/photo', { replace: true });
       } catch (e) {
         console.error('[photo-capture] ingredients error', e);
         setServerErrorMessage(null);
