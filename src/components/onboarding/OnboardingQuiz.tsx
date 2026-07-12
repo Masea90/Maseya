@@ -181,7 +181,7 @@ export const OnboardingQuiz = () => {
             {c.allergies.map(opt => (
               <button
                 key={opt.id}
-                onClick={() => toggle(opt.id, allergies, setAllergies)}
+                onClick={() => toggle(opt.id, allergies, setAllergies, true)}
                 className={cn(
                   'w-full p-4 rounded-2xl border-2 text-left flex items-center gap-3 transition-all',
                   allergies.includes(opt.id) ? 'border-primary bg-primary/5' : 'border-border bg-card'
