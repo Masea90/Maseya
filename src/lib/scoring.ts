@@ -491,6 +491,7 @@ export function calculatePersonalScoreBreakdown(
   const rawObj = (p.raw || {}) as Record<string, unknown>;
   const catsTags = Array.isArray(rawObj.categories_tags) ? (rawObj.categories_tags as string[]) : [];
   const allergensTags = Array.isArray(p.allergens_tags) ? p.allergens_tags : [];
+  const tracesTags = Array.isArray(p.traces_tags) ? p.traces_tags : [];
 
   const addNeg = (label: string, delta: number) => {
     factors.push({ label, delta, tone: 'negative' });
@@ -524,19 +525,25 @@ export function calculatePersonalScoreBreakdown(
     const lactoseText = stripPlantMilks(norm(combined));
     const lactoseTerm = LACTOSE_FOOD.map(k => findKeyword(lactoseText, k)).find(Boolean) || null;
 
-    // Declared allergen (manufacturer-tagged) = hard fail. Text-only detection
-    // keeps the previous strong penalty but not a hard fail (may be a plant
-    // variant or trace mention).
+    // Declared allergen (manufacturer-tagged allergens_tags) = hard fail.
+    // Traces_tags = hard fail too when the user has a strict allergy.
+    // Text-only detection keeps the strong penalty but not a hard fail
+    // (may be a plant variant or ambiguous mention).
+    // IMPORTANT: use the same tagMatches helper personalAlerts uses so
+    // the "declared by manufacturer" alert and the score can't disagree.
     const allergyLabelFor = (a: string) =>
       a === 'gluten' ? 'gluten' : a === 'lactose' ? 'lácteos' : a === 'nuts' ? 'frutos secos' : a === 'fish' ? 'pescado/marisco' : a;
 
-    const checkAllergy = (key: string, kws: string[], textHit: string | null) => {
+    const checkAllergy = (key: string, _kws: string[], textHit: string | null) => {
       if (!allergies.includes(key)) return;
       const tagIds = ALLERGY_TAG_IDS[key];
-      const declared = tagIds ? allergensTags.some(t => tagIds.includes(t)) : false;
+      const declared = tagIds ? tagMatches(allergensTags, tagIds) : false;
+      const inTraces = tagIds ? tagMatches(tracesTags, tagIds) : false;
       const label = allergyLabelFor(key);
       if (declared) {
         addHardFail(`No apto para ti: contiene ${label} declarado por el fabricante`);
+      } else if (inTraces) {
+        addHardFail(`No apto para ti: puede contener trazas de ${label} (declarado por el fabricante)`);
       } else if (textHit) {
         addNeg(`Alergia a ${label}: detectado "${textHit}"`, -50);
       }

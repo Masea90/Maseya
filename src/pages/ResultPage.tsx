@@ -18,6 +18,7 @@ import { RegistrationSheet } from '@/components/auth/RegistrationSheet';
 import { MiraAnalysis } from '@/components/result/MiraAnalysis';
 import { Alternatives } from '@/components/result/Alternatives';
 import { ScoreBreakdown } from '@/components/result/ScoreBreakdown';
+import { NutritionFacts } from '@/components/result/NutritionFacts';
 import { InstallPrompt } from '@/components/InstallPrompt';
 
 import { hasHealthDataConsent, getStoredConsent, saveConsent } from '@/components/consent/ConsentModal';
@@ -317,9 +318,12 @@ const ResultPage = () => {
   const sl = scoreLabel(score);
   const nat = naturalness(product, flagged);
   const profile = loadOnboarding();
-  const alerts = healthConsent ? personalAlerts(product, profile) : [];
+  // Use the SAME profile object for both alerts and the personal score so
+  // the "declared by manufacturer" alert and the score can never disagree.
+  const activeProfile = healthProfile || profile;
+  const alerts = healthConsent ? personalAlerts(product, activeProfile) : [];
   const personalBreakdown = healthConsent
-    ? calculatePersonalScoreBreakdown(product, flagged, healthProfile || profile, score)
+    ? calculatePersonalScoreBreakdown(product, flagged, activeProfile, score)
     : null;
   const personalScore = personalBreakdown ? personalBreakdown.score : score;
   const psl = scoreLabel(personalScore);
@@ -513,6 +517,9 @@ const ResultPage = () => {
                 </>
               )}
             </div>
+
+            {/* Nutritional facts per 100g — food only, if payload has nutriments */}
+            <NutritionFacts product={product} />
 
             {/* Cards */}
             <Collapsible defaultOpen>

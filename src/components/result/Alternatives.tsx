@@ -27,12 +27,15 @@ interface Candidate {
   flagged: ReturnType<typeof flagIngredients>;
 }
 
-// v8: strict Spain country filter — drop the global no-country fallback that
-// was returning products not sold in Spain (French/Moroccan waters). Verified
-// with the OFF v2 API that `countries_tags=en:spain` filters correctly; we
-// also re-check the returned `countries_tags` client-side as a safety net.
-const CACHE_PREFIX = 'maseya_alts_v8::';
+// v9: STRICT Spain filter — a candidate must have `countries_tags` AND
+// contain en:spain. Previously we let products through when countries_tags
+// was missing, which surfaced e.g. Argentine "La Serenísima" as an
+// alternative to a Spanish dairy. Also introduces a hard MIN_SCORE floor
+// so we never recommend a red/regular product as "mejor" (real case: a
+// product scoring 0/100 was offered alternatives at 18/100).
+const CACHE_PREFIX = 'maseya_alts_v9::';
 const FETCH_TIMEOUT_MS = 8000;
+const MIN_SCORE = 50;
 // TODO: derive country from user locale/settings when we expand beyond Spain.
 const COUNTRY_TAG = 'en:spain';
 
@@ -239,10 +242,12 @@ export const Alternatives = ({ current, currentScore }: Props) => {
             const res = await fetch(url, { signal: controller.signal });
             if (!res.ok) continue;
             const json = (await res.json()) as { products?: SearchItem[] };
-            // Client-side safety net: keep only products with en:spain in
-            // countries_tags (guards against any API-side regression).
+            // Strict client-side safety net: candidate MUST declare
+            // countries_tags AND include en:spain. Previously we accepted
+            // products without countries_tags, which let non-Spanish items
+            // through (e.g. Argentine "La Serenísima").
             const spanish = (json.products || []).filter(
-              p => !p.countries_tags || p.countries_tags.includes(COUNTRY_TAG)
+              p => Array.isArray(p.countries_tags) && p.countries_tags.includes(COUNTRY_TAG)
             );
             if (spanish.length > 0) {
               products = spanish;
@@ -304,12 +309,13 @@ export const Alternatives = ({ current, currentScore }: Props) => {
           }
         }
 
-        scored.sort((a, b) => b.score - a.score);
-        // Always show up to 3 top-scoring candidates from the same category,
-        // even if none strictly beat the current score. The user asked to see
-        // similar products regardless — the score badge already communicates
-        // whether each option is better, similar, or worse.
-        const top = scored.slice(0, 3);
+        // Quality floor: a candidate is only valid if its score is >= 50
+        // AND strictly better than the current product. Never surface a
+        // red/regular product as a "better" alternative.
+        const eligible = scored
+          .filter(c => c.score >= MIN_SCORE && c.score > currentScore)
+          .sort((a, b) => b.score - a.score);
+        const top = eligible.slice(0, 3);
 
         if (cancelled) return;
         try { sessionStorage.setItem(cacheKey, JSON.stringify(top)); } catch {}
@@ -350,10 +356,7 @@ export const Alternatives = ({ current, currentScore }: Props) => {
   if (!items || items.length === 0) return null;
 
   const consent = hasHealthDataConsent();
-  const anyBetter = items.some(i => i.score > currentScore);
-  const title = anyBetter
-    ? (consent ? '💡 Alternativas mejores para ti' : '💡 Alternativas mejores')
-    : '💡 Otras opciones similares';
+  const title = consent ? '💡 Alternativas mejores para ti' : '💡 Alternativas mejores';
 
   return (
     <div>
