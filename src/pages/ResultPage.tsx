@@ -6,6 +6,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUser } from '@/contexts/UserContext';
 import { supabase } from '@/integrations/supabase/client';
 import { lookupProduct, ProductData } from '@/lib/productLookup';
 import {
@@ -13,6 +14,7 @@ import {
   isNutritionalData,
   FlaggedIngredient, PersonalAlert,
 } from '@/lib/scoring';
+import { getVoiceLine } from '@/lib/voiceLines';
 import { inciLabel } from '@/lib/inciLabels';
 import { RegistrationSheet } from '@/components/auth/RegistrationSheet';
 import { MiraAnalysis } from '@/components/result/MiraAnalysis';
@@ -31,6 +33,7 @@ const ResultPage = () => {
   const { barcode } = useParams<{ barcode: string }>();
   const navigate = useNavigate();
   const { isAuthenticated, currentUser } = useAuth();
+  const { user } = useUser();
   
 
   const [product, setProduct] = useState<ProductData | null>(null);
