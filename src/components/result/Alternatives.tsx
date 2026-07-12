@@ -27,12 +27,15 @@ interface Candidate {
   flagged: ReturnType<typeof flagIngredients>;
 }
 
-// v8: strict Spain country filter — drop the global no-country fallback that
-// was returning products not sold in Spain (French/Moroccan waters). Verified
-// with the OFF v2 API that `countries_tags=en:spain` filters correctly; we
-// also re-check the returned `countries_tags` client-side as a safety net.
-const CACHE_PREFIX = 'maseya_alts_v8::';
+// v9: STRICT Spain filter — a candidate must have `countries_tags` AND
+// contain en:spain. Previously we let products through when countries_tags
+// was missing, which surfaced e.g. Argentine "La Serenísima" as an
+// alternative to a Spanish dairy. Also introduces a hard MIN_SCORE floor
+// so we never recommend a red/regular product as "mejor" (real case: a
+// product scoring 0/100 was offered alternatives at 18/100).
+const CACHE_PREFIX = 'maseya_alts_v9::';
 const FETCH_TIMEOUT_MS = 8000;
+const MIN_SCORE = 50;
 // TODO: derive country from user locale/settings when we expand beyond Spain.
 const COUNTRY_TAG = 'en:spain';
 
