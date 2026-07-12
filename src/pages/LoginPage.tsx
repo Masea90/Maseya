@@ -37,6 +37,7 @@ const T = {
   unexpectedError: 'Ha ocurrido un error inesperado',
   googleSignInFailed: 'Error con el inicio de sesión de Google',
   emptyFields: 'Introduce tu correo y contraseña',
+  alreadyRegistered: 'Este correo ya tiene una cuenta. Inicia sesión con tu contraseña o con Google.',
 };
 
 const LoginPage = () => {
