@@ -19,7 +19,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  signUp: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  signUp: (email: string, password: string) => Promise<{ success: boolean; error?: string; code?: 'already_registered' }>;
   signInWithGoogle: (redirectPath?: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
 }
@@ -110,7 +110,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return { success: true };
   };
 
-  const signUp = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+  const signUp = async (email: string, password: string): Promise<{ success: boolean; error?: string; code?: 'already_registered' }> => {
     const normalizedEmail = email.toLowerCase().trim();
 
     // Validate email format
@@ -125,13 +125,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const redirectUrl = `${window.location.origin}/`;
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: normalizedEmail,
       password,
       options: {
         emailRedirectTo: redirectUrl,
       },
     });
+
+    if (error) {
+      if (error.message.includes('already registered')) {
+        return { success: false, code: 'already_registered', error: 'An account with this email already exists' };
+      }
+      return { success: false, error: error.message };
+    }
+
+    // Supabase anti-enumeration: existing email returns success with empty identities array.
+    if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      return { success: false, code: 'already_registered', error: 'An account with this email already exists' };
+    }
 
     if (error) {
       if (error.message.includes('already registered')) {

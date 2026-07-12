@@ -37,6 +37,7 @@ const T = {
   unexpectedError: 'Ha ocurrido un error inesperado',
   googleSignInFailed: 'Error con el inicio de sesión de Google',
   emptyFields: 'Introduce tu correo y contraseña',
+  alreadyRegistered: 'Este correo ya tiene una cuenta. Inicia sesión con tu contraseña o con Google.',
 };
 
 const LoginPage = () => {
@@ -68,6 +69,10 @@ const LoginPage = () => {
         if (result.success) {
           setSignupEmail(email.toLowerCase().trim());
           setShowEmailConfirmation(true);
+        } else if (result.code === 'already_registered') {
+          toast.info(T.alreadyRegistered);
+          setIsSignUp(false);
+          setPassword('');
         } else {
           toast.error(result.error || T.signUpFailed);
         }
