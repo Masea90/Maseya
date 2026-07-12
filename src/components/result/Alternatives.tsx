@@ -242,10 +242,12 @@ export const Alternatives = ({ current, currentScore }: Props) => {
             const res = await fetch(url, { signal: controller.signal });
             if (!res.ok) continue;
             const json = (await res.json()) as { products?: SearchItem[] };
-            // Client-side safety net: keep only products with en:spain in
-            // countries_tags (guards against any API-side regression).
+            // Strict client-side safety net: candidate MUST declare
+            // countries_tags AND include en:spain. Previously we accepted
+            // products without countries_tags, which let non-Spanish items
+            // through (e.g. Argentine "La Serenísima").
             const spanish = (json.products || []).filter(
-              p => !p.countries_tags || p.countries_tags.includes(COUNTRY_TAG)
+              p => Array.isArray(p.countries_tags) && p.countries_tags.includes(COUNTRY_TAG)
             );
             if (spanish.length > 0) {
               products = spanish;
@@ -307,12 +309,13 @@ export const Alternatives = ({ current, currentScore }: Props) => {
           }
         }
 
-        scored.sort((a, b) => b.score - a.score);
-        // Always show up to 3 top-scoring candidates from the same category,
-        // even if none strictly beat the current score. The user asked to see
-        // similar products regardless — the score badge already communicates
-        // whether each option is better, similar, or worse.
-        const top = scored.slice(0, 3);
+        // Quality floor: a candidate is only valid if its score is >= 50
+        // AND strictly better than the current product. Never surface a
+        // red/regular product as a "better" alternative.
+        const eligible = scored
+          .filter(c => c.score >= MIN_SCORE && c.score > currentScore)
+          .sort((a, b) => b.score - a.score);
+        const top = eligible.slice(0, 3);
 
         if (cancelled) return;
         try { sessionStorage.setItem(cacheKey, JSON.stringify(top)); } catch {}
@@ -353,10 +356,7 @@ export const Alternatives = ({ current, currentScore }: Props) => {
   if (!items || items.length === 0) return null;
 
   const consent = hasHealthDataConsent();
-  const anyBetter = items.some(i => i.score > currentScore);
-  const title = anyBetter
-    ? (consent ? '💡 Alternativas mejores para ti' : '💡 Alternativas mejores')
-    : '💡 Otras opciones similares';
+  const title = consent ? '💡 Alternativas mejores para ti' : '💡 Alternativas mejores';
 
   return (
     <div>

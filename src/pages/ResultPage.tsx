@@ -18,6 +18,7 @@ import { RegistrationSheet } from '@/components/auth/RegistrationSheet';
 import { MiraAnalysis } from '@/components/result/MiraAnalysis';
 import { Alternatives } from '@/components/result/Alternatives';
 import { ScoreBreakdown } from '@/components/result/ScoreBreakdown';
+import { NutritionFacts } from '@/components/result/NutritionFacts';
 import { InstallPrompt } from '@/components/InstallPrompt';
 
 import { hasHealthDataConsent, getStoredConsent, saveConsent } from '@/components/consent/ConsentModal';
