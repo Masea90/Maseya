@@ -154,6 +154,7 @@ export const FeedbackDialog = ({ open, onOpenChange, extraContext }: FeedbackDia
             />
           </div>
         </div>
+        <p className="text-xs text-muted-foreground text-center">{c.alsoEmail}</p>
         <DialogFooter className="flex flex-row gap-2 sm:justify-end">
           <Button
             variant="outline"
