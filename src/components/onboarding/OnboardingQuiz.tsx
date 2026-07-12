@@ -145,7 +145,10 @@ export const OnboardingQuiz = () => {
         <h1 className="font-display text-2xl font-bold mb-2 leading-tight">{c.intro}</h1>
         <p className="text-sm text-muted-foreground mb-8">{c.context}</p>
 
-        <section className="mb-8">
+        <section
+          ref={skinSectionRef}
+          className={cn('mb-8 rounded-2xl transition-all', highlightSkin && 'ring-2 ring-primary ring-offset-2 ring-offset-background')}
+        >
           <h2 className="font-semibold mb-4">{c.q1}</h2>
           <div className="grid grid-cols-2 gap-3">
             {c.skin.map(opt => (
