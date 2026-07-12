@@ -89,7 +89,11 @@ export const OnboardingQuiz = () => {
   const handleSubmit = async () => {
     if (skin.length === 0 || saving) return;
     setSaving(true);
-    localStorage.setItem('maseya_onboarding', JSON.stringify({ skin, allergies }));
+    try {
+      localStorage.setItem('maseya_onboarding', JSON.stringify({ skin, allergies }));
+    } catch (e) {
+      console.error('localStorage setItem failed:', e);
+    }
 
     if (currentUser?.id) {
       const cleanAllergies = allergies.filter(a => a !== 'none');
