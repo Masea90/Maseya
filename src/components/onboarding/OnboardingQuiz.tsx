@@ -88,7 +88,16 @@ export const OnboardingQuiz = () => {
   const [highlightSkin, setHighlightSkin] = useState(false);
   const skinSectionRef = useRef<HTMLElement>(null);
 
-  const toggle = (val: string, list: string[], setList: (v: string[]) => void) => {
+  const toggle = (val: string, list: string[], setList: (v: string[]) => void, mutexNone = false) => {
+    if (mutexNone) {
+      if (val === 'none') {
+        setList(list.includes('none') ? [] : ['none']);
+        return;
+      }
+      const withoutNone = list.filter(x => x !== 'none');
+      setList(withoutNone.includes(val) ? withoutNone.filter(x => x !== val) : [...withoutNone, val]);
+      return;
+    }
     setList(list.includes(val) ? list.filter(x => x !== val) : [...list, val]);
   };
 
