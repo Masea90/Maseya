@@ -259,7 +259,7 @@ const ProfilePage = () => {
             </div>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground mb-2">Concerns</p>
+            <p className="text-xs text-muted-foreground mb-2">Preocupaciones</p>
             <div className="flex flex-wrap gap-2">
               {OPTIONS.hair_concerns.map(o => (
                 <Chip key={o} active={state.hair_concerns.includes(o)} onClick={() => toggleArr('hair_concerns', o)}>
