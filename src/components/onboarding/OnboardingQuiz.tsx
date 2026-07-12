@@ -93,7 +93,14 @@ export const OnboardingQuiz = () => {
   };
 
   const handleSubmit = async () => {
-    if (skin.length === 0 || saving) return;
+    if (saving) return;
+    if (skin.length === 0) {
+      toast(c.skinRequired);
+      skinSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setHighlightSkin(true);
+      window.setTimeout(() => setHighlightSkin(false), 1500);
+      return;
+    }
     setSaving(true);
     try {
       localStorage.setItem('maseya_onboarding', JSON.stringify({ skin, allergies }));
