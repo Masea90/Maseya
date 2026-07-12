@@ -317,9 +317,12 @@ const ResultPage = () => {
   const sl = scoreLabel(score);
   const nat = naturalness(product, flagged);
   const profile = loadOnboarding();
-  const alerts = healthConsent ? personalAlerts(product, profile) : [];
+  // Use the SAME profile object for both alerts and the personal score so
+  // the "declared by manufacturer" alert and the score can never disagree.
+  const activeProfile = healthProfile || profile;
+  const alerts = healthConsent ? personalAlerts(product, activeProfile) : [];
   const personalBreakdown = healthConsent
-    ? calculatePersonalScoreBreakdown(product, flagged, healthProfile || profile, score)
+    ? calculatePersonalScoreBreakdown(product, flagged, activeProfile, score)
     : null;
   const personalScore = personalBreakdown ? personalBreakdown.score : score;
   const psl = scoreLabel(personalScore);
