@@ -33,8 +33,8 @@ const PrivacyPage = () => {
           <h2 className="font-display text-base font-semibold">Responsable del tratamiento</h2>
           <p>
             Asmae Oumanzou. Contacto:{' '}
-            <a className="underline underline-offset-2" href="mailto:oumanzou.asmae@gmail.com">
-              oumanzou.asmae@gmail.com
+            <a className="underline underline-offset-2" href="mailto:team@maseya.es">
+              team@maseya.es
             </a>
             .
           </p>
@@ -98,8 +98,8 @@ const PrivacyPage = () => {
           <p>
             Puedes ejercer tus derechos de acceso, rectificación, supresión, oposición, limitación
             y portabilidad escribiendo a{' '}
-            <a className="underline underline-offset-2" href="mailto:oumanzou.asmae@gmail.com">
-              oumanzou.asmae@gmail.com
+            <a className="underline underline-offset-2" href="mailto:team@maseya.es">
+              team@maseya.es
             </a>
             . También tienes derecho a presentar una reclamación ante la Agencia Española de
             Protección de Datos (

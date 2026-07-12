@@ -24,6 +24,7 @@ const COPY: Record<Lang, {
   thanks: string;
   error: string;
   required: string;
+  alsoEmail: string;
 }> = {
   es: {
     title: 'Ayúdanos a mejorar',
@@ -38,6 +39,7 @@ const COPY: Record<Lang, {
     thanks: '¡Gracias por tu feedback!',
     error: 'No se pudo enviar. Inténtalo de nuevo.',
     required: 'Escribe un comentario antes de enviar.',
+    alsoEmail: 'También puedes escribirnos a team@maseya.es',
   },
   en: {
     title: 'Help us improve',
@@ -52,6 +54,7 @@ const COPY: Record<Lang, {
     thanks: 'Thanks for your feedback!',
     error: 'Could not send. Please try again.',
     required: 'Please write a comment before sending.',
+    alsoEmail: 'You can also write to us at team@maseya.es',
   },
   fr: {
     title: 'Aide-nous à améliorer',
@@ -66,6 +69,7 @@ const COPY: Record<Lang, {
     thanks: 'Merci pour ton retour !',
     error: 'Envoi impossible. Réessaie.',
     required: 'Écris un commentaire avant d\'envoyer.',
+    alsoEmail: 'Tu peux aussi nous écrire à team@maseya.es',
   },
 };
 
@@ -154,6 +158,7 @@ export const FeedbackDialog = ({ open, onOpenChange, extraContext }: FeedbackDia
             />
           </div>
         </div>
+        <p className="text-xs text-muted-foreground text-center">{c.alsoEmail}</p>
         <DialogFooter className="flex flex-row gap-2 sm:justify-end">
           <Button
             variant="outline"
