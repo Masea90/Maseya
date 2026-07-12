@@ -59,6 +59,7 @@ const COPY = {
     q1: 'Comment est ta peau ?',
     q2: 'As-tu une intolérance ou allergie alimentaire ?',
     cta: 'Voir ma première analyse →',
+    skinRequired: 'Sélectionne ton type de peau pour continuer',
     skin: [
       { id: 'atopic', emoji: '🌿', label: 'Atopique ou très sensible' },
       { id: 'dry', emoji: '💧', label: 'Sèche' },
