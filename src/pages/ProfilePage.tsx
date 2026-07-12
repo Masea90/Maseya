@@ -85,14 +85,14 @@ const Section = ({ title, emoji, children }: { title: string; emoji: string; chi
 
 const computePct = (s: HealthState): number => {
   let filled = 0;
-  const total = 9;
+  const total = 8;
   if (s.skin_type.length) filled++;
   if (s.skin_conditions.length) filled++;
   if (s.skin_sensitivities.length) filled++;
   if (s.hair_type) filled++;
   if (s.hair_condition) filled++;
   if (s.hair_concerns.length) filled++;
-  if (s.allergies.length) filled++;
+  // Allergies intentionally excluded from completeness — empty means "none" here.
   if (s.diet.length) filled++;
   if (s.nutrition_goals.length) filled++;
   return Math.round((filled / total) * 100);
