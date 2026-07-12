@@ -518,6 +518,9 @@ const ResultPage = () => {
               )}
             </div>
 
+            {/* Nutritional facts per 100g — food only, if payload has nutriments */}
+            <NutritionFacts product={product} />
+
             {/* Cards */}
             <Collapsible defaultOpen>
               <div className="bg-card rounded-2xl border border-border overflow-hidden">
