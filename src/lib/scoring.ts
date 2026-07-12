@@ -275,7 +275,7 @@ const ALCOHOLIC_CATEGORY_TAGS = new Set<string>([
   'en:tequilas', 'en:brandies', 'en:vermouths',
 ]);
 
-function isAlcoholicFood(p: ProductData): boolean {
+export function isAlcoholicFood(p: ProductData): boolean {
   const raw = (p.raw || {}) as Record<string, unknown>;
   const cats = Array.isArray(raw.categories_tags) ? (raw.categories_tags as string[]) : [];
 

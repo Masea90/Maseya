@@ -6,6 +6,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUser } from '@/contexts/UserContext';
 import { supabase } from '@/integrations/supabase/client';
 import { lookupProduct, ProductData } from '@/lib/productLookup';
 import {
@@ -13,6 +14,7 @@ import {
   isNutritionalData,
   FlaggedIngredient, PersonalAlert,
 } from '@/lib/scoring';
+import { getVoiceLine } from '@/lib/voiceLines';
 import { inciLabel } from '@/lib/inciLabels';
 import { RegistrationSheet } from '@/components/auth/RegistrationSheet';
 import { MiraAnalysis } from '@/components/result/MiraAnalysis';
@@ -31,6 +33,7 @@ const ResultPage = () => {
   const { barcode } = useParams<{ barcode: string }>();
   const navigate = useNavigate();
   const { isAuthenticated, currentUser } = useAuth();
+  const { user } = useUser();
   
 
   const [product, setProduct] = useState<ProductData | null>(null);
@@ -330,6 +333,13 @@ const ResultPage = () => {
     : null;
   const personalScore = personalBreakdown ? personalBreakdown.score : score;
   const psl = scoreLabel(personalScore);
+  const voiceLine = getVoiceLine(
+    product,
+    score,
+    personalScore,
+    healthConsent ? (healthProfile || loadOnboarding()) : null,
+    user.language,
+  );
   // Consider ingredient data available when we have ANY flagged item OR when
   // there's non-nutritional ingredients text. Many legit products are
   // mono-ingredient (coconut oil, honey, salt, rice, legumes) — the old
@@ -474,6 +484,12 @@ const ResultPage = () => {
                       </PopoverContent>
                     </Popover>
                   </div>
+
+                  {voiceLine && (
+                    <p className="text-sm text-muted-foreground italic text-center px-4 leading-snug">
+                      {voiceLine}
+                    </p>
+                  )}
 
                   {/* Score composition: helps users understand where the number comes from. */}
                   <div className="w-full flex flex-col items-center gap-2">
