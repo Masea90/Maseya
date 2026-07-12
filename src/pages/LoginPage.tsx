@@ -69,6 +69,10 @@ const LoginPage = () => {
         if (result.success) {
           setSignupEmail(email.toLowerCase().trim());
           setShowEmailConfirmation(true);
+        } else if (result.code === 'already_registered') {
+          toast.info(T.alreadyRegistered);
+          setIsSignUp(false);
+          setPassword('');
         } else {
           toast.error(result.error || T.signUpFailed);
         }
