@@ -46,6 +46,7 @@ const ResultPage = () => {
   const [healthProfile, setHealthProfile] = useState<any>(null);
   const [healthConsent, setHealthConsent] = useState<boolean>(() => hasHealthDataConsent());
   const [showConsentDialog, setShowConsentDialog] = useState(false);
+  const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
 
   // Re-evaluate consent when auth hydrates (DB→localStorage sync from AuthContext)
   // or when the user grants it in another tab/component.
@@ -648,6 +649,16 @@ const ResultPage = () => {
               hasIngredientData={hasIngredientData}
             />
 
+            {/* Quick thumbs feedback on this analysis */}
+            {product.barcode && product.barcode !== 'photo' && (
+              <ThumbsFeedback
+                barcode={product.barcode}
+                productName={product.name}
+                scoreGeneral={score}
+                scorePersonal={personalScore}
+              />
+            )}
+
             {/* Alternatives */}
             <Alternatives current={product} currentScore={healthConsent ? personalScore : score} />
           </>
@@ -663,10 +674,32 @@ const ResultPage = () => {
             Maseya ofrece información orientativa basada en datos públicos y en tu perfil. No sustituye el consejo de un médico, dermatólogo o nutricionista. Si tienes alergias graves, verifica siempre el etiquetado oficial del producto.
           </p>
         </div>
+
+        <div className="mt-3 text-center">
+          <button
+            type="button"
+            onClick={() => setShowFeedbackDialog(true)}
+            className="text-xs text-muted-foreground hover:text-primary underline underline-offset-2"
+          >
+            ¿Algo no cuadra en este análisis? Cuéntanoslo
+          </button>
+        </div>
       </div>
 
 
       <RegistrationSheet open={showSheet} onOpenChange={setShowSheet} variant="soft" />
+
+      <FeedbackDialog
+        open={showFeedbackDialog}
+        onOpenChange={setShowFeedbackDialog}
+        extraContext={{
+          barcode: product.barcode,
+          product_name: product.name,
+          score_general: score,
+          score_personal: personalScore,
+          from: 'result_page_link',
+        }}
+      />
 
       <Dialog open={showConsentDialog} onOpenChange={setShowConsentDialog}>
         <DialogContent className="max-w-md mx-auto rounded-3xl">
