@@ -101,7 +101,7 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const onboardingDone = userId ? hasHealthProfile === true : hasLocalOnboarding();
+  const onboardingDone = userId ? (hasHealthProfile === true || hasLocalOnboarding()) : hasLocalOnboarding();
   const path = location.pathname;
 
   // Authenticated user without a health profile → force quiz (skip welcome).
