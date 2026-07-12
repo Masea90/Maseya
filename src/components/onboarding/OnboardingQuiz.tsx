@@ -88,7 +88,16 @@ export const OnboardingQuiz = () => {
   const [highlightSkin, setHighlightSkin] = useState(false);
   const skinSectionRef = useRef<HTMLElement>(null);
 
-  const toggle = (val: string, list: string[], setList: (v: string[]) => void) => {
+  const toggle = (val: string, list: string[], setList: (v: string[]) => void, mutexNone = false) => {
+    if (mutexNone) {
+      if (val === 'none') {
+        setList(list.includes('none') ? [] : ['none']);
+        return;
+      }
+      const withoutNone = list.filter(x => x !== 'none');
+      setList(withoutNone.includes(val) ? withoutNone.filter(x => x !== val) : [...withoutNone, val]);
+      return;
+    }
     setList(list.includes(val) ? list.filter(x => x !== val) : [...list, val]);
   };
 
@@ -109,14 +118,13 @@ export const OnboardingQuiz = () => {
     }
 
     if (currentUser?.id) {
-      const cleanAllergies = allergies.filter(a => a !== 'none');
       const { error } = await supabase
         .from('health_profiles')
         .upsert(
           {
             user_id: currentUser.id,
             skin_type: skin,
-            allergies: cleanAllergies,
+            allergies,
             completion_pct: 25,
           },
           { onConflict: 'user_id' }
@@ -173,7 +181,7 @@ export const OnboardingQuiz = () => {
             {c.allergies.map(opt => (
               <button
                 key={opt.id}
-                onClick={() => toggle(opt.id, allergies, setAllergies)}
+                onClick={() => toggle(opt.id, allergies, setAllergies, true)}
                 className={cn(
                   'w-full p-4 rounded-2xl border-2 text-left flex items-center gap-3 transition-all',
                   allergies.includes(opt.id) ? 'border-primary bg-primary/5' : 'border-border bg-card'

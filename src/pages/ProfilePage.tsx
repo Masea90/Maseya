@@ -51,8 +51,8 @@ const OPTIONS = {
   hair_condition_label: { dry: 'Seco', oily: 'Graso', normal: 'Normal', damaged: 'Dañado' } as Record<string, string>,
   hair_concerns: ['hairloss', 'dandruff', 'frizz', 'colored'],
   hair_concerns_label: { hairloss: 'Caída', dandruff: 'Caspa', frizz: 'Frizz', colored: 'Color tratado' } as Record<string, string>,
-  allergies: ['gluten', 'lactose', 'nuts', 'fish'],
-  allergies_label: { gluten: 'Gluten', lactose: 'Lactosa', nuts: 'Frutos secos', fish: 'Pescado/marisco' } as Record<string, string>,
+  allergies: ['gluten', 'lactose', 'nuts', 'fish', 'none'],
+  allergies_label: { gluten: 'Gluten', lactose: 'Lactosa', nuts: 'Frutos secos', fish: 'Pescado/marisco', none: '✓ No tengo alergias ni intolerancias' } as Record<string, string>,
   diet: ['omnivore', 'vegetarian', 'vegan', 'keto', 'no-sugar', 'halal'],
   diet_label: { omnivore: 'Omnívora', vegetarian: 'Vegetariana', vegan: 'Vegana', keto: 'Keto', 'no-sugar': 'Sin azúcar', halal: 'Halal' } as Record<string, string>,
   nutrition_goals: ['lose-weight', 'gain-muscle', 'more-energy', 'healthy-skin'],
@@ -85,14 +85,14 @@ const Section = ({ title, emoji, children }: { title: string; emoji: string; chi
 
 const computePct = (s: HealthState): number => {
   let filled = 0;
-  const total = 9;
+  const total = 8;
   if (s.skin_type.length) filled++;
   if (s.skin_conditions.length) filled++;
   if (s.skin_sensitivities.length) filled++;
   if (s.hair_type) filled++;
   if (s.hair_condition) filled++;
   if (s.hair_concerns.length) filled++;
-  if (s.allergies.length) filled++;
+  // Allergies intentionally excluded from completeness — empty means "none" here.
   if (s.diet.length) filled++;
   if (s.nutrition_goals.length) filled++;
   return Math.round((filled / total) * 100);
@@ -150,6 +150,14 @@ const ProfilePage = () => {
   const toggleArr = (key: keyof HealthState, val: string) => {
     setState(prev => {
       const arr = prev[key] as string[];
+      // Mutually exclusive 'none' for allergies
+      if (key === 'allergies') {
+        if (val === 'none') {
+          return { ...prev, allergies: arr.includes('none') ? [] : ['none'] };
+        }
+        const withoutNone = arr.filter(x => x !== 'none');
+        return { ...prev, allergies: withoutNone.includes(val) ? withoutNone.filter(x => x !== val) : [...withoutNone, val] };
+      }
       return { ...prev, [key]: arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val] };
     });
   };
@@ -251,7 +259,7 @@ const ProfilePage = () => {
             </div>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground mb-2">Concerns</p>
+            <p className="text-xs text-muted-foreground mb-2">Preocupaciones</p>
             <div className="flex flex-wrap gap-2">
               {OPTIONS.hair_concerns.map(o => (
                 <Chip key={o} active={state.hair_concerns.includes(o)} onClick={() => toggleArr('hair_concerns', o)}>
