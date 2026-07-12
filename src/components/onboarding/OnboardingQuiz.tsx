@@ -85,6 +85,8 @@ export const OnboardingQuiz = () => {
   const [skin, setSkin] = useState<string[]>([]);
   const [allergies, setAllergies] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [highlightSkin, setHighlightSkin] = useState(false);
+  const skinSectionRef = useRef<HTMLElement>(null);
 
   const toggle = (val: string, list: string[], setList: (v: string[]) => void) => {
     setList(list.includes(val) ? list.filter(x => x !== val) : [...list, val]);
