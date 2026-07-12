@@ -128,6 +128,7 @@ export const OnboardingQuiz = () => {
             completion_pct: 25,
           },
           { onConflict: 'user_id' }
+        );
       if (error) console.error('health_profiles upsert error:', error);
       completeOnboarding();
     }
