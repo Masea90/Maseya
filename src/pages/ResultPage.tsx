@@ -20,6 +20,8 @@ import { Alternatives } from '@/components/result/Alternatives';
 import { ScoreBreakdown } from '@/components/result/ScoreBreakdown';
 import { NutritionFacts } from '@/components/result/NutritionFacts';
 import { InstallPrompt } from '@/components/InstallPrompt';
+import { ThumbsFeedback } from '@/components/feedback/ThumbsFeedback';
+import { FeedbackDialog } from '@/components/feedback/FeedbackDialog';
 
 import { hasHealthDataConsent, getStoredConsent, saveConsent } from '@/components/consent/ConsentModal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
