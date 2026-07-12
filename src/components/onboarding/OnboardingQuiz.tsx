@@ -118,8 +118,17 @@ export const OnboardingQuiz = () => {
     }
 
     if (currentUser?.id) {
-      const cleanAllergies = allergies.filter(a => a !== 'none');
       const { error } = await supabase
+        .from('health_profiles')
+        .upsert(
+          {
+            user_id: currentUser.id,
+            skin_type: skin,
+            allergies,
+            completion_pct: 25,
+          },
+          { onConflict: 'user_id' }
+        );
         .from('health_profiles')
         .upsert(
           {
