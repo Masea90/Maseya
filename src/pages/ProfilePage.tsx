@@ -5,7 +5,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, LogOut } from 'lucide-react';
+import { ChevronDown, LogOut, MessageSquare } from 'lucide-react';
+import { FeedbackDialog } from '@/components/feedback/FeedbackDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -104,6 +105,8 @@ const ProfilePage = () => {
   const [saving, setSaving] = useState(false);
   const [productCount, setProductCount] = useState<number | null>(null);
   const devMode = useDevMode();
+  const [showFeedback, setShowFeedback] = useState(false);
+  
   
 
   const refreshProductCount = async () => {
@@ -309,6 +312,10 @@ const ProfilePage = () => {
           {saving ? 'Guardando...' : 'Guardar cambios'}
         </Button>
 
+        <Button onClick={() => setShowFeedback(true)} variant="outline" className="w-full gap-2">
+          <MessageSquare className="w-4 h-4" /> 💬 Ayúdanos a mejorar
+        </Button>
+
         <Button onClick={() => logout()} variant="outline" className="w-full gap-2">
           <LogOut className="w-4 h-4" /> Cerrar sesión
         </Button>
@@ -373,6 +380,7 @@ const ProfilePage = () => {
           </div>
         )}
       </div>
+      <FeedbackDialog open={showFeedback} onOpenChange={setShowFeedback} />
     </AppLayout>
   );
 };
