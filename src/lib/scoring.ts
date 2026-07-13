@@ -29,20 +29,46 @@ const RED_BOTH = ['paraben', 'bha', 'bht'];
 const RED_COSMETIC = [
   'sulfate', 'sulphate', 'phthalate', 'formaldehyde', 'triclosan',
   'mineral oil', 'paraffinum liquidum',
+  // Formaldehyde releasers
+  'dmdm hydantoin', 'imidazolidinyl urea', 'diazolidinyl urea', 'quaternium-15',
+  // Problematic UV filters
+  'oxybenzone', 'benzophenone-3',
 ];
-const RED_FOOD = ['nitrite', 'aspartame', 'tartrazine', 'e102'];
+const RED_FOOD = [
+  'nitrite', 'aspartame', 'tartrazine', 'e102',
+  // Nitrites / nitrates (processed meats)
+  'e249', 'e250', 'e251', 'e252',
+  // BHA / BHT E-codes
+  'e320', 'e321',
+];
 
 const ORANGE_BOTH: string[] = [];
 const ORANGE_COSMETIC = [
   'alcohol denat', 'fragrance', 'parfum', 'silicone', 'dimethicone',
   'cyclopentasiloxane',
+  // Preservatives / chelators / others
+  'talc', 'phenoxyethanol', 'chlorphenesin',
+  'edta', 'disodium edta', 'tetrasodium edta',
+  // UV filters with concerns
+  'homosalate', 'octocrylene',
 ];
 const ORANGE_FOOD = [
   'carrageenan', 'monosodium glutamate', 'msg', 'e621',
   // Sulfites: real food additive concern (asthma/allergy trigger, wine, dried fruit).
   'sulfite', 'sulphite', 'sulfito', 'metabisulfite',
   'e220', 'e221', 'e222', 'e223', 'e224', 'e226', 'e227', 'e228',
+  // Azo colourants
+  'e110', 'e122', 'e124', 'e129',
+  // Sodium benzoate
+  'e211',
+  // Glutamates
+  'e620', 'e622', 'e623', 'e624', 'e625',
+  // Caramel IV
+  'e150d',
+  // Aspartame E-code
+  'e951',
 ];
+
 
 type ClassifyCategory = 'food' | 'cosmetic' | 'unknown';
 
