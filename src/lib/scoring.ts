@@ -181,11 +181,33 @@ function stripPlantMilks(normalizedText: string): string {
   return t;
 }
 
+// Regex-based cosmetic classification. Handles patterns that would need
+// dozens of keyword entries otherwise: PEGs/PPGs (peg-8, ppg-15…) and CI
+// colour-index codes. CI 75xxx (natural) and CI 77xxx (mineral pigments)
+// stay 'safe'; other CI codes are synthetic dyes → caution.
+// Both "CI 42090" and the common OCR variant "Cl 42090" are recognized.
+const CI_CODE_RE = /\bc[il]\s?(\d{5})\b/;
+function cosmeticRegexLevel(nameNorm: string): IngredientLevel | null {
+  if (/\bpeg-?\d*\b/.test(nameNorm)) return 'caution';
+  if (/\bppg-?\d+\b/.test(nameNorm)) return 'caution';
+  const ci = nameNorm.match(CI_CODE_RE);
+  if (ci) {
+    const code = ci[1];
+    if (!(code.startsWith('75') || code.startsWith('77'))) return 'caution';
+  }
+  return null;
+}
+
 export function classifyIngredient(name: string, category: ClassifyCategory = 'unknown'): IngredientLevel {
   if (findAny(name, redKeywordsFor(category))) return 'avoid';
+  if (category !== 'food') {
+    const regexHit = cosmeticRegexLevel(norm(name));
+    if (regexHit) return regexHit;
+  }
   if (findAny(name, orangeKeywordsFor(category))) return 'caution';
   return 'safe';
 }
+
 
 
 const SYNONYM_GROUPS: string[][] = [
