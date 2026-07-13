@@ -372,7 +372,7 @@ const PhotoCapturePage = () => {
 
   return (
     <div className="min-h-[100dvh] bg-background overflow-x-hidden pb-24">
-      <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border">
+      <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border pt-safe">
         <div className="w-full sm:max-w-lg sm:mx-auto px-2 h-14 flex items-center gap-2">
           <button
             onClick={goBack}
