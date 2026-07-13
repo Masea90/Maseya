@@ -371,13 +371,17 @@ const PhotoCapturePage = () => {
   const heading = step === 'front' ? c.front : c.ingredients;
 
   return (
-    <div className="min-h-[100dvh] bg-background">
+    <div className="min-h-[100dvh] bg-background overflow-x-hidden pb-24">
       <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border">
-        <div className="w-full sm:max-w-lg sm:mx-auto px-4 h-14 flex items-center gap-3">
-          <button onClick={goBack} aria-label={c.back}>
+        <div className="w-full sm:max-w-lg sm:mx-auto px-2 h-14 flex items-center gap-2">
+          <button
+            onClick={goBack}
+            aria-label={c.back}
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:bg-muted active:bg-muted/70"
+          >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="font-display text-lg font-semibold">
+          <h1 className="font-display text-lg font-semibold truncate">
             {addImageFor ? c.addImageOnly : c.title}
           </h1>
         </div>
