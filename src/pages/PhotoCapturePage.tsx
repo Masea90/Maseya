@@ -517,6 +517,23 @@ const PhotoCapturePage = () => {
           );
         })()}
       </div>
+
+      {/* Emergency exit — fixed bottom, always reachable even if the header
+          gets pushed off-screen by iOS zoom/overflow. */}
+      <div
+        className="fixed bottom-0 inset-x-0 z-20 bg-background/95 backdrop-blur border-t border-border"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
+        <div className="w-full sm:max-w-lg sm:mx-auto px-4 py-3">
+          <Button
+            onClick={() => navigate('/scan', { replace: true })}
+            variant="outline"
+            className="w-full min-h-[44px] h-12 rounded-2xl"
+          >
+            {user.language === 'fr' ? 'Annuler' : user.language === 'en' ? 'Cancel' : 'Cancelar'}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 };
