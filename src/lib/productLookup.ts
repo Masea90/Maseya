@@ -210,20 +210,61 @@ export async function saveToMaseya(input: {
   return { ok: true };
 }
 
+/** A public (OFF/OBF) hit is "rich" when it has usable ingredients OR a real nutriscore. */
+function isRichPublicHit(pd: ProductData): boolean {
+  const ing = (pd.ingredients_text || '').trim();
+  const nutri = (pd.nutriscore_grade || '').toLowerCase();
+  const hasNutri = !!nutri && nutri !== 'unknown' && nutri !== 'not-applicable';
+  return ing.length > 0 || hasNutri;
+}
+
+/** Merge aprovechable public metadata into a maseya hit that already has ingredients. */
+function mergePublicIntoMaseya(maseya: ProductData, publicHit: ProductData): ProductData {
+  const raw: Record<string, unknown> = { ...maseya.raw };
+  const pubRaw = publicHit.raw as Record<string, unknown>;
+  const pubCats = (pubRaw?.categories_tags as string[] | undefined);
+  if (Array.isArray(pubCats) && pubCats.length > 0 && !raw.categories_tags) {
+    raw.categories_tags = pubCats;
+  }
+  return {
+    ...maseya,
+    image: maseya.image || publicHit.image || null,
+    allergens_tags: maseya.allergens_tags.length ? maseya.allergens_tags : publicHit.allergens_tags,
+    traces_tags: maseya.traces_tags.length ? maseya.traces_tags : publicHit.traces_tags,
+    raw,
+  };
+}
+
 export async function lookupProduct(barcode: string): Promise<ProductData | null> {
   // Public sources first (OFF/OBF) — they carry Nutriscore and richer ingredient
-  // data. maseya_products is used as a fallback for community/photo contributions
-  // not present in the public datasets. Previously maseya was tried first, which
-  // caused imported products (no nutriscore) to hide the richer OFF data and
-  // scored e.g. Coca-Cola as 100/100.
+  // data. But OFF/OBF can also return empty "shell" entries (status 1, no
+  // ingredients, no nutriscore). In that case a maseya photo-contributed entry
+  // with real ingredients would be hidden forever. So: prefer public ONLY when
+  // it's actually rich; otherwise let a richer maseya entry win, merging any
+  // useful public metadata (categories/image/allergens) on top.
   const off = await fetchFrom('world.openfoodfacts.org', barcode);
-  if (off?.status === 1 && off.product) return normalize(off, barcode, 'off', 'food');
+  let publicHit: ProductData | null = null;
+  if (off?.status === 1 && off.product) {
+    publicHit = normalize(off, barcode, 'off', 'food');
+    if (isRichPublicHit(publicHit)) return publicHit;
+  }
 
-  const obf = await fetchFrom('world.openbeautyfacts.org', barcode);
-  if (obf?.status === 1 && obf.product) return normalize(obf, barcode, 'obf', 'cosmetic');
+  if (!publicHit) {
+    const obf = await fetchFrom('world.openbeautyfacts.org', barcode);
+    if (obf?.status === 1 && obf.product) {
+      publicHit = normalize(obf, barcode, 'obf', 'cosmetic');
+      if (isRichPublicHit(publicHit)) return publicHit;
+    }
+  }
 
   const maseya = await fetchFromMaseya(barcode);
-  if (maseya) return maseya;
+  if (maseya && (maseya.ingredients_text || '').trim().length > 0) {
+    return publicHit ? mergePublicIntoMaseya(maseya, publicHit) : maseya;
+  }
 
+  // Neither rich: return the poor public shell if we have it (preserves the
+  // existing "insufficient data" UX), otherwise the empty maseya row, otherwise null.
+  if (publicHit) return publicHit;
+  if (maseya) return maseya;
   return null;
 }
