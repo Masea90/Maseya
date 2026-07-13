@@ -132,7 +132,7 @@ const LoginPage = () => {
   // Email confirmation screen
   if (showEmailConfirmation) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 pt-safe">
         <div className="w-full max-w-sm text-center space-y-6 animate-fade-in">
           <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
             <Mail className="w-10 h-10 text-primary" />
@@ -189,7 +189,7 @@ const LoginPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col pt-safe">
       {/* Header */}
       <div className="p-6 pt-12">
         <div className="text-center mb-8">

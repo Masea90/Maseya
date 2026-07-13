@@ -300,7 +300,7 @@ const ResultPage = () => {
   if (notFound || !product) {
     return (
       <div className="min-h-[100dvh] bg-background">
-        <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border">
+        <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border pt-safe">
           <div className="w-full sm:max-w-lg sm:mx-auto px-4 h-14 flex items-center gap-3">
             <button onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/scan'))} aria-label="Volver">
               <ArrowLeft className="w-5 h-5" />
@@ -368,7 +368,7 @@ const ResultPage = () => {
 
   return (
     <div className="min-h-[100dvh] bg-background pb-12">
-      <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border">
+      <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border pt-safe">
         <div className="w-full sm:max-w-lg sm:mx-auto px-4 h-14 flex items-center gap-3">
           <button onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/scan'))} aria-label="Volver">
             <ArrowLeft className="w-5 h-5" />

@@ -11,7 +11,7 @@ export const Header = ({ title, className }: HeaderProps) => {
   const isScan = location.pathname === '/scan' || location.pathname === '/';
 
   return (
-    <header className={cn('sticky top-0 z-40 bg-background/85 backdrop-blur-md border-b border-border/60', className)}>
+    <header className={cn('sticky top-0 z-40 bg-background/85 backdrop-blur-md border-b border-border/60 pt-safe', className)}>
       <div className="flex items-center justify-between h-14 px-4 w-full sm:max-w-lg sm:mx-auto">
         {isScan ? (
           <Link to="/scan" className="flex items-center gap-2">

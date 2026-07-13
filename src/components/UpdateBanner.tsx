@@ -58,7 +58,7 @@ export const UpdateBanner = () => {
   if (!visible) return null;
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-[60] pointer-events-none flex justify-center">
+    <div className="fixed top-0 left-0 right-0 z-[60] pointer-events-none flex justify-center pt-safe">
       <div className="mt-3 px-4 py-2 rounded-full bg-primary/95 text-primary-foreground text-xs font-medium shadow-md backdrop-blur-sm">
         Actualizando a la última versión…
       </div>

@@ -35,7 +35,7 @@ export const WelcomeScreen = () => {
   const c = COPY[user.language] ?? COPY.es;
 
   return (
-    <div className="min-h-[100dvh] bg-gradient-hero flex flex-col items-center justify-between p-8 text-center text-white">
+    <div className="min-h-[100dvh] bg-gradient-hero flex flex-col items-center justify-between p-8 pt-safe text-center text-white">
       <div className="w-full flex items-center justify-center gap-2 pt-2">
         <div className="w-9 h-9 rounded-2xl bg-white/15 backdrop-blur flex items-center justify-center">
           <span className="text-lg">🌿</span>

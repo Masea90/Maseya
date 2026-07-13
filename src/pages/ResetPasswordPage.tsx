@@ -45,7 +45,7 @@ const ResetPasswordPage = () => {
 
   if (isSent) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 pt-safe">
         <div className="max-w-sm w-full text-center space-y-6">
           <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
             <CheckCircle2 className="w-8 h-8 text-primary" />
@@ -69,7 +69,7 @@ const ResetPasswordPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col pt-safe">
       <div className="p-6 pt-12">
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">

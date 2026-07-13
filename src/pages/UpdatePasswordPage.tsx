@@ -91,7 +91,7 @@ const UpdatePasswordPage = () => {
 
   if (isChecking) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center pt-safe">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
@@ -99,7 +99,7 @@ const UpdatePasswordPage = () => {
 
   if (!isValidSession) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 pt-safe">
         <div className="max-w-sm w-full text-center space-y-4">
           <h1 className="font-display text-xl font-bold">{t('invalidLinkTitle')}</h1>
           <p className="text-muted-foreground text-sm">
@@ -115,7 +115,7 @@ const UpdatePasswordPage = () => {
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 pt-safe">
         <div className="max-w-sm w-full text-center space-y-4">
           <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
             <CheckCircle2 className="w-8 h-8 text-primary" />
@@ -128,7 +128,7 @@ const UpdatePasswordPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col pt-safe">
       <div className="p-6 pt-12">
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
