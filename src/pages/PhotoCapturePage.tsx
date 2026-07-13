@@ -413,9 +413,9 @@ const PhotoCapturePage = () => {
               )}
             </div>
 
-            <div className="relative aspect-[3/4] rounded-3xl overflow-hidden bg-gradient-to-br from-muted to-muted/50 border border-border flex items-center justify-center">
+            <div className="relative w-full max-h-[55vh] aspect-[3/4] max-w-full rounded-3xl overflow-hidden bg-gradient-to-br from-muted to-muted/50 border border-border flex items-center justify-center mx-auto">
               {preview ? (
-                <img src={preview} alt="" className="w-full h-full object-cover" />
+                <img src={preview} alt="" className="w-full h-full max-w-full max-h-full object-contain" />
               ) : processing ? (
                 <div className="flex flex-col items-center justify-center text-muted-foreground gap-3">
                   <Sparkles className="w-10 h-10 animate-pulse text-primary" />
