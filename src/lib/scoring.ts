@@ -246,6 +246,10 @@ function cleanIngredientsText(raw: string): string {
     .replace(/[\r\n]+/g, ',')
     .replace(/\b(ingredients?|ingredientes|ingrédients|inci|composition|composición|composição)\s*[:\-]?\s*/gi, '')
     .replace(/[·•]/g, ',')
+    // Sentence periods (". Contains…") separate INCI list from legal small
+    // print. Convert to commas so they split; trailing "denat." style dots
+    // (no space after or end-of-string) are preserved for the classifier.
+    .replace(/\.\s+/g, ', ')
     // Strip percentages: "100%", "0.5 %", "1,2 %".
     .replace(/\d+([.,]\d+)?\s*%/g, '')
     // Strip quantities with unit: "500 mg", "1.2 ppm", "0.32 p/p", "1 g".
