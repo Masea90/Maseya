@@ -16,21 +16,22 @@ const svg = `<?xml version="1.0" encoding="UTF-8"?>
     </g>
 
     <!-- Tagline -->
-    <text x="90" y="335" font-size="40" fill="#FFFFFF">Tu escáner personalizado de productos</text>
-    <text x="90" y="390" font-size="32" fill="#95D5B2">Alergias · intolerancias · halal · piel sensible</text>
+    <text x="90" y="330" font-size="34" fill="#FFFFFF">Tu escáner personalizado</text>
+    <text x="90" y="380" font-size="34" fill="#FFFFFF">de productos</text>
+    <text x="90" y="440" font-size="26" fill="#95D5B2">Alergias · intolerancias · halal · piel sensible</text>
 
     <!-- Footer -->
-    <text x="90" y="560" font-size="28" fill="#FFFFFF" opacity="0.85">maseya.es · gratis</text>
+    <text x="90" y="560" font-size="26" fill="#FFFFFF" opacity="0.85">maseya.es · gratis</text>
   </g>
 
   <!-- Right circular badge -->
-  <g transform="translate(950,315)">
-    <circle cx="0" cy="0" r="170" fill="#FFFFFF"/>
-    <text x="0" y="62" font-family="Arial, Helvetica, sans-serif" font-size="200" font-weight="bold" fill="#2D6A4F" text-anchor="middle">M</text>
+  <g transform="translate(1000,315)">
+    <circle cx="0" cy="0" r="140" fill="#FFFFFF"/>
+    <text x="0" y="52" font-family="Arial, Helvetica, sans-serif" font-size="170" font-weight="bold" fill="#2D6A4F" text-anchor="middle">M</text>
     <!-- Leaf top-right -->
-    <g transform="translate(115,-115) rotate(-30)">
-      <ellipse cx="0" cy="0" rx="38" ry="16" fill="#95D5B2"/>
-      <line x1="-34" y1="10" x2="34" y2="-10" stroke="#2D6A4F" stroke-width="2.5"/>
+    <g transform="translate(95,-95) rotate(-30)">
+      <ellipse cx="0" cy="0" rx="32" ry="13" fill="#95D5B2"/>
+      <line x1="-28" y1="8" x2="28" y2="-8" stroke="#2D6A4F" stroke-width="2.5"/>
     </g>
   </g>
 </svg>`;
