@@ -29,20 +29,46 @@ const RED_BOTH = ['paraben', 'bha', 'bht'];
 const RED_COSMETIC = [
   'sulfate', 'sulphate', 'phthalate', 'formaldehyde', 'triclosan',
   'mineral oil', 'paraffinum liquidum',
+  // Formaldehyde releasers
+  'dmdm hydantoin', 'imidazolidinyl urea', 'diazolidinyl urea', 'quaternium-15',
+  // Problematic UV filters
+  'oxybenzone', 'benzophenone-3',
 ];
-const RED_FOOD = ['nitrite', 'aspartame', 'tartrazine', 'e102'];
+const RED_FOOD = [
+  'nitrite', 'aspartame', 'tartrazine', 'e102',
+  // Nitrites / nitrates (processed meats)
+  'e249', 'e250', 'e251', 'e252',
+  // BHA / BHT E-codes
+  'e320', 'e321',
+];
 
 const ORANGE_BOTH: string[] = [];
 const ORANGE_COSMETIC = [
   'alcohol denat', 'fragrance', 'parfum', 'silicone', 'dimethicone',
   'cyclopentasiloxane',
+  // Preservatives / chelators / others
+  'talc', 'phenoxyethanol', 'chlorphenesin',
+  'edta', 'disodium edta', 'tetrasodium edta',
+  // UV filters with concerns
+  'homosalate', 'octocrylene',
 ];
 const ORANGE_FOOD = [
   'carrageenan', 'monosodium glutamate', 'msg', 'e621',
   // Sulfites: real food additive concern (asthma/allergy trigger, wine, dried fruit).
   'sulfite', 'sulphite', 'sulfito', 'metabisulfite',
   'e220', 'e221', 'e222', 'e223', 'e224', 'e226', 'e227', 'e228',
+  // Azo colourants
+  'e110', 'e122', 'e124', 'e129',
+  // Sodium benzoate
+  'e211',
+  // Glutamates
+  'e620', 'e622', 'e623', 'e624', 'e625',
+  // Caramel IV
+  'e150d',
+  // Aspartame E-code
+  'e951',
 ];
+
 
 type ClassifyCategory = 'food' | 'cosmetic' | 'unknown';
 
@@ -155,11 +181,33 @@ function stripPlantMilks(normalizedText: string): string {
   return t;
 }
 
+// Regex-based cosmetic classification. Handles patterns that would need
+// dozens of keyword entries otherwise: PEGs/PPGs (peg-8, ppg-15…) and CI
+// colour-index codes. CI 75xxx (natural) and CI 77xxx (mineral pigments)
+// stay 'safe'; other CI codes are synthetic dyes → caution.
+// Both "CI 42090" and the common OCR variant "Cl 42090" are recognized.
+const CI_CODE_RE = /\bc[il]\s?(\d{5})\b/;
+function cosmeticRegexLevel(nameNorm: string): IngredientLevel | null {
+  if (/\bpeg-?\d*\b/.test(nameNorm)) return 'caution';
+  if (/\bppg-?\d+\b/.test(nameNorm)) return 'caution';
+  const ci = nameNorm.match(CI_CODE_RE);
+  if (ci) {
+    const code = ci[1];
+    if (!(code.startsWith('75') || code.startsWith('77'))) return 'caution';
+  }
+  return null;
+}
+
 export function classifyIngredient(name: string, category: ClassifyCategory = 'unknown'): IngredientLevel {
   if (findAny(name, redKeywordsFor(category))) return 'avoid';
+  if (category !== 'food') {
+    const regexHit = cosmeticRegexLevel(norm(name));
+    if (regexHit) return regexHit;
+  }
   if (findAny(name, orangeKeywordsFor(category))) return 'caution';
   return 'safe';
 }
+
 
 
 const SYNONYM_GROUPS: string[][] = [
@@ -198,9 +246,32 @@ function cleanIngredientsText(raw: string): string {
     .replace(/[\r\n]+/g, ',')
     .replace(/\b(ingredients?|ingredientes|ingrédients|inci|composition|composición|composição)\s*[:\-]?\s*/gi, '')
     .replace(/[·•]/g, ',')
-    .replace(/\b\d+([.,]\d+)?\s*%?\b/g, '')
+    // Sentence periods (". Contains…") separate INCI list from legal small
+    // print. Convert to commas so they split; trailing "denat." style dots
+    // (no space after or end-of-string) are preserved for the classifier.
+    .replace(/\.\s+/g, ', ')
+    // Strip percentages: "100%", "0.5 %", "1,2 %".
+    .replace(/\d+([.,]\d+)?\s*%/g, '')
+    // Strip quantities with unit: "500 mg", "1.2 ppm", "0.32 p/p", "1 g".
+    // Numbers WITHOUT a unit are preserved so INCI names keep their digits
+    // (peg-8, ci 42090, polysorbate 20).
+    .replace(/\d+([.,]\d+)?\s*(ppm|mg|ml|p\/p)\b/gi, '')
+    .replace(/\d+([.,]\d+)?\s*g\b/g, '')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+// Regulatory / marketing chip filter. Small-print legal text often gets
+// OCR'd into the ingredient list ("Contiene X 0,3% p/p", "1450 ppm Fluor",
+// "y Calcium…"). These are not INCI ingredients and must be dropped before
+// classification.
+function isRegulatoryChip(raw: string): boolean {
+  const s = raw.toLowerCase();
+  if (s.includes('p/p') || s.includes('ppm')) return true;
+  if (/(contiene|contains|contient)\s+.*(%|ppm|fluor)/i.test(raw)) return true;
+  // Loose conjunctions at the start followed by an uppercase word ("y Calcium…").
+  if (/^(y|and|et|e)\s+[A-ZÁÉÍÓÚÑ]/.test(raw)) return true;
+  return false;
 }
 
 export function flagIngredients(p: ProductData): FlaggedIngredient[] {
@@ -216,7 +287,8 @@ export function flagIngredients(p: ProductData): FlaggedIngredient[] {
     // etc.) — real INCI names never contain a colon. Keep the length cap
     // at 80 to allow long legitimate names like "ACRYLATES/C10-30 ALKYL
     // ACRYLATE CROSSPOLYMER".
-    .filter(s => s.length > 1 && s.length < 80 && !s.includes(':'));
+    .filter(s => s.length > 1 && s.length < 80 && !s.includes(':') && !isRegulatoryChip(s));
+
 
   const seen = new Set<string>();
   const all: string[] = [];
