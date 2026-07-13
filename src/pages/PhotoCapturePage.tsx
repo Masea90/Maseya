@@ -371,13 +371,17 @@ const PhotoCapturePage = () => {
   const heading = step === 'front' ? c.front : c.ingredients;
 
   return (
-    <div className="min-h-[100dvh] bg-background">
+    <div className="min-h-[100dvh] bg-background overflow-x-hidden pb-24">
       <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border">
-        <div className="w-full sm:max-w-lg sm:mx-auto px-4 h-14 flex items-center gap-3">
-          <button onClick={goBack} aria-label={c.back}>
+        <div className="w-full sm:max-w-lg sm:mx-auto px-2 h-14 flex items-center gap-2">
+          <button
+            onClick={goBack}
+            aria-label={c.back}
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:bg-muted active:bg-muted/70"
+          >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="font-display text-lg font-semibold">
+          <h1 className="font-display text-lg font-semibold truncate">
             {addImageFor ? c.addImageOnly : c.title}
           </h1>
         </div>
@@ -409,9 +413,9 @@ const PhotoCapturePage = () => {
               )}
             </div>
 
-            <div className="relative aspect-[3/4] rounded-3xl overflow-hidden bg-gradient-to-br from-muted to-muted/50 border border-border flex items-center justify-center">
+            <div className="relative w-full max-h-[55vh] aspect-[3/4] max-w-full rounded-3xl overflow-hidden bg-gradient-to-br from-muted to-muted/50 border border-border flex items-center justify-center mx-auto">
               {preview ? (
-                <img src={preview} alt="" className="w-full h-full object-cover" />
+                <img src={preview} alt="" className="w-full h-full max-w-full max-h-full object-contain" />
               ) : processing ? (
                 <div className="flex flex-col items-center justify-center text-muted-foreground gap-3">
                   <Sparkles className="w-10 h-10 animate-pulse text-primary" />
@@ -512,6 +516,23 @@ const PhotoCapturePage = () => {
             </div>
           );
         })()}
+      </div>
+
+      {/* Emergency exit — fixed bottom, always reachable even if the header
+          gets pushed off-screen by iOS zoom/overflow. */}
+      <div
+        className="fixed bottom-0 inset-x-0 z-20 bg-background/95 backdrop-blur border-t border-border"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
+        <div className="w-full sm:max-w-lg sm:mx-auto px-4 py-3">
+          <Button
+            onClick={() => navigate('/scan', { replace: true })}
+            variant="outline"
+            className="w-full min-h-[44px] h-12 rounded-2xl"
+          >
+            {user.language === 'fr' ? 'Annuler' : user.language === 'en' ? 'Cancel' : 'Cancelar'}
+          </Button>
+        </div>
       </div>
     </div>
   );
