@@ -246,9 +246,28 @@ function cleanIngredientsText(raw: string): string {
     .replace(/[\r\n]+/g, ',')
     .replace(/\b(ingredients?|ingredientes|ingrédients|inci|composition|composición|composição)\s*[:\-]?\s*/gi, '')
     .replace(/[·•]/g, ',')
-    .replace(/\b\d+([.,]\d+)?\s*%?\b/g, '')
+    // Strip percentages: "100%", "0.5 %", "1,2 %".
+    .replace(/\d+([.,]\d+)?\s*%/g, '')
+    // Strip quantities with unit: "500 mg", "1.2 ppm", "0.32 p/p", "1 g".
+    // Numbers WITHOUT a unit are preserved so INCI names keep their digits
+    // (peg-8, ci 42090, polysorbate 20).
+    .replace(/\d+([.,]\d+)?\s*(ppm|mg|ml|p\/p)\b/gi, '')
+    .replace(/\d+([.,]\d+)?\s*g\b/g, '')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+// Regulatory / marketing chip filter. Small-print legal text often gets
+// OCR'd into the ingredient list ("Contiene X 0,3% p/p", "1450 ppm Fluor",
+// "y Calcium…"). These are not INCI ingredients and must be dropped before
+// classification.
+function isRegulatoryChip(raw: string): boolean {
+  const s = raw.toLowerCase();
+  if (s.includes('p/p') || s.includes('ppm')) return true;
+  if (/(contiene|contains|contient)\s+.*(%|ppm|fluor)/i.test(raw)) return true;
+  // Loose conjunctions at the start followed by an uppercase word ("y Calcium…").
+  if (/^(y|and|et|e)\s+[A-ZÁÉÍÓÚÑ]/.test(raw)) return true;
+  return false;
 }
 
 export function flagIngredients(p: ProductData): FlaggedIngredient[] {
@@ -264,7 +283,8 @@ export function flagIngredients(p: ProductData): FlaggedIngredient[] {
     // etc.) — real INCI names never contain a colon. Keep the length cap
     // at 80 to allow long legitimate names like "ACRYLATES/C10-30 ALKYL
     // ACRYLATE CROSSPOLYMER".
-    .filter(s => s.length > 1 && s.length < 80 && !s.includes(':'));
+    .filter(s => s.length > 1 && s.length < 80 && !s.includes(':') && !isRegulatoryChip(s));
+
 
   const seen = new Set<string>();
   const all: string[] = [];
