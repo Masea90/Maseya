@@ -741,6 +741,24 @@ const ResultPage = () => {
         }}
       />
 
+      <Dialog open={showImageLightbox} onOpenChange={setShowImageLightbox}>
+        <DialogContent
+          className="max-w-[95vw] sm:max-w-2xl p-0 bg-transparent border-none shadow-none"
+          onClick={() => setShowImageLightbox(false)}
+        >
+          <DialogHeader className="sr-only">
+            <DialogTitle>{product.name}</DialogTitle>
+          </DialogHeader>
+          {product.image && (
+            <img
+              src={product.image}
+              alt={product.name}
+              className="w-full h-auto max-h-[85vh] object-contain rounded-2xl bg-background"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={showConsentDialog} onOpenChange={setShowConsentDialog}>
         <DialogContent className="max-w-md mx-auto rounded-3xl">
           <DialogHeader>
