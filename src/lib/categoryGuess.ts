@@ -16,6 +16,7 @@ type Category = 'food' | 'cosmetic';
 // Order matters within the outer array: more specific phrases first so
 // "aceite de coco" beats "aceite".
 const COSMETIC_MAP: Array<[string[], string[]]> = [
+  [['higiene intima', 'higiene íntima', 'intimate hygiene', 'intimate wash', 'intimate'], ['en:intimate-hygiene']],
   [['leche limpiadora', 'cleansing milk'], ['en:cleansing-milks', 'en:cleansers']],
   [['limpiador facial', 'facial cleanser', 'face cleanser', 'cleanser', 'limpiador'], ['en:cleansers']],
   [['champu', 'shampoo'], ['en:shampoos', 'en:hair-care']],
@@ -172,6 +173,12 @@ const BROAD_CATEGORY_TAGS = new Set<string>([
   'en:personal-care',
   'en:hygiene',
   'en:hygiene-products',
+  'en:open-beauty-facts',
+  'en:open-food-facts',
+  'en:open-products-facts',
+  'en:open-pet-food-facts',
+  'en:unknown',
+  'en:null',
 ]);
 
 export function isBroadCategoryTag(tag: string | null | undefined): boolean {
