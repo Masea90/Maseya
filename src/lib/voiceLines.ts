@@ -53,8 +53,10 @@ export function getVoiceLine(
   profile: VoiceProfile | null | undefined,
   language: Language,
 ): string | null {
-  // CASO B: producto perfecto
-  if (generalScore === 100) {
+  // CASO B: producto perfecto — solo si TAMBIÉN encaja con el perfil personal.
+  // Si el score personal cae (alergias, embarazo, dieta…), no es un "unicornio"
+  // para esta persona aunque el general sea 100.
+  if (generalScore === 100 && personalScore >= 90) {
     return PERFECT_LINES[language];
   }
 
