@@ -33,7 +33,7 @@ interface Candidate {
 // alternative to a Spanish dairy. Also introduces a hard MIN_SCORE floor
 // so we never recommend a red/regular product as "mejor" (real case: a
 // product scoring 0/100 was offered alternatives at 18/100).
-const CACHE_PREFIX = 'maseya_alts_v9::';
+const CACHE_PREFIX = 'maseya_alts_v10::';
 const FETCH_TIMEOUT_MS = 8000;
 const MIN_SCORE = 50;
 // TODO: derive country from user locale/settings when we expand beyond Spain.
