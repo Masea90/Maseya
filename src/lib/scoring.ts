@@ -683,6 +683,18 @@ export function calculatePersonalScoreBreakdown(
         }
       }
     }
+
+    // Sugar-restrictive diets (no-sugar, keto): penalize added sugars.
+    const noSugar = diets.includes('no-sugar') || diets.includes('keto');
+    if (noSugar) {
+      const sugarTerm = firstTerm(combined, SUGAR_KEYWORDS);
+      const sugarTagHit = catsTags.some(t => t.includes('sugared') || t.includes('sweetened') || t.includes('sugary')) ||
+        p.labels_tags.some(t => t.includes('sugared') || t.includes('sweetened'));
+      if (sugarTerm || sugarTagHit) {
+        const label = diets.includes('keto') ? 'dieta keto' : 'dieta sin azúcar';
+        addNeg(`No apto para tu ${label}: contiene azúcar añadido${sugarTerm ? ` ("${sugarTerm}")` : ''}`, -40);
+      }
+    }
   }
 
   if (isPregnant) {
