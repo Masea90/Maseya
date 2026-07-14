@@ -104,7 +104,7 @@ const ResultPage = () => {
       return;
     }
     let cancelled = false;
-    (async () => {
+    const load = async () => {
       const { data } = await supabase
         .from('health_profiles')
         .select('*')
@@ -127,9 +127,19 @@ const ResultPage = () => {
           if (raw) setHealthProfile(JSON.parse(raw));
         } catch {}
       }
-    })();
-    return () => { cancelled = true; };
+    };
+    load();
+    // Reload when the user updates their profile in another screen — otherwise
+    // an allergy change (e.g. lactose → gluten) doesn't take effect on a
+    // ResultPage that's still mounted from a previous scan.
+    const onUpdated = () => { load(); };
+    window.addEventListener('maseya:profile-updated', onUpdated);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('maseya:profile-updated', onUpdated);
+    };
   }, [currentUser?.id]);
+
 
   useEffect(() => {
     if (!barcode) {

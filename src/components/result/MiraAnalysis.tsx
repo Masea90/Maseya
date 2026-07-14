@@ -60,7 +60,10 @@ export const MiraAnalysis = ({ product, profile, score, hasIngredientData = true
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const startedRef = useRef(false);
+  // Identity of the analysis in flight — resets when the product changes so
+  // navigating to an alternative doesn't keep showing the previous product's
+  // Mira analysis.
+  const startedForRef = useRef<string | null>(null);
 
   // Free basic summary (always available, no AI call). Used as a fallback while
   // the streaming AI response arrives or if it fails.
@@ -71,9 +74,17 @@ export const MiraAnalysis = ({ product, profile, score, hasIngredientData = true
       : 'Análisis general del producto. Activa la personalización para ver si es adecuado para tu perfil.';
 
   useEffect(() => {
-    if (startedRef.current) return;
-    if (!hasIngredientData) return;
-    startedRef.current = true;
+    const identity = `${product.product_name}::${product.ingredients_text || ''}`;
+    if (startedForRef.current === identity) return;
+    if (!hasIngredientData) {
+      startedForRef.current = identity;
+      setText('');
+      setLoading(false);
+      setError(null);
+      return;
+    }
+    startedForRef.current = identity;
+    let cancelled = false;
     setLoading(true);
     setText('');
     setError(null);
@@ -91,8 +102,9 @@ export const MiraAnalysis = ({ product, profile, score, hasIngredientData = true
           },
           body: JSON.stringify({ product, profile, score }),
         });
+        if (cancelled) return;
         if (!res.ok || !res.body) {
-          setError(null); // silently fall back to basic summary
+          setError(null);
           setLoading(false);
           return;
         }
@@ -102,6 +114,7 @@ export const MiraAnalysis = ({ product, profile, score, hasIngredientData = true
         let acc = '';
         while (true) {
           const { done, value } = await reader.read();
+          if (cancelled) { try { await reader.cancel(); } catch {} return; }
           if (done) break;
           buf += decoder.decode(value, { stream: true });
           const lines = buf.split('\n');
@@ -121,13 +134,15 @@ export const MiraAnalysis = ({ product, profile, score, hasIngredientData = true
             } catch {}
           }
         }
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       } catch (e) {
+        if (cancelled) return;
         console.error('[mira] stream error', e);
         setError(null);
         setLoading(false);
       }
     })();
+    return () => { cancelled = true; };
   }, [product, profile, score, hasIngredientData]);
 
   const displayText = text || basicSummary;
