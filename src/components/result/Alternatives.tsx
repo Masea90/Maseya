@@ -228,11 +228,20 @@ export const Alternatives = ({ current, currentScore }: Props) => {
         const seenTags = new Set<string>();
         const pushTag = (t: string | null | undefined) => {
           if (!t || seenTags.has(t)) return;
+          if (isBroadCategoryTag(t)) return;
           seenTags.add(t);
           tagCandidates.push(t);
         };
         for (const t of rawCategoryTags) pushTag(t);
         for (const t of guessedCategoryTags) pushTag(t);
+
+        // Triple guardrail (a): if no specific tag survives the blocklist, we
+        // have no way to find similar products. Bail out — better nothing
+        // than surfacing a toothpaste as an alternative to intimate wash.
+        if (tagCandidates.length === 0) {
+          if (!cancelled) setItems([]);
+          return;
+        }
 
         const attempts: string[] = tagCandidates.map(buildUrl);
 
