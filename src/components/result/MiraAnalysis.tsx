@@ -60,7 +60,10 @@ export const MiraAnalysis = ({ product, profile, score, hasIngredientData = true
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const startedRef = useRef(false);
+  // Identity of the analysis in flight — resets when the product changes so
+  // navigating to an alternative doesn't keep showing the previous product's
+  // Mira analysis.
+  const startedForRef = useRef<string | null>(null);
 
   // Free basic summary (always available, no AI call). Used as a fallback while
   // the streaming AI response arrives or if it fails.
@@ -71,9 +74,17 @@ export const MiraAnalysis = ({ product, profile, score, hasIngredientData = true
       : 'Análisis general del producto. Activa la personalización para ver si es adecuado para tu perfil.';
 
   useEffect(() => {
-    if (startedRef.current) return;
-    if (!hasIngredientData) return;
-    startedRef.current = true;
+    const identity = `${product.product_name}::${product.ingredients_text || ''}`;
+    if (startedForRef.current === identity) return;
+    if (!hasIngredientData) {
+      startedForRef.current = identity;
+      setText('');
+      setLoading(false);
+      setError(null);
+      return;
+    }
+    startedForRef.current = identity;
+    let cancelled = false;
     setLoading(true);
     setText('');
     setError(null);
