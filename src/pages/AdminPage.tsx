@@ -13,6 +13,31 @@ import {
 } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+
+type FeedbackRow = {
+  id: string;
+  created_at: string;
+  type: string;
+  email: string | null;
+  user_id: string | null;
+  nickname: string | null;
+  message: string | null;
+  context: Record<string, unknown> | null;
+  resolved: boolean;
+  resolution_notes: string | null;
+  resolved_at: string | null;
+};
+type UserRow = {
+  user_id: string;
+  nickname: string | null;
+  email: string | null;
+  created_at: string;
+  last_sign_in_at: string | null;
+  scan_count: number;
+  is_admin: boolean;
+};
 
 type LogEntry = { ts: string; text: string };
 type Stats = {
@@ -89,12 +114,32 @@ export default function AdminPage() {
   const [autoStatus, setAutoStatus] = useState<string>('');
   const [autoProgress, setAutoProgress] = useState(0);
   const [autoTotalImported, setAutoTotalImported] = useState(0);
+  const [openFeedback, setOpenFeedback] = useState<FeedbackRow[]>([]);
+  const [archivedFeedback, setArchivedFeedback] = useState<FeedbackRow[]>([]);
+  const [users, setUsers] = useState<UserRow[]>([]);
+  const [userSearch, setUserSearch] = useState('');
+  const [resolveDraft, setResolveDraft] = useState<Record<string, string>>({});
+  const [similar, setSimilar] = useState<Record<string, FeedbackRow[]>>({});
 
   const refreshCount = async () => {
     const { count } = await supabase
       .from('maseya_products')
       .select('*', { count: 'exact', head: true });
     setProductCount(count ?? 0);
+  };
+
+  const loadFeedback = async () => {
+    const [op, ar] = await Promise.all([
+      supabase.rpc('admin_recent_feedback', { p_resolved: false, p_limit: 50 }),
+      supabase.rpc('admin_recent_feedback', { p_resolved: true, p_limit: 50 }),
+    ]);
+    if (op.data) setOpenFeedback(op.data as FeedbackRow[]);
+    if (ar.data) setArchivedFeedback(ar.data as FeedbackRow[]);
+  };
+
+  const loadUsers = async (search?: string) => {
+    const { data } = await supabase.rpc('admin_users_list', { p_limit: 100, p_search: search || null });
+    if (data) setUsers(data as UserRow[]);
   };
 
   const loadDashboard = async () => {
@@ -108,7 +153,44 @@ export default function AdminPage() {
     if (sc.data) setRecentScans(sc.data as RecentScan[]);
     if (rp.data) setRecentProducts(rp.data as RecentProduct[]);
     if (au.data) setActiveUsers(au.data as ActiveUser[]);
+    await loadFeedback();
+    await loadUsers();
   };
+
+  const resolveFeedback = async (id: string) => {
+    const notes = resolveDraft[id]?.trim();
+    if (!notes) {
+      toast({ title: 'Falta la nota', description: 'Escribe qué se hizo o qué falló.', variant: 'destructive' });
+      return;
+    }
+    const { error } = await supabase.rpc('admin_resolve_feedback', { p_id: id, p_notes: notes, p_resolved: true });
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      return;
+    }
+    setResolveDraft((d) => { const n = { ...d }; delete n[id]; return n; });
+    await loadFeedback();
+  };
+
+  const reopenFeedback = async (id: string) => {
+    const { error } = await supabase.rpc('admin_resolve_feedback', { p_id: id, p_notes: null as unknown as string, p_resolved: false });
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      return;
+    }
+    await loadFeedback();
+  };
+
+  const showSimilar = async (fb: FeedbackRow) => {
+    const barcode = (fb.context as { barcode?: string } | null)?.barcode;
+    if (!barcode) {
+      toast({ title: 'Sin barcode', description: 'Este feedback no está atado a un producto.' });
+      return;
+    }
+    const { data } = await supabase.rpc('admin_recent_feedback', { p_resolved: true, p_limit: 20, p_barcode: barcode });
+    setSimilar((s) => ({ ...s, [fb.id]: (data as FeedbackRow[]) || [] }));
+  };
+
 
   useEffect(() => {
     if (!currentUser?.id) return;
@@ -226,6 +308,161 @@ export default function AdminPage() {
             🔄 Refrescar
           </Button>
         </div>
+
+        {/* Feedback abierto */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">💬 Feedback abierto ({openFeedback.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {openFeedback.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Sin feedback pendiente.</p>
+            ) : (
+              <ul className="space-y-3 max-h-[500px] overflow-auto">
+                {openFeedback.map((f) => {
+                  const ctx = (f.context || {}) as { barcode?: string; product_name?: string; route?: string; score_general?: number; score_personal?: number; from?: string };
+                  return (
+                    <li key={f.id} className="border border-border rounded-lg p-3 space-y-2">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <p className="text-xs text-muted-foreground">
+                          {f.nickname || f.email || (f.user_id ? f.user_id.slice(0, 8) : 'anónimo')} · {fmtTime(f.created_at)}
+                        </p>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted">{f.type}</span>
+                      </div>
+                      {(ctx.product_name || ctx.barcode) && (
+                        <div className="text-xs bg-primary/5 rounded px-2 py-1">
+                          <p className="font-medium truncate">📦 {ctx.product_name || ctx.barcode}</p>
+                          {ctx.barcode && ctx.product_name && (
+                            <p className="text-[10px] font-mono text-muted-foreground">{ctx.barcode}</p>
+                          )}
+                          {(ctx.score_general !== undefined || ctx.score_personal !== undefined) && (
+                            <p className="text-[10px] text-muted-foreground">
+                              General {ctx.score_general ?? '—'} · Personal {ctx.score_personal ?? '—'}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                      {f.message && <p className="text-sm whitespace-pre-wrap">{f.message}</p>}
+                      <div className="flex flex-col gap-2 pt-1">
+                        <Textarea
+                          rows={2}
+                          placeholder="Qué se hizo / qué falló / commit…"
+                          value={resolveDraft[f.id] || ''}
+                          onChange={(e) => setResolveDraft((d) => ({ ...d, [f.id]: e.target.value }))}
+                          className="text-xs rounded-lg"
+                        />
+                        <div className="flex gap-2">
+                          <Button size="sm" className="flex-1" onClick={() => resolveFeedback(f.id)}>
+                            ✅ Archivar
+                          </Button>
+                          {ctx.barcode && (
+                            <Button size="sm" variant="outline" onClick={() => showSimilar(f)}>
+                              🔎 Similares
+                            </Button>
+                          )}
+                        </div>
+                        {similar[f.id] && (
+                          <div className="text-xs bg-muted/50 rounded p-2 space-y-1">
+                            <p className="font-medium">Feedback previo sobre este barcode ({similar[f.id].length}):</p>
+                            {similar[f.id].length === 0 ? (
+                              <p className="text-muted-foreground">Ninguno.</p>
+                            ) : similar[f.id].map((s) => (
+                              <div key={s.id} className="border-t border-border pt-1">
+                                <p className="italic truncate">"{s.message}"</p>
+                                <p className="text-[10px] text-muted-foreground">→ {s.resolution_notes || '(sin nota)'}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Archivo de feedback resuelto */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">🗄️ Feedback archivado ({archivedFeedback.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {archivedFeedback.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Aún nada archivado.</p>
+            ) : (
+              <ul className="space-y-2 max-h-[400px] overflow-auto">
+                {archivedFeedback.map((f) => {
+                  const ctx = (f.context || {}) as { barcode?: string; product_name?: string };
+                  return (
+                    <li key={f.id} className="text-xs border-b border-border pb-2 space-y-1">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <p className="font-medium truncate">
+                          {ctx.product_name || ctx.barcode || '(sin producto)'}
+                        </p>
+                        <span className="text-[10px] text-muted-foreground shrink-0">{fmtTime(f.resolved_at || f.created_at)}</span>
+                      </div>
+                      {f.message && <p className="italic text-muted-foreground truncate">"{f.message}"</p>}
+                      {f.resolution_notes && (
+                        <p className="text-[11px] text-foreground bg-primary/5 rounded px-2 py-1">
+                          ✔ {f.resolution_notes}
+                        </p>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => reopenFeedback(f.id)}
+                        className="text-[10px] text-muted-foreground underline"
+                      >
+                        Reabrir
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Usuarios registrados */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">👤 Usuarios registrados ({users.length})</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Buscar por email o nickname"
+                value={userSearch}
+                onChange={(e) => setUserSearch(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') loadUsers(userSearch); }}
+                className="text-sm rounded-lg"
+              />
+              <Button size="sm" variant="outline" onClick={() => loadUsers(userSearch)}>Buscar</Button>
+            </div>
+            {users.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Sin usuarios.</p>
+            ) : (
+              <ul className="space-y-2 max-h-[400px] overflow-auto">
+                {users.map((u) => (
+                  <li key={u.user_id} className="text-xs border-b border-border pb-1.5">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <p className="font-medium truncate">
+                        {u.nickname || '(sin nick)'} {u.is_admin && <span className="text-[10px] px-1 rounded bg-primary/15 text-primary">admin</span>}
+                      </p>
+                      <span className="text-[10px] text-muted-foreground shrink-0">{fmtTime(u.created_at)}</span>
+                    </div>
+                    <p className="text-muted-foreground truncate">{u.email}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {u.scan_count} scans · último acceso {u.last_sign_in_at ? fmtTime(u.last_sign_in_at) : '—'}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
 
         {/* Active users */}
         <Card>

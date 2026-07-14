@@ -22,6 +22,10 @@ export type Database = {
           id: string
           message: string | null
           rating: string | null
+          resolution_notes: string | null
+          resolved: boolean
+          resolved_at: string | null
+          resolved_by: string | null
           type: string
           user_id: string | null
         }
@@ -32,6 +36,10 @@ export type Database = {
           id?: string
           message?: string | null
           rating?: string | null
+          resolution_notes?: string | null
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
           type: string
           user_id?: string | null
         }
@@ -42,6 +50,10 @@ export type Database = {
           id?: string
           message?: string | null
           rating?: string | null
+          resolution_notes?: string | null
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
           type?: string
           user_id?: string | null
         }
@@ -492,6 +504,22 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_recent_feedback: {
+        Args: { p_barcode?: string; p_limit?: number; p_resolved?: boolean }
+        Returns: {
+          context: Json
+          created_at: string
+          email: string
+          id: string
+          message: string
+          nickname: string
+          resolution_notes: string
+          resolved: boolean
+          resolved_at: string
+          type: string
+          user_id: string
+        }[]
+      }
       admin_recent_products: {
         Args: { p_limit?: number }
         Returns: {
@@ -517,6 +545,10 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_resolve_feedback: {
+        Args: { p_id: string; p_notes: string; p_resolved?: boolean }
+        Returns: undefined
+      }
       admin_stats: {
         Args: never
         Returns: {
@@ -526,6 +558,18 @@ export type Database = {
           total_products: number
           total_scans: number
           total_users: number
+        }[]
+      }
+      admin_users_list: {
+        Args: { p_limit?: number; p_search?: string }
+        Returns: {
+          created_at: string
+          email: string
+          is_admin: boolean
+          last_sign_in_at: string
+          nickname: string
+          scan_count: number
+          user_id: string
         }[]
       }
       get_public_profile: {
