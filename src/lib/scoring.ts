@@ -279,7 +279,7 @@ function isRegulatoryChip(raw: string): boolean {
 // niños", "@Limpieza suave y duradera"). These are NOT INCI names. Long
 // legitimate INCI (Acrylates/C10-30 Alkyl Acrylate Crosspolymer, Calcium
 // Sodium Phosphosilicate) stay under the 5-word cap.
-const INSTRUCTION_RE = /\b(aplicar|aplique|aplica|realizar|realice|realiza|enjuagar|enjuague|enxaguar|aclarar|aclare|rinse|evitar|evite|avoid|mantener|mantenga|mantengase|mantenha|keep out|uso externo|external use|contacto con los ojos|alcance de los ni[nñ]os|reach of children)\b/i;
+const INSTRUCTION_RE = /\b(aplicar|aplique|aplica|realizar|realice|realiza|enjuagar|enjuague|enxaguar|aclarar|aclare|rinse|evitar|evite|avoid|mantener|mantenga|mantengase|mantenha|keep out|uso externo|external use|contacto con los ojos|alcance de los ni[nñ]os|reach of children|limpieza|limpeza|duradera|duradoura|precauciones|precauco[eé]s|ingerir|f[oó]rmula|formula)\b/i;
 function isInstructionChip(raw: string): boolean {
   const s = raw.trim();
   if (!s) return true;
