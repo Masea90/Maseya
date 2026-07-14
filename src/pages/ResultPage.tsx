@@ -32,6 +32,8 @@ import { HeartPulse } from 'lucide-react';
 const ResultPage = () => {
   const { barcode } = useParams<{ barcode: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const skipHistory = (location.state as { skipHistory?: boolean } | null)?.skipHistory === true;
   const { isAuthenticated, currentUser } = useAuth();
   const { user } = useUser();
   
@@ -233,6 +235,7 @@ const ResultPage = () => {
   const persistedRef = useRef<string | null>(null);
   useEffect(() => {
     if (!product) return;
+    if (skipHistory) return;
     // Wait until we know the auth state (avoids racing anon-vs-authed writes).
     if (isAuthenticated && !currentUser?.id) return;
     const key = `${product.barcode}::${isAuthenticated ? currentUser?.id : 'anon'}`;
@@ -263,22 +266,16 @@ const ResultPage = () => {
       const ck = 'maseya_anon_scans';
       const count = Number(localStorage.getItem(ck) || '0') + 1;
       localStorage.setItem(ck, String(count));
-      // Anonymous users: prompt registration from the 5th scan onwards, but
-      // don't spam — only show once every 24h so the user can keep browsing
-      // if they dismissed it.
       if (count >= 5) {
         const lastShown = Number(localStorage.getItem('maseya_regsheet_shown_at') || '0');
         const dayMs = 24 * 60 * 60 * 1000;
         if (Date.now() - lastShown > dayMs) {
           localStorage.setItem('maseya_regsheet_shown_at', String(Date.now()));
-          // Defer to next tick so the result page has painted first — some
-          // browsers otherwise skip the sheet's enter animation and it appears
-          // to never open.
           setTimeout(() => setShowSheet(true), 400);
         }
       }
     }
-  }, [product, isAuthenticated, currentUser?.id]);
+  }, [product, isAuthenticated, currentUser?.id, skipHistory]);
 
 
   if (loading) {
@@ -345,9 +342,13 @@ const ResultPage = () => {
   // mono-ingredient (coconut oil, honey, salt, rice, legumes) — the old
   // `flagged.length >= 3` heuristic wrongly hid them.
   const rawText = (product.ingredients_text || '').trim();
-  const hasIngredientData =
-    flagged.length >= 1 ||
-    (rawText.length > 0 && !isNutritionalData(rawText));
+  // Cosmetic products need at least 3 real INCI segments to render a score;
+  // otherwise we'd inflate ratings for empty/noise ingredient lists (see food
+  // "Datos insuficientes" fallback). Food keeps the looser rule because
+  // nutriscore alone can support a score.
+  const hasIngredientData = product.category === 'cosmetic'
+    ? flagged.length >= 3
+    : (flagged.length >= 1 || (rawText.length > 0 && !isNutritionalData(rawText)));
   const hasNutriscore = product.category === 'food' && !!product.nutriscore_grade;
   const showScore = product.category === 'cosmetic'
     ? hasIngredientData

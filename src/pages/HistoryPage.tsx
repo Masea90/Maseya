@@ -260,6 +260,7 @@ const HistoryPage = () => {
             >
               <Link
                 to={s.barcode ? `/result/${encodeURIComponent(s.barcode)}` : '#'}
+                state={{ skipHistory: true }}
                 className="flex-1 flex gap-3 items-center min-w-0"
               >
                 {s.product_image ? (
