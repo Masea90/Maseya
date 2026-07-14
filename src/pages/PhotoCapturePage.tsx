@@ -12,15 +12,16 @@ import { Button } from '@/components/ui/button';
  * so EXIF-rotated photos from the native camera don't come out sideways.
  * Falls back to an <img> element on browsers without support.
  */
-async function fileToResizedDataUrl(file: File | Blob, maxSide = 1600, quality = 0.8): Promise<string | null> {
+async function fileToResizedDataUrl(
+  file: File | Blob,
+  opts: { maxSide?: number; quality?: number; square?: boolean } = {},
+): Promise<string | null> {
+  const { maxSide = 1600, quality = 0.88, square = false } = opts;
   try {
     let width = 0, height = 0;
     let source: CanvasImageSource | null = null;
 
-    const supportsBitmapOrientation =
-      typeof createImageBitmap === 'function' &&
-      // Feature-detect the options overload; older Safari accepts createImageBitmap but ignores options.
-      true;
+    const supportsBitmapOrientation = typeof createImageBitmap === 'function';
 
     if (supportsBitmapOrientation) {
       try {
@@ -46,30 +47,46 @@ async function fileToResizedDataUrl(file: File | Blob, maxSide = 1600, quality =
         width = img.naturalWidth;
         height = img.naturalHeight;
       } finally {
-        // Revoke after draw completes below.
         setTimeout(() => URL.revokeObjectURL(url), 0);
       }
     }
 
     if (!width || !height) return null;
-    const longest = Math.max(width, height);
-    const scale = longest > maxSide ? maxSide / longest : 1;
-    const outW = Math.round(width * scale);
-    const outH = Math.round(height * scale);
+
+    // Square center-crop for product front photos so they look "cuadraditas"
+    // consistently in cards and grids regardless of the phone's aspect ratio.
+    let sx = 0, sy = 0, sW = width, sH = height, outW: number, outH: number;
+    if (square) {
+      const side = Math.min(width, height);
+      sx = Math.round((width - side) / 2);
+      sy = Math.round((height - side) / 2);
+      sW = side;
+      sH = side;
+      const out = Math.min(side, maxSide);
+      outW = out;
+      outH = out;
+    } else {
+      const longest = Math.max(width, height);
+      const scale = longest > maxSide ? maxSide / longest : 1;
+      outW = Math.round(width * scale);
+      outH = Math.round(height * scale);
+    }
 
     const canvas = document.createElement('canvas');
     canvas.width = outW;
     canvas.height = outH;
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
+    ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(source, 0, 0, outW, outH);
+    ctx.drawImage(source, sx, sy, sW, sH, 0, 0, outW, outH);
     return canvas.toDataURL('image/jpeg', quality);
   } catch (e) {
     console.error('[photo-capture] resize failed', e);
     return null;
   }
 }
+
 
 
 const COPY = {
