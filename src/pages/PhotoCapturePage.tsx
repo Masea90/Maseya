@@ -233,7 +233,7 @@ const PhotoCapturePage = () => {
     if (!file) return;
     setProcessing(true);
     try {
-      const dataUrl = await fileToResizedDataUrl(file);
+      const dataUrl = await fileToResizedDataUrl(file, { square: step === 'front' });
       if (dataUrl) setPreview(dataUrl);
     } finally {
       setProcessing(false);
