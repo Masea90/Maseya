@@ -73,9 +73,17 @@ export const MiraAnalysis = ({ product, profile, score, hasIngredientData = true
       ? buildBasicSummary(product, profile, score)
       : 'Análisis general del producto. Activa la personalización para ver si es adecuado para tu perfil.';
 
+  // Track cancellation per identity so a parent re-render (which creates new
+  // `product`/`profile` object refs) does NOT kill an in-flight Mira stream.
+  const cancelRef = useRef<{ id: string; cancel: () => void } | null>(null);
+
   useEffect(() => {
     const identity = `${product.product_name}::${product.ingredients_text || ''}`;
     if (startedForRef.current === identity) return;
+
+    // New identity → cancel any previous stream, then start a fresh one.
+    cancelRef.current?.cancel();
+
     if (!hasIngredientData) {
       startedForRef.current = identity;
       setText('');
@@ -85,6 +93,7 @@ export const MiraAnalysis = ({ product, profile, score, hasIngredientData = true
     }
     startedForRef.current = identity;
     let cancelled = false;
+    cancelRef.current = { id: identity, cancel: () => { cancelled = true; } };
     setLoading(true);
     setText('');
     setError(null);
@@ -142,7 +151,9 @@ export const MiraAnalysis = ({ product, profile, score, hasIngredientData = true
         setLoading(false);
       }
     })();
-    return () => { cancelled = true; };
+    // NOTE: no cleanup that unconditionally cancels — a parent re-render
+    // must not abort an in-flight analysis. Cancellation happens above only
+    // when the product identity actually changes.
   }, [product, profile, score, hasIngredientData]);
 
   const displayText = text || basicSummary;
