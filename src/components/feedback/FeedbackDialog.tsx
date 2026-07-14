@@ -134,6 +134,19 @@ export const FeedbackDialog = ({ open, onOpenChange, extraContext }: FeedbackDia
           <DialogTitle className="font-display">{c.title}</DialogTitle>
           <DialogDescription>{c.subtitle}</DialogDescription>
         </DialogHeader>
+        {(extraContext?.product_name || extraContext?.barcode) && (
+          <div className="rounded-xl border border-border bg-muted/40 px-3 py-2 text-xs">
+            <p className="text-muted-foreground">
+              {lang === 'en' ? 'Feedback about this product:' : lang === 'fr' ? 'Retour sur ce produit :' : 'Feedback sobre este producto:'}
+            </p>
+            <p className="font-medium text-foreground truncate">
+              {String(extraContext.product_name || extraContext.barcode)}
+            </p>
+            {extraContext.barcode && extraContext.product_name && (
+              <p className="text-[10px] text-muted-foreground font-mono">{String(extraContext.barcode)}</p>
+            )}
+          </div>
+        )}
         <div className="space-y-3">
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground">{c.messageLabel}</label>
