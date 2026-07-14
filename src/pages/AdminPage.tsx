@@ -114,12 +114,32 @@ export default function AdminPage() {
   const [autoStatus, setAutoStatus] = useState<string>('');
   const [autoProgress, setAutoProgress] = useState(0);
   const [autoTotalImported, setAutoTotalImported] = useState(0);
+  const [openFeedback, setOpenFeedback] = useState<FeedbackRow[]>([]);
+  const [archivedFeedback, setArchivedFeedback] = useState<FeedbackRow[]>([]);
+  const [users, setUsers] = useState<UserRow[]>([]);
+  const [userSearch, setUserSearch] = useState('');
+  const [resolveDraft, setResolveDraft] = useState<Record<string, string>>({});
+  const [similar, setSimilar] = useState<Record<string, FeedbackRow[]>>({});
 
   const refreshCount = async () => {
     const { count } = await supabase
       .from('maseya_products')
       .select('*', { count: 'exact', head: true });
     setProductCount(count ?? 0);
+  };
+
+  const loadFeedback = async () => {
+    const [op, ar] = await Promise.all([
+      supabase.rpc('admin_recent_feedback', { p_resolved: false, p_limit: 50 }),
+      supabase.rpc('admin_recent_feedback', { p_resolved: true, p_limit: 50 }),
+    ]);
+    if (op.data) setOpenFeedback(op.data as FeedbackRow[]);
+    if (ar.data) setArchivedFeedback(ar.data as FeedbackRow[]);
+  };
+
+  const loadUsers = async (search?: string) => {
+    const { data } = await supabase.rpc('admin_users_list', { p_limit: 100, p_search: search || null });
+    if (data) setUsers(data as UserRow[]);
   };
 
   const loadDashboard = async () => {
@@ -133,7 +153,44 @@ export default function AdminPage() {
     if (sc.data) setRecentScans(sc.data as RecentScan[]);
     if (rp.data) setRecentProducts(rp.data as RecentProduct[]);
     if (au.data) setActiveUsers(au.data as ActiveUser[]);
+    await loadFeedback();
+    await loadUsers();
   };
+
+  const resolveFeedback = async (id: string) => {
+    const notes = resolveDraft[id]?.trim();
+    if (!notes) {
+      toast({ title: 'Falta la nota', description: 'Escribe qué se hizo o qué falló.', variant: 'destructive' });
+      return;
+    }
+    const { error } = await supabase.rpc('admin_resolve_feedback', { p_id: id, p_notes: notes, p_resolved: true });
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      return;
+    }
+    setResolveDraft((d) => { const n = { ...d }; delete n[id]; return n; });
+    await loadFeedback();
+  };
+
+  const reopenFeedback = async (id: string) => {
+    const { error } = await supabase.rpc('admin_resolve_feedback', { p_id: id, p_notes: null as unknown as string, p_resolved: false });
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      return;
+    }
+    await loadFeedback();
+  };
+
+  const showSimilar = async (fb: FeedbackRow) => {
+    const barcode = (fb.context as { barcode?: string } | null)?.barcode;
+    if (!barcode) {
+      toast({ title: 'Sin barcode', description: 'Este feedback no está atado a un producto.' });
+      return;
+    }
+    const { data } = await supabase.rpc('admin_recent_feedback', { p_resolved: true, p_limit: 20, p_barcode: barcode });
+    setSimilar((s) => ({ ...s, [fb.id]: (data as FeedbackRow[]) || [] }));
+  };
+
 
   useEffect(() => {
     if (!currentUser?.id) return;
