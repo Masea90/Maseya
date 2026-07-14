@@ -168,6 +168,10 @@ const BROAD_CATEGORY_TAGS = new Set<string>([
   'en:skin-care',
   'en:hair-care',
   'en:body-care',
+  'en:bodycare',
+  'en:personal-care',
+  'en:hygiene',
+  'en:hygiene-products',
 ]);
 
 export function isBroadCategoryTag(tag: string | null | undefined): boolean {

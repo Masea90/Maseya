@@ -274,6 +274,23 @@ function isRegulatoryChip(raw: string): boolean {
   return false;
 }
 
+// Instruction / marketing sentences that OCR often blends into the ingredient
+// list ("Realizar un ligero masaje", "Manténgase fuera del alcance de los
+// niños", "@Limpieza suave y duradera"). These are NOT INCI names. Long
+// legitimate INCI (Acrylates/C10-30 Alkyl Acrylate Crosspolymer, Calcium
+// Sodium Phosphosilicate) stay under the 5-word cap.
+const INSTRUCTION_RE = /\b(aplicar|aplique|aplica|realizar|realice|realiza|enjuagar|enjuague|enxaguar|aclarar|aclare|rinse|evitar|evite|avoid|mantener|mantenga|mantengase|mantenha|keep out|uso externo|external use|contacto con los ojos|alcance de los ni[nñ]os|reach of children)\b/i;
+function isInstructionChip(raw: string): boolean {
+  const s = raw.trim();
+  if (!s) return true;
+  if (s.startsWith('@') || s.startsWith('#')) return true;
+  const words = s.split(/\s+/).filter(Boolean);
+  if (words.length > 5) return true;
+  const nrm = stripDiacritics(s.toLowerCase());
+  if (INSTRUCTION_RE.test(nrm)) return true;
+  return false;
+}
+
 export function flagIngredients(p: ProductData): FlaggedIngredient[] {
   if (isNutritionalData(p.ingredients_text)) return [];
   const fromTags = p.ingredients_tags
@@ -283,11 +300,7 @@ export function flagIngredients(p: ProductData): FlaggedIngredient[] {
   const fromText = cleanedText
     .split(/[,;()\n\r]/)
     .map(s => s.trim())
-    // Drop label/instruction segments ("TIPO DE PELE:", "MODO DE USO:",
-    // etc.) — real INCI names never contain a colon. Keep the length cap
-    // at 80 to allow long legitimate names like "ACRYLATES/C10-30 ALKYL
-    // ACRYLATE CROSSPOLYMER".
-    .filter(s => s.length > 1 && s.length < 80 && !s.includes(':') && !isRegulatoryChip(s));
+    .filter(s => s.length > 1 && s.length < 80 && !s.includes(':') && !isRegulatoryChip(s) && !isInstructionChip(s));
 
 
   const seen = new Set<string>();

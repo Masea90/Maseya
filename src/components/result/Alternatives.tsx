@@ -228,11 +228,20 @@ export const Alternatives = ({ current, currentScore }: Props) => {
         const seenTags = new Set<string>();
         const pushTag = (t: string | null | undefined) => {
           if (!t || seenTags.has(t)) return;
+          if (isBroadCategoryTag(t)) return;
           seenTags.add(t);
           tagCandidates.push(t);
         };
         for (const t of rawCategoryTags) pushTag(t);
         for (const t of guessedCategoryTags) pushTag(t);
+
+        // Triple guardrail (a): if no specific tag survives the blocklist, we
+        // have no way to find similar products. Bail out — better nothing
+        // than surfacing a toothpaste as an alternative to intimate wash.
+        if (tagCandidates.length === 0) {
+          if (!cancelled) setItems([]);
+          return;
+        }
 
         const attempts: string[] = tagCandidates.map(buildUrl);
 
@@ -266,14 +275,23 @@ export const Alternatives = ({ current, currentScore }: Props) => {
         const addCandidate = (pd: ProductData | null) => {
           if (!pd) return;
           if (!pd.barcode || seenCodes.has(pd.barcode)) return;
-          if (!pd.ingredients_text && !pd.nutriscore_grade) return;
+          // Data floor per candidate: food needs a nutriscore, cosmetic needs
+          // at least 3 parseable ingredients. Prevents empty "shell" entries
+          // from scoring 100 and drowning real products.
+          const candidateFlagged = flagIngredients(pd);
+          if (pd.category === 'food') {
+            if (!pd.nutriscore_grade) return;
+          } else if (pd.category === 'cosmetic') {
+            if (candidateFlagged.length < 3) return;
+          } else {
+            if (!pd.ingredients_text && !pd.nutriscore_grade) return;
+          }
           seenCodes.add(pd.barcode);
-          const flagged = flagIngredients(pd);
-          const general = calculateScore(pd, flagged);
+          const general = calculateScore(pd, candidateFlagged);
           const score = consent && profile
-            ? calculatePersonalScore(pd, flagged, profile, general)
+            ? calculatePersonalScore(pd, candidateFlagged, profile, general)
             : general;
-          scored.push({ data: pd, score, label: scoreLabel(score), flagged });
+          scored.push({ data: pd, score, label: scoreLabel(score), flagged: candidateFlagged });
         };
 
         for (const raw of products) {
@@ -370,7 +388,7 @@ export const Alternatives = ({ current, currentScore }: Props) => {
           return (
             <button
               key={data.barcode}
-              onClick={() => navigate(`/result/${data.barcode}`)}
+              onClick={() => navigate(`/result/${data.barcode}`, { state: { skipHistory: true } })}
               className="w-full flex items-center gap-3 rounded-2xl border border-border bg-card p-3 text-left hover:bg-muted/40 transition-colors"
             >
               {data.image ? (
