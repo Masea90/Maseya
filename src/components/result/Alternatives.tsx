@@ -388,7 +388,7 @@ export const Alternatives = ({ current, currentScore }: Props) => {
           return (
             <button
               key={data.barcode}
-              onClick={() => navigate(`/result/${data.barcode}`)}
+              onClick={() => navigate(`/result/${data.barcode}`, { state: { skipHistory: true } })}
               className="w-full flex items-center gap-3 rounded-2xl border border-border bg-card p-3 text-left hover:bg-muted/40 transition-colors"
             >
               {data.image ? (
