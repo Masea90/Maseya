@@ -52,6 +52,7 @@ const ResultPage = () => {
   const [healthConsent, setHealthConsent] = useState<boolean>(() => hasHealthDataConsent());
   const [showConsentDialog, setShowConsentDialog] = useState(false);
   const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
+  const [showImageLightbox, setShowImageLightbox] = useState(false);
 
   // Re-evaluate consent when auth hydrates (DB→localStorage sync from AuthContext)
   // or when the user grants it in another tab/component.
