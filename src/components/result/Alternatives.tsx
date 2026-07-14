@@ -275,14 +275,23 @@ export const Alternatives = ({ current, currentScore }: Props) => {
         const addCandidate = (pd: ProductData | null) => {
           if (!pd) return;
           if (!pd.barcode || seenCodes.has(pd.barcode)) return;
-          if (!pd.ingredients_text && !pd.nutriscore_grade) return;
+          // Data floor per candidate: food needs a nutriscore, cosmetic needs
+          // at least 3 parseable ingredients. Prevents empty "shell" entries
+          // from scoring 100 and drowning real products.
+          const candidateFlagged = flagIngredients(pd);
+          if (pd.category === 'food') {
+            if (!pd.nutriscore_grade) return;
+          } else if (pd.category === 'cosmetic') {
+            if (candidateFlagged.length < 3) return;
+          } else {
+            if (!pd.ingredients_text && !pd.nutriscore_grade) return;
+          }
           seenCodes.add(pd.barcode);
-          const flagged = flagIngredients(pd);
-          const general = calculateScore(pd, flagged);
+          const general = calculateScore(pd, candidateFlagged);
           const score = consent && profile
-            ? calculatePersonalScore(pd, flagged, profile, general)
+            ? calculatePersonalScore(pd, candidateFlagged, profile, general)
             : general;
-          scored.push({ data: pd, score, label: scoreLabel(score), flagged });
+          scored.push({ data: pd, score, label: scoreLabel(score), flagged: candidateFlagged });
         };
 
         for (const raw of products) {
