@@ -970,6 +970,30 @@ export function personalAlerts(
         text: 'Análisis basado en foto o datos de la comunidad: la información puede estar incompleta. Verifica siempre el envase original.',
       });
     }
+
+    // No-sugar / keto diet alerts
+    const noSugar = diets.includes('no-sugar') || diets.includes('keto');
+    if (noSugar) {
+      const combined = `${rawText} ${rawTagsText}`;
+      const sugarTerm = firstTerm(combined, SUGAR_KEYWORDS);
+      const catsTagsAll = Array.isArray((p.raw as Record<string, unknown> | undefined)?.categories_tags)
+        ? ((p.raw as { categories_tags?: string[] }).categories_tags as string[])
+        : [];
+      const sugarTagHit = catsTagsAll.some(t => t.includes('sugared') || t.includes('sweetened') || t.includes('sugary')) ||
+        p.labels_tags.some(t => t.includes('sugared') || t.includes('sweetened'));
+      const dietLabel = diets.includes('keto') ? 'dieta keto' : 'dieta sin azúcar';
+      if (sugarTerm || sugarTagHit) {
+        alerts.push({
+          level: 'danger',
+          text: `Contiene azúcar añadido — no compatible con tu ${dietLabel}${sugarTerm ? ` (detectado: "${sugarTerm}")` : ''}.`,
+        });
+      } else {
+        alerts.push({
+          level: 'good',
+          text: `Sin azúcares añadidos detectados: compatible con tu ${dietLabel}.`,
+        });
+      }
+    }
   }
 
   return alerts;
