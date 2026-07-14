@@ -52,6 +52,7 @@ const ResultPage = () => {
   const [healthConsent, setHealthConsent] = useState<boolean>(() => hasHealthDataConsent());
   const [showConsentDialog, setShowConsentDialog] = useState(false);
   const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
+  const [showImageLightbox, setShowImageLightbox] = useState(false);
 
   // Re-evaluate consent when auth hydrates (DB→localStorage sync from AuthContext)
   // or when the user grants it in another tab/component.
@@ -392,7 +393,19 @@ const ResultPage = () => {
         {/* Header card */}
         <div className="bg-card rounded-3xl p-5 border border-border flex gap-4">
           {product.image ? (
-            <img src={product.image} alt={product.name} className="w-20 h-20 rounded-2xl object-cover bg-muted" />
+            <button
+              type="button"
+              onClick={() => setShowImageLightbox(true)}
+              className="shrink-0 rounded-2xl overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary/40"
+              aria-label="Ver foto en grande"
+            >
+              <img
+                src={product.image}
+                alt={product.name}
+                loading="lazy"
+                className="w-20 h-20 rounded-2xl object-cover bg-muted transition-transform active:scale-95"
+              />
+            </button>
           ) : (
             <div className="w-20 h-20 rounded-2xl flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10">
               <span className="font-display font-bold text-primary text-2xl">
@@ -727,6 +740,24 @@ const ResultPage = () => {
           from: 'result_page_link',
         }}
       />
+
+      <Dialog open={showImageLightbox} onOpenChange={setShowImageLightbox}>
+        <DialogContent
+          className="max-w-[95vw] sm:max-w-2xl p-0 bg-transparent border-none shadow-none"
+          onClick={() => setShowImageLightbox(false)}
+        >
+          <DialogHeader className="sr-only">
+            <DialogTitle>{product.name}</DialogTitle>
+          </DialogHeader>
+          {product.image && (
+            <img
+              src={product.image}
+              alt={product.name}
+              className="w-full h-auto max-h-[85vh] object-contain rounded-2xl bg-background"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={showConsentDialog} onOpenChange={setShowConsentDialog}>
         <DialogContent className="max-w-md mx-auto rounded-3xl">
