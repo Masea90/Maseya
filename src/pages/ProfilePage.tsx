@@ -176,8 +176,15 @@ const ProfilePage = () => {
         { onConflict: 'user_id' }
       );
     setSaving(false);
-    if (error) toast.error('No se pudo guardar');
-    else toast.success('Perfil actualizado');
+    if (error) {
+      toast.error('No se pudo guardar');
+    } else {
+      toast.success('Perfil actualizado');
+      // Notify other mounted screens (ResultPage, etc.) so they reload the
+      // health profile without a full remount — otherwise a cached score/
+      // alert set can outlive a real allergy change.
+      try { window.dispatchEvent(new CustomEvent('maseya:profile-updated')); } catch {}
+    }
   };
 
   return (
