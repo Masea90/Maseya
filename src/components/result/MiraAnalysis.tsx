@@ -102,8 +102,9 @@ export const MiraAnalysis = ({ product, profile, score, hasIngredientData = true
           },
           body: JSON.stringify({ product, profile, score }),
         });
+        if (cancelled) return;
         if (!res.ok || !res.body) {
-          setError(null); // silently fall back to basic summary
+          setError(null);
           setLoading(false);
           return;
         }
@@ -113,6 +114,7 @@ export const MiraAnalysis = ({ product, profile, score, hasIngredientData = true
         let acc = '';
         while (true) {
           const { done, value } = await reader.read();
+          if (cancelled) { try { await reader.cancel(); } catch {} return; }
           if (done) break;
           buf += decoder.decode(value, { stream: true });
           const lines = buf.split('\n');
@@ -132,13 +134,15 @@ export const MiraAnalysis = ({ product, profile, score, hasIngredientData = true
             } catch {}
           }
         }
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       } catch (e) {
+        if (cancelled) return;
         console.error('[mira] stream error', e);
         setError(null);
         setLoading(false);
       }
     })();
+    return () => { cancelled = true; };
   }, [product, profile, score, hasIngredientData]);
 
   const displayText = text || basicSummary;
