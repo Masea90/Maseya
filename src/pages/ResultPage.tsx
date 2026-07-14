@@ -750,11 +750,13 @@ const ResultPage = () => {
             <DialogTitle>{product.name}</DialogTitle>
           </DialogHeader>
           {product.image && (
-            <img
-              src={product.image}
-              alt={product.name}
-              className="w-full h-auto max-h-[85vh] object-contain rounded-2xl bg-background"
-            />
+            <div className="w-full aspect-square max-h-[85vh] mx-auto overflow-hidden rounded-2xl bg-background">
+              <img
+                src={product.image}
+                alt={product.name}
+                className="w-full h-full object-cover"
+              />
+            </div>
           )}
         </DialogContent>
       </Dialog>
