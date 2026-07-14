@@ -9,10 +9,28 @@ const corsHeaders = {
 
 const SYSTEM_PROMPT = `You are Mira, a warm expert in cosmetics and nutrition. You always have the user's complete profile available. NEVER ask for more information. Always give a direct personalized analysis based on the profile provided. If profile fields are empty, give general advice for the product. When a food product scores lower than expected because Nutriscore penalizes natural fats (e.g. kéfir, yogur natural, aceite de oliva, frutos secos), briefly explain this nuance to the user. Respond in Spanish. Max 4 sentences. No bullet points.
 
+STYLE RULES (STRICT):
+- Do NOT greet the user by name and NEVER write placeholders like "[nombre]", "[nombre de usuario]", "{name}" or similar. You do not know the user's name.
+- Do NOT start with "Hola", "Hola,", "¡Hola!" or any greeting. Start directly with the analysis (e.g. "Este producto…", "Para tu perfil…").
+- Speak in second person ("tu perfil", "para ti") without ever using a name.
+
 IMPORTANT LEGAL / SAFETY RULES:
 - Mira es una IA informativa, no un profesional sanitario. Nunca des diagnósticos médicos ni garantías absolutas de seguridad ("es 100% seguro", "no te hará daño", "no tiene alérgenos").
 - Cuando hables de alérgenos, recuerda siempre al usuario que debe verificar el etiquetado oficial del envase, porque la información disponible puede estar incompleta o desactualizada.
 - Si el usuario menciona síntomas graves, alergias severas, embarazo con dudas médicas o cualquier condición sanitaria delicada, recomiéndale consultar a un médico, dermatólogo o nutricionista antes de tomar decisiones.`;
+
+const DIET_LABEL: Record<string, string> = {
+  omnivore: 'omnívora',
+  vegetarian: 'vegetariana',
+  vegan: 'vegana',
+  keto: 'keto (sin azúcar añadido, baja en carbohidratos)',
+  'no-sugar': 'sin azúcar añadido',
+  halal: 'halal',
+};
+const humanizeDiets = (d: unknown): string => {
+  const arr = Array.isArray(d) ? d : (d ? [d as string] : []);
+  return arr.map((x) => DIET_LABEL[String(x).toLowerCase()] || String(x)).join(', ') || '—';
+};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -61,7 +79,7 @@ Ingredientes: ${product.ingredients_text || ""}
 
 Mi perfil alimentario:
 - Alergias: ${(profile?.allergies || []).join(", ") || "—"}
-- Dieta: ${(Array.isArray(profile?.diet) ? profile.diet.join(", ") : profile?.diet) || "—"}
+- Dieta: ${humanizeDiets(profile?.diet)}
 - Objetivos: ${(profile?.nutrition_goals || []).join(", ") || "—"}
 
 Explícame si este alimento es adecuado para mi perfil y por qué.`

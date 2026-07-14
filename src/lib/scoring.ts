@@ -509,6 +509,18 @@ export interface PersonalProfileLike {
 }
 
 const ANIMAL_KEYWORDS = ['milk', 'lactose', 'whey', 'casein', 'cream', 'egg', 'honey', 'gelatin', 'meat', 'beef', 'pork', 'chicken', 'fish', 'lait', 'leche', 'huevo', 'miel', 'gelatina', 'carne'];
+const SUGAR_KEYWORDS = [
+  'azúcar', 'azucar', 'sugar', 'sucre', 'zucker',
+  'sacarosa', 'sucrose', 'saccharose',
+  'jarabe de glucosa', 'jarabe de maíz', 'jarabe de maiz', 'jarabe de fructosa',
+  'glucose syrup', 'corn syrup', 'high fructose', 'fructose syrup',
+  'glucosa', 'fructosa', 'dextrosa', 'dextrose', 'maltosa', 'maltose', 'lactosa cristalizada',
+  'maltodextrina', 'maltodextrin',
+  'sirope', 'syrup', 'jarabe de agave', 'agave syrup',
+  'miel', 'honey',
+  'melaza', 'molasses',
+  'panela', 'piloncillo', 'azúcar moreno', 'azucar moreno', 'brown sugar', 'azúcar invertido', 'invert sugar',
+];
 const PREGNANCY_RISKY = ['retinol', 'retinyl', 'retinal', 'salicylic acid', 'salicylate', 'hydroquinone', 'formaldehyde', 'phthalate', 'caffeine', 'cafeina'];
 
 /** Flatten a ProductData's tags list into a plain space-separated string. */
@@ -681,6 +693,18 @@ export function calculatePersonalScoreBreakdown(
             tone: 'neutral',
           });
         }
+      }
+    }
+
+    // Sugar-restrictive diets (no-sugar, keto): penalize added sugars.
+    const noSugar = diets.includes('no-sugar') || diets.includes('keto');
+    if (noSugar) {
+      const sugarTerm = firstTerm(combined, SUGAR_KEYWORDS);
+      const sugarTagHit = catsTags.some(t => t.includes('sugared') || t.includes('sweetened') || t.includes('sugary')) ||
+        p.labels_tags.some(t => t.includes('sugared') || t.includes('sweetened'));
+      if (sugarTerm || sugarTagHit) {
+        const label = diets.includes('keto') ? 'dieta keto' : 'dieta sin azúcar';
+        addNeg(`No apto para tu ${label}: contiene azúcar añadido${sugarTerm ? ` ("${sugarTerm}")` : ''}`, -40);
       }
     }
   }
@@ -945,6 +969,30 @@ export function personalAlerts(
         level: 'warn',
         text: 'Análisis basado en foto o datos de la comunidad: la información puede estar incompleta. Verifica siempre el envase original.',
       });
+    }
+
+    // No-sugar / keto diet alerts
+    const noSugar = diets.includes('no-sugar') || diets.includes('keto');
+    if (noSugar) {
+      const combined = `${rawText} ${rawTagsText}`;
+      const sugarTerm = firstTerm(combined, SUGAR_KEYWORDS);
+      const catsTagsAll = Array.isArray((p.raw as Record<string, unknown> | undefined)?.categories_tags)
+        ? ((p.raw as { categories_tags?: string[] }).categories_tags as string[])
+        : [];
+      const sugarTagHit = catsTagsAll.some(t => t.includes('sugared') || t.includes('sweetened') || t.includes('sugary')) ||
+        p.labels_tags.some(t => t.includes('sugared') || t.includes('sweetened'));
+      const dietLabel = diets.includes('keto') ? 'dieta keto' : 'dieta sin azúcar';
+      if (sugarTerm || sugarTagHit) {
+        alerts.push({
+          level: 'danger',
+          text: `Contiene azúcar añadido — no compatible con tu ${dietLabel}${sugarTerm ? ` (detectado: "${sugarTerm}")` : ''}.`,
+        });
+      } else {
+        alerts.push({
+          level: 'good',
+          text: `Sin azúcares añadidos detectados: compatible con tu ${dietLabel}.`,
+        });
+      }
     }
   }
 
