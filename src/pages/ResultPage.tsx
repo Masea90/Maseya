@@ -393,7 +393,19 @@ const ResultPage = () => {
         {/* Header card */}
         <div className="bg-card rounded-3xl p-5 border border-border flex gap-4">
           {product.image ? (
-            <img src={product.image} alt={product.name} className="w-20 h-20 rounded-2xl object-cover bg-muted" />
+            <button
+              type="button"
+              onClick={() => setShowImageLightbox(true)}
+              className="shrink-0 rounded-2xl overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary/40"
+              aria-label="Ver foto en grande"
+            >
+              <img
+                src={product.image}
+                alt={product.name}
+                loading="lazy"
+                className="w-20 h-20 rounded-2xl object-cover bg-muted transition-transform active:scale-95"
+              />
+            </button>
           ) : (
             <div className="w-20 h-20 rounded-2xl flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10">
               <span className="font-display font-bold text-primary text-2xl">
