@@ -13,6 +13,31 @@ import {
 } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+
+type FeedbackRow = {
+  id: string;
+  created_at: string;
+  type: string;
+  email: string | null;
+  user_id: string | null;
+  nickname: string | null;
+  message: string | null;
+  context: Record<string, unknown> | null;
+  resolved: boolean;
+  resolution_notes: string | null;
+  resolved_at: string | null;
+};
+type UserRow = {
+  user_id: string;
+  nickname: string | null;
+  email: string | null;
+  created_at: string;
+  last_sign_in_at: string | null;
+  scan_count: number;
+  is_admin: boolean;
+};
 
 type LogEntry = { ts: string; text: string };
 type Stats = {
