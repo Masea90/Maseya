@@ -100,8 +100,8 @@ const DAIRY_OR_MILK_DRINK_TAGS = new Set([
 export function detectNutriCategory(categoriesTags: string[] | undefined | null): NutriCategory {
   const cats = (categoriesTags || []).map(t => String(t).toLowerCase());
   if (cats.some(t => WATER_TAGS.has(t))) return 'water';
-  // Beverages (including milks & plant milks) BEFORE fat/nut detection so
-  // "almond drink" doesn't get routed to the fats table.
+  // Dairy / plant-milk drinks → general formula (2023 rule).
+  if (cats.some(t => DAIRY_OR_MILK_DRINK_TAGS.has(t))) return 'general';
   if (cats.some(t => BEVERAGE_TAGS.has(t))) return 'beverage';
   if (cats.some(t => RED_MEAT_TAGS.has(t))) return 'red-meat';
   if (cats.some(t => CHEESE_TAGS.has(t))) return 'cheese';
