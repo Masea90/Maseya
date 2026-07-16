@@ -15,6 +15,12 @@ interface Props {
   profile: any;
   score: number;
   hasIngredientData?: boolean;
+  /** First name for personalized greeting (only when consent is granted). */
+  firstName?: string | null;
+  /** Personal score so Mira's tone matches the personal fit. */
+  personalScore?: number | null;
+  /** Top personal alerts (danger/warn) — Mira must be coherent with these. */
+  topAlerts?: string[];
 }
 
 // Generates a 1-2 sentence basic summary using the highest-priority personal alert.
@@ -57,7 +63,7 @@ function buildBasicSummary(
   return `${productLabel} no es ideal según tu perfil — revisa los ingredientes destacados.`;
 }
 
-export const MiraAnalysis = ({ product, profile, score, hasIngredientData = true }: Props) => {
+export const MiraAnalysis = ({ product, profile, score, hasIngredientData = true, firstName = null, personalScore = null, topAlerts = [] }: Props) => {
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -83,9 +89,9 @@ export const MiraAnalysis = ({ product, profile, score, hasIngredientData = true
     // with the same name (or empty ingredient text) never reuses the previous
     // product's Mira analysis. Falls back to name+ingredients for photo scans
     // without a barcode.
-    const identity = product.barcode && product.barcode !== 'photo'
+    const identity = (product.barcode && product.barcode !== 'photo'
       ? `bc:${product.barcode}`
-      : `nm:${product.product_name}::${product.ingredients_text || ''}`;
+      : `nm:${product.product_name}::${product.ingredients_text || ''}`) + `::ps:${personalScore ?? 'x'}`;
     if (startedForRef.current === identity) return;
 
     // New identity → cancel any previous stream AND wipe the previous product's
@@ -118,7 +124,7 @@ export const MiraAnalysis = ({ product, profile, score, hasIngredientData = true
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ product, profile, score }),
+          body: JSON.stringify({ product, profile, score, firstName, personalScore, topAlerts }),
         });
         if (cancelled) return;
         if (!res.ok || !res.body) {
@@ -163,7 +169,7 @@ export const MiraAnalysis = ({ product, profile, score, hasIngredientData = true
     // NOTE: no cleanup that unconditionally cancels — a parent re-render
     // must not abort an in-flight analysis. Cancellation happens above only
     // when the product identity actually changes.
-  }, [product, profile, score, hasIngredientData]);
+  }, [product, profile, score, hasIngredientData, personalScore]);
 
   const displayText = text || basicSummary;
 

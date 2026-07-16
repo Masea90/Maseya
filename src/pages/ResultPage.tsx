@@ -11,7 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { lookupProduct, ProductData } from '@/lib/productLookup';
 import {
   flagIngredients, calculateScoreBreakdown, calculatePersonalScoreBreakdown, scoreLabel, naturalness, personalAlerts, loadOnboarding,
-  isNutritionalData, evaluateDataConfidence,
+  isNutritionalData, evaluateDataConfidence, isSupplement,
   FlaggedIngredient, PersonalAlert,
 } from '@/lib/scoring';
 import { getVoiceLine } from '@/lib/voiceLines';
@@ -327,47 +327,51 @@ const ResultPage = () => {
   }
 
   const flagged = flagIngredients(product);
-  const scoreBreakdown = calculateScoreBreakdown(product, flagged);
+  const supplement = product.category === 'food' && isSupplement(product);
+  const scoreBreakdown = supplement
+    ? { score: 0, factors: [] as ReturnType<typeof calculateScoreBreakdown>['factors'] }
+    : calculateScoreBreakdown(product, flagged);
   const score = scoreBreakdown.score;
   const sl = scoreLabel(score);
   const nat = naturalness(product, flagged);
   const dataConfidence = evaluateDataConfidence(product);
   const profile = loadOnboarding();
-  // Use the SAME profile object for both alerts and the personal score so
-  // the "declared by manufacturer" alert and the score can never disagree.
   const activeProfile = healthProfile || profile;
   const alerts = healthConsent ? personalAlerts(product, activeProfile) : [];
-  const personalBreakdown = healthConsent
+  const personalBreakdown = healthConsent && !supplement
     ? calculatePersonalScoreBreakdown(product, flagged, activeProfile, score)
     : null;
   const personalScore = personalBreakdown ? personalBreakdown.score : score;
   const psl = scoreLabel(personalScore);
-  const voiceLine = getVoiceLine(
+  const voiceLine = supplement ? null : getVoiceLine(
     product,
     score,
-    // Only pass a personal score if the user actually has personalization on
-    // (health consent + a profile). Otherwise pass null so voice lines that
-    // depend on personal fit fall back to "no personal score" behaviour.
     healthConsent && personalBreakdown ? personalScore : null,
     healthConsent ? (healthProfile || loadOnboarding()) : null,
     user.language,
   );
-  // Consider ingredient data available when we have ANY flagged item OR when
-  // there's non-nutritional ingredients text. Many legit products are
-  // mono-ingredient (coconut oil, honey, salt, rice, legumes) — the old
-  // `flagged.length >= 3` heuristic wrongly hid them.
   const rawText = (product.ingredients_text || '').trim();
-  // Cosmetic products need at least 3 real INCI segments to render a score;
-  // otherwise we'd inflate ratings for empty/noise ingredient lists (see food
-  // "Datos insuficientes" fallback). Food keeps the looser rule because
-  // nutriscore alone can support a score.
   const hasIngredientData = product.category === 'cosmetic'
     ? flagged.length >= 3
     : (flagged.length >= 1 || (rawText.length > 0 && !isNutritionalData(rawText)));
   const hasNutriscore = product.category === 'food' && !!product.nutriscore_grade;
-  const showScore = product.category === 'cosmetic'
+  const showScore = !supplement && (product.category === 'cosmetic'
     ? hasIngredientData
-    : (hasNutriscore || hasIngredientData);
+    : (hasNutriscore || hasIngredientData));
+
+  // Best-effort first name for Mira personalization (only when consented).
+  const firstName = (() => {
+    const nick = (user.nickname || '').trim();
+    if (nick) return nick.split(/\s+/)[0];
+    const meta = (currentUser as { user_metadata?: Record<string, unknown> } | null)?.user_metadata;
+    const full = typeof meta?.full_name === 'string' ? meta.full_name : (typeof meta?.name === 'string' ? meta.name : '');
+    const first = full.trim().split(/\s+/)[0];
+    return first || null;
+  })();
+  const topPersonalAlerts = alerts
+    .filter(a => a.level === 'danger' || a.level === 'warn')
+    .slice(0, 3)
+    .map(a => a.text);
 
   const badgeVariant = (lvl: FlaggedIngredient['level']) =>
     lvl === 'avoid' ? 'bg-[#E63946] text-white'
@@ -421,7 +425,7 @@ const ResultPage = () => {
             <p className="font-display font-semibold leading-tight">{product.name}</p>
             {product.brand && <p className="text-xs text-muted-foreground mt-1 truncate">{product.brand}</p>}
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-2">
-              {product.category === 'food' ? 'Alimentación' : 'Cosmética'}
+              {supplement ? 'Complemento alimenticio' : (product.category === 'food' ? 'Alimentación' : 'Cosmética')}
             </p>
             {fromPhoto && (
               <div className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
@@ -436,7 +440,54 @@ const ResultPage = () => {
           </div>
         </div>
 
-        {product.category === 'cosmetic' && !hasIngredientData ? (
+        {supplement ? (
+          <>
+            <div className="rounded-2xl border border-[#F4A261]/50 bg-[#F4A261]/10 p-4 text-sm text-[#8a4a1e] leading-relaxed">
+              Los complementos alimenticios no se evalúan con criterios de alimentos (Nutriscore no aplica). Consulta a un profesional sanitario antes de tomarlos.
+            </div>
+            {hasIngredientData && (
+              <div className="bg-card rounded-2xl border border-border p-4 space-y-2">
+                <p className="font-semibold flex items-center gap-2">🧪 Ingredientes</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {flagged.slice(0, 20).map((f, i) => {
+                    const es = inciLabel(f.name);
+                    return (
+                      <Badge key={i} className={`${f.level === 'avoid' ? 'bg-[#E63946] text-white' : f.level === 'caution' ? 'bg-[#F4A261] text-white' : 'bg-[#95D5B2] text-[#1B1B1B]'} font-normal capitalize`}>
+                        {f.name}{es ? ` (${es})` : ''}
+                      </Badge>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            {healthConsent && alerts.length > 0 && (
+              <div className="bg-card rounded-2xl border-2 border-primary/40 p-4 space-y-2">
+                <p className="font-semibold flex items-center gap-2">👤 ¿Es para ti?</p>
+                {alerts.map((a, i) => (
+                  <div key={i} className={`flex gap-2 items-start p-3 rounded-xl border ${a.level === 'danger' ? 'bg-[#E63946]/10 border-[#E63946]/30 text-[#E63946]' : a.level === 'warn' ? 'bg-[#F4A261]/10 border-[#F4A261]/40 text-[#8a4a1e]' : 'bg-[#95D5B2]/15 border-[#2D6A4F]/30 text-[#2D6A4F]'}`}>
+                    <span className="text-base leading-none">{a.level === 'danger' ? '🚨' : a.level === 'warn' ? '⚠️' : '✅'}</span>
+                    <span className="text-sm flex-1">{a.text}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <MiraAnalysis
+              product={{
+                product_name: product.name,
+                brand: product.brand || '',
+                category: product.category,
+                ingredients_text: product.ingredients_text || '',
+                barcode: product.barcode,
+              }}
+              profile={healthConsent ? (healthProfile || profile) : null}
+              score={0}
+              hasIngredientData={hasIngredientData}
+              firstName={healthConsent ? firstName : null}
+              personalScore={null}
+              topAlerts={healthConsent ? topPersonalAlerts : []}
+            />
+          </>
+        ) : product.category === 'cosmetic' && !hasIngredientData ? (
           <>
             <div className="bg-card rounded-3xl p-6 border border-border flex flex-col items-center text-center gap-4">
               <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
@@ -736,6 +787,9 @@ const ResultPage = () => {
               profile={healthConsent ? (healthProfile || profile) : null}
               score={score}
               hasIngredientData={hasIngredientData}
+              firstName={healthConsent ? firstName : null}
+              personalScore={healthConsent && personalBreakdown ? personalScore : null}
+              topAlerts={healthConsent ? topPersonalAlerts : []}
             />
 
             {/* Quick thumbs feedback on this analysis */}
@@ -799,11 +853,11 @@ const ResultPage = () => {
             <DialogTitle>{product.name}</DialogTitle>
           </DialogHeader>
           {product.image && (
-            <div className="w-full aspect-square max-h-[85vh] mx-auto overflow-hidden rounded-2xl bg-background">
+            <div className="w-full aspect-square max-h-[85vh] mx-auto overflow-hidden rounded-2xl bg-black/95 flex items-center justify-center">
               <img
                 src={product.image}
                 alt={product.name}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain"
               />
             </div>
           )}

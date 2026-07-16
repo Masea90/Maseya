@@ -22,10 +22,12 @@ export type Database = {
           id: string
           message: string | null
           rating: string | null
+          resolution_note: string | null
           resolution_notes: string | null
           resolved: boolean
           resolved_at: string | null
           resolved_by: string | null
+          status: string
           type: string
           user_id: string | null
         }
@@ -36,10 +38,12 @@ export type Database = {
           id?: string
           message?: string | null
           rating?: string | null
+          resolution_note?: string | null
           resolution_notes?: string | null
           resolved?: boolean
           resolved_at?: string | null
           resolved_by?: string | null
+          status?: string
           type: string
           user_id?: string | null
         }
@@ -50,10 +54,12 @@ export type Database = {
           id?: string
           message?: string | null
           rating?: string | null
+          resolution_note?: string | null
           resolution_notes?: string | null
           resolved?: boolean
           resolved_at?: string | null
           resolved_by?: string | null
+          status?: string
           type?: string
           user_id?: string | null
         }

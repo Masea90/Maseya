@@ -510,6 +510,24 @@ export function calculateScoreBreakdown(
     return confidence.cap;
   };
 
+  // Natural-fat explanation helper: some pure fats (coco, oliva, coconut oil)
+  // score D/E on Nutriscore because saturated fats are penalized regardless
+  // of origin. Add a clarifying factor so users understand the nuance.
+  const maybeAddNaturalFatNote = (grade: string) => {
+    const raw = (p.raw || {}) as Record<string, unknown>;
+    const cats = Array.isArray(raw.categories_tags) ? (raw.categories_tags as string[]) : [];
+    const isFatCategory = cats.some(t => ['en:fats', 'en:vegetable-fats', 'en:vegetable-oils', 'en:fats-and-oils', 'en:coconut-oils', 'en:olive-oils'].includes(String(t).toLowerCase()));
+    if (!isFatCategory) return;
+    if (grade !== 'd' && grade !== 'e') return;
+    const top = topIngredients(p.ingredients_text || '', 3);
+    if (top.length > 1) return; // multi-ingredient fat products don't get the exemption note
+    factors.push({
+      label: 'El Nutri-Score penaliza las grasas saturadas aunque sean naturales',
+      delta: null,
+      tone: 'neutral',
+    });
+  };
+
   if (p.category === 'food' && hasNutri) {
     const cleanMap: Record<string, number> = { a: 95, b: 82, c: 62, d: 40, e: 18 };
     let score = cleanMap[nutriGrade] ?? 50;
@@ -518,6 +536,7 @@ export function calculateScoreBreakdown(
       : nutriGrade === 'c' ? 'neutral'
       : 'negative';
     factors.push({ label: `Nutriscore ${nutriGrade.toUpperCase()}`, delta: null, tone: nutriTone });
+    maybeAddNaturalFatNote(nutriGrade);
 
     if (reds > 0) {
       factors.push({
@@ -569,6 +588,7 @@ export function calculateScoreBreakdown(
         delta: null,
         tone,
       });
+      maybeAddNaturalFatNote(computed.grade);
       if (reds > 0) {
         factors.push({
           label: `${reds} ingrediente${reds > 1 ? 's' : ''} a evitar`,
@@ -669,7 +689,71 @@ const SUGAR_KEYWORDS = [
   'melaza', 'molasses',
   'panela', 'piloncillo', 'azúcar moreno', 'azucar moreno', 'brown sugar', 'azúcar invertido', 'invert sugar',
 ];
+// "Added sugar" keywords — ONLY entries that are unambiguously added sugars
+// (excludes bare "glucosa"/"fructosa"/"maltosa" which can be natural in fruit/milk).
+const ADDED_SUGAR_KEYWORDS = [
+  'azúcar', 'azucar', 'sugar', 'sucre', 'zucker',
+  'sacarosa', 'sucrose', 'saccharose',
+  'jarabe de glucosa', 'jarabe de maíz', 'jarabe de maiz', 'jarabe de fructosa',
+  'glucose syrup', 'corn syrup', 'high fructose', 'high-fructose', 'fructose syrup',
+  'glucose-fructose', 'jarabe glucosa-fructosa',
+  'dextrosa', 'dextrose',
+  'maltodextrina', 'maltodextrin',
+  'sirope', 'jarabe de agave', 'agave syrup',
+  'miel', 'honey',
+  'melaza', 'molasses',
+  'panela', 'piloncillo', 'azúcar moreno', 'azucar moreno', 'brown sugar',
+  'azúcar invertido', 'invert sugar',
+];
 const PREGNANCY_RISKY = ['retinol', 'retinyl', 'retinal', 'salicylic acid', 'salicylate', 'hydroquinone', 'formaldehyde', 'phthalate', 'caffeine', 'cafeina'];
+
+/**
+ * Detect dietary supplements — they must NOT be scored with food criteria
+ * (Nutriscore doesn't apply, sugars/salt/fat rules make no sense on capsules).
+ */
+const SUPPLEMENT_CATEGORY_TAGS = new Set<string>([
+  'en:dietary-supplements', 'en:food-supplements', 'en:supplements',
+  'en:vitamins', 'en:mineral-supplements', 'en:plant-based-supplements',
+  'en:herbal-supplements',
+]);
+const SUPPLEMENT_NAME_KEYWORDS = [
+  'suplemento', 'supplement', 'complemento aliment', 'complemento nutricional',
+  'cápsulas', 'capsulas', 'capsules', 'cápsula', 'capsula',
+  'ashwagandha', 'ksm-66', 'ginseng', 'maca ',
+  'colágeno hidrolizado', 'multivitamin', 'multivitamínico', 'multivitaminico',
+];
+export function isSupplement(p: ProductData): boolean {
+  const raw = (p.raw || {}) as Record<string, unknown>;
+  const cats = Array.isArray(raw.categories_tags) ? (raw.categories_tags as string[]) : [];
+  if (cats.some(t => SUPPLEMENT_CATEGORY_TAGS.has(String(t).toLowerCase()))) return true;
+  const name = `${p.name || ''} ${p.brand || ''}`.toLowerCase();
+  for (const kw of SUPPLEMENT_NAME_KEYWORDS) {
+    if (name.includes(kw)) return true;
+  }
+  // "vitamina X" + cápsula format
+  if (/vitamina\s+[a-z0-9]/i.test(name) && /(cáps|caps|comprim|tablet|pastill)/i.test(name)) {
+    return true;
+  }
+  return false;
+}
+
+function topIngredients(text: string, n: number): string[] {
+  if (!text) return [];
+  return text
+    .split(/[,;()\n\r]/)
+    .map(s => s.trim().toLowerCase())
+    .filter(s => s.length > 0 && !/^\d/.test(s))
+    .slice(0, n);
+}
+function readNumber(nutri: Record<string, unknown>, key: string): number | null {
+  const v = nutri[key];
+  if (typeof v === 'number' && Number.isFinite(v)) return v;
+  if (typeof v === 'string') {
+    const n = parseFloat(v.trim());
+    if (Number.isFinite(n)) return n;
+  }
+  return null;
+}
 
 /** Flatten a ProductData's tags list into a plain space-separated string. */
 function tagsAsText(p: ProductData): string {
@@ -844,15 +928,41 @@ export function calculatePersonalScoreBreakdown(
       }
     }
 
-    // Sugar-restrictive diets (no-sugar, keto): penalize added sugars.
-    const noSugar = diets.includes('no-sugar') || diets.includes('keto');
-    if (noSugar) {
+    // Sugar-restrictive diets.
+    // no-sugar → strict rules based on nutriments + added-sugar keywords.
+    // keto (legacy) → penalize any sugar mention (unchanged behavior).
+    if (diets.includes('no-sugar')) {
+      const nutri = (rawObj.nutriments && typeof rawObj.nutriments === 'object')
+        ? rawObj.nutriments as Record<string, unknown>
+        : {};
+      const sugars = readNumber(nutri, 'sugars_100g');
+      const top3 = topIngredients(rawText, 3);
+      let addedInTop3: string | null = null;
+      for (const ing of top3) {
+        for (const kw of ADDED_SUGAR_KEYWORDS) {
+          if (findKeyword(ing, kw)) { addedInTop3 = kw; break; }
+        }
+        if (addedInTop3) break;
+      }
+      const addedAnywhere = firstTerm(combined, ADDED_SUGAR_KEYWORDS);
+      const highSugars = sugars != null && sugars > 22.5;
+      const midSugars = sugars != null && sugars >= 5 && sugars <= 22.5;
+      if (highSugars || addedInTop3) {
+        const reason = addedInTop3
+          ? `azúcar añadido entre los 3 primeros ingredientes ("${addedInTop3}")`
+          : `alto en azúcar (${sugars?.toFixed(1)}g/100g)`;
+        addHardFail(`Alto en azúcar / azúcar añadido — no compatible con tu dieta sin azúcar (detectado: ${reason})`);
+      } else if (midSugars && addedAnywhere) {
+        addNeg(`Contiene azúcar añadido (${sugars?.toFixed(1)}g/100g, detectado: "${addedAnywhere}") — no ideal para tu dieta sin azúcar`, -30);
+      } else if (sugars != null && sugars > 5 && !addedAnywhere) {
+        addNeg(`Azúcares naturales presentes (${sugars.toFixed(1)}g/100g)`, -10);
+      }
+    } else if (diets.includes('keto')) {
       const sugarTerm = firstTerm(combined, SUGAR_KEYWORDS);
       const sugarTagHit = catsTags.some(t => t.includes('sugared') || t.includes('sweetened') || t.includes('sugary')) ||
         p.labels_tags.some(t => t.includes('sugared') || t.includes('sweetened'));
       if (sugarTerm || sugarTagHit) {
-        const label = diets.includes('keto') ? 'dieta keto' : 'dieta sin azúcar';
-        addNeg(`No apto para tu ${label}: contiene azúcar añadido${sugarTerm ? ` ("${sugarTerm}")` : ''}`, -40);
+        addNeg(`No apto para tu dieta keto: contiene azúcar añadido${sugarTerm ? ` ("${sugarTerm}")` : ''}`, -40);
       }
     }
   }
@@ -1119,26 +1229,60 @@ export function personalAlerts(
       });
     }
 
-    // No-sugar / keto diet alerts
-    const noSugar = diets.includes('no-sugar') || diets.includes('keto');
-    if (noSugar) {
+    // No-sugar diet alerts (strict: sugars_100g + added-sugar ingredients)
+    if (diets.includes('no-sugar')) {
       const combined = `${rawText} ${rawTagsText}`;
-      const sugarTerm = firstTerm(combined, SUGAR_KEYWORDS);
-      const catsTagsAll = Array.isArray((p.raw as Record<string, unknown> | undefined)?.categories_tags)
-        ? ((p.raw as { categories_tags?: string[] }).categories_tags as string[])
-        : [];
-      const sugarTagHit = catsTagsAll.some(t => t.includes('sugared') || t.includes('sweetened') || t.includes('sugary')) ||
-        p.labels_tags.some(t => t.includes('sugared') || t.includes('sweetened'));
-      const dietLabel = diets.includes('keto') ? 'dieta keto' : 'dieta sin azúcar';
-      if (sugarTerm || sugarTagHit) {
+      const nutri = ((p.raw as Record<string, unknown> | undefined)?.nutriments && typeof (p.raw as Record<string, unknown>).nutriments === 'object')
+        ? ((p.raw as { nutriments: Record<string, unknown> }).nutriments)
+        : {};
+      const sugars = readNumber(nutri, 'sugars_100g');
+      const top3 = topIngredients(rawText, 3);
+      let addedInTop3: string | null = null;
+      for (const ing of top3) {
+        for (const kw of ADDED_SUGAR_KEYWORDS) {
+          if (findKeyword(ing, kw)) { addedInTop3 = kw; break; }
+        }
+        if (addedInTop3) break;
+      }
+      const addedAnywhere = firstTerm(combined, ADDED_SUGAR_KEYWORDS);
+      const highSugars = sugars != null && sugars > 22.5;
+      const midSugars = sugars != null && sugars >= 5 && sugars <= 22.5;
+      if (highSugars || addedInTop3) {
+        const reason = addedInTop3
+          ? `«${addedInTop3}» entre los 3 primeros ingredientes`
+          : `${sugars?.toFixed(1)}g de azúcar por 100g`;
         alerts.push({
           level: 'danger',
-          text: `Contiene azúcar añadido — no compatible con tu ${dietLabel}${sugarTerm ? ` (detectado: "${sugarTerm}")` : ''}.`,
+          text: `Alto en azúcar / azúcar añadido — no compatible con tu dieta sin azúcar (detectado: ${reason}).`,
+        });
+      } else if (midSugars && addedAnywhere) {
+        alerts.push({
+          level: 'warn',
+          text: `Contiene azúcar añadido (${sugars?.toFixed(1)}g/100g, detectado: «${addedAnywhere}»).`,
+        });
+      } else if (sugars != null && sugars > 5 && !addedAnywhere) {
+        alerts.push({
+          level: 'warn',
+          text: `Azúcares naturales presentes (${sugars.toFixed(1)}g/100g) — sin azúcar añadido detectado.`,
         });
       } else {
         alerts.push({
           level: 'good',
-          text: `Sin azúcares añadidos detectados: compatible con tu ${dietLabel}.`,
+          text: 'Sin azúcares añadidos detectados: compatible con tu dieta sin azúcar.',
+        });
+      }
+    } else if (diets.includes('keto')) {
+      const combined = `${rawText} ${rawTagsText}`;
+      const sugarTerm = firstTerm(combined, SUGAR_KEYWORDS);
+      if (sugarTerm) {
+        alerts.push({
+          level: 'danger',
+          text: `Contiene azúcar añadido — no compatible con tu dieta keto (detectado: "${sugarTerm}").`,
+        });
+      } else {
+        alerts.push({
+          level: 'good',
+          text: 'Sin azúcares añadidos detectados: compatible con tu dieta keto.',
         });
       }
     }
