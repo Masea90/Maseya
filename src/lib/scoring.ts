@@ -341,7 +341,96 @@ export interface ScoreBreakdown {
   factors: ScoreFactor[];
 }
 
+// --- Data confidence (Fase 1 del motor V2, inspirado en EWG Skin Deep) ------
+// Un producto sin datos completos NUNCA puede sacar 100 — la ausencia de
+// datos no debe premiarse. Esta función devuelve un cap opcional que se
+// aplica a la nota general (y por herencia a la personal).
+export type DataConfidenceLevel = 'high' | 'medium' | 'low' | 'none';
+export interface DataConfidence {
+  level: DataConfidenceLevel;
+  cap: number | null;
+  missing: string[];
+}
+
+const readNutrimentNumber = (nutriments: Record<string, unknown>, key: string): boolean => {
+  const v = nutriments[key];
+  if (typeof v === 'number' && Number.isFinite(v)) return true;
+  if (typeof v === 'string') {
+    const t = v.trim();
+    if (!t) return false;
+    const n = parseFloat(t);
+    return Number.isFinite(n);
+  }
+  return false;
+};
+
+export function evaluateDataConfidence(p: ProductData): DataConfidence {
+  const rawText = (p.ingredients_text || '').trim();
+  const hasIngredients = rawText.length > 0 && !isNutritionalData(rawText);
+
+  if (p.category === 'cosmetic') {
+    const segments = rawText
+      .split(/[,;()\n\r]/)
+      .map(s => s.trim())
+      .filter(s => s.length > 1 && s.length < 80 && !s.includes(':'));
+    const count = segments.length;
+    if (count >= 5) return { level: 'high', cap: null, missing: [] };
+    if (count >= 3) return { level: 'medium', cap: 85, missing: ['lista de ingredientes completa'] };
+    return { level: 'none', cap: null, missing: ['lista de ingredientes'] };
+  }
+
+  if (p.category === 'food') {
+    const raw = (p.raw || {}) as Record<string, unknown>;
+    const nutri = (raw.nutriments && typeof raw.nutriments === 'object')
+      ? raw.nutriments as Record<string, unknown>
+      : {};
+    const hasEnergy = readNutrimentNumber(nutri, 'energy-kcal_100g') || readNutrimentNumber(nutri, 'energy-kj_100g');
+    const hasSatFat = readNutrimentNumber(nutri, 'saturated-fat_100g');
+    const hasSugars = readNutrimentNumber(nutri, 'sugars_100g');
+    const hasSalt = readNutrimentNumber(nutri, 'salt_100g') || readNutrimentNumber(nutri, 'sodium_100g');
+    const nutriGrade = (p.nutriscore_grade || '').toLowerCase();
+    const hasNutriGrade = ['a', 'b', 'c', 'd', 'e'].includes(nutriGrade);
+    const missingNutri: string[] = [];
+    if (!hasEnergy) missingNutri.push('energía');
+    if (!hasSatFat) missingNutri.push('grasas saturadas');
+    if (!hasSugars) missingNutri.push('azúcares');
+    if (!hasSalt) missingNutri.push('sal');
+    const nutritionComplete = missingNutri.length === 0;
+
+    if (!hasIngredients && !nutritionComplete && !hasNutriGrade) {
+      return { level: 'none', cap: null, missing: ['tabla nutricional', 'lista de ingredientes'] };
+    }
+
+    // Nutriscore or full nutrition table AND ingredients present → high confidence.
+    if (hasIngredients && (nutritionComplete || hasNutriGrade)) {
+      return { level: 'high', cap: null, missing: [] };
+    }
+
+    // Ingredients present but nutrition partial/missing and no Nutriscore.
+    if (hasIngredients && !hasNutriGrade) {
+      if (missingNutri.length >= 2) {
+        return { level: 'low', cap: 60, missing: missingNutri };
+      }
+      if (missingNutri.length === 1) {
+        return { level: 'medium', cap: 75, missing: missingNutri };
+      }
+    }
+
+    // Nutrition/Nutriscore present but ingredients missing.
+    if (!hasIngredients) {
+      const miss = ['lista de ingredientes', ...missingNutri];
+      return { level: 'low', cap: 60, missing: miss };
+    }
+
+    return { level: 'high', cap: null, missing: [] };
+  }
+
+  return { level: 'none', cap: null, missing: [] };
+}
+
 const clamp100 = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
+
+
 
 // Alcoholic-beverage detection for the food score cap.
 // A product is considered alcoholic when any of these signals is present:
@@ -405,6 +494,21 @@ export function calculateScoreBreakdown(
     return score;
   };
 
+  // Data-confidence cap: ausencia de datos no premia. Se aplica DESPUÉS de la
+  // nota calculada para que un producto sin tabla nutricional no pueda sacar
+  // 100 por defecto (caso real: taco shells fotografiados sin nutrición).
+  const confidence = evaluateDataConfidence(p);
+  const applyConfidenceCap = (score: number): number => {
+    if (confidence.cap == null || score <= confidence.cap) return score;
+    const missTxt = confidence.missing.length ? ` (falta: ${confidence.missing.join(', ')})` : '';
+    factors.push({
+      label: `Nota limitada a ${confidence.cap} por datos incompletos${missTxt}`,
+      delta: confidence.cap - score,
+      tone: 'neutral',
+    });
+    return confidence.cap;
+  };
+
   if (p.category === 'food' && hasNutri) {
     const cleanMap: Record<string, number> = { a: 95, b: 82, c: 62, d: 40, e: 18 };
     let score = cleanMap[nutriGrade] ?? 50;
@@ -439,6 +543,7 @@ export function calculateScoreBreakdown(
       });
     }
     score = applyAlcoholCap(score);
+    score = applyConfidenceCap(score);
     return { score: clamp100(score), factors };
   }
 
@@ -490,6 +595,7 @@ export function calculateScoreBreakdown(
   }
 
   score = applyAlcoholCap(score);
+  score = applyConfidenceCap(score);
   return { score: clamp100(score), factors };
 }
 
