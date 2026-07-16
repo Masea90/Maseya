@@ -325,6 +325,12 @@ export function computeNutriScore(
     else if (score < 11) grade = 'c';
     else if (score < 19) grade = 'd';
     else grade = 'e';
+    // Conservative safeguard: dairy/plant-milk drinks routed to the general
+    // formula are graded B by OFF even when the raw formula would give A
+    // (fat/protein composition). Match that to stay 100%-safe.
+    const cats = (categoriesTags || []).map(t => String(t).toLowerCase());
+    const isMilkDrink = cats.some(t => DAIRY_OR_MILK_DRINK_TAGS.has(t));
+    if (grade === 'a' && isMilkDrink) grade = 'b';
   }
 
   return {
