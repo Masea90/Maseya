@@ -595,6 +595,7 @@ export function calculateScoreBreakdown(
   }
 
   score = applyAlcoholCap(score);
+  score = applyConfidenceCap(score);
   return { score: clamp100(score), factors };
 }
 
