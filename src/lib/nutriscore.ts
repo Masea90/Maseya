@@ -75,7 +75,7 @@ const FAT_TAGS = new Set([
   'en:nuts', 'en:seeds', 'en:nuts-and-seeds', 'en:oilseeds',
 ]);
 const WATER_TAGS = new Set([
-  'en:waters', 'en:mineral-waters', 'en:spring-waters',
+  'en:mineral-waters', 'en:spring-waters', 'en:natural-mineral-waters',
   'en:natural-mineral-waters',
 ]);
 // Any tag equal to 'en:beverages' or a well-known descendant.
