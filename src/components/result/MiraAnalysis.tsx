@@ -10,6 +10,7 @@ interface Props {
     brand: string;
     category: string;
     ingredients_text: string;
+    barcode?: string;
   };
   profile: any;
   score: number;
@@ -78,11 +79,19 @@ export const MiraAnalysis = ({ product, profile, score, hasIngredientData = true
   const cancelRef = useRef<{ id: string; cancel: () => void } | null>(null);
 
   useEffect(() => {
-    const identity = `${product.product_name}::${product.ingredients_text || ''}`;
+    // Identity keyed on barcode when available so navigating between products
+    // with the same name (or empty ingredient text) never reuses the previous
+    // product's Mira analysis. Falls back to name+ingredients for photo scans
+    // without a barcode.
+    const identity = product.barcode && product.barcode !== 'photo'
+      ? `bc:${product.barcode}`
+      : `nm:${product.product_name}::${product.ingredients_text || ''}`;
     if (startedForRef.current === identity) return;
 
-    // New identity → cancel any previous stream, then start a fresh one.
+    // New identity → cancel any previous stream AND wipe the previous product's
+    // text so users never see a stale analysis while the new one loads.
     cancelRef.current?.cancel();
+    setText('');
 
     if (!hasIngredientData) {
       startedForRef.current = identity;

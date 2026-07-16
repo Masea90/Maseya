@@ -344,7 +344,10 @@ const ResultPage = () => {
   const voiceLine = getVoiceLine(
     product,
     score,
-    personalScore,
+    // Only pass a personal score if the user actually has personalization on
+    // (health consent + a profile). Otherwise pass null so voice lines that
+    // depend on personal fit fall back to "no personal score" behaviour.
+    healthConsent && personalBreakdown ? personalScore : null,
     healthConsent ? (healthProfile || loadOnboarding()) : null,
     user.language,
   );
@@ -683,6 +686,7 @@ const ResultPage = () => {
                 brand: product.brand || '',
                 category: product.category,
                 ingredients_text: product.ingredients_text || '',
+                barcode: product.barcode,
               }}
               profile={healthConsent ? (healthProfile || profile) : null}
               score={score}
