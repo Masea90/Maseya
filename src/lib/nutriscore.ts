@@ -297,10 +297,10 @@ export function computeNutriScore(
     else grade = 'e';
   } else if (category === 'fat') {
     // 2023 fats cutoffs
-    if (score < 2) grade = 'a';
-    else if (score < 11) grade = 'b';
-    else if (score < 20) grade = 'c';
-    else if (score < 28) grade = 'd';
+    if (score <= -6) grade = 'a';
+    else if (score <= 2) grade = 'b';
+    else if (score <= 10) grade = 'c';
+    else if (score <= 18) grade = 'd';
     else grade = 'e';
   } else {
     if (score < 1) grade = 'a';
