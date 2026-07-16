@@ -52,6 +52,7 @@ async function main() {
     const prods = await search(b.tag, b.count);
     for (const p of prods) all.push({ p, bucket: b.tag });
     console.log(`[fetch] ${b.tag}: ${prods.length}`);
+    await sleep(1500);
   }
   console.log(`Total fetched: ${all.length}`);
 
