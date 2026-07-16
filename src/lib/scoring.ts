@@ -494,6 +494,21 @@ export function calculateScoreBreakdown(
     return score;
   };
 
+  // Data-confidence cap: ausencia de datos no premia. Se aplica DESPUÉS de la
+  // nota calculada para que un producto sin tabla nutricional no pueda sacar
+  // 100 por defecto (caso real: taco shells fotografiados sin nutrición).
+  const confidence = evaluateDataConfidence(p);
+  const applyConfidenceCap = (score: number): number => {
+    if (confidence.cap == null || score <= confidence.cap) return score;
+    const missTxt = confidence.missing.length ? ` (falta: ${confidence.missing.join(', ')})` : '';
+    factors.push({
+      label: `Nota limitada a ${confidence.cap} por datos incompletos${missTxt}`,
+      delta: confidence.cap - score,
+      tone: 'neutral',
+    });
+    return confidence.cap;
+  };
+
   if (p.category === 'food' && hasNutri) {
     const cleanMap: Record<string, number> = { a: 95, b: 82, c: 62, d: 40, e: 18 };
     let score = cleanMap[nutriGrade] ?? 50;
