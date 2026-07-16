@@ -83,12 +83,18 @@ const BEVERAGE_TAGS = new Set([
   'en:beverages', 'en:non-alcoholic-beverages', 'en:carbonated-drinks',
   'en:sodas', 'en:colas', 'en:lemonades', 'en:tonics',
   'en:juices', 'en:fruit-juices', 'en:vegetable-juices', 'en:nectars', 'en:smoothies',
-  'en:iced-teas', 'en:teas', 'en:coffees', 'en:coffee-drinks', 'en:hot-chocolates',
+  'en:iced-teas', 'en:teas', 'en:coffees', 'en:coffee-drinks',
   'en:energy-drinks', 'en:sports-drinks', 'en:sweetened-beverages',
+  'en:flavored-waters', 'en:still-waters', 'en:sparkling-waters',
+]);
+// Dairy & plant milk drinks: 2023 rule routes these through the GENERAL
+// formula (not the beverage table). OFF's own implementation matches.
+const DAIRY_OR_MILK_DRINK_TAGS = new Set([
   'en:milks', 'en:plant-milks', 'en:plant-based-milk-alternatives',
   'en:almond-drinks', 'en:oat-drinks', 'en:soy-milks', 'en:rice-drinks',
   'en:dairy-drinks', 'en:milk-drinks', 'en:flavored-milks',
-  'en:flavored-waters', 'en:still-waters', 'en:sparkling-waters',
+  'en:fermented-milks', 'en:kefirs', 'en:yogurt-drinks', 'en:drinkable-yogurts',
+  'en:hot-chocolates',
 ]);
 
 export function detectNutriCategory(categoriesTags: string[] | undefined | null): NutriCategory {
