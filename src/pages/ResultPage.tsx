@@ -331,6 +331,7 @@ const ResultPage = () => {
   const score = scoreBreakdown.score;
   const sl = scoreLabel(score);
   const nat = naturalness(product, flagged);
+  const dataConfidence = evaluateDataConfidence(product);
   const profile = loadOnboarding();
   // Use the SAME profile object for both alerts and the personal score so
   // the "declared by manufacturer" alert and the score can never disagree.
