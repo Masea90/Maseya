@@ -68,7 +68,7 @@ serve(async (req) => {
       }
     }
 
-    const { product, profile, score } = await req.json();
+    const { product, profile, score, firstName, personalScore, topAlerts } = await req.json();
     if (!product || typeof product !== "object") {
       return new Response(JSON.stringify({ error: "Missing product" }), {
         status: 400,
@@ -76,12 +76,24 @@ serve(async (req) => {
       });
     }
 
+    const cleanName = typeof firstName === 'string' && /^[\p{L} '\-]{1,30}$/u.test(firstName.trim())
+      ? firstName.trim()
+      : null;
+    const nameLine = cleanName ? `Nombre del usuario: ${cleanName}\n` : '';
+    const personalLine = typeof personalScore === 'number'
+      ? `Nota personal: ${Math.round(personalScore)}/100\n`
+      : '';
+    const alertsLine = Array.isArray(topAlerts) && topAlerts.length > 0
+      ? `Alertas para su perfil: ${topAlerts.slice(0, 3).map((a: string) => `«${a}»`).join('; ')}\n`
+      : '';
+    const contextHeader = `${nameLine}${personalLine}${alertsLine}`;
+
     const isFood = product.category === 'food';
     const userMsg = isFood
-      ? `Analiza este alimento para mi perfil:
+      ? `${contextHeader}Analiza este alimento para mi perfil:
 
 Producto: ${product.product_name || ""} de ${product.brand || ""}
-Puntuación: ${score ?? "—"}/100
+Puntuación general: ${score ?? "—"}/100
 Ingredientes: ${product.ingredients_text || ""}
 
 Mi perfil alimentario:
@@ -89,11 +101,11 @@ Mi perfil alimentario:
 - Dieta: ${humanizeDiets(profile?.diet)}
 - Objetivos: ${(profile?.nutrition_goals || []).join(", ") || "—"}
 
-Explícame si este alimento es adecuado para mi perfil y por qué.`
-      : `Analiza este producto cosmético para mi perfil:
+Explícame si este alimento es adecuado para mi perfil y por qué. Tu tono debe ser coherente con la Nota personal indicada arriba.`
+      : `${contextHeader}Analiza este producto cosmético para mi perfil:
 
 Producto: ${product.product_name || ""} de ${product.brand || ""}
-Puntuación: ${score ?? "—"}/100
+Puntuación general: ${score ?? "—"}/100
 Ingredientes: ${product.ingredients_text || ""}
 
 Mi perfil de piel:
@@ -102,7 +114,7 @@ Mi perfil de piel:
 - Sensibilidades cosméticas: ${(profile?.skin_sensitivities || []).join(", ") || "—"}
 - Embarazo/lactancia: ${profile?.pregnancy_or_lactation ? "sí" : "no"}
 
-Explícame si este cosmético es adecuado para mi piel específicamente y por qué.`;
+Explícame si este cosmético es adecuado para mi piel específicamente y por qué. Tu tono debe ser coherente con la Nota personal indicada arriba.`;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY missing");
