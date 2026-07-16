@@ -116,7 +116,7 @@ export function detectNutriCategory(categoriesTags: string[] | undefined | null)
 function pointsFromThresholds(value: number, thresholds: number[]): number {
   let pts = 0;
   for (const t of thresholds) {
-    if (value >= t) pts++;
+    if (value > t) pts++;
     else break;
   }
   return pts;
