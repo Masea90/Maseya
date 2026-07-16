@@ -180,6 +180,17 @@ const ProfilePage = () => {
       toast.error('No se pudo guardar');
     } else {
       toast.success('Perfil actualizado');
+      // Keep the localStorage snapshot in sync with the DB. `loadOnboarding()`
+      // (used by the scoring engine as a fallback when the DB profile isn't
+      // loaded yet) reads `maseya_onboarding` — if we only wrote to the DB,
+      // an old allergy list (e.g. "lactose") could keep triggering personal
+      // alerts even after the user replaced it (e.g. with "gluten").
+      try {
+        localStorage.setItem(
+          'maseya_onboarding',
+          JSON.stringify({ skin: state.skin_type, allergies: state.allergies }),
+        );
+      } catch {}
       // Notify other mounted screens (ResultPage, etc.) so they reload the
       // health profile without a full remount — otherwise a cached score/
       // alert set can outlive a real allergy change.
