@@ -252,7 +252,11 @@ export function computeNutriScore(
     saltPts = pointsFromThresholds(salt, GEN_SALT);
     fibrePts = pointsFromThresholds(fibre, FIBRE);
     proteinPts = pointsFromThresholds(protein, PROTEIN);
-    fvlPts = fvlPoints(fvl);
+    // Olive/colza(rapeseed)/walnut oils get FVL=100% automatically in the
+    // 2023 fats formula (recognized as beneficial fruit/nut oils).
+    const catStr = (categoriesTags || []).join(' ').toLowerCase();
+    const isPrivilegedOil = /\b(olive|colza|rapeseed|walnut)\b/.test(catStr);
+    fvlPts = isPrivilegedOil ? 5 : fvlPoints(fvl);
   } else {
     // general / cheese / red-meat
     energyPts = pointsFromThresholds(energyKJ, GEN_ENERGY);
