@@ -49,14 +49,15 @@ function hasHalalDiet(profile?: VoiceProfile | null): boolean {
 export function getVoiceLine(
   product: ProductData,
   generalScore: number,
-  personalScore: number,
+  personalScore: number | null,
   profile: VoiceProfile | null | undefined,
   language: Language,
 ): string | null {
-  // CASO B: producto perfecto — solo si TAMBIÉN encaja con el perfil personal.
-  // Si el score personal cae (alergias, embarazo, dieta…), no es un "unicornio"
-  // para esta persona aunque el general sea 100.
-  if (generalScore === 100 && personalScore >= 90) {
+  // CASO B: producto perfecto — solo si el general es 100 Y (no hay nota
+  // personal O la nota personal también es >= 90). Si la nota personal cae
+  // (alergias, embarazo, dieta…), no es un "unicornio" para esta persona
+  // aunque el general sea 100.
+  if (generalScore === 100 && (personalScore == null || personalScore >= 90)) {
     return PERFECT_LINES[language];
   }
 
