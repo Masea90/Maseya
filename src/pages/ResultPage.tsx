@@ -11,7 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { lookupProduct, ProductData } from '@/lib/productLookup';
 import {
   flagIngredients, calculateScoreBreakdown, calculatePersonalScoreBreakdown, scoreLabel, naturalness, personalAlerts, loadOnboarding,
-  isNutritionalData,
+  isNutritionalData, evaluateDataConfidence,
   FlaggedIngredient, PersonalAlert,
 } from '@/lib/scoring';
 import { getVoiceLine } from '@/lib/voiceLines';
