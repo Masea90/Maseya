@@ -686,6 +686,7 @@ const ResultPage = () => {
                 brand: product.brand || '',
                 category: product.category,
                 ingredients_text: product.ingredients_text || '',
+                barcode: product.barcode,
               }}
               profile={healthConsent ? (healthProfile || profile) : null}
               score={score}
