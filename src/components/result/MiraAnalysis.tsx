@@ -10,6 +10,7 @@ interface Props {
     brand: string;
     category: string;
     ingredients_text: string;
+    barcode?: string;
   };
   profile: any;
   score: number;
