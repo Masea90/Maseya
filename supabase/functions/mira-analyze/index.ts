@@ -9,10 +9,17 @@ const corsHeaders = {
 
 const SYSTEM_PROMPT = `You are Mira, a warm expert in cosmetics and nutrition. You always have the user's complete profile available. NEVER ask for more information. Always give a direct personalized analysis based on the profile provided. If profile fields are empty, give general advice for the product. When a food product scores lower than expected because Nutriscore penalizes natural fats (e.g. kéfir, yogur natural, aceite de oliva, frutos secos), briefly explain this nuance to the user. Respond in Spanish. Max 4 sentences. No bullet points.
 
-STYLE RULES (STRICT):
-- Do NOT greet the user by name and NEVER write placeholders like "[nombre]", "[nombre de usuario]", "{name}" or similar. You do not know the user's name.
-- Do NOT start with "Hola", "Hola,", "¡Hola!" or any greeting. Start directly with the analysis (e.g. "Este producto…", "Para tu perfil…").
-- Speak in second person ("tu perfil", "para ti") without ever using a name.
+GREETING RULES (STRICT):
+- If a real first name is provided in the user message ("Nombre del usuario: X"), you MAY greet them naturally once ("Hola X, ..." or "X, ...").
+- If NO name is provided, start directly with the analysis (e.g. "Este producto…", "Para tu perfil…") — NO greeting.
+- NEVER write bracketed placeholders like "[nombre]", "[nombre de usuario]", "{name}", "[usuario]" — those are forbidden literal outputs.
+- NEVER invent a name.
+
+COHERENCE WITH PERSONAL SCORE (STRICT):
+- The user message includes "Nota personal: N/100" and optionally "Alertas para su perfil: ...".
+- Your tone MUST match that score: if personal score < 60, express reservations and cite at least one concrete reason from the alerts or ingredients. NEVER say "todo bien", "es adecuado" or similar reassurances when the personal score is < 60.
+- If personal score >= 75, you can be positive.
+- Between 60-74, be balanced (matiza).
 
 IMPORTANT LEGAL / SAFETY RULES:
 - Mira es una IA informativa, no un profesional sanitario. Nunca des diagnósticos médicos ni garantías absolutas de seguridad ("es 100% seguro", "no te hará daño", "no tiene alérgenos").
@@ -61,7 +68,7 @@ serve(async (req) => {
       }
     }
 
-    const { product, profile, score } = await req.json();
+    const { product, profile, score, firstName, personalScore, topAlerts } = await req.json();
     if (!product || typeof product !== "object") {
       return new Response(JSON.stringify({ error: "Missing product" }), {
         status: 400,
@@ -69,12 +76,24 @@ serve(async (req) => {
       });
     }
 
+    const cleanName = typeof firstName === 'string' && /^[\p{L} '\-]{1,30}$/u.test(firstName.trim())
+      ? firstName.trim()
+      : null;
+    const nameLine = cleanName ? `Nombre del usuario: ${cleanName}\n` : '';
+    const personalLine = typeof personalScore === 'number'
+      ? `Nota personal: ${Math.round(personalScore)}/100\n`
+      : '';
+    const alertsLine = Array.isArray(topAlerts) && topAlerts.length > 0
+      ? `Alertas para su perfil: ${topAlerts.slice(0, 3).map((a: string) => `«${a}»`).join('; ')}\n`
+      : '';
+    const contextHeader = `${nameLine}${personalLine}${alertsLine}`;
+
     const isFood = product.category === 'food';
     const userMsg = isFood
-      ? `Analiza este alimento para mi perfil:
+      ? `${contextHeader}Analiza este alimento para mi perfil:
 
 Producto: ${product.product_name || ""} de ${product.brand || ""}
-Puntuación: ${score ?? "—"}/100
+Puntuación general: ${score ?? "—"}/100
 Ingredientes: ${product.ingredients_text || ""}
 
 Mi perfil alimentario:
@@ -82,11 +101,11 @@ Mi perfil alimentario:
 - Dieta: ${humanizeDiets(profile?.diet)}
 - Objetivos: ${(profile?.nutrition_goals || []).join(", ") || "—"}
 
-Explícame si este alimento es adecuado para mi perfil y por qué.`
-      : `Analiza este producto cosmético para mi perfil:
+Explícame si este alimento es adecuado para mi perfil y por qué. Tu tono debe ser coherente con la Nota personal indicada arriba.`
+      : `${contextHeader}Analiza este producto cosmético para mi perfil:
 
 Producto: ${product.product_name || ""} de ${product.brand || ""}
-Puntuación: ${score ?? "—"}/100
+Puntuación general: ${score ?? "—"}/100
 Ingredientes: ${product.ingredients_text || ""}
 
 Mi perfil de piel:
@@ -95,7 +114,7 @@ Mi perfil de piel:
 - Sensibilidades cosméticas: ${(profile?.skin_sensitivities || []).join(", ") || "—"}
 - Embarazo/lactancia: ${profile?.pregnancy_or_lactation ? "sí" : "no"}
 
-Explícame si este cosmético es adecuado para mi piel específicamente y por qué.`;
+Explícame si este cosmético es adecuado para mi piel específicamente y por qué. Tu tono debe ser coherente con la Nota personal indicada arriba.`;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY missing");

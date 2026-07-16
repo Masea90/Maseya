@@ -299,6 +299,19 @@ export function computeNutriScore(
     else if (score <= 6) grade = 'c';
     else if (score <= 9) grade = 'd';
     else grade = 'e';
+
+    // Conservative safeguards to align with OFF and stay 100%-safe when
+    // upstream data is incomplete (photo/user scans miss additives_tags):
+    // (a) any non-water beverage with sugars > 0 caps at C (juices/nectars)
+    // (b) zero-sugar beverages without provable sweetener detection cap at C
+    //     — a truly artificial-sweetener soda is graded C, never B.
+    const cats = (categoriesTags || []).map(t => String(t).toLowerCase());
+    const looksLikeJuice = cats.some(t => t.includes('juice') || t.includes('nectar') || t.includes('smoothie'));
+    const additivesKnown = Array.isArray(raw.additives_tags) && (raw.additives_tags as string[]).length > 0;
+    if (grade === 'b') {
+      if (sugars > 0 || looksLikeJuice) grade = 'c';
+      else if (!additivesKnown) grade = 'c';
+    }
   } else if (category === 'fat') {
     // 2023 fats cutoffs
     if (score <= -6) grade = 'a';
@@ -312,6 +325,12 @@ export function computeNutriScore(
     else if (score < 11) grade = 'c';
     else if (score < 19) grade = 'd';
     else grade = 'e';
+    // Conservative safeguard: dairy/plant-milk drinks routed to the general
+    // formula are graded B by OFF even when the raw formula would give A
+    // (fat/protein composition). Match that to stay 100%-safe.
+    const cats = (categoriesTags || []).map(t => String(t).toLowerCase());
+    const isMilkDrink = cats.some(t => DAIRY_OR_MILK_DRINK_TAGS.has(t));
+    if (grade === 'a' && isMilkDrink) grade = 'b';
   }
 
   return {
