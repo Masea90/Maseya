@@ -22,11 +22,11 @@ const FIELDS = [
 ].join(',');
 
 async function search(categoryTag: string, pageSize: number, page = 1): Promise<OFFProd[]> {
-  const url = `https://world.openfoodfacts.org/api/v2/search?categories_tags_en=${encodeURIComponent(categoryTag)}&nutrition_grades_tags=a,b,c,d,e&page_size=${pageSize}&page=${page}&fields=${FIELDS}`;
+  const url = `https://world.openfoodfacts.org/cgi/search.pl?action=process&tagtype_0=categories&tag_contains_0=contains&tag_0=${encodeURIComponent(categoryTag)}&tagtype_1=nutrition_grades&tag_contains_1=contains&tag_1=a,b,c,d,e&sort_by=unique_scans_n&page_size=${pageSize}&page=${page}&json=true&fields=${FIELDS}`;
   const res = await fetch(url, { headers: { 'User-Agent': 'maseya-validator/1.0' } });
   if (!res.ok) return [];
   const j = await res.json() as { products?: OFFProd[] };
-  return j.products || [];
+  return (j.products || []).filter(p => ['a','b','c','d','e'].includes((p.nutriscore_grade || '').toLowerCase()));
 }
 
 interface Bucket { tag: string; count: number; label: string }
