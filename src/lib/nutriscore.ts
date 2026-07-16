@@ -308,7 +308,7 @@ export function computeNutriScore(
     const cats = (categoriesTags || []).map(t => String(t).toLowerCase());
     const looksLikeJuice = cats.some(t => t.includes('juice') || t.includes('nectar') || t.includes('smoothie'));
     const additivesKnown = Array.isArray(raw.additives_tags) && (raw.additives_tags as string[]).length > 0;
-    if (grade === 'a' || grade === 'b') {
+    if (grade === 'b') {
       if (sugars > 0 || looksLikeJuice) grade = 'c';
       else if (!additivesKnown) grade = 'c';
     }
