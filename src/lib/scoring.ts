@@ -2,6 +2,7 @@
  * Scoring + personalization rules for the scan result page.
  */
 import type { ProductData } from './productLookup';
+import { computeNutriScore, nutriScoreToNote } from './nutriscore';
 
 export type IngredientLevel = 'safe' | 'caution' | 'avoid';
 
@@ -547,8 +548,49 @@ export function calculateScoreBreakdown(
     return { score: clamp100(score), factors };
   }
 
-  // Cosmetic or food-without-nutriscore fallback.
+  // Food-without-official-nutriscore: try computing our own Nutri-Score 2023
+  // from the raw nutriments. If it succeeds, we use it just like an official
+  // grade (same downstream flow). If not, fall back to the ingredient-only
+  // fallback below.
   if (p.category === 'food' && !hasNutri) {
+    const raw = (p.raw || {}) as Record<string, unknown>;
+    const nutri = (raw.nutriments && typeof raw.nutriments === 'object')
+      ? raw.nutriments as Record<string, unknown>
+      : {};
+    const cats = Array.isArray(raw.categories_tags) ? (raw.categories_tags as string[]) : [];
+    const computed = computeNutriScore(nutri, cats, raw);
+    if (computed) {
+      let score = nutriScoreToNote(computed.score, computed.grade, computed.category);
+      const tone: FactorTone =
+        computed.grade === 'a' || computed.grade === 'b' ? 'positive'
+        : computed.grade === 'c' ? 'neutral' : 'negative';
+      factors.push({
+        label: `Nutriscore calculado por Maseya: ${computed.grade.toUpperCase()}`,
+        delta: null,
+        tone,
+      });
+      if (reds > 0) {
+        factors.push({
+          label: `${reds} ingrediente${reds > 1 ? 's' : ''} a evitar`,
+          delta: -reds * 10, tone: 'negative',
+        });
+        score -= reds * 10;
+      }
+      if (oranges > 0) {
+        factors.push({
+          label: `${oranges} ingrediente${oranges > 1 ? 's' : ''} con precaución`,
+          delta: -oranges * 5, tone: 'negative',
+        });
+        score -= oranges * 5;
+      }
+      if (isOrganic) {
+        factors.push({ label: 'Producto ecológico', delta: 3, tone: 'positive' });
+        score += 3;
+      }
+      score = applyAlcoholCap(score);
+      score = applyConfidenceCap(score);
+      return { score: clamp100(score), factors };
+    }
     factors.push({
       label: 'Datos incompletos: puntuación orientativa',
       delta: null, tone: 'neutral',
