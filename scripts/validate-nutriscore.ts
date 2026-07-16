@@ -23,11 +23,17 @@ const FIELDS = [
 
 async function search(categoryTag: string, pageSize: number, page = 1): Promise<OFFProd[]> {
   const url = `https://world.openfoodfacts.org/cgi/search.pl?action=process&tagtype_0=categories&tag_contains_0=contains&tag_0=${encodeURIComponent(categoryTag)}&sort_by=unique_scans_n&page_size=${pageSize}&page=${page}&json=true&fields=${FIELDS}`;
-  const res = await fetch(url, { headers: { 'User-Agent': 'maseya-validator/1.0' } });
-  if (!res.ok) return [];
-  const j = await res.json() as { products?: OFFProd[] };
-  return (j.products || []).filter(p => ['a','b','c','d','e'].includes((p.nutriscore_grade || '').toLowerCase()));
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch(url, { headers: { 'User-Agent': 'maseya-validator/1.0' } });
+      if (!res.ok) { await new Promise(r => setTimeout(r, 2000)); continue; }
+      const j = await res.json() as { products?: OFFProd[] };
+      return (j.products || []).filter(p => ['a','b','c','d','e'].includes((p.nutriscore_grade || '').toLowerCase()));
+    } catch { await new Promise(r => setTimeout(r, 2000)); }
+  }
+  return [];
 }
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
 interface Bucket { tag: string; count: number; label: string }
 const BUCKETS: Bucket[] = [
