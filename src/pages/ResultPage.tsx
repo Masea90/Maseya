@@ -513,6 +513,50 @@ const ResultPage = () => {
                     </Popover>
                   </div>
 
+                  {/* Data confidence badge (Fase 1 motor V2) — siempre visible.
+                     Con confianza baja/media la nota general va capada, así que
+                     un producto sin datos completos nunca puede sacar 100. */}
+                  {(() => {
+                    if (dataConfidence.level === 'none') return null;
+                    const map = {
+                      high: { emoji: '🟢', label: 'Confianza alta', cls: 'bg-[#95D5B2]/20 border-[#2D6A4F]/30 text-[#2D6A4F]' },
+                      medium: { emoji: '🟡', label: 'Confianza media', cls: 'bg-[#F4D35E]/20 border-[#F4A261]/40 text-[#8a4a1e]' },
+                      low: { emoji: '🟠', label: 'Confianza baja', cls: 'bg-[#F4A261]/20 border-[#F4A261]/50 text-[#8a4a1e]' },
+                    } as const;
+                    const m = map[dataConfidence.level];
+                    const needsPhoto = dataConfidence.level !== 'high';
+                    const ctaText = product.category === 'food'
+                      ? 'Nota provisional — fotografía la tabla nutricional para desbloquear la nota completa'
+                      : 'Nota provisional — fotografía la lista de ingredientes completa para desbloquear la nota completa';
+                    return (
+                      <div className="w-full max-w-sm flex flex-col items-center gap-1.5">
+                        <span
+                          className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-full border ${m.cls}`}
+                          title={dataConfidence.missing.length ? `Falta: ${dataConfidence.missing.join(', ')}` : undefined}
+                        >
+                          <span aria-hidden>{m.emoji}</span>
+                          <span>{m.label}</span>
+                        </span>
+                        {needsPhoto && (
+                          <div className="flex flex-col items-center gap-1">
+                            <p className="text-[11px] text-muted-foreground text-center leading-snug px-3">
+                              {ctaText}
+                            </p>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => navigate(barcode && barcode !== 'photo' ? `/scan/photo?barcode=${barcode}` : '/scan/photo')}
+                              className="rounded-xl h-7 text-[11px] px-3"
+                            >
+                              <Camera className="w-3 h-3 mr-1" />
+                              Fotografiar
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+
                   {voiceLine && (
                     <p className="text-sm text-muted-foreground italic text-center px-4 leading-snug">
                       {voiceLine}
