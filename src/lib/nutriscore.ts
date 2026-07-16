@@ -58,36 +58,48 @@ const readAny = (nutri: Record<string, unknown>, keys: string[]): number | null 
 // -------- category detection --------------------------------------------
 const RED_MEAT_TAGS = new Set([
   'en:beef', 'en:pork', 'en:lamb-meat', 'en:lamb', 'en:veal', 'en:mutton',
-  'en:horse-meat', 'en:game-meat',
-  'en:red-meats', 'en:red-meat',
+  'en:horse-meat', 'en:game-meat', 'en:red-meats', 'en:red-meat',
+  'en:bacon', 'en:sausages', 'en:hams', 'en:cured-meats',
+  'en:charcuteries',
 ]);
 const CHEESE_TAGS = new Set([
   'en:cheeses', 'en:cheese', 'en:hard-cheeses', 'en:soft-cheeses',
-  'en:blue-cheeses', 'en:fresh-cheeses',
+  'en:blue-cheeses', 'en:fresh-cheeses', 'en:goat-cheeses',
+  'en:processed-cheeses', 'en:grated-cheeses',
 ]);
-const FAT_TAGS_SUBSTR = ['fats', 'oils', 'butters', 'margarines'];
-const NUT_TAGS_SUBSTR = ['nuts', 'seeds'];
+const FAT_TAGS = new Set([
+  'en:fats', 'en:vegetable-fats', 'en:animal-fats',
+  'en:oils', 'en:vegetable-oils', 'en:olive-oils', 'en:sunflower-oils',
+  'en:rapeseed-oils', 'en:groundnut-oils', 'en:coconut-oils',
+  'en:butters', 'en:margarines', 'en:added-fats',
+  'en:nuts', 'en:seeds', 'en:nuts-and-seeds', 'en:oilseeds',
+]);
 const WATER_TAGS = new Set([
   'en:waters', 'en:mineral-waters', 'en:spring-waters',
-  'en:natural-mineral-waters', 'en:still-waters', 'en:sparkling-waters',
-  'en:flavored-waters',
+  'en:natural-mineral-waters',
 ]);
-// Any beverage: en:beverages plus a slew of descendants. Milk counts as a
-// beverage under the 2023 rules.
-const BEVERAGE_TAGS_SUBSTR = [
-  'beverages', 'drinks', 'sodas', 'juices', 'nectars', 'smoothies',
-  'milks', 'plant-milks', 'milk-drinks', 'iced-teas', 'coffees', 'teas',
-];
+// Any tag equal to 'en:beverages' or a well-known descendant.
+const BEVERAGE_TAGS = new Set([
+  'en:beverages', 'en:non-alcoholic-beverages', 'en:carbonated-drinks',
+  'en:sodas', 'en:colas', 'en:lemonades', 'en:tonics',
+  'en:juices', 'en:fruit-juices', 'en:vegetable-juices', 'en:nectars', 'en:smoothies',
+  'en:iced-teas', 'en:teas', 'en:coffees', 'en:coffee-drinks', 'en:hot-chocolates',
+  'en:energy-drinks', 'en:sports-drinks', 'en:sweetened-beverages',
+  'en:milks', 'en:plant-milks', 'en:plant-based-milk-alternatives',
+  'en:almond-drinks', 'en:oat-drinks', 'en:soy-milks', 'en:rice-drinks',
+  'en:dairy-drinks', 'en:milk-drinks', 'en:flavored-milks',
+  'en:flavored-waters', 'en:still-waters', 'en:sparkling-waters',
+]);
 
 export function detectNutriCategory(categoriesTags: string[] | undefined | null): NutriCategory {
   const cats = (categoriesTags || []).map(t => String(t).toLowerCase());
   if (cats.some(t => WATER_TAGS.has(t))) return 'water';
+  // Beverages (including milks & plant milks) BEFORE fat/nut detection so
+  // "almond drink" doesn't get routed to the fats table.
+  if (cats.some(t => BEVERAGE_TAGS.has(t))) return 'beverage';
   if (cats.some(t => RED_MEAT_TAGS.has(t))) return 'red-meat';
   if (cats.some(t => CHEESE_TAGS.has(t))) return 'cheese';
-  // fats/oils/nuts share the fats table (with ratio-based sat-fat)
-  if (cats.some(t => FAT_TAGS_SUBSTR.some(s => t.includes(s)))) return 'fat';
-  if (cats.some(t => NUT_TAGS_SUBSTR.some(s => t.includes(s)))) return 'fat';
-  if (cats.some(t => BEVERAGE_TAGS_SUBSTR.some(s => t.includes(s)))) return 'beverage';
+  if (cats.some(t => FAT_TAGS.has(t))) return 'fat';
   return 'general';
 }
 
