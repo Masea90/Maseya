@@ -22,7 +22,7 @@ const FIELDS = [
 ].join(',');
 
 async function search(categoryTag: string, pageSize: number, page = 1): Promise<OFFProd[]> {
-  const url = `https://world.openfoodfacts.org/cgi/search.pl?action=process&tagtype_0=categories&tag_contains_0=contains&tag_0=${encodeURIComponent(categoryTag)}&tagtype_1=nutrition_grades&tag_contains_1=contains&tag_1=a,b,c,d,e&sort_by=unique_scans_n&page_size=${pageSize}&page=${page}&json=true&fields=${FIELDS}`;
+  const url = `https://world.openfoodfacts.org/cgi/search.pl?action=process&tagtype_0=categories&tag_contains_0=contains&tag_0=${encodeURIComponent(categoryTag)}&sort_by=unique_scans_n&page_size=${pageSize}&page=${page}&json=true&fields=${FIELDS}`;
   const res = await fetch(url, { headers: { 'User-Agent': 'maseya-validator/1.0' } });
   if (!res.ok) return [];
   const j = await res.json() as { products?: OFFProd[] };
