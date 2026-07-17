@@ -600,12 +600,20 @@ const ResultPage = () => {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => navigate(barcode && barcode !== 'photo' ? `/scan/photo?barcode=${barcode}` : '/scan/photo')}
+                              onClick={() => {
+                                const bc = barcode && barcode !== 'photo' ? barcode : (product.barcode !== 'photo' ? product.barcode : '');
+                                if (product.category === 'food' && bc && !bc.startsWith('photo_')) {
+                                  navigate(`/scan/photo?step=nutrition&barcode=${bc}`);
+                                } else {
+                                  navigate(bc ? `/scan/photo?barcode=${bc}` : '/scan/photo');
+                                }
+                              }}
                               className="rounded-xl h-7 text-[11px] px-3"
                             >
                               <Camera className="w-3 h-3 mr-1" />
                               Fotografiar
                             </Button>
+
                           </div>
                         )}
                       </div>
