@@ -132,6 +132,7 @@ export type Database = {
           image_url: string | null
           ingredients_text: string | null
           last_enriched_at: string | null
+          nutriments: Json | null
           product_name: string
           scan_count: number
           source: string
@@ -148,6 +149,7 @@ export type Database = {
           image_url?: string | null
           ingredients_text?: string | null
           last_enriched_at?: string | null
+          nutriments?: Json | null
           product_name: string
           scan_count?: number
           source?: string
@@ -164,6 +166,7 @@ export type Database = {
           image_url?: string | null
           ingredients_text?: string | null
           last_enriched_at?: string | null
+          nutriments?: Json | null
           product_name?: string
           scan_count?: number
           source?: string

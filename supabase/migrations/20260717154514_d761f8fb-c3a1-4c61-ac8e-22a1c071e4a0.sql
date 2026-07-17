@@ -1,0 +1,1 @@
+ALTER TABLE public.maseya_products ADD COLUMN IF NOT EXISTS nutriments jsonb;
