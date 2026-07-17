@@ -69,6 +69,25 @@ const ResultPage = () => {
     };
   }, [currentUser?.id]);
 
+  // Toast when arriving after a rejected nutrition-table extraction, so the
+  // user knows why the confidence cap is still there.
+  useEffect(() => {
+    try {
+      const flag = localStorage.getItem('maseya_nutrition_rejected');
+      if (flag) {
+        localStorage.removeItem('maseya_nutrition_rejected');
+        const lang = user.language;
+        const msg = lang === 'en'
+          ? "We couldn't read the nutrition table reliably — you can try again from the result."
+          : lang === 'fr'
+          ? "Nous n'avons pas pu lire le tableau nutritionnel avec certitude — vous pouvez réessayer depuis le résultat."
+          : 'No pudimos leer la tabla con seguridad — puedes reintentarlo desde el resultado.';
+        toast({ description: msg });
+      }
+    } catch {}
+  }, [user.language]);
+
+
 
   const grantHealthConsent = async () => {
     const current = getStoredConsent();
