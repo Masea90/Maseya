@@ -11,7 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { lookupProduct, ProductData } from '@/lib/productLookup';
 import {
   flagIngredients, calculateScoreBreakdown, calculatePersonalScoreBreakdown, scoreLabel, naturalness, personalAlerts, loadOnboarding,
-  isNutritionalData, evaluateDataConfidence, isSupplement,
+  isNutritionalData, evaluateDataConfidence, isSupplement, isAlcoholicFood,
   FlaggedIngredient, PersonalAlert,
 } from '@/lib/scoring';
 import { getVoiceLine } from '@/lib/voiceLines';
@@ -220,10 +220,11 @@ const ResultPage = () => {
       return;
     }
 
-    // Anonymous photo flow: if the user just photographed this exact barcode,
-    // saveToMaseya may have failed silently (not_authenticated). Use the
-    // in-memory capture from localStorage before hitting the network.
-    if (loadFromPhotoLocalStorage(barcode)) {
+    // Out-of-scope barcodes: ISBN (978/979) and ISSN (977) are books/press.
+    // Short-circuit BEFORE hitting the network so users get a clear message.
+    if (/^97[789]/.test(barcode)) {
+      setNotFound(true);
+      setLoading(false);
       return;
     }
 
@@ -231,31 +232,33 @@ const ResultPage = () => {
     (async () => {
       const data = await lookupProduct(barcode);
       if (cancelled) return;
-      if (!data) {
-        // Try real-time enrichment before giving up
-        setEnriching(true);
-        try {
-          await supabase.functions.invoke('enrich-products', { body: { barcode } });
-        } catch (e) {
-          console.error('[result] enrich error', e);
-        }
-        if (cancelled) return;
-        const retry = await lookupProduct(barcode);
-        if (cancelled) return;
-        setEnriching(false);
-        if (!retry) {
-          // Symmetric fallback: if a photo capture for this barcode exists
-          // locally, surface it instead of a dead-end "not found".
-          if (loadFromPhotoLocalStorage(barcode)) return;
-          setNotFound(true);
-          setLoading(false);
-          return;
-        }
-        setProduct(retry);
+      if (data) {
+        setProduct(data);
         setLoading(false);
         return;
       }
-      setProduct(data);
+      // Lookup failed. Try local photo capture (race with server upsert) BEFORE
+      // enriching — if the user just photographed this exact barcode we already
+      // have everything we need in localStorage.
+      if (loadFromPhotoLocalStorage(barcode)) return;
+      // Real-time enrichment fallback.
+      setEnriching(true);
+      try {
+        await supabase.functions.invoke('enrich-products', { body: { barcode } });
+      } catch (e) {
+        console.error('[result] enrich error', e);
+      }
+      if (cancelled) return;
+      const retry = await lookupProduct(barcode);
+      if (cancelled) return;
+      setEnriching(false);
+      if (!retry) {
+        if (loadFromPhotoLocalStorage(barcode)) return;
+        setNotFound(true);
+        setLoading(false);
+        return;
+      }
+      setProduct(retry);
       setLoading(false);
     })();
     return () => { cancelled = true; };
@@ -329,6 +332,7 @@ const ResultPage = () => {
   }
 
   if (notFound || !product) {
+    const isBookOrPress = !!barcode && /^97[789]/.test(barcode);
     return (
       <div className="min-h-[100dvh] bg-background">
         <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border pt-safe">
@@ -336,14 +340,26 @@ const ResultPage = () => {
             <button onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/scan'))} aria-label="Volver">
               <ArrowLeft className="w-5 h-5" />
             </button>
-            <h1 className="font-display text-lg font-semibold">Producto no encontrado</h1>
+            <h1 className="font-display text-lg font-semibold">
+              {isBookOrPress ? 'Fuera de ámbito' : 'Producto no encontrado'}
+            </h1>
           </div>
         </header>
         <div className="w-full sm:max-w-lg sm:mx-auto p-6 space-y-4 text-center">
-          <p className="text-muted-foreground">No tenemos información de este producto en nuestras bases.</p>
-          <Button onClick={() => navigate(barcode && barcode !== 'photo' ? `/scan/photo?barcode=${barcode}` : '/scan/photo', { replace: true })} className="w-full h-12 rounded-2xl">
-            Fotografiar ingredientes
-          </Button>
+          <p className="text-muted-foreground">
+            {isBookOrPress
+              ? 'Maseya analiza alimentación y cosmética 📚 — este código corresponde a otro tipo de producto.'
+              : 'No tenemos información de este producto en nuestras bases.'}
+          </p>
+          {isBookOrPress ? (
+            <Button onClick={() => navigate('/scan', { replace: true })} className="w-full h-12 rounded-2xl">
+              Volver a escanear
+            </Button>
+          ) : (
+            <Button onClick={() => navigate(barcode && barcode !== 'photo' ? `/scan/photo?barcode=${barcode}` : '/scan/photo', { replace: true })} className="w-full h-12 rounded-2xl">
+              Fotografiar ingredientes
+            </Button>
+          )}
         </div>
       </div>
     );
@@ -351,7 +367,9 @@ const ResultPage = () => {
 
   const flagged = flagIngredients(product);
   const supplement = product.category === 'food' && isSupplement(product);
-  const scoreBreakdown = supplement
+  const alcoholic = product.category === 'food' && !supplement && isAlcoholicFood(product);
+  const nonScorable = supplement || alcoholic;
+  const scoreBreakdown = nonScorable
     ? { score: 0, factors: [] as ReturnType<typeof calculateScoreBreakdown>['factors'] }
     : calculateScoreBreakdown(product, flagged);
   const score = scoreBreakdown.score;
@@ -361,11 +379,13 @@ const ResultPage = () => {
   const profile = loadOnboarding();
   const activeProfile = healthProfile || profile;
   const alerts = healthConsent ? personalAlerts(product, activeProfile) : [];
-  const personalBreakdown = healthConsent && !supplement
+  const personalBreakdown = healthConsent && !nonScorable
     ? calculatePersonalScoreBreakdown(product, flagged, activeProfile, score)
     : null;
   const personalScore = personalBreakdown ? personalBreakdown.score : score;
   const psl = scoreLabel(personalScore);
+  // Voice line: suppressed for supplements. For alcoholic we still want the
+  // rotating one-liner (getVoiceLine already handles halal/pregnancy exclusions).
   const voiceLine = supplement ? null : getVoiceLine(
     product,
     score,
@@ -378,7 +398,7 @@ const ResultPage = () => {
     ? flagged.length >= 3
     : (flagged.length >= 1 || (rawText.length > 0 && !isNutritionalData(rawText)));
   const hasNutriscore = product.category === 'food' && !!product.nutriscore_grade;
-  const showScore = !supplement && (product.category === 'cosmetic'
+  const showScore = !nonScorable && (product.category === 'cosmetic'
     ? hasIngredientData
     : (hasNutriscore || hasIngredientData));
 
@@ -448,7 +468,9 @@ const ResultPage = () => {
             <p className="font-display font-semibold leading-tight">{product.name}</p>
             {product.brand && <p className="text-xs text-muted-foreground mt-1 truncate">{product.brand}</p>}
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-2">
-              {supplement ? 'Complemento alimenticio' : (product.category === 'food' ? 'Alimentación' : 'Cosmética')}
+              {supplement ? 'Complemento alimenticio'
+                : alcoholic ? 'Bebida alcohólica'
+                : (product.category === 'food' ? 'Alimentación' : 'Cosmética')}
             </p>
             {fromPhoto && (
               <div className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
@@ -463,11 +485,16 @@ const ResultPage = () => {
           </div>
         </div>
 
-        {supplement ? (
+        {nonScorable ? (
           <>
             <div className="rounded-2xl border border-[#F4A261]/50 bg-[#F4A261]/10 p-4 text-sm text-[#8a4a1e] leading-relaxed">
-              Los complementos alimenticios no se evalúan con criterios de alimentos (Nutriscore no aplica). Consulta a un profesional sanitario antes de tomarlos.
+              {supplement
+                ? 'Los complementos alimenticios no se evalúan con criterios de alimentos (Nutriscore no aplica). Consulta a un profesional sanitario antes de tomarlos.'
+                : 'Maseya no puntúa bebidas alcohólicas — el Nutri-Score no aplica a este tipo de producto.'}
             </div>
+            {voiceLine && (
+              <p className="text-center text-xs italic text-muted-foreground">{voiceLine}</p>
+            )}
             {hasIngredientData && (
               <div className="bg-card rounded-2xl border border-border p-4 space-y-2">
                 <p className="font-semibold flex items-center gap-2">🧪 Ingredientes</p>

@@ -41,10 +41,10 @@ const EMPTY: HealthState = {
 const OPTIONS = {
   skin_type: ['atopic', 'dry', 'oily', 'normal'],
   skin_type_label: { atopic: 'Atópica', dry: 'Seca', oily: 'Grasa', normal: 'Normal/Mixta' } as Record<string, string>,
-  skin_conditions: ['psoriasis', 'rosacea', 'acne'],
-  skin_conditions_label: { psoriasis: 'Psoriasis', rosacea: 'Rosácea', acne: 'Acné' } as Record<string, string>,
-  sensitivities: ['fragrance', 'alcohol', 'sulfate', 'paraben'],
-  sensitivities_label: { fragrance: 'Perfumes', alcohol: 'Alcohol', sulfate: 'Sulfatos', paraben: 'Parabenos' } as Record<string, string>,
+  skin_conditions: ['psoriasis', 'rosacea', 'acne', 'none'],
+  skin_conditions_label: { psoriasis: 'Psoriasis', rosacea: 'Rosácea', acne: 'Acné', none: '✓ Ninguna' } as Record<string, string>,
+  sensitivities: ['fragrance', 'alcohol', 'sulfate', 'paraben', 'none'],
+  sensitivities_label: { fragrance: 'Perfumes', alcohol: 'Alcohol', sulfate: 'Sulfatos', paraben: 'Parabenos', none: '✓ Ninguna' } as Record<string, string>,
   hair_type: ['straight', 'wavy', 'curly', 'coily'],
   hair_type_label: { straight: 'Liso', wavy: 'Ondulado', curly: 'Rizado', coily: 'Muy rizado' } as Record<string, string>,
   hair_condition: ['dry', 'oily', 'normal', 'damaged'],
@@ -83,16 +83,16 @@ const Section = ({ title, emoji, children }: { title: string; emoji: string; chi
   </Collapsible>
 );
 
+// Skin conditions & sensitivities are optional by nature — "none" IS a valid
+// answer. They no longer count toward the incomplete-profile bar (mirrors the
+// earlier fix for allergies). Allergies also stay excluded.
 const computePct = (s: HealthState): number => {
   let filled = 0;
-  const total = 8;
+  const total = 6;
   if (s.skin_type.length) filled++;
-  if (s.skin_conditions.length) filled++;
-  if (s.skin_sensitivities.length) filled++;
   if (s.hair_type) filled++;
   if (s.hair_condition) filled++;
   if (s.hair_concerns.length) filled++;
-  // Allergies intentionally excluded from completeness — empty means "none" here.
   if (s.diet.length) filled++;
   if (s.nutrition_goals.length) filled++;
   return Math.round((filled / total) * 100);
@@ -150,13 +150,13 @@ const ProfilePage = () => {
   const toggleArr = (key: keyof HealthState, val: string) => {
     setState(prev => {
       const arr = prev[key] as string[];
-      // Mutually exclusive 'none' for allergies
-      if (key === 'allergies') {
+      // Mutually exclusive 'none' for allergies + skin conditions/sensitivities
+      if (key === 'allergies' || key === 'skin_conditions' || key === 'skin_sensitivities') {
         if (val === 'none') {
-          return { ...prev, allergies: arr.includes('none') ? [] : ['none'] };
+          return { ...prev, [key]: arr.includes('none') ? [] : ['none'] };
         }
         const withoutNone = arr.filter(x => x !== 'none');
-        return { ...prev, allergies: withoutNone.includes(val) ? withoutNone.filter(x => x !== val) : [...withoutNone, val] };
+        return { ...prev, [key]: withoutNone.includes(val) ? withoutNone.filter(x => x !== val) : [...withoutNone, val] };
       }
       return { ...prev, [key]: arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val] };
     });

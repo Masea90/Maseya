@@ -219,6 +219,19 @@ function isRichPublicHit(pd: ProductData): boolean {
   return ing.length > 0 || hasNutri;
 }
 
+/** Merge maseya ingredients (and nutriments) into a rich public hit that lacks ingredients. */
+function mergeMaseyaIntoPublic(publicHit: ProductData, maseya: ProductData): ProductData {
+  const raw: Record<string, unknown> = { ...publicHit.raw };
+  const mRaw = maseya.raw as Record<string, unknown>;
+  if (mRaw?.nutriments && !raw.nutriments) raw.nutriments = mRaw.nutriments;
+  return {
+    ...publicHit,
+    ingredients_text: publicHit.ingredients_text || maseya.ingredients_text || null,
+    image: publicHit.image || maseya.image || null,
+    raw,
+  };
+}
+
 /** Merge aprovechable public metadata into a maseya hit that already has ingredients. */
 function mergePublicIntoMaseya(maseya: ProductData, publicHit: ProductData): ProductData {
   const raw: Record<string, unknown> = { ...maseya.raw };
@@ -237,35 +250,47 @@ function mergePublicIntoMaseya(maseya: ProductData, publicHit: ProductData): Pro
 }
 
 export async function lookupProduct(barcode: string): Promise<ProductData | null> {
-  // Public sources first (OFF/OBF) — they carry Nutriscore and richer ingredient
-  // data. But OFF/OBF can also return empty "shell" entries (status 1, no
-  // ingredients, no nutriscore). In that case a maseya photo-contributed entry
-  // with real ingredients would be hidden forever. So: prefer public ONLY when
-  // it's actually rich; otherwise let a richer maseya entry win, merging any
-  // useful public metadata (categories/image/allergens) on top.
+  // Public sources first (OFF/OBF) — they carry Nutriscore and richer data.
+  // But OFF/OBF can also return empty "shell" entries or hits that have a
+  // nutriscore/nutriments but NO ingredients. In both cases a maseya
+  // photo-contributed entry with real ingredients would be hidden forever.
+  // Strategy:
+  //   - poor public + rich maseya  → maseya + useful public metadata (existing merge).
+  //   - rich public w/o ingredients + maseya w/ ingredients → public + maseya ingredients.
+  //   - rich public with ingredients → return public.
   const off = await fetchFrom('world.openfoodfacts.org', barcode);
   let publicHit: ProductData | null = null;
   if (off?.status === 1 && off.product) {
     publicHit = normalize(off, barcode, 'off', 'food');
-    if (isRichPublicHit(publicHit)) return publicHit;
   }
-
   if (!publicHit) {
     const obf = await fetchFrom('world.openbeautyfacts.org', barcode);
     if (obf?.status === 1 && obf.product) {
       publicHit = normalize(obf, barcode, 'obf', 'cosmetic');
-      if (isRichPublicHit(publicHit)) return publicHit;
     }
   }
 
+  const publicRich = !!publicHit && isRichPublicHit(publicHit);
+  const publicHasIngredients = !!publicHit && (publicHit.ingredients_text || '').trim().length > 0;
+
+  // Fast path: rich public with ingredients → return it directly.
+  if (publicRich && publicHasIngredients) return publicHit!;
+
   const maseya = await fetchFromMaseya(barcode);
-  if (maseya && (maseya.ingredients_text || '').trim().length > 0) {
-    return publicHit ? mergePublicIntoMaseya(maseya, publicHit) : maseya;
+  const maseyaHasIngredients = !!maseya && (maseya.ingredients_text || '').trim().length > 0;
+
+  // Rich public but no ingredients + maseya has ingredients → merge symmetrically.
+  if (publicHit && publicRich && !publicHasIngredients && maseyaHasIngredients) {
+    return mergeMaseyaIntoPublic(publicHit, maseya!);
   }
 
-  // Neither rich: return the poor public shell if we have it (preserves the
-  // existing "insufficient data" UX), otherwise the empty maseya row, otherwise null.
+  // Poor (or absent) public + rich maseya → existing reverse merge.
+  if (maseyaHasIngredients) {
+    return publicHit ? mergePublicIntoMaseya(maseya!, publicHit) : maseya!;
+  }
+
   if (publicHit) return publicHit;
   if (maseya) return maseya;
   return null;
 }
+

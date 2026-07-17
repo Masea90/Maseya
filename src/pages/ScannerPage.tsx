@@ -162,6 +162,9 @@ const ScannerPage = () => {
     rafRef.current = null;
     nativeStreamRef.current?.getTracks().forEach((t) => t.stop());
     nativeStreamRef.current = null;
+    // Out-of-scope prefixes: 978/979 = books (ISBN), 977 = press (ISSN).
+    // ResultPage also handles this, but short-circuiting here avoids the
+    // network round-trip and a jarring "not found" flash.
     setPhase('analyzing');
     navigate(`/result/${encodeURIComponent(decodedText)}`);
   };

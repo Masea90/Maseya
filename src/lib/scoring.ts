@@ -655,14 +655,14 @@ export function calculateScoreBreakdown(
 
   const nutriGrade = (p.nutriscore_grade || '').toLowerCase();
   const hasNutri = ['a', 'b', 'c', 'd', 'e'].includes(nutriGrade);
-  const alcoholic = p.category === 'food' && isAlcoholicFood(p);
+  const nonScorableAlcohol = p.category === 'food' && isAlcoholicFood(p);
+  // Alcoholic beverages are out of Nutri-Score scope. The ResultPage renders
+  // them via the "non-scorable" branch (no score circles), so this function
+  // shouldn't produce a numeric score for them. Keeping a no-op cap here for
+  // any legacy callers that still run the full score path on alcohol.
   const applyAlcoholCap = (score: number): number => {
-    if (!alcoholic) return score;
-    if (score > 30) {
-      factors.push({ label: 'Bebida alcohólica (nota limitada a 30)', delta: 30 - score, tone: 'negative' });
-      return 30;
-    }
-    factors.push({ label: 'Bebida alcohólica', delta: null, tone: 'negative' });
+    if (!nonScorableAlcohol) return score;
+    factors.push({ label: 'Bebida alcohólica — fuera del ámbito del Nutri-Score', delta: null, tone: 'neutral' });
     return score;
   };
 
@@ -893,20 +893,32 @@ const SUPPLEMENT_CATEGORY_TAGS = new Set<string>([
   'en:vitamins', 'en:mineral-supplements', 'en:plant-based-supplements',
   'en:herbal-supplements',
 ]);
+const SUPPLEMENT_CATEGORY_SUBSTRINGS = [
+  'dietary-supplement', 'food-supplement', 'supplement', 'vitamin',
+];
 const SUPPLEMENT_NAME_KEYWORDS = [
   'suplemento', 'supplement', 'complemento aliment', 'complemento nutricional',
   'cápsulas', 'capsulas', 'capsules', 'cápsula', 'capsula',
+  'comprimidos', 'comprimido', 'tabletas', 'gummies', 'gomitas',
   'ashwagandha', 'ksm-66', 'ginseng', 'maca ',
   'colágeno hidrolizado', 'multivitamin', 'multivitamínico', 'multivitaminico',
+  'melatonina', 'melatonin', 'magnesio', 'omega 3', 'omega-3', 'omega3',
 ];
+const SUPPLEMENT_NAME_TOKENS = ['forte', 'memory', 'omega', 'magnesio', 'melatonina'];
 export function isSupplement(p: ProductData): boolean {
   const raw = (p.raw || {}) as Record<string, unknown>;
   const cats = Array.isArray(raw.categories_tags) ? (raw.categories_tags as string[]) : [];
-  if (cats.some(t => SUPPLEMENT_CATEGORY_TAGS.has(String(t).toLowerCase()))) return true;
+  const catsLc = cats.map(t => String(t).toLowerCase());
+  if (catsLc.some(t => SUPPLEMENT_CATEGORY_TAGS.has(t))) return true;
+  if (catsLc.some(t => SUPPLEMENT_CATEGORY_SUBSTRINGS.some(s => t.includes(s)))) return true;
   const name = `${p.name || ''} ${p.brand || ''}`.toLowerCase();
   for (const kw of SUPPLEMENT_NAME_KEYWORDS) {
     if (name.includes(kw)) return true;
   }
+  // Word-boundary match for short supplement-signal tokens (forte, memory…)
+  // when the product name has no clear food context.
+  const tokens = name.split(/[^a-záéíóúñ0-9]+/i).filter(Boolean);
+  if (tokens.some(t => SUPPLEMENT_NAME_TOKENS.includes(t))) return true;
   // "vitamina X" + cápsula format
   if (/vitamina\s+[a-z0-9]/i.test(name) && /(cáps|caps|comprim|tablet|pastill)/i.test(name)) {
     return true;
@@ -1397,6 +1409,14 @@ export function personalAlerts(
           });
         }
       }
+    }
+
+    // Pregnancy/lactation × alcohol → serious alert
+    if (profile?.pregnancy_or_lactation && isAlcoholicFood(p)) {
+      alerts.push({
+        level: 'danger',
+        text: 'El alcohol no es seguro durante el embarazo ni la lactancia.',
+      });
     }
 
     if (allergies.some(a => a !== 'none') && (isUntrustedSource || !hasStructured)) {
