@@ -24,6 +24,8 @@ import { NutritionFacts } from '@/components/result/NutritionFacts';
 import { InstallPrompt } from '@/components/InstallPrompt';
 import { ThumbsFeedback } from '@/components/feedback/ThumbsFeedback';
 import { FeedbackDialog } from '@/components/feedback/FeedbackDialog';
+import { toast } from '@/hooks/use-toast';
+
 
 import { hasHealthDataConsent, getStoredConsent, saveConsent } from '@/components/consent/ConsentModal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -66,6 +68,25 @@ const ResultPage = () => {
       window.removeEventListener('storage', refresh);
     };
   }, [currentUser?.id]);
+
+  // Toast when arriving after a rejected nutrition-table extraction, so the
+  // user knows why the confidence cap is still there.
+  useEffect(() => {
+    try {
+      const flag = localStorage.getItem('maseya_nutrition_rejected');
+      if (flag) {
+        localStorage.removeItem('maseya_nutrition_rejected');
+        const lang = user.language;
+        const msg = lang === 'en'
+          ? "We couldn't read the nutrition table reliably — you can try again from the result."
+          : lang === 'fr'
+          ? "Nous n'avons pas pu lire le tableau nutritionnel avec certitude — vous pouvez réessayer depuis le résultat."
+          : 'No pudimos leer la tabla con seguridad — puedes reintentarlo desde el resultado.';
+        toast({ description: msg });
+      }
+    } catch {}
+  }, [user.language]);
+
 
 
   const grantHealthConsent = async () => {
@@ -162,6 +183,7 @@ const ResultPage = () => {
           : null;
         const rawObj: Record<string, unknown> = { ...p };
         if (categoryTag) rawObj.categories_tags = [categoryTag];
+        if (p.nutriments && typeof p.nutriments === 'object') rawObj.nutriments = p.nutriments;
         setProduct({
           barcode: p.barcode,
           source: 'photo',
@@ -178,6 +200,7 @@ const ResultPage = () => {
           traces_tags: [],
           raw: rawObj,
         });
+
         setFromPhoto(true);
         setPhotoSaved(p.saved === true);
         setLoading(false);
@@ -596,12 +619,20 @@ const ResultPage = () => {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => navigate(barcode && barcode !== 'photo' ? `/scan/photo?barcode=${barcode}` : '/scan/photo')}
+                              onClick={() => {
+                                const bc = barcode && barcode !== 'photo' ? barcode : (product.barcode !== 'photo' ? product.barcode : '');
+                                if (product.category === 'food' && bc && !bc.startsWith('photo_')) {
+                                  navigate(`/scan/photo?step=nutrition&barcode=${bc}`);
+                                } else {
+                                  navigate(bc ? `/scan/photo?barcode=${bc}` : '/scan/photo');
+                                }
+                              }}
                               className="rounded-xl h-7 text-[11px] px-3"
                             >
                               <Camera className="w-3 h-3 mr-1" />
                               Fotografiar
                             </Button>
+
                           </div>
                         )}
                       </div>
