@@ -569,16 +569,36 @@ const PhotoCapturePage = () => {
 
         )}
 
-        {step === 'analyzing' && (
+        {(step === 'analyzing' || step === 'analyzing-nutrition') && (
           <div className="py-16 flex flex-col items-center gap-4 text-center">
             <div className="relative w-20 h-20 rounded-full bg-primary/15 flex items-center justify-center">
               <Sparkles className="w-9 h-9 text-primary animate-pulse" />
               <span className="absolute inset-0 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
             </div>
-            <p className="text-sm font-medium">{c.analyzing}</p>
+            <p className="text-sm font-medium">{step === 'analyzing-nutrition' ? c.analyzingNutrition : c.analyzing}</p>
             <p className="text-xs text-muted-foreground">{c.analyzingSub}</p>
           </div>
         )}
+
+        {step === 'nutrition-offer' && (
+          <div className="py-8 flex flex-col items-center gap-4 text-center">
+            <div className="w-16 h-16 rounded-full bg-primary/15 flex items-center justify-center">
+              <Sparkles className="w-8 h-8 text-primary" />
+            </div>
+            <h2 className="font-display text-lg font-semibold">{c.nutrition.heading}</h2>
+            <p className="text-sm text-muted-foreground max-w-xs">{c.nutrition.sub}</p>
+            <div className="flex flex-col gap-2 w-full max-w-xs pt-2">
+              <Button onClick={() => setStep('nutrition-capture')} className="h-12 rounded-2xl">
+                <Camera className="w-4 h-4 mr-2" />
+                {c.nutrition.capture}
+              </Button>
+              <Button onClick={() => finalizeAndNavigate()} variant="outline" className="h-12 rounded-2xl">
+                {c.nutrition.skip}
+              </Button>
+            </div>
+          </div>
+        )}
+
 
         {step === 'image-saved' && (
           <div className="py-16 flex flex-col items-center gap-4 text-center">
