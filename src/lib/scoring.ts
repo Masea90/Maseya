@@ -769,7 +769,7 @@ export function calculateScoreBreakdown(
         factors.push({ label: 'Producto ecológico', delta: 3, tone: 'positive' });
         score += 3;
       }
-      score = applyEfsaAdditives(score);
+      score = applyEfsaAdditives(score, computed.grade);
       maybeAddNoRiskAdditivesNote();
       score = applyAlcoholCap(score);
       score = applyConfidenceCap(score);
