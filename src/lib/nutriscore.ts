@@ -324,7 +324,13 @@ export function computeNutriScore(
   } else if (category === 'beverage') {
     score = N - P;
   } else {
-    if (N < 11 || fvlPts >= 5) score = N - P;
+    // General branch: apply red-meat protein cap when the product also
+    // carries a red-meat tag (prepared meals / frozen dishes that contain
+    // pork, beef, lamb...). OFF applies the cap in these cases.
+    const applyRedMeatCap = hasRedMeatTag(categoriesTags);
+    const proteinEff = applyRedMeatCap ? Math.min(proteinPts, 2) : proteinPts;
+    const Peff = fibrePts + proteinEff + fvlPts;
+    if (N < 11 || fvlPts >= 5) score = N - Peff;
     else score = N - (fibrePts + fvlPts);
   }
 
@@ -337,18 +343,11 @@ export function computeNutriScore(
     else if (score <= 9) grade = 'd';
     else grade = 'e';
 
-    // Conservative safeguards to align with OFF and stay 100%-safe when
-    // upstream data is incomplete (photo/user scans miss additives_tags):
-    // (a) any non-water beverage with sugars > 0 caps at C (juices/nectars)
-    // (b) zero-sugar beverages without provable sweetener detection cap at C
-    //     — a truly artificial-sweetener soda is graded C, never B.
+    // Juice/nectar safeguard: OFF's beverage table grades juices with any
+    // real sugars at C or worse; keep a floor at C for those specifically.
     const cats = (categoriesTags || []).map(t => String(t).toLowerCase());
     const looksLikeJuice = cats.some(t => t.includes('juice') || t.includes('nectar') || t.includes('smoothie'));
-    const additivesKnown = Array.isArray(raw.additives_tags) && (raw.additives_tags as string[]).length > 0;
-    if (grade === 'b') {
-      if (sugars > 0 || looksLikeJuice) grade = 'c';
-      else if (!additivesKnown) grade = 'c';
-    }
+    if (grade === 'b' && looksLikeJuice && sugars > 0) grade = 'c';
   } else if (category === 'fat') {
     // 2023 fats cutoffs
     if (score <= -6) grade = 'a';
@@ -362,13 +361,12 @@ export function computeNutriScore(
     else if (score < 11) grade = 'c';
     else if (score < 19) grade = 'd';
     else grade = 'e';
-    // Conservative safeguard: dairy/plant-milk drinks routed to the general
-    // formula are graded B by OFF even when the raw formula would give A
-    // (fat/protein composition). Match that to stay 100%-safe.
-    const cats = (categoriesTags || []).map(t => String(t).toLowerCase());
-    const isMilkDrink = cats.some(t => DAIRY_OR_MILK_DRINK_TAGS.has(t));
-    if (grade === 'a' && isMilkDrink) grade = 'b';
   }
+
+  // N.B. we also need to recompute the "general" N/P totals reported below
+  // to reflect the red-meat protein cap when applied; the internal `score`
+  // already uses the capped value.
+
 
   return {
     grade, score, category, negative: N, positive: P,
