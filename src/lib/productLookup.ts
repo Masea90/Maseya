@@ -99,7 +99,7 @@ const normalize = (
 async function fetchFromMaseya(barcode: string): Promise<ProductData | null> {
   const { data, error } = await supabase
     .from('maseya_products')
-    .select('barcode, product_name, brand, category, category_tag, ingredients_text, image_url, source')
+    .select('barcode, product_name, brand, category, category_tag, ingredients_text, image_url, source, nutriments')
     .eq('barcode', barcode)
     .maybeSingle();
   if (error) {
@@ -112,8 +112,6 @@ async function fetchFromMaseya(barcode: string): Promise<ProductData | null> {
   let categoryTag: string | null = (data as { category_tag?: string | null }).category_tag || null;
   let remoteCategoriesTags: string[] | null = null;
 
-  // Auto-fetch from OFF/OBF when we lack the image OR the specific
-  // category_tag (needed to power the Alternatives feature).
   if (!image || !categoryTag) {
     try {
       const primary = cat === 'cosmetic' ? 'world.openbeautyfacts.org' : 'world.openfoodfacts.org';
@@ -130,8 +128,6 @@ async function fetchFromMaseya(barcode: string): Promise<ProductData | null> {
             const last = p.categories_tags[p.categories_tags.length - 1];
             if (last && /^[a-z]{2}:[a-z0-9-]+$/.test(last)) {
               categoryTag = last;
-              // Best-effort persist so we skip the remote fetch next time.
-              // Ignore permission/RLS errors silently.
               void supabase
                 .from('maseya_products')
                 .update({ category_tag: categoryTag })
@@ -152,6 +148,10 @@ async function fetchFromMaseya(barcode: string): Promise<ProductData | null> {
   const categoriesTags = remoteCategoriesTags ?? (categoryTag ? [categoryTag] : null);
   if (categoriesTags) rawObj.categories_tags = categoriesTags;
   if (categoryTag) rawObj.category_tag = categoryTag;
+  // Map Maseya-stored nutriments (photo-extracted) into raw.nutriments so
+  // scoring/NutritionFacts pick them up like any OFF product.
+  const nutri = (data as { nutriments?: unknown }).nutriments;
+  if (nutri && typeof nutri === 'object') rawObj.nutriments = nutri;
 
   return {
     barcode: data.barcode,
@@ -170,6 +170,7 @@ async function fetchFromMaseya(barcode: string): Promise<ProductData | null> {
     raw: rawObj,
   };
 }
+
 
 
 export async function saveToMaseya(input: {
