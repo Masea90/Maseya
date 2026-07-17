@@ -585,38 +585,44 @@ export function calculateScoreBreakdown(
   const reds = redsEff;
   const oranges = orangesEff;
 
-  const applyEfsaAdditives = (score: number): number => {
+  const applyEfsaAdditives = (score: number, nutriGrade?: string): number => {
     if (additiveRisks.length === 0) return score;
+    // Attenuate EFSA penalty when the Nutri-Score already prices the product
+    // as bad (D/E). Otherwise we double-count "this product is unhealthy"
+    // (Nutri-Score already reflects sugars/salt/sat-fat exposure).
+    const g = (nutriGrade || '').toLowerCase();
+    const attenuation = g === 'e' ? 0 : g === 'd' ? 0.5 : 1;
+    if (attenuation === 0) return score;
     const highs = additiveRisks.filter(r => r.risk === 'high');
     const mods = additiveRisks.filter(r => r.risk === 'moderate');
-    let delta = 0;
     let worst: AdditiveRisk | null = null;
-    if (highs.length > 0) {
-      worst = highs[0];
-      delta -= 25;
-    } else if (mods.length > 0) {
-      worst = mods[0];
-      delta -= 12;
-    }
+    let base = 0;
+    if (highs.length > 0) { worst = highs[0]; base = -25; }
+    else if (mods.length > 0) { worst = mods[0]; base = -12; }
     const extras = additiveRisks.length - 1;
-    if (extras > 0) delta -= extras * 5;
+    const extrasDelta = extras > 0 ? -extras * 5 : 0;
+    let delta = base + extrasDelta;
     if (delta < -35) delta = -35;
-    if (worst) {
-      const label = worst.risk === 'high'
-        ? `Aditivo con riesgo alto de sobreexposición según EFSA: ${worst.name}`
-        : `Aditivo con riesgo moderado de sobreexposición según EFSA: ${worst.name}`;
-      factors.push({ label, delta: worst.risk === 'high' ? -25 : -12, tone: 'negative' });
-      if (extras > 0) {
-        const extraDelta = Math.max(-35 - (worst.risk === 'high' ? -25 : -12), -extras * 5);
+    delta = Math.round(delta * attenuation);
+    if (!worst) return score;
+    const label = worst.risk === 'high'
+      ? `Aditivo con riesgo alto de sobreexposición según EFSA: ${worst.name}`
+      : `Aditivo con riesgo moderado de sobreexposición según EFSA: ${worst.name}`;
+    const worstDelta = Math.round(base * attenuation);
+    factors.push({ label, delta: worstDelta, tone: 'negative' });
+    if (extras > 0) {
+      const remaining = delta - worstDelta;
+      if (remaining < 0) {
         factors.push({
           label: `${extras} aditivo${extras > 1 ? 's' : ''} adicional${extras > 1 ? 'es' : ''} con riesgo EFSA`,
-          delta: extraDelta,
+          delta: remaining,
           tone: 'negative',
         });
       }
     }
     return score + delta;
   };
+
 
   // Informative (neutral, no points) factor when a product carries many
   // additives that EFSA has NOT flagged as risky — transparency without
