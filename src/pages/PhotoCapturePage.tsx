@@ -396,12 +396,13 @@ const PhotoCapturePage = () => {
           ingredients_image: ingredientsImage,
           barcode: realBarcode || undefined,
         });
-        if (!res.ok) {
+        if (res.ok === false) {
           setServerErrorMessage(res.msg ?? null);
           setErrorKind(res.kind);
           setStep('error');
           return;
         }
+
         const data = res.data;
         const product_name = (data.product_name as string) || 'Producto fotografiado';
         const brand = (data.brand as string) || '';
