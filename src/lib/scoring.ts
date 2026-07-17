@@ -722,7 +722,7 @@ export function calculateScoreBreakdown(
         delta: null, tone: 'neutral',
       });
     }
-    score = applyEfsaAdditives(score);
+    score = applyEfsaAdditives(score, nutriGrade);
     maybeAddNoRiskAdditivesNote();
     score = applyAlcoholCap(score);
     score = applyConfidenceCap(score);
