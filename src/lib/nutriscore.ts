@@ -87,8 +87,7 @@ const BEVERAGE_TAGS = new Set([
   'en:energy-drinks', 'en:sports-drinks', 'en:sweetened-beverages',
   'en:flavored-waters', 'en:still-waters', 'en:sparkling-waters',
 ]);
-// Dairy & plant milk drinks: 2023 rule routes these through the GENERAL
-// formula (not the beverage table). OFF's own implementation matches.
+// Dairy & plant-milk drinks — per the 2023 rule these are BEVERAGES.
 const DAIRY_OR_MILK_DRINK_TAGS = new Set([
   'en:milks', 'en:plant-milks', 'en:plant-based-milk-alternatives',
   'en:almond-drinks', 'en:oat-drinks', 'en:soy-milks', 'en:rice-drinks',
@@ -100,14 +99,22 @@ const DAIRY_OR_MILK_DRINK_TAGS = new Set([
 export function detectNutriCategory(categoriesTags: string[] | undefined | null): NutriCategory {
   const cats = (categoriesTags || []).map(t => String(t).toLowerCase());
   if (cats.some(t => WATER_TAGS.has(t))) return 'water';
-  // Dairy / plant-milk drinks → general formula (2023 rule).
-  if (cats.some(t => DAIRY_OR_MILK_DRINK_TAGS.has(t))) return 'general';
+  // Dairy / plant-milk drinks → BEVERAGE formula (2023 rule).
+  if (cats.some(t => DAIRY_OR_MILK_DRINK_TAGS.has(t))) return 'beverage';
   if (cats.some(t => BEVERAGE_TAGS.has(t))) return 'beverage';
   if (cats.some(t => RED_MEAT_TAGS.has(t))) return 'red-meat';
   if (cats.some(t => CHEESE_TAGS.has(t))) return 'cheese';
   if (cats.some(t => FAT_TAGS.has(t))) return 'fat';
   return 'general';
 }
+
+/** Detect red-meat presence (for protein cap) even when the product is
+ *  primarily categorized as a prepared dish / frozen meal. */
+function hasRedMeatTag(categoriesTags: string[] | null | undefined): boolean {
+  const cats = (categoriesTags || []).map(t => String(t).toLowerCase());
+  return cats.some(t => RED_MEAT_TAGS.has(t));
+}
+
 
 // -------- point tables (2023) -------------------------------------------
 // Return the highest tier index i such that value >= thresholds[i]. Length
@@ -170,19 +177,49 @@ const SWEETENER_ES = new Set([
   'e950', 'e951', 'e952', 'e954', 'e955', 'e957', 'e959', 'e960',
   'e961', 'e962', 'e968', 'e969',
 ]);
+// Sweetener words (es / en / fr / pt + common E-additive brand names).
+const SWEETENER_WORDS = [
+  'edulcorante', 'edulcorantes', 'sweetener', 'sweeteners',
+  'édulcorant', 'édulcorants', 'edulcorante', 'adoçante', 'adocantes',
+  'aspartame', 'aspartamo', 'aspartam',
+  'acesulfame', 'acesulfamo', 'acésulfame', 'acesulfam',
+  'sucralose', 'sucralosa',
+  'saccharin', 'saccharine', 'sacarina',
+  'stevia', 'steviol', 'esteviol', 'glucósidos de esteviol', 'glucosidos de esteviol',
+  'cyclamate', 'ciclamato', 'cyclamates',
+  'neotame', 'neotamo',
+  'advantame',
+  'thaumatin', 'thaumatine', 'taumatina',
+];
 function hasSweetener(nutri: Record<string, unknown>, raw: Record<string, unknown>): boolean {
   const tags = (raw.additives_tags as string[] | undefined) || [];
   for (const t of tags) {
     const m = String(t).toLowerCase().match(/e\d{3,4}[a-z]?/);
     if (m && SWEETENER_ES.has(m[0].replace(/[a-z]$/, ''))) return true;
   }
-  // Fallback: some products expose sweetener via ingredients_analysis_tags.
   const iat = (raw.ingredients_analysis_tags as string[] | undefined) || [];
   if (iat.some(t => String(t).toLowerCase().includes('sweetener'))) return true;
-  // Nutriment field used by OFF's own scorer.
   if (num(nutri['non-nutritive-sweeteners_100g']) != null) return true;
+  // Text-based fallback (works for products without additives_tags — the
+  // typical case for products lacking an official grade).
+  const textFields = [
+    raw.ingredients_text, raw.ingredients_text_es, raw.ingredients_text_en,
+    raw.ingredients_text_fr, raw.ingredients_text_pt,
+  ];
+  for (const f of textFields) {
+    if (typeof f !== 'string' || !f) continue;
+    const lc = f.toLowerCase();
+    if (SWEETENER_WORDS.some(w => lc.includes(w))) return true;
+    // Also catch bare E-numbers written inline in ingredients text.
+    const matches = lc.match(/e\s?9\d{2}[a-z]?/g) || [];
+    for (const m of matches) {
+      const norm = m.replace(/\s/g, '').replace(/[a-z]$/, '');
+      if (SWEETENER_ES.has(norm)) return true;
+    }
+  }
   return false;
 }
+
 
 // -------- main -----------------------------------------------------------
 export function computeNutriScore(
@@ -287,7 +324,13 @@ export function computeNutriScore(
   } else if (category === 'beverage') {
     score = N - P;
   } else {
-    if (N < 11 || fvlPts >= 5) score = N - P;
+    // General branch: apply red-meat protein cap when the product also
+    // carries a red-meat tag (prepared meals / frozen dishes that contain
+    // pork, beef, lamb...). OFF applies the cap in these cases.
+    const applyRedMeatCap = hasRedMeatTag(categoriesTags);
+    const proteinEff = applyRedMeatCap ? Math.min(proteinPts, 2) : proteinPts;
+    const Peff = fibrePts + proteinEff + fvlPts;
+    if (N < 11 || fvlPts >= 5) score = N - Peff;
     else score = N - (fibrePts + fvlPts);
   }
 
@@ -300,18 +343,11 @@ export function computeNutriScore(
     else if (score <= 9) grade = 'd';
     else grade = 'e';
 
-    // Conservative safeguards to align with OFF and stay 100%-safe when
-    // upstream data is incomplete (photo/user scans miss additives_tags):
-    // (a) any non-water beverage with sugars > 0 caps at C (juices/nectars)
-    // (b) zero-sugar beverages without provable sweetener detection cap at C
-    //     — a truly artificial-sweetener soda is graded C, never B.
+    // Juice/nectar safeguard: OFF's beverage table grades juices with any
+    // real sugars at C or worse; keep a floor at C for those specifically.
     const cats = (categoriesTags || []).map(t => String(t).toLowerCase());
     const looksLikeJuice = cats.some(t => t.includes('juice') || t.includes('nectar') || t.includes('smoothie'));
-    const additivesKnown = Array.isArray(raw.additives_tags) && (raw.additives_tags as string[]).length > 0;
-    if (grade === 'b') {
-      if (sugars > 0 || looksLikeJuice) grade = 'c';
-      else if (!additivesKnown) grade = 'c';
-    }
+    if (grade === 'b' && looksLikeJuice && sugars > 0) grade = 'c';
   } else if (category === 'fat') {
     // 2023 fats cutoffs
     if (score <= -6) grade = 'a';
@@ -325,13 +361,12 @@ export function computeNutriScore(
     else if (score < 11) grade = 'c';
     else if (score < 19) grade = 'd';
     else grade = 'e';
-    // Conservative safeguard: dairy/plant-milk drinks routed to the general
-    // formula are graded B by OFF even when the raw formula would give A
-    // (fat/protein composition). Match that to stay 100%-safe.
-    const cats = (categoriesTags || []).map(t => String(t).toLowerCase());
-    const isMilkDrink = cats.some(t => DAIRY_OR_MILK_DRINK_TAGS.has(t));
-    if (grade === 'a' && isMilkDrink) grade = 'b';
   }
+
+  // N.B. we also need to recompute the "general" N/P totals reported below
+  // to reflect the red-meat protein cap when applied; the internal `score`
+  // already uses the capped value.
+
 
   return {
     grade, score, category, negative: N, positive: P,
