@@ -164,6 +164,7 @@ const ResultPage = () => {
           : null;
         const rawObj: Record<string, unknown> = { ...p };
         if (categoryTag) rawObj.categories_tags = [categoryTag];
+        if (p.nutriments && typeof p.nutriments === 'object') rawObj.nutriments = p.nutriments;
         setProduct({
           barcode: p.barcode,
           source: 'photo',
@@ -180,6 +181,7 @@ const ResultPage = () => {
           traces_tags: [],
           raw: rawObj,
         });
+
         setFromPhoto(true);
         setPhotoSaved(p.saved === true);
         setLoading(false);
