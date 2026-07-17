@@ -24,6 +24,8 @@ import { NutritionFacts } from '@/components/result/NutritionFacts';
 import { InstallPrompt } from '@/components/InstallPrompt';
 import { ThumbsFeedback } from '@/components/feedback/ThumbsFeedback';
 import { FeedbackDialog } from '@/components/feedback/FeedbackDialog';
+import { toast } from '@/hooks/use-toast';
+
 
 import { hasHealthDataConsent, getStoredConsent, saveConsent } from '@/components/consent/ConsentModal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
