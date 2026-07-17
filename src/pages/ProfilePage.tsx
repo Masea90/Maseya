@@ -150,13 +150,13 @@ const ProfilePage = () => {
   const toggleArr = (key: keyof HealthState, val: string) => {
     setState(prev => {
       const arr = prev[key] as string[];
-      // Mutually exclusive 'none' for allergies
-      if (key === 'allergies') {
+      // Mutually exclusive 'none' for allergies + skin conditions/sensitivities
+      if (key === 'allergies' || key === 'skin_conditions' || key === 'skin_sensitivities') {
         if (val === 'none') {
-          return { ...prev, allergies: arr.includes('none') ? [] : ['none'] };
+          return { ...prev, [key]: arr.includes('none') ? [] : ['none'] };
         }
         const withoutNone = arr.filter(x => x !== 'none');
-        return { ...prev, allergies: withoutNone.includes(val) ? withoutNone.filter(x => x !== val) : [...withoutNone, val] };
+        return { ...prev, [key]: withoutNone.includes(val) ? withoutNone.filter(x => x !== val) : [...withoutNone, val] };
       }
       return { ...prev, [key]: arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val] };
     });
