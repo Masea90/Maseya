@@ -3,6 +3,7 @@
  */
 import type { ProductData } from './productLookup';
 import { computeNutriScore, nutriScoreToNote } from './nutriscore';
+import { ADDITIVES_RISK, type AdditiveRiskEntry, type AdditiveRiskLevel } from './additivesRisk';
 
 export type IngredientLevel = 'safe' | 'caution' | 'avoid';
 
