@@ -572,11 +572,69 @@ export function calculateScoreBreakdown(
   p: ProductData,
   flagged: FlaggedIngredient[],
 ): ScoreBreakdown {
-  const reds = flagged.filter(f => f.level === 'avoid').length;
-  const oranges = flagged.filter(f => f.level === 'caution').length;
   const isOrganic = p.labels_tags.some(t => t.includes('organic') || t.includes('bio'));
   const rawText = (p.ingredients_text || '').trim();
   const factors: ScoreFactor[] = [];
+
+  // EFSA additive risk: compute once, de-duplicate against RED/ORANGE keyword
+  // counters so the same E-number can't penalise twice.
+  const additiveRisks = p.category === 'food' ? getAdditiveRisks(p) : [];
+  const efsaCovered = efsaCoveredNameSet(additiveRisks);
+  const redsEff = flagged.filter(f => f.level === 'avoid' && !isEfsaCoveredChip(f.name, efsaCovered)).length;
+  const orangesEff = flagged.filter(f => f.level === 'caution' && !isEfsaCoveredChip(f.name, efsaCovered)).length;
+  const reds = redsEff;
+  const oranges = orangesEff;
+
+  const applyEfsaAdditives = (score: number): number => {
+    if (additiveRisks.length === 0) return score;
+    const highs = additiveRisks.filter(r => r.risk === 'high');
+    const mods = additiveRisks.filter(r => r.risk === 'moderate');
+    let delta = 0;
+    let worst: AdditiveRisk | null = null;
+    if (highs.length > 0) {
+      worst = highs[0];
+      delta -= 25;
+    } else if (mods.length > 0) {
+      worst = mods[0];
+      delta -= 12;
+    }
+    const extras = additiveRisks.length - 1;
+    if (extras > 0) delta -= extras * 5;
+    if (delta < -35) delta = -35;
+    if (worst) {
+      const label = worst.risk === 'high'
+        ? `Aditivo con riesgo alto de sobreexposición según EFSA: ${worst.name}`
+        : `Aditivo con riesgo moderado de sobreexposición según EFSA: ${worst.name}`;
+      factors.push({ label, delta: worst.risk === 'high' ? -25 : -12, tone: 'negative' });
+      if (extras > 0) {
+        const extraDelta = Math.max(-35 - (worst.risk === 'high' ? -25 : -12), -extras * 5);
+        factors.push({
+          label: `${extras} aditivo${extras > 1 ? 's' : ''} adicional${extras > 1 ? 'es' : ''} con riesgo EFSA`,
+          delta: extraDelta,
+          tone: 'negative',
+        });
+      }
+    }
+    return score + delta;
+  };
+
+  // Informative (neutral, no points) factor when a product carries many
+  // additives that EFSA has NOT flagged as risky — transparency without
+  // alarmism (anti-Yuka principle).
+  const maybeAddNoRiskAdditivesNote = () => {
+    if (p.category !== 'food') return;
+    const raw = (p.raw || {}) as Record<string, unknown>;
+    const tags = Array.isArray(raw.additives_tags) ? (raw.additives_tags as string[]) : [];
+    const noRisk = tags.filter(t => !ADDITIVES_RISK[String(t).toLowerCase()]);
+    if (noRisk.length >= 3) {
+      factors.push({
+        label: `Contiene ${noRisk.length} aditivos sin riesgo señalado por la EFSA`,
+        delta: null,
+        tone: 'neutral',
+      });
+    }
+  };
+
 
   const nutriGrade = (p.nutriscore_grade || '').toLowerCase();
   const hasNutri = ['a', 'b', 'c', 'd', 'e'].includes(nutriGrade);
