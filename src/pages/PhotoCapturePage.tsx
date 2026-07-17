@@ -502,7 +502,7 @@ const PhotoCapturePage = () => {
       </header>
 
       <div className="w-full sm:max-w-lg sm:mx-auto p-4 space-y-4">
-        {(step === 'front' || step === 'ingredients') && (
+        {isCaptureStep && (
           <>
             <div className="text-center space-y-1 px-2">
               <h2 className="font-display text-lg font-semibold">{heading.heading}</h2>
