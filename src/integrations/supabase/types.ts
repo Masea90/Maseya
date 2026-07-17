@@ -22,6 +22,7 @@ export type Database = {
           id: string
           message: string | null
           rating: string | null
+          resolution: string | null
           resolution_note: string | null
           resolution_notes: string | null
           resolved: boolean
@@ -38,6 +39,7 @@ export type Database = {
           id?: string
           message?: string | null
           rating?: string | null
+          resolution?: string | null
           resolution_note?: string | null
           resolution_notes?: string | null
           resolved?: boolean
@@ -54,6 +56,7 @@ export type Database = {
           id?: string
           message?: string | null
           rating?: string | null
+          resolution?: string | null
           resolution_note?: string | null
           resolution_notes?: string | null
           resolved?: boolean
