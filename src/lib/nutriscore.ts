@@ -177,19 +177,49 @@ const SWEETENER_ES = new Set([
   'e950', 'e951', 'e952', 'e954', 'e955', 'e957', 'e959', 'e960',
   'e961', 'e962', 'e968', 'e969',
 ]);
+// Sweetener words (es / en / fr / pt + common E-additive brand names).
+const SWEETENER_WORDS = [
+  'edulcorante', 'edulcorantes', 'sweetener', 'sweeteners',
+  'édulcorant', 'édulcorants', 'edulcorante', 'adoçante', 'adocantes',
+  'aspartame', 'aspartamo', 'aspartam',
+  'acesulfame', 'acesulfamo', 'acésulfame', 'acesulfam',
+  'sucralose', 'sucralosa',
+  'saccharin', 'saccharine', 'sacarina',
+  'stevia', 'steviol', 'esteviol', 'glucósidos de esteviol', 'glucosidos de esteviol',
+  'cyclamate', 'ciclamato', 'cyclamates',
+  'neotame', 'neotamo',
+  'advantame',
+  'thaumatin', 'thaumatine', 'taumatina',
+];
 function hasSweetener(nutri: Record<string, unknown>, raw: Record<string, unknown>): boolean {
   const tags = (raw.additives_tags as string[] | undefined) || [];
   for (const t of tags) {
     const m = String(t).toLowerCase().match(/e\d{3,4}[a-z]?/);
     if (m && SWEETENER_ES.has(m[0].replace(/[a-z]$/, ''))) return true;
   }
-  // Fallback: some products expose sweetener via ingredients_analysis_tags.
   const iat = (raw.ingredients_analysis_tags as string[] | undefined) || [];
   if (iat.some(t => String(t).toLowerCase().includes('sweetener'))) return true;
-  // Nutriment field used by OFF's own scorer.
   if (num(nutri['non-nutritive-sweeteners_100g']) != null) return true;
+  // Text-based fallback (works for products without additives_tags — the
+  // typical case for products lacking an official grade).
+  const textFields = [
+    raw.ingredients_text, raw.ingredients_text_es, raw.ingredients_text_en,
+    raw.ingredients_text_fr, raw.ingredients_text_pt,
+  ];
+  for (const f of textFields) {
+    if (typeof f !== 'string' || !f) continue;
+    const lc = f.toLowerCase();
+    if (SWEETENER_WORDS.some(w => lc.includes(w))) return true;
+    // Also catch bare E-numbers written inline in ingredients text.
+    const matches = lc.match(/e\s?9\d{2}[a-z]?/g) || [];
+    for (const m of matches) {
+      const norm = m.replace(/\s/g, '').replace(/[a-z]$/, '');
+      if (SWEETENER_ES.has(norm)) return true;
+    }
+  }
   return false;
 }
+
 
 // -------- main -----------------------------------------------------------
 export function computeNutriScore(
