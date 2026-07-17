@@ -376,6 +376,14 @@ serve(async (req) => {
     }
     extracted = parsed as typeof extracted;
 
+    const rawCategory = String(extracted.category || "").toLowerCase();
+    if (rawCategory === "other") {
+      return json({
+        error: "out_of_scope",
+        message: "Maseya analiza alimentación y cosmética. Este producto parece de otra categoría.",
+      }, 422);
+    }
+
     const ingredients = (extracted.ingredients_text || "").trim();
     if (!ingredients || ingredients.length < 5) {
       return json({ error: "no_ingredients" }, 422);
@@ -387,7 +395,7 @@ serve(async (req) => {
       }, 422);
     }
 
-    const category = extracted.category === "food" ? "food" : "cosmetic";
+    const category = rawCategory === "food" ? "food" : "cosmetic";
     const product_name = (extracted.product_name || "").trim() || "Producto fotografiado";
     const brand = (extracted.brand || "").trim();
     const rawTag = (extracted.category_tag || "").trim().toLowerCase();
