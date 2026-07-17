@@ -507,8 +507,10 @@ const PhotoCapturePage = () => {
             <div className="text-center space-y-1 px-2">
               <h2 className="font-display text-lg font-semibold">{heading.heading}</h2>
               <p className="text-sm text-muted-foreground leading-relaxed">{heading.sub}</p>
-              {step === 'ingredients' && (
-                <p className="text-xs text-muted-foreground italic">{c.ingredients.hint}</p>
+              {(step === 'ingredients' || step === 'nutrition-capture') && (
+                <p className="text-xs text-muted-foreground italic">
+                  {step === 'nutrition-capture' ? c.nutrition.hint : c.ingredients.hint}
+                </p>
               )}
             </div>
 
