@@ -592,7 +592,18 @@ export function calculateScoreBreakdown(
     // (Nutri-Score already reflects sugars/salt/sat-fat exposure).
     const g = (nutriGrade || '').toLowerCase();
     const attenuation = g === 'e' ? 0 : g === 'd' ? 0.5 : 1;
-    if (attenuation === 0) return score;
+    if (attenuation === 0) {
+      // Grade E already prices the product at the floor. Surface a neutral
+      // factor so the desglose doesn't silently omit what the red chip shows.
+      const worst = additiveRisks[0];
+      factors.push({
+        label: `Aditivo de riesgo EFSA presente (${worst.name}) — ya reflejado en la nota mínima`,
+        delta: null,
+        tone: 'neutral',
+      });
+      return score;
+    }
+
     const highs = additiveRisks.filter(r => r.risk === 'high');
     const mods = additiveRisks.filter(r => r.risk === 'moderate');
     let worst: AdditiveRisk | null = null;
