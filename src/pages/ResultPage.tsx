@@ -616,9 +616,12 @@ const ResultPage = () => {
                     } as const;
                     const m = map[dataConfidence.level];
                     const needsPhoto = dataConfidence.level !== 'high';
-                    const ctaText = product.category === 'food'
-                      ? 'Nota provisional — fotografía la tabla nutricional para desbloquear la nota completa'
-                      : 'Nota provisional — fotografía la lista de ingredientes completa para desbloquear la nota completa';
+                    const missingIngredients = dataConfidence.missing.some(m => m.toLowerCase().includes('ingrediente'));
+                    const ctaText = missingIngredients
+                      ? 'Nota provisional — fotografía la lista de ingredientes para completar el análisis'
+                      : product.category === 'food'
+                        ? 'Nota provisional — fotografía la tabla nutricional para desbloquear la nota completa'
+                        : 'Nota provisional — fotografía la lista de ingredientes completa para desbloquear la nota completa';
                     return (
                       <div className="w-full max-w-sm flex flex-col items-center gap-1.5">
                         <span
@@ -638,7 +641,7 @@ const ResultPage = () => {
                               variant="outline"
                               onClick={() => {
                                 const bc = barcode && barcode !== 'photo' ? barcode : (product.barcode !== 'photo' ? product.barcode : '');
-                                if (product.category === 'food' && bc && !bc.startsWith('photo_')) {
+                                if (product.category === 'food' && bc && !bc.startsWith('photo_') && !missingIngredients) {
                                   navigate(`/scan/photo?step=nutrition&barcode=${bc}`);
                                 } else {
                                   navigate(bc ? `/scan/photo?barcode=${bc}` : '/scan/photo');
