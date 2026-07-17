@@ -87,8 +87,7 @@ const BEVERAGE_TAGS = new Set([
   'en:energy-drinks', 'en:sports-drinks', 'en:sweetened-beverages',
   'en:flavored-waters', 'en:still-waters', 'en:sparkling-waters',
 ]);
-// Dairy & plant milk drinks: 2023 rule routes these through the GENERAL
-// formula (not the beverage table). OFF's own implementation matches.
+// Dairy & plant-milk drinks — per the 2023 rule these are BEVERAGES.
 const DAIRY_OR_MILK_DRINK_TAGS = new Set([
   'en:milks', 'en:plant-milks', 'en:plant-based-milk-alternatives',
   'en:almond-drinks', 'en:oat-drinks', 'en:soy-milks', 'en:rice-drinks',
@@ -100,14 +99,22 @@ const DAIRY_OR_MILK_DRINK_TAGS = new Set([
 export function detectNutriCategory(categoriesTags: string[] | undefined | null): NutriCategory {
   const cats = (categoriesTags || []).map(t => String(t).toLowerCase());
   if (cats.some(t => WATER_TAGS.has(t))) return 'water';
-  // Dairy / plant-milk drinks → general formula (2023 rule).
-  if (cats.some(t => DAIRY_OR_MILK_DRINK_TAGS.has(t))) return 'general';
+  // Dairy / plant-milk drinks → BEVERAGE formula (2023 rule).
+  if (cats.some(t => DAIRY_OR_MILK_DRINK_TAGS.has(t))) return 'beverage';
   if (cats.some(t => BEVERAGE_TAGS.has(t))) return 'beverage';
   if (cats.some(t => RED_MEAT_TAGS.has(t))) return 'red-meat';
   if (cats.some(t => CHEESE_TAGS.has(t))) return 'cheese';
   if (cats.some(t => FAT_TAGS.has(t))) return 'fat';
   return 'general';
 }
+
+/** Detect red-meat presence (for protein cap) even when the product is
+ *  primarily categorized as a prepared dish / frozen meal. */
+function hasRedMeatTag(categoriesTags: string[] | null | undefined): boolean {
+  const cats = (categoriesTags || []).map(t => String(t).toLowerCase());
+  return cats.some(t => RED_MEAT_TAGS.has(t));
+}
+
 
 // -------- point tables (2023) -------------------------------------------
 // Return the highest tier index i such that value >= thresholds[i]. Length
