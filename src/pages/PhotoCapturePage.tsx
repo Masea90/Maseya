@@ -226,7 +226,7 @@ const COPY = {
 
 
 type ErrorKind = 'lighting' | 'session' | 'rate' | 'payment' | 'nutritional' | 'too_large' | 'unexpected';
-type Step = 'front' | 'ingredients' | 'analyzing' | 'error' | 'image-saved';
+type Step = 'front' | 'ingredients' | 'nutrition-offer' | 'nutrition-capture' | 'analyzing' | 'analyzing-nutrition' | 'error' | 'image-saved';
 
 const PhotoCapturePage = () => {
   const navigate = useNavigate();
@@ -234,21 +234,29 @@ const PhotoCapturePage = () => {
   const [searchParams] = useSearchParams();
   const addImageFor = searchParams.get('addImageFor');
   const realBarcode = searchParams.get('barcode');
+  const nutritionOnly = searchParams.get('step') === 'nutrition';
   const c = COPY[user.language] ?? COPY.es;
 
-  const [step, setStep] = useState<Step>('front');
+  const [step, setStep] = useState<Step>(nutritionOnly ? 'nutrition-capture' : 'front');
   const [errorKind, setErrorKind] = useState<ErrorKind>('lighting');
   const [serverErrorMessage, setServerErrorMessage] = useState<string | null>(null);
   const [frontPhoto, setFrontPhoto] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null); // freshly captured, awaiting confirm
   const [processing, setProcessing] = useState(false);
+  // Data extracted from the ingredients pass, kept while showing the
+  // optional nutrition step so we can navigate to /result with fresh data.
+  const [pendingProduct, setPendingProduct] = useState<null | {
+    finalBarcode: string; product_name: string; brand: string;
+    category: 'food' | 'cosmetic'; category_tag: string | null;
+    ingredients_text: string; image: string | null; serverSaved: boolean;
+  }>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Debug: log realBarcode on mount to verify URL param is passed correctly
   useEffect(() => {
-    console.log('[photo-capture] mount — realBarcode URL param =', realBarcode, '| addImageFor =', addImageFor);
-  }, [realBarcode, addImageFor]);
+    console.log('[photo-capture] mount — realBarcode URL param =', realBarcode, '| addImageFor =', addImageFor, '| nutritionOnly =', nutritionOnly);
+  }, [realBarcode, addImageFor, nutritionOnly]);
+
 
   const openNativeCamera = () => {
     // Reset value so selecting the same file twice still fires onChange.
