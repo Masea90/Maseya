@@ -385,7 +385,7 @@ export function nutriScoreToNote(score: number, grade: NutriGrade, category: Nut
   let lo = 0, hi = 0;
   if (category === 'beverage') {
     if (grade === 'a') return 100; // water
-    if (grade === 'b') { lo = -Infinity; hi = 2; }
+    if (grade === 'b') { lo = -15; hi = 2; }
     else if (grade === 'c') { lo = 3; hi = 6; }
     else if (grade === 'd') { lo = 7; hi = 9; }
     else { lo = 10; hi = 40; }
