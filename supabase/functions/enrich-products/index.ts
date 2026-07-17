@@ -114,7 +114,8 @@ Deno.serve(async (req) => {
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    if (!SUPABASE_URL || !SERVICE_KEY) {
+    const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
+    if (!SUPABASE_URL || !SERVICE_KEY || !ANON_KEY) {
       throw new Error("Missing Supabase env vars");
     }
 
@@ -129,6 +130,40 @@ Deno.serve(async (req) => {
           singleBarcode = body.barcode.trim();
         }
       } catch {}
+    }
+
+    // Auth: single-barcode (user-triggered on scan) requires any authenticated
+    // user; bulk enrichment (admin panel / cron) requires the 'admin' role.
+    const authHeader = req.headers.get("Authorization") || "";
+    if (!authHeader.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const token = authHeader.replace("Bearer ", "");
+    const userClient = createClient(SUPABASE_URL, ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: claimsData, error: claimsErr } = await userClient.auth.getClaims(token);
+    const uid = claimsData?.claims?.sub;
+    if (claimsErr || !uid) {
+      return new Response(JSON.stringify({ error: "unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!singleBarcode) {
+      const { data: isAdmin, error: roleErr } = await admin.rpc("has_role", {
+        _user_id: uid,
+        _role: "admin",
+      });
+      if (roleErr || !isAdmin) {
+        return new Response(JSON.stringify({ error: "forbidden" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     let products: MaseyaRow[] = [];
