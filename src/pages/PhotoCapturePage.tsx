@@ -465,7 +465,9 @@ const PhotoCapturePage = () => {
   };
 
 
-  const heading = step === 'front' ? c.front : c.ingredients;
+  const heading = step === 'front' ? c.front : step === 'nutrition-capture' ? c.nutrition : c.ingredients;
+  const isCaptureStep = step === 'front' || step === 'ingredients' || step === 'nutrition-capture';
+
 
   return (
     <div className="min-h-[100dvh] bg-background overflow-x-hidden pb-24">
