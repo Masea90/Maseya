@@ -521,21 +521,11 @@ const ResultPage = () => {
                 ))}
               </div>
             )}
-            <MiraAnalysis
-              product={{
-                product_name: product.name,
-                brand: product.brand || '',
-                category: product.category,
-                ingredients_text: product.ingredients_text || '',
-                barcode: product.barcode,
-              }}
-              profile={healthConsent ? (healthProfile || profile) : null}
-              score={0}
-              hasIngredientData={hasIngredientData}
-              firstName={healthConsent ? firstName : null}
-              personalScore={null}
-              topAlerts={healthConsent ? topPersonalAlerts : []}
-            />
+            {/* Mira does not analyze supplements or alcoholic beverages:
+                these are explicitly out of the Nutri-Score scope, and running
+                the AI review here misleads users into thinking Maseya rates
+                them like regular food/cosmetics. */}
+
           </>
         ) : product.category === 'cosmetic' && !hasIngredientData ? (
           <>
