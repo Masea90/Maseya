@@ -11,10 +11,14 @@ const SYSTEM_PROMPT = `You are an expert at reading product labels. Extract the 
 {
   "product_name": "full product name as shown",
   "brand": "brand name",
-  "category": "food or cosmetic",
+  "category": "food or cosmetic or other",
   "ingredients_text": "complete ingredient list",
   "category_tag": "most specific Open Food Facts / Open Beauty Facts category tag"
 }
+Rules for "category":
+- "food" for edible products (drinks, snacks, groceries…)
+- "cosmetic" for personal care / beauty products
+- "other" ONLY when the image is clearly NOT a food or cosmetic product (a book, a toy, cleaning products, electronics, medication, etc.). When "other", return empty strings for ingredients_text and category_tag.
 Rules for "category_tag":
 - Always in English, prefixed with "en:", lowercase, words separated by hyphens.
 - Choose the MOST SPECIFIC reasonable category (e.g. "en:coconut-oils" not just "en:vegetable-oils"; "en:face-creams" not just "en:cosmetics").
