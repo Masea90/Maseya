@@ -201,6 +201,17 @@ function cosmeticRegexLevel(nameNorm: string): IngredientLevel | null {
 }
 
 export function classifyIngredient(name: string, category: ClassifyCategory = 'unknown'): IngredientLevel {
+  // EFSA-covered additives win: match E-code inside the chip name.
+  if (category !== 'cosmetic') {
+    const nrm = norm(name);
+    const codes = nrm.match(/\be-?\s?(\d{3}[a-z]?)\b/g) || [];
+    for (const c of codes) {
+      const tag = 'en:e' + c.replace(/[^0-9a-z]/gi, '').toLowerCase();
+      const entry = ADDITIVES_RISK[tag];
+      if (entry?.risk === 'high') return 'avoid';
+      if (entry?.risk === 'moderate') return 'caution';
+    }
+  }
   if (findAny(name, redKeywordsFor(category))) return 'avoid';
   if (category !== 'food') {
     const regexHit = cosmeticRegexLevel(norm(name));
@@ -209,6 +220,90 @@ export function classifyIngredient(name: string, category: ClassifyCategory = 'u
   if (findAny(name, orangeKeywordsFor(category))) return 'caution';
   return 'safe';
 }
+
+// --- EFSA additive risk detection (Fase 3 del motor V2) ---------------------
+// Data source: Open Food Facts additives taxonomy (ODbL). We only load a
+// compact map of additives with EFSA overexposure risk = high | moderate.
+// Products missing that flag get ZERO penalization (anti-alarmism principle).
+
+export interface AdditiveRisk {
+  tag: string;              // 'en:e250'
+  code: string;             // 'e250'
+  name: string;             // 'E250 - Nitrito sódico'
+  risk: AdditiveRiskLevel;  // 'high' | 'moderate'
+  efsa_url?: string;
+}
+
+const E_CODE_REGEX = /\bE\s?-?\s?(\d{3}[a-z]?)\b/gi;
+
+export function getAdditiveRisks(p: ProductData): AdditiveRisk[] {
+  if (p.category !== 'food') return [];
+  const raw = (p.raw || {}) as Record<string, unknown>;
+  const tags = Array.isArray(raw.additives_tags) ? (raw.additives_tags as string[]) : [];
+  const seen = new Set<string>();
+  const push = (tag: string, entry: AdditiveRiskEntry) => {
+    if (seen.has(tag)) return;
+    seen.add(tag);
+    out.push({
+      tag,
+      code: tag.replace(/^en:/, ''),
+      name: entry.name || tag.replace(/^en:/, '').toUpperCase(),
+      risk: entry.risk,
+      efsa_url: entry.efsa_url,
+    });
+  };
+  const out: AdditiveRisk[] = [];
+  for (const t of tags) {
+    const norm = String(t).toLowerCase();
+    const entry = ADDITIVES_RISK[norm];
+    if (entry) push(norm, entry);
+  }
+  // Fallback for products without additives_tags (photo-scanned): parse
+  // inline E-codes from ingredients_text (any language).
+  if (out.length === 0 || tags.length === 0) {
+    const textFields = [
+      p.ingredients_text, raw.ingredients_text_es, raw.ingredients_text_en,
+      raw.ingredients_text_fr, raw.ingredients_text_pt,
+    ];
+    for (const f of textFields) {
+      if (typeof f !== 'string' || !f) continue;
+      const matches = f.match(E_CODE_REGEX) || [];
+      for (const m of matches) {
+        const digits = m.replace(/[^0-9a-z]/gi, '').toLowerCase();
+        const tag = 'en:e' + digits;
+        const entry = ADDITIVES_RISK[tag];
+        if (entry) push(tag, entry);
+      }
+    }
+  }
+  return out;
+}
+
+/** Ingredient chips already covered by an EFSA risk hit (avoids double
+ *  penalisation with RED_FOOD / ORANGE_FOOD keyword counters). */
+function efsaCoveredNameSet(risks: AdditiveRisk[]): Set<string> {
+  const s = new Set<string>();
+  const codes = new Set(risks.map(r => r.code));
+  for (const c of codes) s.add(c);
+  const any = (list: string[]) => list.some(c => codes.has(c));
+  if (any(['e220','e221','e222','e223','e224','e226','e227','e228'])) {
+    ['sulfite','sulphite','sulfito','metabisulfite'].forEach(k => s.add(k));
+  }
+  if (any(['e250','e251','e252'])) s.add('nitrite');
+  if (codes.has('e621')) { s.add('msg'); s.add('monosodium glutamate'); }
+  if (codes.has('e407')) s.add('carrageenan');
+  return s;
+}
+
+function isEfsaCoveredChip(name: string, coveredSet: Set<string>): boolean {
+  if (coveredSet.size === 0) return false;
+  const nrm = norm(name);
+  for (const k of coveredSet) {
+    if (nrm.includes(k)) return true;
+  }
+  return false;
+}
+
 
 
 
