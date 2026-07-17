@@ -814,6 +814,8 @@ export function calculateScoreBreakdown(
     score += 6;
   }
 
+  score = applyEfsaAdditives(score);
+  maybeAddNoRiskAdditivesNote();
   score = applyAlcoholCap(score);
   score = applyConfidenceCap(score);
   return { score: clamp100(score), factors };
