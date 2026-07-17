@@ -268,7 +268,6 @@ const PhotoCapturePage = () => {
 
   const onFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    // User cancelled the picker → no file → do nothing.
     if (!file) return;
     setProcessing(true);
     try {
@@ -279,24 +278,104 @@ const PhotoCapturePage = () => {
     }
   };
 
-  const onRetake = () => {
-    setPreview(null);
+  const onRetake = () => { setPreview(null); };
+
+  const postExtract = async (body: Record<string, unknown>): Promise<{ ok: true; data: any } | { ok: false; kind: ErrorKind; msg?: string | null }> => {
+    const { data: sess } = await supabase.auth.getSession();
+    const token = sess.session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    const url = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/extract-ingredients`;
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(body),
+      });
+    } catch (netErr) {
+      console.error('[photo-capture] network', netErr);
+      return { ok: false, kind: 'unexpected' };
+    }
+    let data: any = null;
+    try { data = await res.json(); } catch {}
+    if (!res.ok || !data || data.error) {
+      const msg = typeof data?.message === 'string' ? data.message : null;
+      let kind: ErrorKind = 'unexpected';
+      if (res.status === 401 || data?.error === 'session_expired' || data?.error === 'Unauthorized') kind = 'session';
+      else if (res.status === 429) kind = 'rate';
+      else if (res.status === 413 || data?.error === 'image_too_large') kind = 'too_large';
+      else if (res.status === 402) kind = 'payment';
+      else if (data?.error === 'nutritional_table_detected') kind = 'nutritional';
+      else if (data?.error === 'no_ingredients' || data?.error === 'parse_failed') kind = 'lighting';
+      return { ok: false, kind, msg };
+    }
+    return { ok: true, data };
   };
 
+  const finalizeAndNavigate = (nutriments?: Record<string, number> | null) => {
+    if (!pendingProduct) return;
+    const payload: Record<string, unknown> = {
+      barcode: pendingProduct.finalBarcode,
+      product_name: pendingProduct.product_name,
+      brand: pendingProduct.brand,
+      category: pendingProduct.category,
+      category_tag: pendingProduct.category_tag,
+      ingredients_text: pendingProduct.ingredients_text,
+      image: pendingProduct.image,
+      saved: pendingProduct.serverSaved,
+      savedAt: Date.now(),
+    };
+    if (nutriments) payload.nutriments = nutriments;
+    localStorage.setItem('maseya_photo_product', JSON.stringify(payload));
+    localStorage.removeItem('maseya_photo_front');
+    navigate(realBarcode ? `/result/${realBarcode}` : '/result/photo', { replace: true });
+  };
+
+  const submitNutrition = async (nutritionImage: string) => {
+    setStep('analyzing-nutrition');
+    // Deep-link nutrition-only mode (from result CTA): POST just the table.
+    if (nutritionOnly && realBarcode) {
+      const res = await postExtract({ nutrition_image: nutritionImage, barcode: realBarcode });
+      if (!res.ok || res.data?.error === 'nutrition_rejected') {
+        localStorage.setItem('maseya_nutrition_rejected', '1');
+        navigate(`/result/${realBarcode}`, { replace: true });
+        return;
+      }
+      navigate(`/result/${realBarcode}`, { replace: true });
+      return;
+    }
+    // Regular flow: pendingProduct already saved server-side.
+    if (!pendingProduct) return;
+    const res = await postExtract({
+      nutrition_image: nutritionImage,
+      barcode: pendingProduct.finalBarcode && !pendingProduct.finalBarcode.startsWith('photo_')
+        ? pendingProduct.finalBarcode
+        : undefined,
+    });
+    if (!res.ok || res.data?.error === 'nutrition_rejected') {
+      localStorage.setItem('maseya_nutrition_rejected', '1');
+      finalizeAndNavigate();
+      return;
+    }
+    finalizeAndNavigate((res.data?.nutriments as Record<string, number>) || null);
+  };
 
   const onConfirm = async () => {
     if (!preview) return;
+
+    if (step === 'nutrition-capture') {
+      const img = preview;
+      setPreview(null);
+      await submitNutrition(img);
+      return;
+    }
+
     if (step === 'front') {
       setFrontPhoto(preview);
       localStorage.setItem('maseya_photo_front', preview);
       setPreview(null);
-
       if (addImageFor) {
         setStep('analyzing');
-        const { error } = await supabase
-          .from('maseya_products')
-          .update({ image_url: preview })
-          .eq('barcode', addImageFor);
+        const { error } = await supabase.from('maseya_products').update({ image_url: preview }).eq('barcode', addImageFor);
         if (error) console.error('[photo-capture] update image_url failed', error);
         setStep('image-saved');
         setTimeout(() => navigate(`/result/${addImageFor}`, { replace: true }), 900);
@@ -312,92 +391,52 @@ const PhotoCapturePage = () => {
       setStep('analyzing');
       try {
         const front = frontPhoto ?? localStorage.getItem('maseya_photo_front');
-        const { data: sess } = await supabase.auth.getSession();
-        const token = sess.session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-        const url = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/extract-ingredients`;
-        let res: Response;
-        try {
-          res = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({
-              front_image: front,
-              ingredients_image: ingredientsImage,
-              barcode: realBarcode || undefined,
-            }),
-          });
-        } catch (netErr) {
-          console.error('[photo-capture] extract failed', 'network', netErr);
-          setServerErrorMessage(null);
-          setErrorKind('unexpected');
+        const res = await postExtract({
+          front_image: front,
+          ingredients_image: ingredientsImage,
+          barcode: realBarcode || undefined,
+        });
+        if (!res.ok) {
+          setServerErrorMessage(res.msg ?? null);
+          setErrorKind(res.kind);
           setStep('error');
           return;
         }
-        let data: any = null;
-        try { data = await res.json(); } catch {}
-        if (!res.ok || !data || data.error) {
-          console.error('[photo-capture] extract failed', res.status, data);
-          setServerErrorMessage(typeof data?.message === 'string' ? data.message : null);
-          if (res.status === 401 || data?.error === 'session_expired' || data?.error === 'Unauthorized') setErrorKind('session');
-          else if (res.status === 429) setErrorKind('rate');
-          else if (res.status === 413 || data?.error === 'image_too_large') setErrorKind('too_large');
-          else if (res.status === 402) setErrorKind('payment');
-          else if (data?.error === 'nutritional_table_detected') setErrorKind('nutritional');
-          else if (data?.error === 'no_ingredients' || data?.error === 'parse_failed') setErrorKind('lighting');
-          else setErrorKind('unexpected');
-          setStep('error');
-          return;
-        }
+        const data = res.data;
         const product_name = (data.product_name as string) || 'Producto fotografiado';
         const brand = (data.brand as string) || '';
         const category = (data.category === 'food' ? 'food' : 'cosmetic') as 'food' | 'cosmetic';
         const ingredients_text = data.ingredients_text as string;
-        const category_tag = typeof data.category_tag === 'string' && /^en:[a-z0-9-]+$/.test(data.category_tag)
-          ? data.category_tag
-          : null;
+        const category_tag = typeof data.category_tag === 'string' && /^en:[a-z0-9-]+$/.test(data.category_tag) ? data.category_tag : null;
         const serverSaved = data.saved === true;
         const finalBarcode = realBarcode || `photo_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
         const image = front;
 
-        console.log('[photo-capture] realBarcode param =', realBarcode, '| server saved =', serverSaved);
-
-        // Fallback client-side save only if the server didn't persist it.
         if (!serverSaved) {
-          const result = await saveToMaseya({
-            barcode: finalBarcode,
-            product_name,
-            brand,
-            category,
-            ingredients_text,
-            image_url: image,
-            source: 'photo',
-            verified: false,
+          const saveRes = await saveToMaseya({
+            barcode: finalBarcode, product_name, brand, category,
+            ingredients_text, image_url: image, source: 'photo', verified: false,
           });
-          if (!result.ok) {
-            if (result.error === 'not_authenticated') {
-              console.info('[photo-capture] saveToMaseya skipped: user not authenticated. Product kept locally; will be contributable after sign-up.');
-            } else {
-              console.error('[photo-capture] saveToMaseya failed', result.error);
-            }
-          } else {
-            console.log('[photo-capture] saveToMaseya (client fallback) OK for', finalBarcode);
+          if (!saveRes.ok && saveRes.error !== 'not_authenticated') {
+            console.error('[photo-capture] saveToMaseya failed', saveRes.error);
           }
         }
 
+        setPendingProduct({ finalBarcode, product_name, brand, category, category_tag, ingredients_text, image, serverSaved });
+
+        // Offer optional nutrition step only for food with a real barcode
+        // (we need it to persist the table server-side).
+        if (category === 'food' && !finalBarcode.startsWith('photo_')) {
+          setStep('nutrition-offer');
+          return;
+        }
+
+        // Non-food or no real barcode → finalize immediately.
         localStorage.setItem('maseya_photo_product', JSON.stringify({
-          barcode: finalBarcode,
-          product_name,
-          brand,
-          category,
-          category_tag,
-          ingredients_text,
-          image,
-          saved: serverSaved,
-          savedAt: Date.now(),
+          barcode: finalBarcode, product_name, brand, category, category_tag,
+          ingredients_text, image, saved: serverSaved, savedAt: Date.now(),
         }));
         localStorage.removeItem('maseya_photo_front');
-
-
         navigate(realBarcode ? `/result/${realBarcode}` : '/result/photo', { replace: true });
       } catch (e) {
         console.error('[photo-capture] ingredients error', e);
@@ -409,7 +448,8 @@ const PhotoCapturePage = () => {
   };
 
   const stepNumber = addImageFor ? 1 : (step === 'front' ? 1 : 2);
-  const showProgress = step === 'front' || step === 'ingredients';
+  const showProgress = !nutritionOnly && (step === 'front' || step === 'ingredients');
+
 
   const goBack = () => {
     if (preview) {
