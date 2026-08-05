@@ -679,6 +679,17 @@ export function calculateScoreBreakdown(
           delta: remaining,
           tone: 'negative',
         });
+      } else {
+        // Penalty attenuated to 0 for the extras: keep them visible.
+        for (const r of additiveRisks.filter(r => r !== worst).slice(0, 3)) {
+          factors.push({
+            label: r.risk === 'high'
+              ? `Aditivo de riesgo alto según EFSA: ${r.name} (ya reflejado en la nota)`
+              : `Aditivo de riesgo moderado según EFSA: ${r.name} (ya reflejado en la nota)`,
+            delta: null,
+            tone: 'neutral',
+          });
+        }
       }
     }
     return score + delta;
