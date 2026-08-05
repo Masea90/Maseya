@@ -26,7 +26,9 @@ Rules for "category_tag":
 - If unsure, fall back to a more generic valid category. Never invent tags.
 Use empty string if any field is not found. Include ALL ingredients exactly as written.`;
 
-const NUTRITION_SYSTEM_PROMPT = `You extract nutrition facts from a product label photo. Return ONLY valid JSON matching:
+const NUTRITION_SYSTEM_PROMPT = `You extract nutrition facts from a product label photo. Labels may be a classic column table OR a Spanish/European front-of-pack "GDA" layout with circles/bubbles (e.g. "1/6 PARTE DEL ENVASE (35 g) CONTIENE: ENERGÍA 420 kJ/101 kcal · GRASAS 7,5 g · GRASAS SATURADAS 0,7 g · AZÚCARES 1,4 g · SAL 0,63 g"), often with a small separate line like "Energía por 100 g: 1199 kJ / 289 kcal". Read ALL of these formats.
+
+Return ONLY valid JSON matching:
 {
   "energy_kj_100g": number|null,
   "energy_kcal_100g": number|null,
@@ -38,16 +40,29 @@ const NUTRITION_SYSTEM_PROMPT = `You extract nutrition facts from a product labe
   "proteins_100g": number|null,
   "salt_100g": number|null,
   "sodium_100g": number|null,
+  "energy_kj_serving": number|null,
+  "energy_kcal_serving": number|null,
+  "fat_serving": number|null,
+  "saturated_fat_serving": number|null,
+  "carbohydrates_serving": number|null,
+  "sugars_serving": number|null,
+  "fiber_serving": number|null,
+  "proteins_serving": number|null,
+  "salt_serving": number|null,
+  "sodium_serving": number|null,
   "serving_size_g": number|null,
-  "basis_detected": "per_100g" | "per_serving" | "unknown",
+  "basis_detected": "per_100g" | "per_serving" | "mixed" | "unknown",
   "confidence": number
 }
 STRICT RULES:
-- Prefer the "per 100 g" (or "por 100 g", "pour 100 g") column when present and set basis_detected to "per_100g".
-- If the table ONLY provides per-portion values, set basis_detected to "per_serving", report the values EXACTLY as printed per portion in the *_100g fields (do NOT convert them yourself) and ALWAYS fill serving_size_g with the portion size in grams/ml.
+- The *_100g fields are ONLY for values the label states per 100 g / 100 ml ("por 100 g", "per 100 g", "pour 100 g", "Energía por 100 g: …"). Never put a per-portion number there.
+- The *_serving fields are ONLY for values stated per portion / ración / "1/6 parte del envase" / "por unidad" / GDA circles.
+- ALWAYS fill serving_size_g with the declared portion size in grams (or ml) whenever it appears anywhere on the label — e.g. "(35 g)", "ración de 30 g", "1/6 parte del envase (35 g)". This is essential.
+- It is normal and expected that only SOME values are per 100 g (often just energy) while the rest are per portion. Fill both blocks with what each one states; do NOT convert anything yourself — the server does the conversion.
+- basis_detected: "per_100g" if every value comes from a per-100 g statement, "mixed" if some are per 100 g and some per portion, "per_serving" if all values are per portion, "unknown" if you cannot tell.
 - Decimal separator = "." — convert European commas ("2,5" → 2.5).
 - Extract kJ and kcal separately when both appear. Do NOT compute one from the other.
-- Extract salt and/or sodium as they appear on the label. Do NOT convert between them.
+- Extract salt and/or sodium as they appear. Do NOT convert between them.
 - Missing value → null. NEVER invent values.
 - "<0,5" → 0.5. "trazas" / "traces" → 0.
 - confidence is your own 0-1 estimate of legibility.`;
