@@ -424,6 +424,33 @@ export function flagIngredients(p: ProductData): FlaggedIngredient[] {
     all.push(name);
   }
   const flagged = all.map(name => ({ name, level: classifyIngredient(name, p.category) }));
+  // Transparency: additives with an EFSA overexposure risk must ALWAYS be
+  // visible as a red (high) / orange (moderate) chip, even when their numeric
+  // penalty is attenuated because the Nutri-Score already prices the product
+  // as bad. The score is unaffected (these chips are de-duplicated out of the
+  // red/orange counters via `isEfsaCoveredChip`).
+  const risks = getAdditiveRisks(p);
+  if (risks.length > 0) {
+    const covered = efsaCoveredNameSet(risks);
+    const worstRisk = (name: string): AdditiveRiskLevel | null => {
+      const nrm = norm(name);
+      let found: AdditiveRiskLevel | null = null;
+      for (const r of risks) {
+        const keys = [r.code, ...norm(r.name).split(' - ')];
+        const match = keys.some(k => k && k.length > 2 && nrm.includes(k.trim()));
+        if (!match) continue;
+        if (r.risk === 'high') return 'high';
+        found = 'moderate';
+      }
+      if (found) return found;
+      return isEfsaCoveredChip(name, covered) ? 'moderate' : null;
+    };
+    for (const f of flagged) {
+      const r = worstRisk(f.name);
+      if (r === 'high') f.level = 'avoid';
+      else if (r === 'moderate' && f.level === 'safe') f.level = 'caution';
+    }
+  }
   // Sort avoid → caution → safe so the top slice always shows problematic
   // ingredients first, regardless of how many total ingredients there are.
   const order: Record<IngredientLevel, number> = { avoid: 0, caution: 1, safe: 2 };
