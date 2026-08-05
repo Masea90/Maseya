@@ -322,19 +322,30 @@ function canonicalKey(name: string): string {
   return nrm;
 }
 
-const NUTRITIONAL_MARKERS = [
-  'kcal', ' kj', 'kj/', '/kj', 'proteinas', 'proteínas',
-  'porcion', 'porción', 'dosis', 'adulto medio',
-  'ingesta de referencia', 'fibra alimentaria',
-  'valor energetico', 'valor energético',
-  'hidratos de carbono', 'grasas saturadas',
+// Nutrition-table detection. STRICT on purpose: an ingredient list often
+// contains numbers, percentages and even isolated words like "proteínas"
+// (e.g. "proteínas de leche"), and treating those as a nutrition table made
+// the photo flow reject perfectly valid ingredient photos (bug real, 6 users).
+// A text is only a nutrition table when it shows SEVERAL distinct nutrient
+// markers AND the numeric structure of a table (energy units or "por 100 g").
+const NUTRITION_MARKER_GROUPS: RegExp[] = [
+  /\b(valor(es)? energ[eé]tico|energ[ií]a|energy)\b/,
+  /\b\d[\d.,]*\s*(kcal|kj)\b|\bkcal\b.*\bkj\b|\bkj\b.*\bkcal\b/,
+  /\b(grasas|grasa|fat|mati[eè]res grasses)\b.*\b(saturad|saturat)/,
+  /\b(hidratos de carbono|carbohydrate|glucides)\b/,
+  /\b(prote[ií]nas?|protein|prot[ée]ines)\b/,
+  /\b(sal|salt|sel|sodio|sodium)\b\s*[:\d]/,
+  /\b(fibra alimentaria|dietary fibre|fibres)\b/,
 ];
+const NUTRITION_STRUCTURE_RE = /(por|per|pour|\/)\s*100\s*(g|ml)|\b\d[\d.,]*\s*(kcal|kj)\b|ingesta de referencia|reference intake/;
 
 export function isNutritionalData(text: string | null | undefined): boolean {
   if (!text) return false;
   const t = text.toLowerCase();
-  return NUTRITIONAL_MARKERS.some(m => t.includes(m));
+  const hits = NUTRITION_MARKER_GROUPS.filter(re => re.test(t)).length;
+  return hits >= 3 && NUTRITION_STRUCTURE_RE.test(t);
 }
+
 
 function cleanIngredientsText(raw: string): string {
   return raw
