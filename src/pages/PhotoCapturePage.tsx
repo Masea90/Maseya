@@ -336,8 +336,13 @@ const PhotoCapturePage = () => {
     if (nutritionOnly && realBarcode) {
       const res = await postExtract({ nutrition_image: nutritionImage, barcode: realBarcode });
       if (!res.ok || res.data?.error === 'nutrition_rejected') {
+        // Don't fail silently ("no pasa nada"): show the reason and let the
+        // user retake the photo from here.
+        console.warn('[photo-capture] nutrition extraction failed', res);
         localStorage.setItem('maseya_nutrition_rejected', '1');
-        navigate(`/result/${realBarcode}`, { replace: true });
+        setServerErrorMessage(c.nutritionRejected);
+        setErrorKind('lighting');
+        setStep('error');
         return;
       }
       navigate(`/result/${realBarcode}`, { replace: true });
@@ -352,8 +357,11 @@ const PhotoCapturePage = () => {
         : undefined,
     });
     if (!res.ok || res.data?.error === 'nutrition_rejected') {
+      console.warn('[photo-capture] nutrition extraction failed', res);
       localStorage.setItem('maseya_nutrition_rejected', '1');
-      finalizeAndNavigate();
+      setServerErrorMessage(c.nutritionRejected);
+      setErrorKind('lighting');
+      setStep('error');
       return;
     }
     finalizeAndNavigate((res.data?.nutriments as Record<string, number>) || null);
@@ -424,6 +432,23 @@ const PhotoCapturePage = () => {
         }
 
         setPendingProduct({ finalBarcode, product_name, brand, category, category_tag, ingredients_text, image, serverSaved });
+
+        // The server may have already read the nutrition table from the photos
+        // we sent (it's often printed next to the ingredients). In that case we
+        // must NOT ask for a third photo.
+        const autoNutriments = (data.nutriments && typeof data.nutriments === 'object')
+          ? data.nutriments as Record<string, number>
+          : null;
+        if (autoNutriments) {
+          localStorage.setItem('maseya_photo_product', JSON.stringify({
+            barcode: finalBarcode, product_name, brand, category, category_tag,
+            ingredients_text, image, saved: serverSaved, savedAt: Date.now(),
+            nutriments: autoNutriments,
+          }));
+          localStorage.removeItem('maseya_photo_front');
+          navigate(realBarcode ? `/result/${realBarcode}` : '/result/photo', { replace: true });
+          return;
+        }
 
         // Offer optional nutrition step only for food with a real barcode
         // (we need it to persist the table server-side).
@@ -616,6 +641,7 @@ const PhotoCapturePage = () => {
             errorKind === 'payment' ? c.errorPayment :
             errorKind === 'too_large' ? c.errorTooLarge :
             errorKind === 'nutritional' ? (serverErrorMessage ?? c.errorNutritional) :
+            serverErrorMessage ? serverErrorMessage :
             errorKind === 'unexpected' ? c.errorUnexpected :
             c.error;
           return (
@@ -629,7 +655,7 @@ const PhotoCapturePage = () => {
                   {c.loginCta}
                 </Button>
               ) : (
-                <Button onClick={() => setStep(addImageFor ? 'front' : 'ingredients')} className="h-12 rounded-2xl px-6">
+                <Button onClick={() => setStep(nutritionOnly ? 'nutrition-capture' : addImageFor ? 'front' : pendingProduct ? 'nutrition-capture' : 'ingredients')} className="h-12 rounded-2xl px-6">
                   <RefreshCw className="w-4 h-4 mr-2" />
                   {c.retry}
                 </Button>

@@ -404,6 +404,7 @@ serve(async (req) => {
       return json({ error: "no_ingredients" }, 422);
     }
     if (isNutritionalData(ingredients)) {
+      console.log("[classify] REJECTED as nutrition table. Text head:", ingredients.slice(0, 160));
       return json({
         error: "nutritional_table_detected",
         message: "Parece que fotografiaste la tabla nutricional. Por favor fotografía la lista de ingredientes.",
