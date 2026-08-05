@@ -303,9 +303,13 @@ function efsaCoveredNameSet(risks: AdditiveRisk[]): Set<string> {
 
 function isEfsaCoveredChip(name: string, coveredSet: Set<string>): boolean {
   if (coveredSet.size === 0) return false;
+  // Compare both the plain and the compacted form so "E-200" / "E 200"
+  // still match the "e200" code and never penalise twice.
   const nrm = norm(name);
+  const compact = nrm.replace(/[^a-z0-9]/g, '');
   for (const k of coveredSet) {
-    if (nrm.includes(k)) return true;
+    const kc = k.replace(/[^a-z0-9]/g, '');
+    if (nrm.includes(k) || (kc.length > 2 && compact.includes(kc))) return true;
   }
   return false;
 }
