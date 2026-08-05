@@ -292,6 +292,12 @@ function efsaCoveredNameSet(risks: AdditiveRisk[]): Set<string> {
   if (any(['e250','e251','e252'])) s.add('nitrite');
   if (codes.has('e621')) { s.add('msg'); s.add('monosodium glutamate'); }
   if (codes.has('e407')) s.add('carrageenan');
+  // Also cover the additive's plain name ("ácido sórbico", "sorbato potásico")
+  // so a chip upgraded to red by the EFSA pass never double-penalises.
+  for (const r of risks) {
+    const plain = norm(r.name).split(' - ').pop()?.trim();
+    if (plain && plain.length > 3) s.add(plain);
+  }
   return s;
 }
 
