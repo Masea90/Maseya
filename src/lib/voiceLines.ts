@@ -52,12 +52,15 @@ export function getVoiceLine(
   personalScore: number | null,
   profile: VoiceProfile | null | undefined,
   language: Language,
+  dataConfidenceHigh = true,
 ): string | null {
   // CASO B: producto perfecto — solo si el general es 100 Y (no hay nota
   // personal O la nota personal también es >= 90). Si la nota personal cae
   // (alergias, embarazo, dieta…), no es un "unicornio" para esta persona
   // aunque el general sea 100.
-  if (generalScore === 100 && (personalScore == null || personalScore >= 90)) {
+  // El unicornio exige datos fiables: sin ingredientes ni tabla nutricional
+  // (confianza != alta / nota capada) no hay unicornio posible.
+  if (dataConfidenceHigh && generalScore === 100 && (personalScore == null || personalScore >= 90)) {
     return PERFECT_LINES[language];
   }
 

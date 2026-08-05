@@ -392,6 +392,7 @@ const ResultPage = () => {
     healthConsent && personalBreakdown ? personalScore : null,
     healthConsent ? (healthProfile || loadOnboarding()) : null,
     user.language,
+    dataConfidence.level === 'high' && dataConfidence.cap == null,
   );
   const rawText = (product.ingredients_text || '').trim();
   const hasIngredientData = product.category === 'cosmetic'
