@@ -414,7 +414,14 @@ export function flagIngredients(p: ProductData): FlaggedIngredient[] {
   const fromText = cleanedText
     .split(/[,;()\n\r]/)
     .map(s => s.trim())
-    .filter(s => s.length > 1 && s.length < 80 && !s.includes(':') && !isRegulatoryChip(s) && !isInstructionChip(s));
+    // "conservador: E-200" / "colorante: E133" → keep the additive itself
+    // instead of dropping the whole segment because it contains a colon.
+    .map(s => {
+      if (!s.includes(':')) return s;
+      const tail = s.slice(s.lastIndexOf(':') + 1).trim();
+      return tail.length > 1 && tail.length < 40 ? tail : '';
+    })
+    .filter(s => s.length > 1 && s.length < 80 && !isRegulatoryChip(s) && !isInstructionChip(s));
 
 
   const seen = new Set<string>();
@@ -438,11 +445,12 @@ export function flagIngredients(p: ProductData): FlaggedIngredient[] {
   const risks = getAdditiveRisks(p);
   if (risks.length > 0) {
     const covered = efsaCoveredNameSet(risks);
+    const compact = (v: string) => norm(v).replace(/[^a-z0-9]/g, '');
     const worstRisk = (name: string): AdditiveRiskLevel | null => {
-      const nrm = norm(name);
+      const nrm = norm(name) + ' ' + compact(name);
       let found: AdditiveRiskLevel | null = null;
       for (const r of risks) {
-        const keys = [r.code, ...norm(r.name).split(' - ')];
+        const keys = [r.code, compact(r.code), ...norm(r.name).split(' - ')];
         const match = keys.some(k => k && k.length > 2 && nrm.includes(k.trim()));
         if (!match) continue;
         if (r.risk === 'high') return 'high';
