@@ -292,14 +292,24 @@ function efsaCoveredNameSet(risks: AdditiveRisk[]): Set<string> {
   if (any(['e250','e251','e252'])) s.add('nitrite');
   if (codes.has('e621')) { s.add('msg'); s.add('monosodium glutamate'); }
   if (codes.has('e407')) s.add('carrageenan');
+  // Also cover the additive's plain name ("ácido sórbico", "sorbato potásico")
+  // so a chip upgraded to red by the EFSA pass never double-penalises.
+  for (const r of risks) {
+    const plain = norm(r.name).split(' - ').pop()?.trim();
+    if (plain && plain.length > 3) s.add(plain);
+  }
   return s;
 }
 
 function isEfsaCoveredChip(name: string, coveredSet: Set<string>): boolean {
   if (coveredSet.size === 0) return false;
+  // Compare both the plain and the compacted form so "E-200" / "E 200"
+  // still match the "e200" code and never penalise twice.
   const nrm = norm(name);
+  const compact = nrm.replace(/[^a-z0-9]/g, '');
   for (const k of coveredSet) {
-    if (nrm.includes(k)) return true;
+    const kc = k.replace(/[^a-z0-9]/g, '');
+    if (nrm.includes(k) || (kc.length > 2 && compact.includes(kc))) return true;
   }
   return false;
 }
@@ -322,19 +332,30 @@ function canonicalKey(name: string): string {
   return nrm;
 }
 
-const NUTRITIONAL_MARKERS = [
-  'kcal', ' kj', 'kj/', '/kj', 'proteinas', 'proteínas',
-  'porcion', 'porción', 'dosis', 'adulto medio',
-  'ingesta de referencia', 'fibra alimentaria',
-  'valor energetico', 'valor energético',
-  'hidratos de carbono', 'grasas saturadas',
+// Nutrition-table detection. STRICT on purpose: an ingredient list often
+// contains numbers, percentages and even isolated words like "proteínas"
+// (e.g. "proteínas de leche"), and treating those as a nutrition table made
+// the photo flow reject perfectly valid ingredient photos (bug real, 6 users).
+// A text is only a nutrition table when it shows SEVERAL distinct nutrient
+// markers AND the numeric structure of a table (energy units or "por 100 g").
+const NUTRITION_MARKER_GROUPS: RegExp[] = [
+  /\b(valor(es)? energ[eé]tico|energ[ií]a|energy)\b/,
+  /\b\d[\d.,]*\s*(kcal|kj)\b|\bkcal\b.*\bkj\b|\bkj\b.*\bkcal\b/,
+  /\b(grasas|grasa|fat|mati[eè]res grasses)\b.*\b(saturad|saturat)/,
+  /\b(hidratos de carbono|carbohydrate|glucides)\b/,
+  /\b(prote[ií]nas?|protein|prot[ée]ines)\b/,
+  /\b(sal|salt|sel|sodio|sodium)\b\s*[:\d]/,
+  /\b(fibra alimentaria|dietary fibre|fibres)\b/,
 ];
+const NUTRITION_STRUCTURE_RE = /(por|per|pour|\/)\s*100\s*(g|ml)|\b\d[\d.,]*\s*(kcal|kj)\b|ingesta de referencia|reference intake/;
 
 export function isNutritionalData(text: string | null | undefined): boolean {
   if (!text) return false;
   const t = text.toLowerCase();
-  return NUTRITIONAL_MARKERS.some(m => t.includes(m));
+  const hits = NUTRITION_MARKER_GROUPS.filter(re => re.test(t)).length;
+  return hits >= 3 && NUTRITION_STRUCTURE_RE.test(t);
 }
+
 
 function cleanIngredientsText(raw: string): string {
   return raw
@@ -397,7 +418,14 @@ export function flagIngredients(p: ProductData): FlaggedIngredient[] {
   const fromText = cleanedText
     .split(/[,;()\n\r]/)
     .map(s => s.trim())
-    .filter(s => s.length > 1 && s.length < 80 && !s.includes(':') && !isRegulatoryChip(s) && !isInstructionChip(s));
+    // "conservador: E-200" / "colorante: E133" → keep the additive itself
+    // instead of dropping the whole segment because it contains a colon.
+    .map(s => {
+      if (!s.includes(':')) return s;
+      const tail = s.slice(s.lastIndexOf(':') + 1).trim();
+      return tail.length > 1 && tail.length < 40 ? tail : '';
+    })
+    .filter(s => s.length > 1 && s.length < 80 && !isRegulatoryChip(s) && !isInstructionChip(s));
 
 
   const seen = new Set<string>();
@@ -413,6 +441,34 @@ export function flagIngredients(p: ProductData): FlaggedIngredient[] {
     all.push(name);
   }
   const flagged = all.map(name => ({ name, level: classifyIngredient(name, p.category) }));
+  // Transparency: additives with an EFSA overexposure risk must ALWAYS be
+  // visible as a red (high) / orange (moderate) chip, even when their numeric
+  // penalty is attenuated because the Nutri-Score already prices the product
+  // as bad. The score is unaffected (these chips are de-duplicated out of the
+  // red/orange counters via `isEfsaCoveredChip`).
+  const risks = getAdditiveRisks(p);
+  if (risks.length > 0) {
+    const covered = efsaCoveredNameSet(risks);
+    const compact = (v: string) => norm(v).replace(/[^a-z0-9]/g, '');
+    const worstRisk = (name: string): AdditiveRiskLevel | null => {
+      const nrm = norm(name) + ' ' + compact(name);
+      let found: AdditiveRiskLevel | null = null;
+      for (const r of risks) {
+        const keys = [r.code, compact(r.code), ...norm(r.name).split(' - ')];
+        const match = keys.some(k => k && k.length > 2 && nrm.includes(k.trim()));
+        if (!match) continue;
+        if (r.risk === 'high') return 'high';
+        found = 'moderate';
+      }
+      if (found) return found;
+      return isEfsaCoveredChip(name, covered) ? 'moderate' : null;
+    };
+    for (const f of flagged) {
+      const r = worstRisk(f.name);
+      if (r === 'high') f.level = 'avoid';
+      else if (r === 'moderate' && f.level === 'safe') f.level = 'caution';
+    }
+  }
   // Sort avoid → caution → safe so the top slice always shows problematic
   // ingredients first, regardless of how many total ingredients there are.
   const order: Record<IngredientLevel, number> = { avoid: 0, caution: 1, safe: 2 };
@@ -495,7 +551,9 @@ export function evaluateDataConfidence(p: ProductData): DataConfidence {
     const nutritionComplete = missingNutri.length === 0;
 
     if (!hasIngredients && !nutritionComplete && !hasNutriGrade) {
-      return { level: 'none', cap: null, missing: ['tabla nutricional', 'lista de ingredientes'] };
+      // No ingredients AND no usable nutrition: the absence of data must never
+      // produce a good score (bug real: pavo/ajo sin datos salían con 100).
+      return { level: 'none', cap: 40, missing: ['tabla nutricional', 'lista de ingredientes'] };
     }
 
     // Nutriscore or full nutrition table AND ingredients present → high confidence.
@@ -594,13 +652,17 @@ export function calculateScoreBreakdown(
     const attenuation = g === 'e' ? 0 : g === 'd' ? 0.5 : 1;
     if (attenuation === 0) {
       // Grade E already prices the product at the floor. Surface a neutral
-      // factor so the desglose doesn't silently omit what the red chip shows.
-      const worst = additiveRisks[0];
-      factors.push({
-        label: `Aditivo de riesgo EFSA presente (${worst.name}) — ya reflejado en la nota mínima`,
-        delta: null,
-        tone: 'neutral',
-      });
+      // factor per risky additive so the desglose doesn't silently omit what
+      // the red/orange chips show. The numeric score does NOT change.
+      for (const r of additiveRisks.slice(0, 4)) {
+        factors.push({
+          label: r.risk === 'high'
+            ? `Aditivo de riesgo alto según EFSA: ${r.name} (ya reflejado en la nota)`
+            : `Aditivo de riesgo moderado según EFSA: ${r.name} (ya reflejado en la nota)`,
+          delta: null,
+          tone: 'neutral',
+        });
+      }
       return score;
     }
 
@@ -629,6 +691,17 @@ export function calculateScoreBreakdown(
           delta: remaining,
           tone: 'negative',
         });
+      } else {
+        // Penalty attenuated to 0 for the extras: keep them visible.
+        for (const r of additiveRisks.filter(r => r !== worst).slice(0, 3)) {
+          factors.push({
+            label: r.risk === 'high'
+              ? `Aditivo de riesgo alto según EFSA: ${r.name} (ya reflejado en la nota)`
+              : `Aditivo de riesgo moderado según EFSA: ${r.name} (ya reflejado en la nota)`,
+            delta: null,
+            tone: 'neutral',
+          });
+        }
       }
     }
     return score + delta;

@@ -57,16 +57,31 @@ const ANON_WINDOW_MS = 24 * 60 * 60 * 1000;
 const ANON_MAX_REQUESTS = 5;
 const anonRequests = new Map<string, { count: number; resetAt: number }>();
 
-const NUTRITIONAL_MARKERS = [
-  "kcal", " kj", "kj/", "/kj", "proteinas", "proteínas",
-  "porcion", "porción", "dosis", "adulto medio",
-  "ingesta de referencia", "fibra alimentaria",
-  "valor energetico", "valor energético",
-  "hidratos de carbono", "grasas saturadas",
+// STRICT nutrition-table detection. Ingredient lists frequently contain
+// numbers, percentages and isolated nutrient words ("proteínas de leche"),
+// and the old "any marker" heuristic rejected valid ingredient photos.
+// A text is a nutrition table only when it shows >= 3 distinct nutrient
+// markers AND the numeric structure of a table.
+const NUTRITION_MARKER_GROUPS: RegExp[] = [
+  /\b(valor(es)? energ[eé]tico|energ[ií]a|energy)\b/,
+  /\b\d[\d.,]*\s*(kcal|kj)\b|\bkcal\b[\s\S]*\bkj\b|\bkj\b[\s\S]*\bkcal\b/,
+  /\b(grasas|grasa|fat|mati[eè]res grasses)\b[\s\S]{0,40}(saturad|saturat)/,
+  /\b(hidratos de carbono|carbohydrate|glucides)\b/,
+  /\b(prote[ií]nas?|protein|prot[ée]ines)\b/,
+  /\b(sal|salt|sel|sodio|sodium)\b\s*[:\d]/,
+  /\b(fibra alimentaria|dietary fibre|fibres)\b/,
 ];
+const NUTRITION_STRUCTURE_RE = /(por|per|pour|\/)\s*100\s*(g|ml)|\b\d[\d.,]*\s*(kcal|kj)\b|ingesta de referencia|reference intake/;
+
+const nutritionMarkerHits = (t: string) =>
+  NUTRITION_MARKER_GROUPS.filter((re) => re.test(t)).length;
+
 const isNutritionalData = (t: string) => {
   const s = t.toLowerCase();
-  return NUTRITIONAL_MARKERS.some((m) => s.includes(m));
+  const hits = nutritionMarkerHits(s);
+  const structured = NUTRITION_STRUCTURE_RE.test(s);
+  console.log("[classify] nutrition-table check → markers:", hits, "structure:", structured);
+  return hits >= 3 && structured;
 };
 
 const json = (body: unknown, status: number) =>
@@ -389,6 +404,7 @@ serve(async (req) => {
       return json({ error: "no_ingredients" }, 422);
     }
     if (isNutritionalData(ingredients)) {
+      console.log("[classify] REJECTED as nutrition table. Text head:", ingredients.slice(0, 160));
       return json({
         error: "nutritional_table_detected",
         message: "Parece que fotografiaste la tabla nutricional. Por favor fotografía la lista de ingredientes.",
@@ -404,7 +420,19 @@ serve(async (req) => {
     // Optional nutrition extraction (only meaningful for food)
     let nutritionResult: NutritionValidation | null = null;
     if (nutrition && category === "food") {
+      console.log("[classify] dedicated nutrition image provided");
       nutritionResult = await extractNutrition(nutrition, LOVABLE_API_KEY);
+    } else if (category === "food") {
+      // No dedicated table photo: the table is often already visible in the
+      // ingredients (or front) photo. Try to read it from what we have so we
+      // never ask for a third photo we don't need.
+      const candidate = ingr ?? single ?? front;
+      if (candidate) {
+        console.log("[classify] no nutrition image — attempting table extraction from existing photo");
+        const auto = await extractNutrition(candidate, LOVABLE_API_KEY);
+        console.log("[classify] auto nutrition result:", auto.ok ? "ok" : auto.reason);
+        if (auto.ok) nutritionResult = auto;
+      }
     }
 
     let saved = false;
