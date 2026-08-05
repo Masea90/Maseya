@@ -213,28 +213,46 @@ interface NutritionValidation {
 function validateNutrition(raw: NutritionRaw): NutritionValidation {
   const basis = String(raw.basis_detected || "unknown");
   const servingG = toNum(raw.serving_size_g);
-  let factor = 1;
-  if (basis === "per_serving") {
-    // Deterministic server-side conversion to per-100g when the portion size is known.
-    if (servingG === null || servingG <= 0 || servingG > 1000) {
-      return { ok: false, reason: "per_serving_only", basis };
-    }
-    factor = 100 / servingG;
-    console.log("[nutrition] converting per_serving → per_100g, serving:", servingG, "factor:", factor);
-  } else if (basis !== "per_100g") {
-    return { ok: false, reason: "basis_unknown", basis };
+  const canConvert = servingG !== null && servingG > 0 && servingG <= 1000;
+  const factor = canConvert ? 100 / servingG! : 0;
+
+  // Legacy shape: values placed in *_100g while basis says per_serving.
+  const servingKeys = [
+    "energy_kj_serving", "energy_kcal_serving", "fat_serving", "saturated_fat_serving",
+    "carbohydrates_serving", "sugars_serving", "fiber_serving", "proteins_serving",
+    "salt_serving", "sodium_serving",
+  ];
+  const hasServingBlock = servingKeys.some((k) => toNum(raw[k]) !== null);
+  const legacyPerServing = basis === "per_serving" && !hasServingBlock;
+
+  let converted = false;
+  // Per nutrient: prefer the direct per-100g value; otherwise convert the
+  // per-portion value with the declared serving size (rule of three).
+  const pick = (key100: string, keyServing: string): number | null => {
+    const direct = legacyPerServing ? null : toNum(raw[key100]);
+    if (direct !== null) return direct;
+    const perServing = legacyPerServing ? toNum(raw[key100]) : toNum(raw[keyServing]);
+    if (perServing === null || !canConvert) return null;
+    converted = true;
+    return Math.round(perServing * factor * 100) / 100;
+  };
+
+  const kcal = pick("energy_kcal_100g", "energy_kcal_serving");
+  const kj = pick("energy_kj_100g", "energy_kj_serving");
+  const fat = pick("fat_100g", "fat_serving");
+  const sat = pick("saturated_fat_100g", "saturated_fat_serving");
+  const carbs = pick("carbohydrates_100g", "carbohydrates_serving");
+  const sugars = pick("sugars_100g", "sugars_serving");
+  const fiber = pick("fiber_100g", "fiber_serving");
+  const proteins = pick("proteins_100g", "proteins_serving");
+  const salt = pick("salt_100g", "salt_serving");
+  const sodium = pick("sodium_100g", "sodium_serving");
+
+  console.log("[nutrition] basis:", basis, "serving_g:", servingG, "converted:", converted);
+
+  if ([kcal, kj, fat, sat, carbs, sugars, fiber, proteins, salt, sodium].every((v) => v === null)) {
+    return { ok: false, reason: canConvert ? "no_values" : "per_serving_only", basis };
   }
-  const scale = (v: number | null) => (v === null ? null : Math.round(v * factor * 100) / 100);
-  const kcal = scale(toNum(raw.energy_kcal_100g));
-  const kj = scale(toNum(raw.energy_kj_100g));
-  const fat = scale(toNum(raw.fat_100g));
-  const sat = scale(toNum(raw.saturated_fat_100g));
-  const carbs = scale(toNum(raw.carbohydrates_100g));
-  const sugars = scale(toNum(raw.sugars_100g));
-  const fiber = scale(toNum(raw.fiber_100g));
-  const proteins = scale(toNum(raw.proteins_100g));
-  const salt = scale(toNum(raw.salt_100g));
-  const sodium = scale(toNum(raw.sodium_100g));
 
   const inRange = (v: number | null, lo: number, hi: number) => v === null || (v >= lo && v <= hi);
   if (!inRange(kcal, 0, 900)) return { ok: false, reason: "kcal_out_of_range" };
