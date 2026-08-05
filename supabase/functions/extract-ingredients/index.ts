@@ -43,8 +43,8 @@ const NUTRITION_SYSTEM_PROMPT = `You extract nutrition facts from a product labe
   "confidence": number
 }
 STRICT RULES:
-- ALWAYS provide values per 100 g / 100 ml. Use the "per 100 g" (or "por 100 g", "pour 100 g") column when present.
-- If the table only provides per-portion values, set basis_detected to "per_serving" and set every *_100g field to null. NEVER convert per-portion to per-100g yourself.
+- Prefer the "per 100 g" (or "por 100 g", "pour 100 g") column when present and set basis_detected to "per_100g".
+- If the table ONLY provides per-portion values, set basis_detected to "per_serving", report the values EXACTLY as printed per portion in the *_100g fields (do NOT convert them yourself) and ALWAYS fill serving_size_g with the portion size in grams/ml.
 - Decimal separator = "." — convert European commas ("2,5" → 2.5).
 - Extract kJ and kcal separately when both appear. Do NOT compute one from the other.
 - Extract salt and/or sodium as they appear on the label. Do NOT convert between them.
