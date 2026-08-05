@@ -43,8 +43,8 @@ const NUTRITION_SYSTEM_PROMPT = `You extract nutrition facts from a product labe
   "confidence": number
 }
 STRICT RULES:
-- ALWAYS provide values per 100 g / 100 ml. Use the "per 100 g" (or "por 100 g", "pour 100 g") column when present.
-- If the table only provides per-portion values, set basis_detected to "per_serving" and set every *_100g field to null. NEVER convert per-portion to per-100g yourself.
+- Prefer the "per 100 g" (or "por 100 g", "pour 100 g") column when present and set basis_detected to "per_100g".
+- If the table ONLY provides per-portion values, set basis_detected to "per_serving", report the values EXACTLY as printed per portion in the *_100g fields (do NOT convert them yourself) and ALWAYS fill serving_size_g with the portion size in grams/ml.
 - Decimal separator = "." — convert European commas ("2,5" → 2.5).
 - Extract kJ and kcal separately when both appear. Do NOT compute one from the other.
 - Extract salt and/or sodium as they appear on the label. Do NOT convert between them.
@@ -197,19 +197,29 @@ interface NutritionValidation {
 
 function validateNutrition(raw: NutritionRaw): NutritionValidation {
   const basis = String(raw.basis_detected || "unknown");
-  if (basis !== "per_100g") {
-    return { ok: false, reason: basis === "per_serving" ? "per_serving_only" : "basis_unknown", basis };
+  const servingG = toNum(raw.serving_size_g);
+  let factor = 1;
+  if (basis === "per_serving") {
+    // Deterministic server-side conversion to per-100g when the portion size is known.
+    if (servingG === null || servingG <= 0 || servingG > 1000) {
+      return { ok: false, reason: "per_serving_only", basis };
+    }
+    factor = 100 / servingG;
+    console.log("[nutrition] converting per_serving → per_100g, serving:", servingG, "factor:", factor);
+  } else if (basis !== "per_100g") {
+    return { ok: false, reason: "basis_unknown", basis };
   }
-  const kcal = toNum(raw.energy_kcal_100g);
-  const kj = toNum(raw.energy_kj_100g);
-  const fat = toNum(raw.fat_100g);
-  const sat = toNum(raw.saturated_fat_100g);
-  const carbs = toNum(raw.carbohydrates_100g);
-  const sugars = toNum(raw.sugars_100g);
-  const fiber = toNum(raw.fiber_100g);
-  const proteins = toNum(raw.proteins_100g);
-  const salt = toNum(raw.salt_100g);
-  const sodium = toNum(raw.sodium_100g);
+  const scale = (v: number | null) => (v === null ? null : Math.round(v * factor * 100) / 100);
+  const kcal = scale(toNum(raw.energy_kcal_100g));
+  const kj = scale(toNum(raw.energy_kj_100g));
+  const fat = scale(toNum(raw.fat_100g));
+  const sat = scale(toNum(raw.saturated_fat_100g));
+  const carbs = scale(toNum(raw.carbohydrates_100g));
+  const sugars = scale(toNum(raw.sugars_100g));
+  const fiber = scale(toNum(raw.fiber_100g));
+  const proteins = scale(toNum(raw.proteins_100g));
+  const salt = scale(toNum(raw.salt_100g));
+  const sodium = scale(toNum(raw.sodium_100g));
 
   const inRange = (v: number | null, lo: number, hi: number) => v === null || (v >= lo && v <= hi);
   if (!inRange(kcal, 0, 900)) return { ok: false, reason: "kcal_out_of_range" };
