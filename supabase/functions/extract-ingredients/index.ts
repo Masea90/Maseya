@@ -26,7 +26,9 @@ Rules for "category_tag":
 - If unsure, fall back to a more generic valid category. Never invent tags.
 Use empty string if any field is not found. Include ALL ingredients exactly as written.`;
 
-const NUTRITION_SYSTEM_PROMPT = `You extract nutrition facts from a product label photo. Return ONLY valid JSON matching:
+const NUTRITION_SYSTEM_PROMPT = `You extract nutrition facts from a product label photo. Labels may be a classic column table OR a Spanish/European front-of-pack "GDA" layout with circles/bubbles (e.g. "1/6 PARTE DEL ENVASE (35 g) CONTIENE: ENERGÍA 420 kJ/101 kcal · GRASAS 7,5 g · GRASAS SATURADAS 0,7 g · AZÚCARES 1,4 g · SAL 0,63 g"), often with a small separate line like "Energía por 100 g: 1199 kJ / 289 kcal". Read ALL of these formats.
+
+Return ONLY valid JSON matching:
 {
   "energy_kj_100g": number|null,
   "energy_kcal_100g": number|null,
@@ -38,16 +40,29 @@ const NUTRITION_SYSTEM_PROMPT = `You extract nutrition facts from a product labe
   "proteins_100g": number|null,
   "salt_100g": number|null,
   "sodium_100g": number|null,
+  "energy_kj_serving": number|null,
+  "energy_kcal_serving": number|null,
+  "fat_serving": number|null,
+  "saturated_fat_serving": number|null,
+  "carbohydrates_serving": number|null,
+  "sugars_serving": number|null,
+  "fiber_serving": number|null,
+  "proteins_serving": number|null,
+  "salt_serving": number|null,
+  "sodium_serving": number|null,
   "serving_size_g": number|null,
-  "basis_detected": "per_100g" | "per_serving" | "unknown",
+  "basis_detected": "per_100g" | "per_serving" | "mixed" | "unknown",
   "confidence": number
 }
 STRICT RULES:
-- Prefer the "per 100 g" (or "por 100 g", "pour 100 g") column when present and set basis_detected to "per_100g".
-- If the table ONLY provides per-portion values, set basis_detected to "per_serving", report the values EXACTLY as printed per portion in the *_100g fields (do NOT convert them yourself) and ALWAYS fill serving_size_g with the portion size in grams/ml.
+- The *_100g fields are ONLY for values the label states per 100 g / 100 ml ("por 100 g", "per 100 g", "pour 100 g", "Energía por 100 g: …"). Never put a per-portion number there.
+- The *_serving fields are ONLY for values stated per portion / ración / "1/6 parte del envase" / "por unidad" / GDA circles.
+- ALWAYS fill serving_size_g with the declared portion size in grams (or ml) whenever it appears anywhere on the label — e.g. "(35 g)", "ración de 30 g", "1/6 parte del envase (35 g)". This is essential.
+- It is normal and expected that only SOME values are per 100 g (often just energy) while the rest are per portion. Fill both blocks with what each one states; do NOT convert anything yourself — the server does the conversion.
+- basis_detected: "per_100g" if every value comes from a per-100 g statement, "mixed" if some are per 100 g and some per portion, "per_serving" if all values are per portion, "unknown" if you cannot tell.
 - Decimal separator = "." — convert European commas ("2,5" → 2.5).
 - Extract kJ and kcal separately when both appear. Do NOT compute one from the other.
-- Extract salt and/or sodium as they appear on the label. Do NOT convert between them.
+- Extract salt and/or sodium as they appear. Do NOT convert between them.
 - Missing value → null. NEVER invent values.
 - "<0,5" → 0.5. "trazas" / "traces" → 0.
 - confidence is your own 0-1 estimate of legibility.`;
@@ -198,28 +213,46 @@ interface NutritionValidation {
 function validateNutrition(raw: NutritionRaw): NutritionValidation {
   const basis = String(raw.basis_detected || "unknown");
   const servingG = toNum(raw.serving_size_g);
-  let factor = 1;
-  if (basis === "per_serving") {
-    // Deterministic server-side conversion to per-100g when the portion size is known.
-    if (servingG === null || servingG <= 0 || servingG > 1000) {
-      return { ok: false, reason: "per_serving_only", basis };
-    }
-    factor = 100 / servingG;
-    console.log("[nutrition] converting per_serving → per_100g, serving:", servingG, "factor:", factor);
-  } else if (basis !== "per_100g") {
-    return { ok: false, reason: "basis_unknown", basis };
+  const canConvert = servingG !== null && servingG > 0 && servingG <= 1000;
+  const factor = canConvert ? 100 / servingG! : 0;
+
+  // Legacy shape: values placed in *_100g while basis says per_serving.
+  const servingKeys = [
+    "energy_kj_serving", "energy_kcal_serving", "fat_serving", "saturated_fat_serving",
+    "carbohydrates_serving", "sugars_serving", "fiber_serving", "proteins_serving",
+    "salt_serving", "sodium_serving",
+  ];
+  const hasServingBlock = servingKeys.some((k) => toNum(raw[k]) !== null);
+  const legacyPerServing = basis === "per_serving" && !hasServingBlock;
+
+  let converted = false;
+  // Per nutrient: prefer the direct per-100g value; otherwise convert the
+  // per-portion value with the declared serving size (rule of three).
+  const pick = (key100: string, keyServing: string): number | null => {
+    const direct = legacyPerServing ? null : toNum(raw[key100]);
+    if (direct !== null) return direct;
+    const perServing = legacyPerServing ? toNum(raw[key100]) : toNum(raw[keyServing]);
+    if (perServing === null || !canConvert) return null;
+    converted = true;
+    return Math.round(perServing * factor * 100) / 100;
+  };
+
+  const kcal = pick("energy_kcal_100g", "energy_kcal_serving");
+  const kj = pick("energy_kj_100g", "energy_kj_serving");
+  const fat = pick("fat_100g", "fat_serving");
+  const sat = pick("saturated_fat_100g", "saturated_fat_serving");
+  const carbs = pick("carbohydrates_100g", "carbohydrates_serving");
+  const sugars = pick("sugars_100g", "sugars_serving");
+  const fiber = pick("fiber_100g", "fiber_serving");
+  const proteins = pick("proteins_100g", "proteins_serving");
+  const salt = pick("salt_100g", "salt_serving");
+  const sodium = pick("sodium_100g", "sodium_serving");
+
+  console.log("[nutrition] basis:", basis, "serving_g:", servingG, "converted:", converted);
+
+  if ([kcal, kj, fat, sat, carbs, sugars, fiber, proteins, salt, sodium].every((v) => v === null)) {
+    return { ok: false, reason: canConvert ? "no_values" : "per_serving_only", basis };
   }
-  const scale = (v: number | null) => (v === null ? null : Math.round(v * factor * 100) / 100);
-  const kcal = scale(toNum(raw.energy_kcal_100g));
-  const kj = scale(toNum(raw.energy_kj_100g));
-  const fat = scale(toNum(raw.fat_100g));
-  const sat = scale(toNum(raw.saturated_fat_100g));
-  const carbs = scale(toNum(raw.carbohydrates_100g));
-  const sugars = scale(toNum(raw.sugars_100g));
-  const fiber = scale(toNum(raw.fiber_100g));
-  const proteins = scale(toNum(raw.proteins_100g));
-  const salt = scale(toNum(raw.salt_100g));
-  const sodium = scale(toNum(raw.sodium_100g));
 
   const inRange = (v: number | null, lo: number, hi: number) => v === null || (v >= lo && v <= hi);
   if (!inRange(kcal, 0, 900)) return { ok: false, reason: "kcal_out_of_range" };
