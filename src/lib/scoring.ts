@@ -640,13 +640,17 @@ export function calculateScoreBreakdown(
     const attenuation = g === 'e' ? 0 : g === 'd' ? 0.5 : 1;
     if (attenuation === 0) {
       // Grade E already prices the product at the floor. Surface a neutral
-      // factor so the desglose doesn't silently omit what the red chip shows.
-      const worst = additiveRisks[0];
-      factors.push({
-        label: `Aditivo de riesgo EFSA presente (${worst.name}) — ya reflejado en la nota mínima`,
-        delta: null,
-        tone: 'neutral',
-      });
+      // factor per risky additive so the desglose doesn't silently omit what
+      // the red/orange chips show. The numeric score does NOT change.
+      for (const r of additiveRisks.slice(0, 4)) {
+        factors.push({
+          label: r.risk === 'high'
+            ? `Aditivo de riesgo alto según EFSA: ${r.name} (ya reflejado en la nota)`
+            : `Aditivo de riesgo moderado según EFSA: ${r.name} (ya reflejado en la nota)`,
+          delta: null,
+          tone: 'neutral',
+        });
+      }
       return score;
     }
 
