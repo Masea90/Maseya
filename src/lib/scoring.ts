@@ -539,7 +539,9 @@ export function evaluateDataConfidence(p: ProductData): DataConfidence {
     const nutritionComplete = missingNutri.length === 0;
 
     if (!hasIngredients && !nutritionComplete && !hasNutriGrade) {
-      return { level: 'none', cap: null, missing: ['tabla nutricional', 'lista de ingredientes'] };
+      // No ingredients AND no usable nutrition: the absence of data must never
+      // produce a good score (bug real: pavo/ajo sin datos salían con 100).
+      return { level: 'none', cap: 40, missing: ['tabla nutricional', 'lista de ingredientes'] };
     }
 
     // Nutriscore or full nutrition table AND ingredients present → high confidence.
