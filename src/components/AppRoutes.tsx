@@ -37,6 +37,16 @@ const hasLocalOnboarding = (): boolean => {
   }
 };
 
+// Anonymous users who tap "Scan a product" on the welcome screen skip the quiz.
+const hasSkippedOnboarding = (): boolean => {
+  try {
+    return localStorage.getItem('maseya_onboarding_skipped') === '1';
+  } catch {
+    return false;
+  }
+};
+
+
 /**
  * Routing rules for onboarding:
  *   1. Auth + health_profiles row → straight to /scan (skip welcome + quiz)
