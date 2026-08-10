@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useUser } from '@/contexts/UserContext';
 import { supabase } from '@/integrations/supabase/client';
 import { lookupProduct, ProductData } from '@/lib/productLookup';
+import { toSlimProductData } from '@/lib/slimProduct';
 import {
   flagIngredients, calculateScoreBreakdown, calculatePersonalScoreBreakdown, scoreLabel, naturalness, personalAlerts, loadOnboarding,
   isNutritionalData, evaluateDataConfidence, isSupplement, isAlcoholicFood,
