@@ -291,10 +291,13 @@ const ResultPage = () => {
         user_id: currentUser.id,
         barcode: product.barcode,
         product_name: product.name,
-        product_image: product.image ?? undefined,
+        // Never persist base64 data URLs (they used to bloat the table).
+        product_image: product.image && !product.image.startsWith('data:')
+          ? product.image
+          : null,
         category: product.category,
         source: product.source,
-        product_data: JSON.parse(JSON.stringify(product.raw)),
+        product_data: toSlimProductData(product),
         scores: { global: score },
       }]).then(({ error }) => {
         if (error) console.error('[scan_history] insert', error);
