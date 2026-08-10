@@ -298,7 +298,7 @@ const ResultPage = () => {
           : null,
         category: product.category,
         source: product.source,
-        product_data: toSlimProductData(product),
+        product_data: toSlimProductData(product) as unknown as Record<string, never>,
         scores: { global: score },
       }]).then(({ error }) => {
         if (error) console.error('[scan_history] insert', error);
