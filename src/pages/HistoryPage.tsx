@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useUser } from '@/contexts/UserContext';
@@ -19,6 +19,8 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { toast } from '@/hooks/use-toast';
+import { productFromHistoryRow } from '@/lib/slimProduct';
+import { flagIngredients, calculateScoreBreakdown } from '@/lib/scoring';
 
 interface ScanRow {
   id: string;
@@ -26,14 +28,17 @@ interface ScanRow {
   product_name: string | null;
   product_image: string | null;
   category: string | null;
+  source?: string | null;
   scanned_at: string;
   scores: { global?: number } | null;
+  product_data?: unknown;
 }
 
 interface HistoryItem extends ScanRow {
   scanCount: number;
   groupIds: string[];
 }
+
 
 const COPY = {
   es: {
