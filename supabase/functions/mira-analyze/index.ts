@@ -52,7 +52,12 @@ serve(async (req) => {
     }
     const token = authHeader.replace("Bearer ", "").trim();
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-    if (token !== anonKey) {
+    // Anonymous callers send the project's publishable/anon key, which is not
+    // always identical to SUPABASE_ANON_KEY (new `sb_publishable_...` format)
+    // and is not a JWT. Only validate real JWTs (3 dot-separated segments);
+    // anything else is treated as an anonymous call, like before.
+    const isJwt = token.split(".").length === 3;
+    if (token !== anonKey && isJwt) {
       const supabaseClient = createClient(
         Deno.env.get("SUPABASE_URL") ?? "",
         anonKey,
@@ -67,6 +72,7 @@ serve(async (req) => {
         });
       }
     }
+
 
     const { product, profile, score, firstName, personalScore, topAlerts } = await req.json();
     if (!product || typeof product !== "object") {
