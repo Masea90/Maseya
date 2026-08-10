@@ -3,6 +3,7 @@
 // personal score shown in a list can diverge from the product page.
 
 export interface ActiveProfile {
+  skin: string[];
   skin_type: string[];
   skin_conditions: string[];
   skin_sensitivities: string[];
@@ -25,6 +26,7 @@ export function buildActiveProfile(
 ): ActiveProfile {
   const src = (healthProfileRow ?? onboardingLocal ?? {}) as Record<string, unknown>;
   return {
+    skin: arr(src.skin),
     skin_type: arr(src.skin_type ?? src.skin),
     skin_conditions: arr(src.skin_conditions),
     skin_sensitivities: arr(src.skin_sensitivities ?? src.sensitivities),

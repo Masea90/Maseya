@@ -374,7 +374,7 @@ const ResultPage = () => {
   const nat = naturalness(product, flagged);
   const dataConfidence = evaluateDataConfidence(product);
   const profile = loadOnboarding();
-  const activeProfile = buildActiveProfile(healthProfile, profile as Record<string, unknown>);
+  const activeProfile = buildActiveProfile(healthProfile, profile as unknown as Record<string, unknown>);
   const alerts = healthConsent ? personalAlerts(product, activeProfile) : [];
   const personalBreakdown = healthConsent && !nonScorable
     ? calculatePersonalScoreBreakdown(product, flagged, activeProfile, score)
