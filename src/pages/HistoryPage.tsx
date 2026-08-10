@@ -132,6 +132,39 @@ const HistoryPage = () => {
   const [items, setItems] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Recompute each card's score locally with the CURRENT engine (no network).
+  // Falls back to the stored score when the row has no scorable payload.
+  const scores = useMemo(() => {
+    const map = new Map<string, { value: number | undefined; stale: boolean }>();
+    for (const s of items) {
+      const saved = typeof s.scores?.global === 'number' ? s.scores.global : undefined;
+      let entry = { value: saved, stale: saved !== undefined };
+      try {
+        const product = productFromHistoryRow({
+          barcode: s.barcode,
+          product_name: s.product_name,
+          product_image: s.product_image,
+          category: s.category,
+          source: s.source,
+          product_data: s.product_data,
+        });
+        if (product) {
+          const value = calculateScoreBreakdown(product, flagIngredients(product)).score;
+          entry = { value, stale: false };
+        }
+      } catch (e) {
+        console.warn('[history] score recompute failed', e);
+      }
+      map.set(s.id, entry);
+    }
+    return map;
+  }, [items]);
+
+  const scoreFor = (s: HistoryItem) =>
+    scores.get(s.id) ?? { value: s.scores?.global, stale: true };
+
+
+
   const groupRows = (rows: ScanRow[]): HistoryItem[] => {
     const seen = new Map<string, { scan: ScanRow; count: number; ids: string[] }>();
     for (const scan of rows) {
