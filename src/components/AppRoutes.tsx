@@ -112,6 +112,7 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
   }
 
   const onboardingDone = userId ? (hasHealthProfile === true || hasLocalOnboarding()) : hasLocalOnboarding();
+  const anonymousSkipped = !userId && !onboardingDone && hasSkippedOnboarding();
   const path = location.pathname;
 
   // Authenticated user without a health profile → force quiz (skip welcome).
@@ -123,8 +124,8 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  // Anonymous user without onboarding → welcome flow.
-  if (!userId && !onboardingDone) {
+  // Anonymous user without onboarding → welcome flow (unless they chose to skip).
+  if (!userId && !onboardingDone && !anonymousSkipped) {
     const allowed = ['/welcome', '/onboarding/quiz', '/onboarding/language', '/update-password', '/login', '/reset-password', '/privacy'];
     if (!allowed.includes(path)) {
       return <Navigate to="/welcome" replace />;
@@ -136,6 +137,7 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
   if (onboardingDone && (path === '/welcome' || path === '/onboarding/quiz')) {
     return <Navigate to="/scan" replace />;
   }
+
 
   return <>{children}</>;
 }
