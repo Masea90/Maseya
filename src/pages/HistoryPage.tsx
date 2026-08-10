@@ -54,7 +54,7 @@ const COPY = {
     delete: 'Eliminar',
     deleted: 'Escaneo eliminado',
     clearedAll: 'Historial vaciado',
-    scoreNote: 'Nota en el momento del escaneo',
+    stale: 'nota guardada',
   },
   en: {
     title: 'History',
@@ -69,7 +69,7 @@ const COPY = {
     delete: 'Delete',
     deleted: 'Scan deleted',
     clearedAll: 'History cleared',
-    scoreNote: 'Score at scan time',
+    stale: 'saved score',
   },
   fr: {
     title: 'Historique',
@@ -84,7 +84,7 @@ const COPY = {
     delete: 'Supprimer',
     deleted: 'Scan supprimé',
     clearedAll: 'Historique vidé',
-    scoreNote: 'Note au moment du scan',
+    stale: 'note enregistrée',
   },
 };
 
@@ -159,7 +159,7 @@ const HistoryPage = () => {
     }
     supabase
       .from('scan_history')
-      .select('id,barcode,product_name,product_image,category,scanned_at,scores')
+      .select('id,barcode,product_name,product_image,category,source,scanned_at,scores,product_data')
       .eq('user_id', currentUser.id)
       .order('scanned_at', { ascending: false })
       .limit(500)
@@ -220,8 +220,7 @@ const HistoryPage = () => {
     <AppLayout title={c.title}>
       <div className="px-4 py-6 space-y-3">
         {!loading && items.length > 0 && (
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-muted-foreground">{c.scoreNote}</p>
+          <div className="flex items-center justify-end">
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive gap-1.5">
@@ -290,9 +289,14 @@ const HistoryPage = () => {
                     )}
                   </p>
                 </div>
-                {typeof s.scores?.global === 'number' && (
-                  <div className="text-sm font-bold text-primary shrink-0">
-                    {s.scores.global}
+                {typeof scoreFor(s).value === 'number' && (
+                  <div className="shrink-0 text-right">
+                    <div className="text-sm font-bold text-primary">
+                      {scoreFor(s).value}
+                    </div>
+                    {scoreFor(s).stale && (
+                      <div className="text-[9px] text-muted-foreground">{c.stale}</div>
+                    )}
                   </div>
                 )}
               </Link>
