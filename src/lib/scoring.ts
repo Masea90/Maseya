@@ -904,10 +904,40 @@ export function calculateScoreBreakdown(
     score += 6;
   }
 
+  // Cosmetic scale: "sin ingredientes problemáticos" is the norm, not an
+  // achievement. Base ceiling 88; only real positive signals lift it to 100.
+  if (p.category === 'cosmetic') {
+    const labels = (p.labels_tags || []).map(t => String(t).toLowerCase());
+    const certified = labels.some(t =>
+      ['en:organic', 'en:ecocert', 'en:cosmos-organic', 'en:cosmos', 'en:natrue'].some(c => t.includes(c.replace('en:', '')))
+    );
+    const inciCount = flagged.length;
+    const beneficialTerms = ['aloe', 'panthenol', 'niacinamide', 'hyaluron', 'glycerin', 'glicerina', 'avena', 'oat', 'centella', 'squalane', 'escualano', 'ceramide', 'ceramida'];
+    const combinedTxt = norm(`${rawText} ${flagged.map(f => f.name).join(' ')}`);
+    const hasActive = beneficialTerms.some(t => combinedTxt.includes(t));
+
+    let bonus = 0;
+    if (certified) bonus += 6;
+    if (inciCount > 0 && inciCount <= 12) bonus += 4;
+    if (hasActive) bonus += 3;
+    const ceiling = Math.min(100, 88 + bonus);
+    if (score > ceiling) {
+      factors.push({
+        label: bonus > 0
+          ? `Escala cosmética: máximo ${ceiling} con las señales positivas detectadas`
+          : 'Escala cosmética: sin señales positivas verificadas, máximo 88',
+        delta: ceiling - score,
+        tone: 'neutral',
+      });
+      score = ceiling;
+    }
+  }
+
   score = applyEfsaAdditives(score);
   maybeAddNoRiskAdditivesNote();
   score = applyAlcoholCap(score);
   score = applyConfidenceCap(score);
+
   return { score: clamp100(score), factors };
 }
 
