@@ -20,7 +20,15 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from '@/hooks/use-toast';
 import { productFromHistoryRow } from '@/lib/slimProduct';
-import { flagIngredients, calculateScoreBreakdown } from '@/lib/scoring';
+import {
+  flagIngredients,
+  calculateScoreBreakdown,
+  calculatePersonalScoreBreakdown,
+  isSupplement,
+  isAlcoholicFood,
+  loadOnboarding,
+} from '@/lib/scoring';
+import { hasHealthDataConsent } from '@/components/consent/ConsentModal';
 
 interface ScanRow {
   id: string;
