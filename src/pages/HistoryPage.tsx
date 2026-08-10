@@ -131,10 +131,25 @@ const HistoryPage = () => {
   const c = COPY[user.language] ?? COPY.es;
   const [items, setItems] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [healthProfile, setHealthProfile] = useState<Record<string, unknown> | null>(null);
+  const healthConsent = hasHealthDataConsent();
 
-  // Recompute each card's score locally with the CURRENT engine (no network).
-  // Falls back to the stored score when the row has no scorable payload.
+  // One profile fetch for the whole page (never per row).
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    supabase
+      .from('health_profiles')
+      .select('*')
+      .eq('user_id', currentUser.id)
+      .maybeSingle()
+      .then(({ data }) => { if (data) setHealthProfile(data as Record<string, unknown>); });
+  }, [currentUser?.id]);
+
+  // Recompute each card's score locally with the CURRENT engine and profile
+  // (no network per item). Falls back to the stored score when the row has no
+  // scorable payload.
   const scores = useMemo(() => {
+    const profile = (healthProfile ?? loadOnboarding()) as Parameters<typeof calculatePersonalScoreBreakdown>[2];
     const map = new Map<string, { value: number | undefined; stale: boolean }>();
     for (const s of items) {
       const saved = typeof s.scores?.global === 'number' ? s.scores.global : undefined;
@@ -149,8 +164,18 @@ const HistoryPage = () => {
           product_data: s.product_data,
         });
         if (product) {
-          const value = calculateScoreBreakdown(product, flagIngredients(product)).score;
-          entry = { value, stale: false };
+          const nonScorable = product.category === 'food'
+            && (isSupplement(product) || isAlcoholicFood(product));
+          if (nonScorable) {
+            entry = { value: undefined, stale: false };
+          } else {
+            const flagged = flagIngredients(product);
+            const base = calculateScoreBreakdown(product, flagged).score;
+            const value = healthConsent
+              ? calculatePersonalScoreBreakdown(product, flagged, profile, base).score
+              : base;
+            entry = { value, stale: false };
+          }
         }
       } catch (e) {
         console.warn('[history] score recompute failed', e);
@@ -158,7 +183,8 @@ const HistoryPage = () => {
       map.set(s.id, entry);
     }
     return map;
-  }, [items]);
+  }, [items, healthProfile, healthConsent]);
+
 
   const scoreFor = (s: HistoryItem) =>
     scores.get(s.id) ?? { value: s.scores?.global, stale: true };
