@@ -2,30 +2,32 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useUser } from '@/contexts/UserContext';
 
+export const ONBOARDING_SKIP_KEY = 'maseya_onboarding_skipped';
+
 const COPY = {
   es: {
     brand: 'MASEYA',
-    title: '¿Sabes lo que hay en tus productos?',
-    subtitle: 'Escanea cualquier producto y descubre en segundos si es realmente bueno para ti.',
-    cta: 'Ver si mis productos son buenos para mí',
+    titleTop: 'Tus alergias, tu dieta, tu piel.',
+    titleAccent: 'Escanea y descubre.',
+    subtitle: 'Alimentación y cosmética · Gratis · Sin descargar nada',
+    cta: 'Escanear un producto',
     haveAccount: 'Ya tengo cuenta',
-    skip: 'Continuar sin registrarme',
   },
   en: {
     brand: 'MASEYA',
-    title: 'Do you know what’s in your products?',
-    subtitle: 'Scan any product and find out in seconds if it’s really good for you.',
-    cta: 'Check if my products are good for me',
+    titleTop: 'Your allergies, your diet, your skin.',
+    titleAccent: 'Scan and discover.',
+    subtitle: 'Food and cosmetics · Free · No download needed',
+    cta: 'Scan a product',
     haveAccount: 'I already have an account',
-    skip: 'Continue without signing up',
   },
   fr: {
     brand: 'MASEYA',
-    title: 'Sais-tu ce qu’il y a dans tes produits ?',
-    subtitle: 'Scanne n’importe quel produit et découvre en quelques secondes s’il est vraiment bon pour toi.',
-    cta: 'Voir si mes produits sont bons pour moi',
+    titleTop: 'Tes allergies, ton alimentation, ta peau.',
+    titleAccent: 'Scanne et découvre.',
+    subtitle: 'Alimentation et cosmétique · Gratuit · Sans rien télécharger',
+    cta: 'Scanner un produit',
     haveAccount: 'J’ai déjà un compte',
-    skip: 'Continuer sans m’inscrire',
   },
 };
 
@@ -33,6 +35,17 @@ export const WelcomeScreen = () => {
   const navigate = useNavigate();
   const { user } = useUser();
   const c = COPY[user.language] ?? COPY.es;
+
+  const handleScan = () => {
+    // Same effect the old "continue without signing up" had: let anonymous users
+    // through the onboarding gate. We flag the skip locally (no quiz answers).
+    try {
+      localStorage.setItem(ONBOARDING_SKIP_KEY, '1');
+    } catch {
+      /* ignore storage errors (private mode) */
+    }
+    navigate('/scan');
+  };
 
   return (
     <div className="min-h-[100dvh] bg-gradient-hero flex flex-col items-center justify-between p-8 pt-safe text-center text-white">
@@ -44,36 +57,28 @@ export const WelcomeScreen = () => {
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center max-w-sm">
-        <h1 className="font-display text-3xl sm:text-4xl font-bold leading-tight mb-4">
-          {c.title}
+        <h1 className="font-display text-4xl sm:text-5xl font-bold leading-tight mb-4">
+          {c.titleTop}
+          <span className="block text-secondary mt-2">{c.titleAccent}</span>
         </h1>
-        <p className="text-white/85 text-base sm:text-lg leading-relaxed">
+        <p className="text-white/85 text-base leading-relaxed">
           {c.subtitle}
         </p>
       </div>
 
       <div className="w-full max-w-sm space-y-4">
         <Button
-          onClick={() => navigate('/onboarding/quiz')}
-          className="w-full h-14 text-base sm:text-lg font-semibold rounded-2xl bg-white text-primary hover:bg-white/95 shadow-warm-lg leading-tight"
+          onClick={handleScan}
+          className="w-full h-16 text-lg font-semibold rounded-2xl bg-white text-primary hover:bg-white/95 shadow-warm-lg leading-tight"
         >
           {c.cta}
         </Button>
-        <div className="flex items-center justify-center gap-4 text-sm">
-          <button
-            onClick={() => navigate('/login')}
-            className="text-white/90 underline-offset-4 hover:underline"
-          >
-            {c.haveAccount}
-          </button>
-          <span className="text-white/40">·</span>
-          <button
-            onClick={() => navigate('/onboarding/quiz')}
-            className="text-white/80 underline-offset-4 hover:underline"
-          >
-            {c.skip}
-          </button>
-        </div>
+        <button
+          onClick={() => navigate('/login')}
+          className="block mx-auto text-sm text-white/80 underline-offset-4 hover:underline"
+        >
+          {c.haveAccount}
+        </button>
       </div>
     </div>
   );
