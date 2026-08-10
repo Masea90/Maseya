@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useUser } from '@/contexts/UserContext';
@@ -19,6 +19,16 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { toast } from '@/hooks/use-toast';
+import { productFromHistoryRow } from '@/lib/slimProduct';
+import {
+  flagIngredients,
+  calculateScoreBreakdown,
+  calculatePersonalScoreBreakdown,
+  isSupplement,
+  isAlcoholicFood,
+  loadOnboarding,
+} from '@/lib/scoring';
+import { hasHealthDataConsent } from '@/components/consent/ConsentModal';
 
 interface ScanRow {
   id: string;
@@ -26,14 +36,17 @@ interface ScanRow {
   product_name: string | null;
   product_image: string | null;
   category: string | null;
+  source?: string | null;
   scanned_at: string;
   scores: { global?: number } | null;
+  product_data?: unknown;
 }
 
 interface HistoryItem extends ScanRow {
   scanCount: number;
   groupIds: string[];
 }
+
 
 const COPY = {
   es: {
@@ -49,7 +62,7 @@ const COPY = {
     delete: 'Eliminar',
     deleted: 'Escaneo eliminado',
     clearedAll: 'Historial vaciado',
-    scoreNote: 'Nota en el momento del escaneo',
+    stale: 'nota guardada',
   },
   en: {
     title: 'History',
@@ -64,7 +77,7 @@ const COPY = {
     delete: 'Delete',
     deleted: 'Scan deleted',
     clearedAll: 'History cleared',
-    scoreNote: 'Score at scan time',
+    stale: 'saved score',
   },
   fr: {
     title: 'Historique',
@@ -79,7 +92,7 @@ const COPY = {
     delete: 'Supprimer',
     deleted: 'Scan supprimé',
     clearedAll: 'Historique vidé',
-    scoreNote: 'Note au moment du scan',
+    stale: 'note enregistrée',
   },
 };
 
@@ -126,6 +139,65 @@ const HistoryPage = () => {
   const c = COPY[user.language] ?? COPY.es;
   const [items, setItems] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [healthProfile, setHealthProfile] = useState<Record<string, unknown> | null>(null);
+  const healthConsent = hasHealthDataConsent();
+
+  // One profile fetch for the whole page (never per row).
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    supabase
+      .from('health_profiles')
+      .select('*')
+      .eq('user_id', currentUser.id)
+      .maybeSingle()
+      .then(({ data }) => { if (data) setHealthProfile(data as Record<string, unknown>); });
+  }, [currentUser?.id]);
+
+  // Recompute each card's score locally with the CURRENT engine and profile
+  // (no network per item). Falls back to the stored score when the row has no
+  // scorable payload.
+  const scores = useMemo(() => {
+    const profile = (healthProfile ?? loadOnboarding()) as Parameters<typeof calculatePersonalScoreBreakdown>[2];
+    const map = new Map<string, { value: number | undefined; stale: boolean }>();
+    for (const s of items) {
+      const saved = typeof s.scores?.global === 'number' ? s.scores.global : undefined;
+      let entry = { value: saved, stale: saved !== undefined };
+      try {
+        const product = productFromHistoryRow({
+          barcode: s.barcode,
+          product_name: s.product_name,
+          product_image: s.product_image,
+          category: s.category,
+          source: s.source,
+          product_data: s.product_data,
+        });
+        if (product) {
+          const nonScorable = product.category === 'food'
+            && (isSupplement(product) || isAlcoholicFood(product));
+          if (nonScorable) {
+            entry = { value: undefined, stale: false };
+          } else {
+            const flagged = flagIngredients(product);
+            const base = calculateScoreBreakdown(product, flagged).score;
+            const value = healthConsent
+              ? calculatePersonalScoreBreakdown(product, flagged, profile, base).score
+              : base;
+            entry = { value, stale: false };
+          }
+        }
+      } catch (e) {
+        console.warn('[history] score recompute failed', e);
+      }
+      map.set(s.id, entry);
+    }
+    return map;
+  }, [items, healthProfile, healthConsent]);
+
+
+  const scoreFor = (s: HistoryItem) =>
+    scores.get(s.id) ?? { value: s.scores?.global, stale: true };
+
+
 
   const groupRows = (rows: ScanRow[]): HistoryItem[] => {
     const seen = new Map<string, { scan: ScanRow; count: number; ids: string[] }>();
@@ -154,7 +226,7 @@ const HistoryPage = () => {
     }
     supabase
       .from('scan_history')
-      .select('id,barcode,product_name,product_image,category,scanned_at,scores')
+      .select('id,barcode,product_name,product_image,category,source,scanned_at,scores,product_data')
       .eq('user_id', currentUser.id)
       .order('scanned_at', { ascending: false })
       .limit(500)
@@ -215,8 +287,7 @@ const HistoryPage = () => {
     <AppLayout title={c.title}>
       <div className="px-4 py-6 space-y-3">
         {!loading && items.length > 0 && (
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-muted-foreground">{c.scoreNote}</p>
+          <div className="flex items-center justify-end">
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive gap-1.5">
@@ -285,9 +356,14 @@ const HistoryPage = () => {
                     )}
                   </p>
                 </div>
-                {typeof s.scores?.global === 'number' && (
-                  <div className="text-sm font-bold text-primary shrink-0">
-                    {s.scores.global}
+                {typeof scoreFor(s).value === 'number' && (
+                  <div className="shrink-0 text-right">
+                    <div className="text-sm font-bold text-primary">
+                      {scoreFor(s).value}
+                    </div>
+                    {scoreFor(s).stale && (
+                      <div className="text-[9px] text-muted-foreground">{c.stale}</div>
+                    )}
                   </div>
                 )}
               </Link>
