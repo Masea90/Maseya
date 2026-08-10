@@ -29,6 +29,7 @@ import { toast } from '@/hooks/use-toast';
 
 
 import { hasHealthDataConsent, getStoredConsent, saveConsent } from '@/components/consent/ConsentModal';
+import { buildActiveProfile } from '@/lib/activeProfile';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { HeartPulse } from 'lucide-react';
 
@@ -135,15 +136,7 @@ const ResultPage = () => {
         .maybeSingle();
       if (cancelled) return;
       if (data) {
-        setHealthProfile({
-          skin_type: data.skin_type || [],
-          skin_conditions: data.skin_conditions || [],
-          skin_sensitivities: data.skin_sensitivities || [],
-          allergies: data.allergies || [],
-          diet: Array.isArray(data.diet) ? data.diet : (data.diet ? [data.diet] : []),
-          nutrition_goals: data.nutrition_goals || [],
-          pregnancy_or_lactation: !!data.pregnancy_or_lactation,
-        });
+        setHealthProfile(buildActiveProfile(data as Record<string, unknown>));
       } else {
         try {
           const raw = localStorage.getItem('maseya_onboarding');
@@ -381,7 +374,7 @@ const ResultPage = () => {
   const nat = naturalness(product, flagged);
   const dataConfidence = evaluateDataConfidence(product);
   const profile = loadOnboarding();
-  const activeProfile = healthProfile || profile;
+  const activeProfile = buildActiveProfile(healthProfile, profile as unknown as Record<string, unknown>);
   const alerts = healthConsent ? personalAlerts(product, activeProfile) : [];
   const personalBreakdown = healthConsent && !nonScorable
     ? calculatePersonalScoreBreakdown(product, flagged, activeProfile, score)

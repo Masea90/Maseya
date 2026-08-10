@@ -64,3 +64,51 @@ export const ADDITIVES_RISK: Record<string, AdditiveRiskEntry> = {
   "en:e621": { risk: 'high', name: "E621 - Glutamato monosódico", efsa_url: "https://efsa.onlinelibrary.wiley.com/doi/10.2903/j.efsa.2017.4910" },
   "en:e960": { risk: 'moderate', name: "E960 - Glucósidos de esteviol", efsa_url: "http://dx.doi.org/10.2903/j.efsa.2015.4146" },
 };
+
+// --- Name synonyms (es/en/fr) -> E-code tag ---------------------------------
+// Many Spanish labels list additives by name ("conservantes: sorbato potásico")
+// instead of E-codes. This map only covers additives already present in
+// ADDITIVES_RISK above; unknown codes are ignored at lookup time.
+export const ADDITIVE_NAME_SYNONYMS: Record<string, string> = {
+  // E200 / E202
+  'acido sorbico': 'en:e200', 'sorbic acid': 'en:e200', 'acide sorbique': 'en:e200',
+  'sorbato potasico': 'en:e202', 'sorbato de potasio': 'en:e202',
+  'potassium sorbate': 'en:e202', 'sorbate de potassium': 'en:e202',
+  // E210 / E211 / E212 / E213
+  'acido benzoico': 'en:e210', 'benzoic acid': 'en:e210', 'acide benzoique': 'en:e210',
+  'benzoato sodico': 'en:e211', 'benzoato de sodio': 'en:e211',
+  'sodium benzoate': 'en:e211', 'benzoate de sodium': 'en:e211',
+  'benzoato potasico': 'en:e212', 'potassium benzoate': 'en:e212',
+  'benzoato calcico': 'en:e213', 'calcium benzoate': 'en:e213',
+  // E220-E228 sulfites
+  'dioxido de azufre': 'en:e220', 'sulfur dioxide': 'en:e220', 'sulphur dioxide': 'en:e220',
+  'dioxyde de soufre': 'en:e220', 'anhidrido sulfuroso': 'en:e220',
+  'sulfito sodico': 'en:e221', 'sulfito de sodio': 'en:e221', 'sodium sulphite': 'en:e221', 'sodium sulfite': 'en:e221',
+  'metabisulfito sodico': 'en:e223', 'metabisulfito de sodio': 'en:e223',
+  'sodium metabisulphite': 'en:e223', 'sodium metabisulfite': 'en:e223', 'metabisulfite de sodium': 'en:e223',
+  'metabisulfito potasico': 'en:e224', 'metabisulfito de potasio': 'en:e224',
+  'potassium metabisulphite': 'en:e224', 'potassium metabisulfite': 'en:e224',
+  'sulfito calcico': 'en:e226', 'calcium sulphite': 'en:e226',
+  // E250-E252 nitrites / nitrates
+  'nitrito sodico': 'en:e250', 'nitrito de sodio': 'en:e250', 'sodium nitrite': 'en:e250', 'nitrite de sodium': 'en:e250',
+  'nitrato sodico': 'en:e251', 'nitrato de sodio': 'en:e251', 'sodium nitrate': 'en:e251', 'nitrate de sodium': 'en:e251',
+  'nitrato potasico': 'en:e252', 'nitrato de potasio': 'en:e252', 'potassium nitrate': 'en:e252', 'nitrate de potassium': 'en:e252',
+  // E338-E343 phosphates
+  'acido fosforico': 'en:e338', 'phosphoric acid': 'en:e338', 'acide phosphorique': 'en:e338',
+  'fosfato sodico': 'en:e339', 'fosfatos de sodio': 'en:e339', 'sodium phosphate': 'en:e339', 'sodium phosphates': 'en:e339',
+  'fosfato potasico': 'en:e340', 'fosfatos de potasio': 'en:e340', 'potassium phosphate': 'en:e340',
+  'fosfato calcico': 'en:e341', 'fosfatos de calcio': 'en:e341', 'calcium phosphate': 'en:e341',
+  'difosfatos': 'en:e450', 'diphosphates': 'en:e450',
+  'trifosfatos': 'en:e451', 'tripolifosfatos': 'en:e451', 'triphosphates': 'en:e451',
+  'polifosfatos': 'en:e452', 'polyphosphates': 'en:e452',
+  // E621 glutamates
+  'glutamato monosodico': 'en:e621', 'glutamato de sodio': 'en:e621',
+  'monosodium glutamate': 'en:e621', 'glutamate monosodique': 'en:e621', 'msg': 'en:e621',
+  // E407 carrageenan
+  'carragenanos': 'en:e407', 'carragenatos': 'en:e407', 'carrageenan': 'en:e407', 'carraghenanes': 'en:e407',
+  // E150c caramel
+  'caramelo amonico': 'en:e150c', 'ammonia caramel': 'en:e150c',
+  'caramelo sulfito amonico': 'en:e150d', 'sulphite ammonia caramel': 'en:e150d',
+  // Sweeteners
+  'glucosidos de esteviol': 'en:e960', 'steviol glycosides': 'en:e960',
+};

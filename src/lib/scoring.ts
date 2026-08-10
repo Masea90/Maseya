@@ -3,7 +3,7 @@
  */
 import type { ProductData } from './productLookup';
 import { computeNutriScore, nutriScoreToNote } from './nutriscore';
-import { ADDITIVES_RISK, type AdditiveRiskEntry, type AdditiveRiskLevel } from './additivesRisk';
+import { ADDITIVES_RISK, ADDITIVE_NAME_SYNONYMS, type AdditiveRiskEntry, type AdditiveRiskLevel } from './additivesRisk';
 
 export type IngredientLevel = 'safe' | 'caution' | 'avoid';
 
@@ -258,9 +258,10 @@ export function getAdditiveRisks(p: ProductData): AdditiveRisk[] {
     const entry = ADDITIVES_RISK[norm];
     if (entry) push(norm, entry);
   }
-  // Fallback for products without additives_tags (photo-scanned): parse
-  // inline E-codes from ingredients_text (any language).
-  if (out.length === 0 || tags.length === 0) {
+  // Text pass: inline E-codes (photo-scanned products) AND plain additive
+  // names ("sorbato potásico"), very common on Spanish labels. Runs always;
+  // `push` dedupes so a tag detected twice counts once.
+  {
     const textFields = [
       p.ingredients_text, raw.ingredients_text_es, raw.ingredients_text_en,
       raw.ingredients_text_fr, raw.ingredients_text_pt,
@@ -274,10 +275,16 @@ export function getAdditiveRisks(p: ProductData): AdditiveRisk[] {
         const entry = ADDITIVES_RISK[tag];
         if (entry) push(tag, entry);
       }
+      for (const [syn, tag] of Object.entries(ADDITIVE_NAME_SYNONYMS)) {
+        const entry = ADDITIVES_RISK[tag];
+        if (!entry || seen.has(tag)) continue;
+        if (findKeyword(f, syn)) push(tag, entry);
+      }
     }
   }
   return out;
 }
+
 
 /** Ingredient chips already covered by an EFSA risk hit (avoids double
  *  penalisation with RED_FOOD / ORANGE_FOOD keyword counters). */
