@@ -33,7 +33,7 @@ interface Candidate {
 // alternative to a Spanish dairy. Also introduces a hard MIN_SCORE floor
 // so we never recommend a red/regular product as "mejor" (real case: a
 // product scoring 0/100 was offered alternatives at 18/100).
-const CACHE_PREFIX = 'maseya_alts_v10::';
+const CACHE_PREFIX = 'maseya_alts_v11::';
 const FETCH_TIMEOUT_MS = 8000;
 const MIN_SCORE = 50;
 // TODO: derive country from user locale/settings when we expand beyond Spain.
@@ -116,10 +116,6 @@ const toCatalogProductData = (item: CatalogItem): ProductData | null => {
   };
 };
 
-const isCleanserLikeName = (name: string): boolean => {
-  const n = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-  return /\b(limpiador|limpiadora|limpieza|cleanser|cleansing|clean|tonico|micelar)\b/.test(n);
-};
 
 const toProductData = (
   item: SearchItem,
@@ -299,7 +295,6 @@ export const Alternatives = ({ current, currentScore }: Props) => {
         }
 
         const tagSet = new Set(tagCandidates);
-        const currentIsCleanserLike = isCleanserLikeName(current.name) || tagSet.has('en:cleansers') || tagSet.has('en:cleansing-milks');
         const { data: catalogRows, error: catalogError } = await supabase
           .from('maseya_products')
           .select('barcode, product_name, brand, category, category_tag, ingredients_text, image_url, source')
