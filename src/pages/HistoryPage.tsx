@@ -29,6 +29,7 @@ import {
   loadOnboarding,
 } from '@/lib/scoring';
 import { hasHealthDataConsent } from '@/components/consent/ConsentModal';
+import { buildActiveProfile } from '@/lib/activeProfile';
 
 interface ScanRow {
   id: string;
@@ -140,7 +141,20 @@ const HistoryPage = () => {
   const [items, setItems] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [healthProfile, setHealthProfile] = useState<Record<string, unknown> | null>(null);
-  const healthConsent = hasHealthDataConsent();
+  const [healthConsent, setHealthConsent] = useState<boolean>(() => hasHealthDataConsent());
+
+  // Consent is hydrated DB→localStorage asynchronously after sign-in, so read
+  // it reactively instead of once at mount.
+  useEffect(() => {
+    const refresh = () => setHealthConsent(hasHealthDataConsent());
+    refresh();
+    window.addEventListener('maseya:consent-updated', refresh);
+    window.addEventListener('storage', refresh);
+    return () => {
+      window.removeEventListener('maseya:consent-updated', refresh);
+      window.removeEventListener('storage', refresh);
+    };
+  }, [currentUser?.id]);
 
   // One profile fetch for the whole page (never per row).
   useEffect(() => {
@@ -157,7 +171,10 @@ const HistoryPage = () => {
   // (no network per item). Falls back to the stored score when the row has no
   // scorable payload.
   const scores = useMemo(() => {
-    const profile = (healthProfile ?? loadOnboarding()) as Parameters<typeof calculatePersonalScoreBreakdown>[2];
+    const profile = buildActiveProfile(
+      healthProfile,
+      loadOnboarding() as unknown as Record<string, unknown>,
+    );
     const map = new Map<string, { value: number | undefined; stale: boolean }>();
     for (const s of items) {
       const saved = typeof s.scores?.global === 'number' ? s.scores.global : undefined;
