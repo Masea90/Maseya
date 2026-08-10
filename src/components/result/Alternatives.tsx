@@ -305,6 +305,9 @@ export const Alternatives = ({ current, currentScore }: Props) => {
           .select('barcode, product_name, brand, category, category_tag, ingredients_text, image_url, source')
           .eq('category', cat)
           .neq('barcode', current.barcode)
+          .not('barcode', 'like', 'photo\\_%')
+          .not('category_tag', 'is', null)
+          .neq('category_tag', '')
           .not('ingredients_text', 'is', null)
           .order('scan_count', { ascending: false })
           .limit(80);
@@ -313,19 +316,14 @@ export const Alternatives = ({ current, currentScore }: Props) => {
           console.warn('[alternatives] local catalog fallback failed', catalogError.message);
         } else {
           for (const row of (catalogRows || []) as CatalogItem[]) {
-            const rowTags = [
-              row.category_tag,
-              ...guessCategoryTagsFromName(row.product_name || '', cat),
-            ].filter((tag): tag is string => !!tag);
-            // Never accept catalog rows without at least one shared category
-            // signal — otherwise we'd surface unrelated food/cosmetics (e.g.
-            // "aceite de coco" as an alternative to "cacao en polvo").
-            const sharesTag = rowTags.some(tag => tagSet.has(tag));
-            const sameCleanserFamily = currentIsCleanserLike && isCleanserLikeName(row.product_name || '');
-            if (!sharesTag && !sameCleanserFamily) continue;
+            // Strict category match: the candidate's own category_tag must be
+            // one of the tags we're searching for. Never guess by name for
+            // candidates — that's how a cleanser ended up as a toner alt.
+            if (!row.category_tag || !tagSet.has(row.category_tag)) continue;
             addCandidate(toCatalogProductData(row));
           }
         }
+
 
         // Quality floor: a candidate is only valid if its score is >= 50
         // AND strictly better than the current product. Never surface a
