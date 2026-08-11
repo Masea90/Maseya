@@ -4,6 +4,7 @@ import { Camera, ArrowLeft, Sparkles, RefreshCw, Check, X } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
 import { supabase } from '@/integrations/supabase/client';
 import { saveToMaseya } from '@/lib/productLookup';
+import { hasSupplementTextSignals } from '@/lib/scoring';
 import { Button } from '@/components/ui/button';
 
 /**
@@ -125,6 +126,7 @@ const COPY = {
     errorNutritional: 'Parece que fotografiaste la tabla nutricional. Fotografía la lista de ingredientes.',
     errorTooLarge: 'La foto es demasiado grande. Reintenta acercándote al producto.',
     nutritionRejected: 'No pudimos leer la tabla con seguridad — puedes reintentarlo.',
+    supplementDetected: 'Este producto es un complemento alimenticio: no se puntúa con el Nutri-Score.',
     loginCta: 'Iniciar sesión',
     retry: 'Reintentar',
     addImageOnly: 'Añadir foto del producto',
@@ -169,6 +171,7 @@ const COPY = {
     errorNutritional: 'Looks like you photographed the nutrition table. Photograph the ingredient list instead.',
     errorTooLarge: 'Photo is too large. Try getting closer to the product.',
     nutritionRejected: "We couldn't read the table reliably — you can try again.",
+    supplementDetected: 'This product is a food supplement: it is not scored with the Nutri-Score.',
     loginCta: 'Log in',
     retry: 'Try again',
     addImageOnly: 'Add product photo',
@@ -213,6 +216,7 @@ const COPY = {
     errorNutritional: "Il semble que vous ayez photographié le tableau nutritionnel. Photographiez la liste d'ingrédients.",
     errorTooLarge: 'La photo est trop grande. Essayez de vous rapprocher du produit.',
     nutritionRejected: "Nous n'avons pas pu lire le tableau avec certitude — vous pouvez réessayer.",
+    supplementDetected: "Ce produit est un complément alimentaire : il n'est pas noté avec le Nutri-Score.",
     loginCta: 'Se connecter',
     retry: 'Réessayer',
     addImageOnly: 'Ajouter une photo',
