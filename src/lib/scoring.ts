@@ -1015,6 +1015,33 @@ const SUPPLEMENT_NAME_KEYWORDS = [
   'melatonina', 'melatonin', 'magnesio', 'omega 3', 'omega-3', 'omega3',
 ];
 const SUPPLEMENT_NAME_TOKENS = ['forte', 'memory', 'omega', 'magnesio', 'melatonina'];
+/**
+ * Text signals of a food supplement (es/pt/en/fr). Requires one STRONG signal
+ * ("complemento alimenticio", "VRN"…) or at least two weak ones, so that a
+ * normal food mentioning "dosis" or "comprimido" is not flagged.
+ */
+const SUPPLEMENT_STRONG_SIGNALS = [
+  'complemento alimenticio', 'complementos alimenticios', 'suplemento alimentar',
+  'food supplement', 'complement alimentaire', 'complément alimentaire',
+  'valor de referencia de nutriente', 'vrn', 'nrv',
+  'no deben utilizarse como sustitutos de una dieta variada',
+];
+const SUPPLEMENT_WEAK_SIGNALS = [
+  'dosis diaria', 'toma diaria', 'daily dose', 'dose journalière', 'dose journaliere',
+  'comprimido efervescente', 'comprimidos efervescentes', 'comprimidos recubiertos',
+  'cápsulas', 'capsulas', 'capsules', 'no sobrepasar la cantidad diaria recomendada',
+];
+function hasWordSignal(hay: string, needle: string): boolean {
+  const esc = needle.replace(/[.*+?^${}()|[\]\]/g, '\$&');
+  return new RegExp(`(^|[^a-z0-9áéíóúñç])${esc}([^a-z0-9áéíóúñç]|$)`, 'i').test(hay);
+}
+export function hasSupplementTextSignals(text: string | null | undefined): boolean {
+  const t = (text || '').toLowerCase();
+  if (!t) return false;
+  if (SUPPLEMENT_STRONG_SIGNALS.some(k => hasWordSignal(t, k))) return true;
+  return SUPPLEMENT_WEAK_SIGNALS.filter(k => hasWordSignal(t, k)).length >= 2;
+}
+
 export function isSupplement(p: ProductData): boolean {
   const raw = (p.raw || {}) as Record<string, unknown>;
   const cats = Array.isArray(raw.categories_tags) ? (raw.categories_tags as string[]) : [];
@@ -1029,6 +1056,7 @@ export function isSupplement(p: ProductData): boolean {
   // when the product name has no clear food context.
   const tokens = name.split(/[^a-záéíóúñ0-9]+/i).filter(Boolean);
   if (tokens.some(t => SUPPLEMENT_NAME_TOKENS.includes(t))) return true;
+  if (hasSupplementTextSignals(p.ingredients_text)) return true;
   // "vitamina X" + cápsula format
   if (/vitamina\s+[a-z0-9]/i.test(name) && /(cáps|caps|comprim|tablet|pastill)/i.test(name)) {
     return true;

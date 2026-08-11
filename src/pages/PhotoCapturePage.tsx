@@ -450,9 +450,14 @@ const PhotoCapturePage = () => {
           return;
         }
 
+        // Food supplements are never Nutri-Score scored → skip the table step.
+        const supplementFlag = data.is_supplement === true
+          || hasSupplementTextSignals(ingredients_text)
+          || hasSupplementTextSignals(`${product_name} ${brand}`);
+
         // Offer optional nutrition step only for food with a real barcode
         // (we need it to persist the table server-side).
-        if (category === 'food' && !finalBarcode.startsWith('photo_')) {
+        if (category === 'food' && !supplementFlag && !finalBarcode.startsWith('photo_')) {
           setStep('nutrition-offer');
           return;
         }
