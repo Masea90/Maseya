@@ -450,7 +450,8 @@ export const Alternatives = ({ current, currentScore, profile: profileProp, cons
       controller.abort();
       clearTimeout(timeout);
     };
-  }, [current.barcode, current.source, current.category, current.name, rawTagsKey, guessedTagsKey, currentScore, eligible]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current.barcode, current.source, current.category, current.name, rawTagsKey, guessedTagsKey, currentScore, eligible, consentProp]);
 
   if (!eligible) return null;
 
