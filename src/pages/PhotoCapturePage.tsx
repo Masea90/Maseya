@@ -4,6 +4,8 @@ import { Camera, ArrowLeft, Sparkles, RefreshCw, Check, X } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
 import { supabase } from '@/integrations/supabase/client';
 import { saveToMaseya } from '@/lib/productLookup';
+import { hasSupplementTextSignals } from '@/lib/scoring';
+import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 
 /**
@@ -125,6 +127,7 @@ const COPY = {
     errorNutritional: 'Parece que fotografiaste la tabla nutricional. Fotografía la lista de ingredientes.',
     errorTooLarge: 'La foto es demasiado grande. Reintenta acercándote al producto.',
     nutritionRejected: 'No pudimos leer la tabla con seguridad — puedes reintentarlo.',
+    supplementDetected: 'Este producto es un complemento alimenticio: no se puntúa con el Nutri-Score.',
     loginCta: 'Iniciar sesión',
     retry: 'Reintentar',
     addImageOnly: 'Añadir foto del producto',
@@ -169,6 +172,7 @@ const COPY = {
     errorNutritional: 'Looks like you photographed the nutrition table. Photograph the ingredient list instead.',
     errorTooLarge: 'Photo is too large. Try getting closer to the product.',
     nutritionRejected: "We couldn't read the table reliably — you can try again.",
+    supplementDetected: 'This product is a food supplement: it is not scored with the Nutri-Score.',
     loginCta: 'Log in',
     retry: 'Try again',
     addImageOnly: 'Add product photo',
@@ -213,6 +217,7 @@ const COPY = {
     errorNutritional: "Il semble que vous ayez photographié le tableau nutritionnel. Photographiez la liste d'ingrédients.",
     errorTooLarge: 'La photo est trop grande. Essayez de vous rapprocher du produit.',
     nutritionRejected: "Nous n'avons pas pu lire le tableau avec certitude — vous pouvez réessayer.",
+    supplementDetected: "Ce produit est un complément alimentaire : il n'est pas noté avec le Nutri-Score.",
     loginCta: 'Se connecter',
     retry: 'Réessayer',
     addImageOnly: 'Ajouter une photo',
@@ -280,7 +285,7 @@ const PhotoCapturePage = () => {
 
   const onRetake = () => { setPreview(null); };
 
-  const postExtract = async (body: Record<string, unknown>): Promise<{ ok: true; data: any } | { ok: false; kind: ErrorKind; msg?: string | null }> => {
+  const postExtract = async (body: Record<string, unknown>): Promise<{ ok: true; data: any } | { ok: false; kind: ErrorKind; msg?: string | null; code?: string }> => {
     const { data: sess } = await supabase.auth.getSession();
     const token = sess.session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
     const url = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/extract-ingredients`;
@@ -306,7 +311,7 @@ const PhotoCapturePage = () => {
       else if (res.status === 402) kind = 'payment';
       else if (data?.error === 'nutritional_table_detected') kind = 'nutritional';
       else if (data?.error === 'no_ingredients' || data?.error === 'parse_failed') kind = 'lighting';
-      return { ok: false, kind, msg };
+      return { ok: false, kind, msg, code: typeof data?.error === 'string' ? data.error : undefined };
     }
     return { ok: true, data };
   };
@@ -335,6 +340,13 @@ const PhotoCapturePage = () => {
     // Deep-link nutrition-only mode (from result CTA): POST just the table.
     if (nutritionOnly && realBarcode) {
       const res = await postExtract({ nutrition_image: nutritionImage, barcode: realBarcode });
+      if (res.ok === false && res.code === 'supplement_detected') {
+        // Supplement table ("por dosis diaria / %VRN") → straight to the
+        // supplement branch of the result, no retry loop.
+        toast({ description: c.supplementDetected });
+        navigate(`/result/${realBarcode}`, { replace: true });
+        return;
+      }
       if (!res.ok || res.data?.error === 'nutrition_rejected') {
         // Don't fail silently ("no pasa nada"): show the reason and let the
         // user retake the photo from here.
@@ -356,6 +368,11 @@ const PhotoCapturePage = () => {
         ? pendingProduct.finalBarcode
         : undefined,
     });
+    if (res.ok === false && res.code === 'supplement_detected') {
+      toast({ description: c.supplementDetected });
+      finalizeAndNavigate(null);
+      return;
+    }
     if (!res.ok || res.data?.error === 'nutrition_rejected') {
       console.warn('[photo-capture] nutrition extraction failed', res);
       localStorage.setItem('maseya_nutrition_rejected', '1');
@@ -450,9 +467,14 @@ const PhotoCapturePage = () => {
           return;
         }
 
+        // Food supplements are never Nutri-Score scored → skip the table step.
+        const supplementFlag = data.is_supplement === true
+          || hasSupplementTextSignals(ingredients_text)
+          || hasSupplementTextSignals(`${product_name} ${brand}`);
+
         // Offer optional nutrition step only for food with a real barcode
         // (we need it to persist the table server-side).
-        if (category === 'food' && !finalBarcode.startsWith('photo_')) {
+        if (category === 'food' && !supplementFlag && !finalBarcode.startsWith('photo_')) {
           setStep('nutrition-offer');
           return;
         }
