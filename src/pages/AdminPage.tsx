@@ -1,83 +1,56 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
+
+type Pulse = {
+  scans_today: number;
+  scans_7d: number;
+  scans_30d: number;
+  active_users_7d: number;
+  total_users: number;
+  new_users_7d: number;
+  photo_products_7d: number;
+  total_products: number;
+  pending_feedback: number;
+};
 
 type FeedbackRow = {
   id: string;
   created_at: string;
   type: string;
+  rating: string | null;
   email: string | null;
   user_id: string | null;
   nickname: string | null;
   message: string | null;
   context: Record<string, unknown> | null;
-  resolved: boolean;
-  resolution_notes: string | null;
   resolved_at: string | null;
-};
-type UserRow = {
-  user_id: string;
-  nickname: string | null;
-  email: string | null;
-  created_at: string;
-  last_sign_in_at: string | null;
-  scan_count: number;
-  is_admin: boolean;
+  resolution: string | null;
 };
 
-type LogEntry = { ts: string; text: string };
-type Stats = {
-  total_users: number;
-  total_scans: number;
-  total_products: number;
-  active_users_7d: number;
-  scans_today: number;
-  products_added_7d: number;
-};
-type RecentScan = {
+type ActivityRow = {
   id: string;
-  user_id: string;
-  nickname: string | null;
-  product_name: string | null;
-  barcode: string;
-  category: string | null;
   scanned_at: string;
-};
-type RecentProduct = {
-  barcode: string;
-  product_name: string | null;
-  brand: string | null;
-  category: string | null;
-  source: string | null;
-  verified: boolean | null;
-  submitted_by: string | null;
-  created_at: string;
-};
-type ActiveUser = {
-  user_id: string;
+  user_email: string | null;
   nickname: string | null;
-  last_scan_at: string;
-  scan_count: number;
+  product_name: string | null;
+  barcode: string | null;
+  category: string | null;
+  score: number | null;
 };
+
+type TopRow = { barcode: string; product_name: string | null; scans: number; users: number };
+
+const PAGE_SIZE = 20;
 
 const fmtTime = (iso: string) => {
   const d = new Date(iso);
-  const diffMs = Date.now() - d.getTime();
-  const mins = Math.floor(diffMs / 60000);
+  const mins = Math.floor((Date.now() - d.getTime()) / 60000);
   if (mins < 1) return 'ahora';
   if (mins < 60) return `hace ${mins} min`;
   const hrs = Math.floor(mins / 60);
@@ -92,7 +65,7 @@ function StatCard({ label, value, accent }: { label: string; value: number | und
     <div className={`rounded-lg border border-border p-3 ${accent ? 'bg-primary/5' : 'bg-card'}`}>
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="text-2xl font-semibold mt-0.5">
-        {value === undefined ? '—' : value.toLocaleString('es-ES')}
+        {value === undefined ? '—' : Number(value).toLocaleString('es-ES')}
       </p>
     </div>
   );
@@ -101,112 +74,102 @@ function StatCard({ label, value, accent }: { label: string; value: number | und
 export default function AdminPage() {
   const { currentUser, isLoading } = useAuth();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
-  const [productCount, setProductCount] = useState<number | null>(null);
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [recentScans, setRecentScans] = useState<RecentScan[]>([]);
-  const [recentProducts, setRecentProducts] = useState<RecentProduct[]>([]);
-  const [activeUsers, setActiveUsers] = useState<ActiveUser[]>([]);
-  const [foodPage, setFoodPage] = useState(1);
-  const [cosmoPage, setCosmoPage] = useState(1);
+  const [pulse, setPulse] = useState<Pulse | null>(null);
+  const [counts, setCounts] = useState<{ pending: number; resolved: number } | null>(null);
+  const [tab, setTab] = useState<'pending' | 'resolved'>('pending');
+  const [items, setItems] = useState<FeedbackRow[]>([]);
+  const [hasMore, setHasMore] = useState(false);
+  const [activity, setActivity] = useState<ActivityRow[]>([]);
+  const [top, setTop] = useState<TopRow[]>([]);
+  const [notes, setNotes] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
-  const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [autoBusy, setAutoBusy] = useState(false);
-  const [autoStatus, setAutoStatus] = useState<string>('');
-  const [autoProgress, setAutoProgress] = useState(0);
-  const [autoTotalImported, setAutoTotalImported] = useState(0);
-  const [openFeedback, setOpenFeedback] = useState<FeedbackRow[]>([]);
-  const [archivedFeedback, setArchivedFeedback] = useState<FeedbackRow[]>([]);
-  const [users, setUsers] = useState<UserRow[]>([]);
-  const [userSearch, setUserSearch] = useState('');
-  const [resolveDraft, setResolveDraft] = useState<Record<string, string>>({});
-  const [similar, setSimilar] = useState<Record<string, FeedbackRow[]>>({});
+  const [logs, setLogs] = useState<string[]>([]);
 
-  const refreshCount = async () => {
-    const { count } = await supabase
-      .from('maseya_products')
-      .select('*', { count: 'exact', head: true });
-    setProductCount(count ?? 0);
-  };
-
-  const loadFeedback = async () => {
-    const [op, ar] = await Promise.all([
-      supabase.rpc('admin_recent_feedback', { p_resolved: false, p_limit: 50 }),
-      supabase.rpc('admin_recent_feedback', { p_resolved: true, p_limit: 50 }),
-    ]);
-    if (op.data) setOpenFeedback(op.data as FeedbackRow[]);
-    if (ar.data) setArchivedFeedback(ar.data as FeedbackRow[]);
-  };
-
-  const loadUsers = async (search?: string) => {
-    const { data } = await supabase.rpc('admin_users_list', { p_limit: 100, p_search: search || null });
-    if (data) setUsers(data as UserRow[]);
-  };
-
-  const loadDashboard = async () => {
-    const [s, sc, rp, au] = await Promise.all([
-      supabase.rpc('admin_stats'),
-      supabase.rpc('admin_recent_scans', { p_limit: 25 }),
-      supabase.rpc('admin_recent_products', { p_limit: 25 }),
-      supabase.rpc('admin_active_users', { p_limit: 25 }),
-    ]);
-    if (s.data && Array.isArray(s.data) && s.data[0]) setStats(s.data[0] as Stats);
-    if (sc.data) setRecentScans(sc.data as RecentScan[]);
-    if (rp.data) setRecentProducts(rp.data as RecentProduct[]);
-    if (au.data) setActiveUsers(au.data as ActiveUser[]);
-    await loadFeedback();
-    await loadUsers();
-  };
-
-  const resolveFeedback = async (id: string) => {
-    const notes = resolveDraft[id]?.trim();
-    if (!notes) {
-      toast({ title: 'Falta la nota', description: 'Escribe qué se hizo o qué falló.', variant: 'destructive' });
-      return;
-    }
-    const { error } = await supabase.rpc('admin_resolve_feedback', { p_id: id, p_notes: notes, p_resolved: true });
+  const loadFeedback = useCallback(async (pending: boolean, offset: number) => {
+    const { data, error } = await supabase.rpc('admin_feedback_list', {
+      p_pending: pending,
+      p_limit: PAGE_SIZE,
+      p_offset: offset,
+    });
     if (error) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast({ title: 'Error al cargar feedback', description: error.message, variant: 'destructive' });
       return;
     }
-    setResolveDraft((d) => { const n = { ...d }; delete n[id]; return n; });
-    await loadFeedback();
-  };
+    const rows = (data ?? []) as unknown as FeedbackRow[];
+    setItems((prev) => (offset === 0 ? rows : [...prev, ...rows]));
+    setHasMore(rows.length === PAGE_SIZE);
+  }, []);
 
-  const reopenFeedback = async (id: string) => {
-    const { error } = await supabase.rpc('admin_resolve_feedback', { p_id: id, p_notes: null as unknown as string, p_resolved: false });
-    if (error) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
-      return;
-    }
-    await loadFeedback();
-  };
+  const loadCounts = useCallback(async () => {
+    const { data } = await supabase.rpc('admin_feedback_counts');
+    const row = Array.isArray(data) ? (data[0] as unknown as { pending: number; resolved: number }) : null;
+    if (row) setCounts({ pending: Number(row.pending), resolved: Number(row.resolved) });
+  }, []);
 
-  const showSimilar = async (fb: FeedbackRow) => {
-    const barcode = (fb.context as { barcode?: string } | null)?.barcode;
-    if (!barcode) {
-      toast({ title: 'Sin barcode', description: 'Este feedback no está atado a un producto.' });
-      return;
-    }
-    const { data } = await supabase.rpc('admin_recent_feedback', { p_resolved: true, p_limit: 20, p_barcode: barcode });
-    setSimilar((s) => ({ ...s, [fb.id]: (data as FeedbackRow[]) || [] }));
-  };
-
+  const loadAll = useCallback(async () => {
+    const [p, a, t] = await Promise.all([
+      supabase.rpc('admin_pulse'),
+      supabase.rpc('admin_activity_feed', { p_limit: 30 }),
+      supabase.rpc('admin_top_scanned', { p_limit: 10 }),
+    ]);
+    if (Array.isArray(p.data) && p.data[0]) setPulse(p.data[0] as unknown as Pulse);
+    if (a.data) setActivity(a.data as unknown as ActivityRow[]);
+    if (t.data) setTop(t.data as unknown as TopRow[]);
+    await Promise.all([loadCounts(), loadFeedback(tab === 'pending', 0)]);
+  }, [loadCounts, loadFeedback, tab]);
 
   useEffect(() => {
     if (!currentUser?.id) return;
     (async () => {
-      const { data } = await supabase.rpc('has_role', {
-        _user_id: currentUser.id,
-        _role: 'admin',
-      });
+      const { data } = await supabase.rpc('has_role', { _user_id: currentUser.id, _role: 'admin' });
       const admin = data === true;
       setIsAdmin(admin);
-      if (admin) {
-        refreshCount();
-        loadDashboard();
-      }
+      if (admin) await loadAll();
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser?.id]);
+
+  const switchTab = async (next: 'pending' | 'resolved') => {
+    setTab(next);
+    setItems([]);
+    await loadFeedback(next === 'pending', 0);
+  };
+
+  const setResolved = async (id: string, resolved: boolean) => {
+    const note = notes[id]?.trim();
+    if (resolved && !note) {
+      toast({ title: 'Falta la nota', description: 'Escribe brevemente qué se hizo.', variant: 'destructive' });
+      return;
+    }
+    const { error } = await supabase.rpc('admin_set_feedback_resolved', {
+      p_id: id,
+      p_resolved: resolved,
+      p_note: note ?? null,
+    });
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      return;
+    }
+    setNotes((n) => { const c = { ...n }; delete c[id]; return c; });
+    setItems((prev) => prev.filter((f) => f.id !== id));
+    await loadCounts();
+  };
+
+  const callFn = async (name: string, body: Record<string, unknown>, label: string) => {
+    setBusy(label);
+    try {
+      const { data, error } = await supabase.functions.invoke(name, { body });
+      if (error) throw error;
+      setLogs((l) => [`${new Date().toLocaleTimeString()} · ${label}: ${JSON.stringify(data)}`, ...l].slice(0, 30));
+      toast({ title: label, description: 'Completado' });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setLogs((l) => [`${new Date().toLocaleTimeString()} · ${label}: ERROR ${msg}`, ...l].slice(0, 30));
+      toast({ title: label, description: msg, variant: 'destructive' });
+    } finally {
+      setBusy(null);
+    }
+  };
 
   if (isLoading || isAdmin === null) {
     return (
@@ -217,117 +180,85 @@ export default function AdminPage() {
   }
 
   if (!currentUser) return <Navigate to="/login" replace />;
-  if (!isAdmin) return <Navigate to="/scan" replace />;
 
-
-  const log = (text: string) =>
-    setLogs((l) => [{ ts: new Date().toLocaleTimeString(), text }, ...l].slice(0, 50));
-
-  const callFn = async (name: string, body: Record<string, unknown>, label: string) => {
-    setBusy(label);
-    log(`${label}: invocando…`);
-    try {
-      const { data, error } = await supabase.functions.invoke(name, { body });
-      if (error) throw error;
-      log(`${label}: ${JSON.stringify(data)}`);
-      toast({ title: label, description: 'Completado' });
-      await refreshCount();
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      log(`${label}: ERROR ${msg}`);
-      toast({ title: label, description: msg, variant: 'destructive' });
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  const pageOptions = Array.from({ length: 10 }, (_, i) => i + 1);
-
-  const runAutoImport = async () => {
-    setAutoBusy(true);
-    setAutoTotalImported(0);
-    setAutoProgress(0);
-    setAutoStatus('Iniciando importación…');
-    log('Auto-import: iniciado');
-    let totalImported = 0;
-    const sources: Array<{ source: 'off' | 'obf'; label: string }> = [
-      { source: 'off', label: 'alimentos' },
-      { source: 'obf', label: 'cosméticos' },
-    ];
-    const totalSteps = sources.length * 10;
-    let step = 0;
-    try {
-      for (const { source, label } of sources) {
-        for (let page = 1; page <= 10; page++) {
-          step++;
-          setAutoStatus(`Importando ${label} página ${page}/10… (${totalImported} productos)`);
-          try {
-            const { data, error } = await supabase.functions.invoke('import-off-products', {
-              body: { source, page },
-            });
-            if (error) throw error;
-            const imported = Number((data as { imported?: number })?.imported ?? 0);
-            totalImported += imported;
-            setAutoTotalImported(totalImported);
-            log(`Auto ${label} p${page}: +${imported} (total ${totalImported})`);
-          } catch (e) {
-            const msg = e instanceof Error ? e.message : String(e);
-            log(`Auto ${label} p${page}: ERROR ${msg}`);
-          }
-          setAutoProgress(Math.round((step / totalSteps) * 100));
-        }
-      }
-      setAutoStatus(`✅ Importación completa: ${totalImported} productos en total`);
-      toast({ title: 'Importación completa', description: `${totalImported} productos importados` });
-      await refreshCount();
-    } finally {
-      setAutoBusy(false);
-    }
-  };
+  if (!isAdmin) {
+    return (
+      <div className="min-h-[100dvh] bg-background flex items-center justify-center p-6">
+        <Card className="max-w-sm w-full">
+          <CardHeader><CardTitle className="text-base">Acceso no autorizado</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">Esta sección es solo para administradoras.</p>
+            <Button className="w-full" onClick={() => { window.location.href = '/scan'; }}>Volver a escanear</Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[100dvh] bg-background">
-      <div className="mx-auto w-full max-w-lg p-4 space-y-4">
-        <header className="space-y-1">
-          <h1 className="text-2xl font-serif">Admin</h1>
-          <p className="text-sm text-muted-foreground">{currentUser.email}</p>
+      <div className="mx-auto w-full max-w-lg p-4 space-y-4 pt-safe pb-safe">
+        <header className="flex items-baseline justify-between gap-2">
+          <div>
+            <h1 className="text-2xl font-serif">Admin</h1>
+            <p className="text-sm text-muted-foreground">{currentUser.email}</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={loadAll}>🔄 Refrescar</Button>
         </header>
 
-        {/* Stats grid */}
+        {/* Pulso */}
         <div className="grid grid-cols-2 gap-3">
-          <StatCard label="Usuarios" value={stats?.total_users} />
-          <StatCard label="Escaneos totales" value={stats?.total_scans} />
-          <StatCard label="Activos (7d)" value={stats?.active_users_7d} accent />
-          <StatCard label="Escaneos hoy" value={stats?.scans_today} accent />
-          <StatCard label="Productos BD" value={stats?.total_products} />
-          <StatCard label="Nuevos (7d)" value={stats?.products_added_7d} />
+          <StatCard label="Escaneos hoy" value={pulse?.scans_today} accent />
+          <StatCard label="Escaneos 7d" value={pulse?.scans_7d} accent />
+          <StatCard label="Escaneos 30d" value={pulse?.scans_30d} />
+          <StatCard label="Usuarias activas 7d" value={pulse?.active_users_7d} />
+          <StatCard label="Registradas" value={pulse?.total_users} />
+          <StatCard label="Nuevas 7d" value={pulse?.new_users_7d} />
+          <StatCard label="Productos por foto 7d" value={pulse?.photo_products_7d} />
+          <StatCard label="Productos en BD" value={pulse?.total_products} />
+          <StatCard label="Feedback pendiente" value={pulse?.pending_feedback} accent />
         </div>
 
-        <div className="flex justify-end">
-          <Button variant="outline" size="sm" onClick={() => { refreshCount(); loadDashboard(); }}>
-            🔄 Refrescar
-          </Button>
-        </div>
-
-        {/* Feedback abierto */}
+        {/* Feedback */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">💬 Feedback abierto ({openFeedback.length})</CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">💬 Bandeja de feedback</CardTitle>
+            <div className="flex gap-2 pt-2">
+              <Button
+                size="sm"
+                variant={tab === 'pending' ? 'default' : 'outline'}
+                onClick={() => switchTab('pending')}
+              >
+                Pendientes ({counts?.pending ?? '—'})
+              </Button>
+              <Button
+                size="sm"
+                variant={tab === 'resolved' ? 'default' : 'outline'}
+                onClick={() => switchTab('resolved')}
+              >
+                Resueltos ({counts?.resolved ?? '—'})
+              </Button>
+            </div>
           </CardHeader>
-          <CardContent>
-            {openFeedback.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Sin feedback pendiente.</p>
+          <CardContent className="space-y-3">
+            {items.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nada por aquí.</p>
             ) : (
-              <ul className="space-y-3 max-h-[500px] overflow-auto">
-                {openFeedback.map((f) => {
-                  const ctx = (f.context || {}) as { barcode?: string; product_name?: string; route?: string; score_general?: number; score_personal?: number; from?: string };
+              <ul className="space-y-3">
+                {items.map((f) => {
+                  const ctx = (f.context || {}) as {
+                    barcode?: string; product_name?: string; route?: string;
+                    score_general?: number; score_personal?: number;
+                  };
                   return (
                     <li key={f.id} className="border border-border rounded-lg p-3 space-y-2">
                       <div className="flex items-baseline justify-between gap-2">
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-muted-foreground truncate">
                           {f.nickname || f.email || (f.user_id ? f.user_id.slice(0, 8) : 'anónimo')} · {fmtTime(f.created_at)}
                         </p>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted">{f.type}</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted shrink-0">
+                          {f.type}{f.rating ? ` · ${f.rating}` : ''}
+                        </span>
                       </div>
                       {(ctx.product_name || ctx.barcode) && (
                         <div className="text-xs bg-primary/5 rounded px-2 py-1">
@@ -335,337 +266,129 @@ export default function AdminPage() {
                           {ctx.barcode && ctx.product_name && (
                             <p className="text-[10px] font-mono text-muted-foreground">{ctx.barcode}</p>
                           )}
-                          {(ctx.score_general !== undefined || ctx.score_personal !== undefined) && (
-                            <p className="text-[10px] text-muted-foreground">
-                              General {ctx.score_general ?? '—'} · Personal {ctx.score_personal ?? '—'}
-                            </p>
-                          )}
+                          <p className="text-[10px] text-muted-foreground">
+                            General {ctx.score_general ?? '—'} · Personal {ctx.score_personal ?? '—'}
+                            {ctx.route ? ` · ${ctx.route}` : ''}
+                          </p>
                         </div>
                       )}
                       {f.message && <p className="text-sm whitespace-pre-wrap">{f.message}</p>}
-                      <div className="flex flex-col gap-2 pt-1">
-                        <Textarea
-                          rows={2}
-                          placeholder="Qué se hizo / qué falló / commit…"
-                          value={resolveDraft[f.id] || ''}
-                          onChange={(e) => setResolveDraft((d) => ({ ...d, [f.id]: e.target.value }))}
-                          className="text-xs rounded-lg"
-                        />
-                        <div className="flex gap-2">
-                          <Button size="sm" className="flex-1" onClick={() => resolveFeedback(f.id)}>
-                            ✅ Archivar
+                      {f.resolved_at ? (
+                        <div className="space-y-2">
+                          <p className="text-xs text-muted-foreground">
+                            ✅ Resuelto {fmtTime(f.resolved_at)}{f.resolution ? ` · ${f.resolution}` : ''}
+                          </p>
+                          <Button size="sm" variant="outline" onClick={() => setResolved(f.id, false)}>
+                            Reabrir
                           </Button>
-                          {ctx.barcode && (
-                            <Button size="sm" variant="outline" onClick={() => showSimilar(f)}>
-                              🔎 Similares
-                            </Button>
-                          )}
                         </div>
-                        {similar[f.id] && (
-                          <div className="text-xs bg-muted/50 rounded p-2 space-y-1">
-                            <p className="font-medium">Feedback previo sobre este barcode ({similar[f.id].length}):</p>
-                            {similar[f.id].length === 0 ? (
-                              <p className="text-muted-foreground">Ninguno.</p>
-                            ) : similar[f.id].map((s) => (
-                              <div key={s.id} className="border-t border-border pt-1">
-                                <p className="italic truncate">"{s.message}"</p>
-                                <p className="text-[10px] text-muted-foreground">→ {s.resolution_notes || '(sin nota)'}</p>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Archivo de feedback resuelto */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">🗄️ Feedback archivado ({archivedFeedback.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {archivedFeedback.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Aún nada archivado.</p>
-            ) : (
-              <ul className="space-y-2 max-h-[400px] overflow-auto">
-                {archivedFeedback.map((f) => {
-                  const ctx = (f.context || {}) as { barcode?: string; product_name?: string };
-                  return (
-                    <li key={f.id} className="text-xs border-b border-border pb-2 space-y-1">
-                      <div className="flex items-baseline justify-between gap-2">
-                        <p className="font-medium truncate">
-                          {ctx.product_name || ctx.barcode || '(sin producto)'}
-                        </p>
-                        <span className="text-[10px] text-muted-foreground shrink-0">{fmtTime(f.resolved_at || f.created_at)}</span>
-                      </div>
-                      {f.message && <p className="italic text-muted-foreground truncate">"{f.message}"</p>}
-                      {f.resolution_notes && (
-                        <p className="text-[11px] text-foreground bg-primary/5 rounded px-2 py-1">
-                          ✔ {f.resolution_notes}
-                        </p>
+                      ) : (
+                        <div className="space-y-2">
+                          <Textarea
+                            rows={2}
+                            placeholder="Nota breve: qué se hizo / qué falló…"
+                            value={notes[f.id] || ''}
+                            onChange={(e) => setNotes((n) => ({ ...n, [f.id]: e.target.value }))}
+                            className="text-xs rounded-lg"
+                          />
+                          <Button size="sm" onClick={() => setResolved(f.id, true)}>
+                            Marcar como resuelto
+                          </Button>
+                        </div>
                       )}
-                      <button
-                        type="button"
-                        onClick={() => reopenFeedback(f.id)}
-                        className="text-[10px] text-muted-foreground underline"
-                      >
-                        Reabrir
-                      </button>
                     </li>
                   );
                 })}
               </ul>
             )}
+            {hasMore && (
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => loadFeedback(tab === 'pending', items.length)}
+              >
+                Cargar más
+              </Button>
+            )}
           </CardContent>
         </Card>
 
-        {/* Usuarios registrados */}
+        {/* Actividad reciente */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">👤 Usuarios registrados ({users.length})</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle className="text-base">📈 Actividad reciente</CardTitle></CardHeader>
+          <CardContent>
+            {activity.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Sin escaneos todavía.</p>
+            ) : (
+              <ul className="space-y-2 max-h-96 overflow-auto">
+                {activity.map((a) => (
+                  <li key={a.id} className="text-xs border-b border-border pb-1.5">
+                    <div className="flex justify-between gap-2">
+                      <span className="truncate font-medium">{a.product_name || a.barcode || '—'}</span>
+                      <span className="shrink-0 text-muted-foreground">{a.score ?? '—'}</span>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground truncate">
+                      {a.user_email || 'anónimo'} · {a.category || 'sin categoría'} · {fmtTime(a.scanned_at)}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Top productos */}
+        <Card>
+          <CardHeader><CardTitle className="text-base">🏆 Productos más escaneados</CardTitle></CardHeader>
+          <CardContent>
+            {top.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Sin datos.</p>
+            ) : (
+              <ol className="space-y-1.5">
+                {top.map((t, i) => (
+                  <li key={t.barcode} className="text-xs flex justify-between gap-2">
+                    <span className="truncate">{i + 1}. {t.product_name || t.barcode}</span>
+                    <span className="shrink-0 text-muted-foreground">
+                      {Number(t.scans)} · {Number(t.users)} 👤
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Herramientas */}
+        <Card>
+          <CardHeader><CardTitle className="text-base">🛠️ Herramientas</CardTitle></CardHeader>
           <CardContent className="space-y-2">
-            <div className="flex gap-2">
-              <Input
-                placeholder="Buscar por email o nickname"
-                value={userSearch}
-                onChange={(e) => setUserSearch(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') loadUsers(userSearch); }}
-                className="text-sm rounded-lg"
-              />
-              <Button size="sm" variant="outline" onClick={() => loadUsers(userSearch)}>Buscar</Button>
-            </div>
-            {users.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Sin usuarios.</p>
-            ) : (
-              <ul className="space-y-2 max-h-[400px] overflow-auto">
-                {users.map((u) => (
-                  <li key={u.user_id} className="text-xs border-b border-border pb-1.5">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <p className="font-medium truncate">
-                        {u.nickname || '(sin nick)'} {u.is_admin && <span className="text-[10px] px-1 rounded bg-primary/15 text-primary">admin</span>}
-                      </p>
-                      <span className="text-[10px] text-muted-foreground shrink-0">{fmtTime(u.created_at)}</span>
-                    </div>
-                    <p className="text-muted-foreground truncate">{u.email}</p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {u.scan_count} scans · último acceso {u.last_sign_in_at ? fmtTime(u.last_sign_in_at) : '—'}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-
-
-        {/* Active users */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">👥 Usuarios activos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {activeUsers.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Sin actividad todavía.</p>
-            ) : (
-              <ul className="space-y-2 max-h-72 overflow-auto">
-                {activeUsers.map((u) => (
-                  <li key={u.user_id} className="flex items-center justify-between text-sm border-b border-border pb-1.5">
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-medium">{u.nickname || u.user_id.slice(0, 8)}</p>
-                      <p className="text-xs text-muted-foreground">{fmtTime(u.last_scan_at)}</p>
-                    </div>
-                    <span className="text-xs font-mono ml-2">{u.scan_count} scans</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Recent scans */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">📱 Últimos escaneos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {recentScans.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Ningún escaneo aún.</p>
-            ) : (
-              <ul className="space-y-2 max-h-80 overflow-auto">
-                {recentScans.map((s) => (
-                  <li key={s.id} className="text-sm border-b border-border pb-1.5">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <p className="font-medium truncate">{s.product_name || s.barcode}</p>
-                      <span className="text-xs text-muted-foreground shrink-0">{fmtTime(s.scanned_at)}</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {s.nickname || s.user_id.slice(0, 8)} · {s.category || 'sin categoría'}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Recent products added */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">📦 Últimos productos añadidos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {recentProducts.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Ningún producto todavía.</p>
-            ) : (
-              <ul className="space-y-2 max-h-80 overflow-auto">
-                {recentProducts.map((p) => (
-                  <li key={p.barcode} className="text-sm border-b border-border pb-1.5">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <p className="font-medium truncate">{p.product_name || p.barcode}</p>
-                      <span className="text-xs text-muted-foreground shrink-0">{fmtTime(p.created_at)}</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {p.brand || '—'} · {p.source || '?'} {p.verified ? '· ✓' : ''}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Productos en la base (contador)</CardTitle>
-          </CardHeader>
-          <CardContent className="flex items-center justify-between">
-            <span className="text-3xl font-semibold">
-              {productCount === null ? '—' : productCount.toLocaleString('es-ES')}
-            </span>
-            <Button variant="outline" size="sm" onClick={refreshCount}>
-              Actualizar
-            </Button>
-          </CardContent>
-        </Card>
-
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">🚀 Importación automática</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Importa automáticamente las páginas 1–10 de alimentos y cosméticos de España.
-            </p>
             <Button
               className="w-full"
-              disabled={autoBusy || !!busy}
-              onClick={runAutoImport}
-            >
-              {autoBusy ? 'Importando…' : '🚀 Importar todo automáticamente'}
-            </Button>
-            {(autoBusy || autoStatus) && (
-              <div className="space-y-2">
-                <Progress value={autoProgress} className="h-2" />
-                <p className="text-xs text-muted-foreground">{autoStatus}</p>
-                {autoTotalImported > 0 && (
-                  <p className="text-xs font-medium">
-                    Total importados: {autoTotalImported.toLocaleString('es-ES')}
-                  </p>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">📥 Importar alimentos España</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Página</span>
-              <Select value={String(foodPage)} onValueChange={(v) => setFoodPage(Number(v))}>
-                <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {pageOptions.map((p) => (
-                    <SelectItem key={p} value={String(p)}>{p}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <Button
-              className="w-full"
+              variant="secondary"
               disabled={!!busy}
-              onClick={() => callFn('import-off-products', { source: 'off', page: foodPage }, `Alimentos p${foodPage}`)}
+              onClick={() => callFn('import-off-products', { source: 'off', page: 1 }, 'Importar alimentos')}
             >
-              {busy === `Alimentos p${foodPage}` ? 'Importando…' : 'Importar'}
+              {busy === 'Importar alimentos' ? 'Importando…' : '📥 Importar alimentos (p1)'}
             </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">📥 Importar cosméticos España</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Página</span>
-              <Select value={String(cosmoPage)} onValueChange={(v) => setCosmoPage(Number(v))}>
-                <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {pageOptions.map((p) => (
-                    <SelectItem key={p} value={String(p)}>{p}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
             <Button
               className="w-full"
+              variant="secondary"
               disabled={!!busy}
-              onClick={() => callFn('import-off-products', { source: 'obf', page: cosmoPage }, `Cosméticos p${cosmoPage}`)}
+              onClick={() => callFn('import-off-products', { source: 'obf', page: 1 }, 'Importar cosméticos')}
             >
-              {busy === `Cosméticos p${cosmoPage}` ? 'Importando…' : 'Importar'}
+              {busy === 'Importar cosméticos' ? 'Importando…' : '📥 Importar cosméticos (p1)'}
             </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">🔄 Enriquecer productos</CardTitle>
-          </CardHeader>
-          <CardContent>
             <Button
               className="w-full"
               variant="secondary"
               disabled={!!busy}
               onClick={() => callFn('enrich-products', {}, 'Enriquecer')}
             >
-              {busy === 'Enriquecer' ? 'Procesando…' : 'Ejecutar'}
+              {busy === 'Enriquecer' ? 'Procesando…' : '🔄 Enriquecer productos'}
             </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Registro</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {logs.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Sin actividad todavía.</p>
-            ) : (
-              <ul className="space-y-2 text-xs font-mono max-h-72 overflow-auto">
-                {logs.map((l, i) => (
-                  <li key={i} className="border-b border-border pb-1">
-                    <span className="text-muted-foreground">[{l.ts}]</span> {l.text}
-                  </li>
-                ))}
+            {logs.length > 0 && (
+              <ul className="space-y-1 text-[10px] font-mono max-h-40 overflow-auto pt-2">
+                {logs.map((l, i) => <li key={i} className="text-muted-foreground">{l}</li>)}
               </ul>
             )}
           </CardContent>
