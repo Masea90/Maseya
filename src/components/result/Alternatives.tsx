@@ -178,7 +178,45 @@ const loadProfile = (): Record<string, unknown> | null => {
   }
 };
 
-export const Alternatives = ({ current, currentScore }: Props) => {
+/**
+ * Rejects a candidate that can never be a sensible alternative:
+ * household/cleaning products, the wrong family (food vs cosmetic) and
+ * anything whose own category doesn't match what we searched for.
+ * Applied to EVERY route (OFF search, OBF search, local catalog).
+ */
+const isDisallowedCandidate = (
+  pd: ProductData,
+  cat: 'food' | 'cosmetic',
+  tagSet: Set<string>,
+): boolean => {
+  const cats = (Array.isArray((pd.raw as { categories_tags?: unknown }).categories_tags)
+    ? ((pd.raw as { categories_tags?: string[] }).categories_tags as string[])
+    : []
+  ).filter((t): t is string => typeof t === 'string').map(t => t.toLowerCase());
+  const name = normTxt(pd.name || '');
+
+  // 1. Household / cleaning products are never an alternative.
+  if (cats.some(t => HOUSEHOLD_TAG_HINTS.some(h => t.includes(h)))) return true;
+  if (HOUSEHOLD_NAME_HINTS.some(h => name.includes(h))) return true;
+
+  // 2. Family mismatch (food vs cosmetic).
+  if (cat === 'cosmetic' && cats.some(isFoodCategoryTag)) return true;
+  if (cat === 'food' && cats.some(t => COSMETIC_TAG_HINTS.some(h => t.includes(h)))) return true;
+
+  // 3. Strict category: the candidate must declare a category and it must be
+  //    one of the tags we searched. No category → out (never guess for candidates).
+  if (cats.length === 0) return true;
+  if (!cats.some(t => tagSet.has(t))) return true;
+
+  // 4. Name conflict: if the candidate's own name maps to a different specific
+  //    category (real case: "Protector solar" offered as shampoo alternative).
+  const guessed = guessCategoryTagsFromName(pd.name || '', cat);
+  if (guessed.length > 0 && !guessed.some(t => tagSet.has(t))) return true;
+
+  return false;
+};
+
+export const Alternatives = ({ current, currentScore, profile: profileProp, consent: consentProp }: Props) => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<Candidate[] | null>(null);
