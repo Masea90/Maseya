@@ -5,6 +5,7 @@ import { useUser } from '@/contexts/UserContext';
 import { supabase } from '@/integrations/supabase/client';
 import { saveToMaseya } from '@/lib/productLookup';
 import { hasSupplementTextSignals } from '@/lib/scoring';
+import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 
 /**
