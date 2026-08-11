@@ -340,7 +340,7 @@ const PhotoCapturePage = () => {
     // Deep-link nutrition-only mode (from result CTA): POST just the table.
     if (nutritionOnly && realBarcode) {
       const res = await postExtract({ nutrition_image: nutritionImage, barcode: realBarcode });
-      if (!res.ok && res.code === 'supplement_detected') {
+      if (res.ok === false && res.code === 'supplement_detected') {
         // Supplement table ("por dosis diaria / %VRN") → straight to the
         // supplement branch of the result, no retry loop.
         toast({ description: c.supplementDetected });
@@ -368,7 +368,7 @@ const PhotoCapturePage = () => {
         ? pendingProduct.finalBarcode
         : undefined,
     });
-    if (!res.ok && res.code === 'supplement_detected') {
+    if (res.ok === false && res.code === 'supplement_detected') {
       toast({ description: c.supplementDetected });
       finalizeAndNavigate(null);
       return;
