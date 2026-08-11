@@ -95,6 +95,10 @@ interface SearchItem {
   allergens_tags?: string[];
   traces_tags?: string[];
   countries_tags?: string[];
+  categories_tags?: string[];
+  additives_tags?: string[];
+  nova_group?: number;
+  nutriments?: Record<string, number>;
 }
 
 interface CatalogItem {
