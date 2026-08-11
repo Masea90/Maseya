@@ -845,6 +845,7 @@ export function calculateScoreBreakdown(
     }
     score = applyEfsaAdditives(score, nutriGrade);
     maybeAddNoRiskAdditivesNote();
+    maybeAddSweetenersNote();
     score = applyAlcoholCap(score);
     score = applyConfidenceCap(score);
     return { score: clamp100(score), factors };
@@ -892,6 +893,7 @@ export function calculateScoreBreakdown(
       }
       score = applyEfsaAdditives(score, computed.grade);
       maybeAddNoRiskAdditivesNote();
+    maybeAddSweetenersNote();
       score = applyAlcoholCap(score);
       score = applyConfidenceCap(score);
       return { score: clamp100(score), factors };
@@ -972,6 +974,7 @@ export function calculateScoreBreakdown(
 
   score = applyEfsaAdditives(score);
   maybeAddNoRiskAdditivesNote();
+    maybeAddSweetenersNote();
   score = applyAlcoholCap(score);
   score = applyConfidenceCap(score);
 
