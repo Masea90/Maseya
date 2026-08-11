@@ -516,6 +516,56 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_activity_feed: {
+        Args: { p_limit?: number }
+        Returns: {
+          barcode: string
+          category: string
+          id: string
+          nickname: string
+          product_name: string
+          scanned_at: string
+          score: number
+          user_email: string
+        }[]
+      }
+      admin_feedback_counts: {
+        Args: never
+        Returns: {
+          pending: number
+          resolved: number
+        }[]
+      }
+      admin_feedback_list: {
+        Args: { p_limit?: number; p_offset?: number; p_pending?: boolean }
+        Returns: {
+          context: Json
+          created_at: string
+          email: string
+          id: string
+          message: string
+          nickname: string
+          rating: string
+          resolution: string
+          resolved_at: string
+          type: string
+          user_id: string
+        }[]
+      }
+      admin_pulse: {
+        Args: never
+        Returns: {
+          active_users_7d: number
+          new_users_7d: number
+          pending_feedback: number
+          photo_products_7d: number
+          scans_30d: number
+          scans_7d: number
+          scans_today: number
+          total_products: number
+          total_users: number
+        }[]
+      }
       admin_recent_feedback: {
         Args: { p_barcode?: string; p_limit?: number; p_resolved?: boolean }
         Returns: {
@@ -561,6 +611,10 @@ export type Database = {
         Args: { p_id: string; p_notes: string; p_resolved?: boolean }
         Returns: undefined
       }
+      admin_set_feedback_resolved: {
+        Args: { p_id: string; p_note?: string; p_resolved: boolean }
+        Returns: undefined
+      }
       admin_stats: {
         Args: never
         Returns: {
@@ -570,6 +624,15 @@ export type Database = {
           total_products: number
           total_scans: number
           total_users: number
+        }[]
+      }
+      admin_top_scanned: {
+        Args: { p_limit?: number }
+        Returns: {
+          barcode: string
+          product_name: string
+          scans: number
+          users: number
         }[]
       }
       admin_users_list: {
