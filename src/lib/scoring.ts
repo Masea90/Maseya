@@ -732,6 +732,36 @@ export function calculateScoreBreakdown(
     }
   };
 
+  // Neutral transparency factor: intense/polyol sweeteners have no documented
+  // EFSA over-exposure risk in our table, so they never cost points — but the
+  // user deserves to know they're there (real case: "confitura 0%" at 95).
+  const SWEETENERS: Array<[string, RegExp]> = [
+    ['sucralosa', /\bsucralosa\b|\bsucralose\b|\be955\b/],
+    ['sorbitol', /\bsorbitol\b|\be420\b/],
+    ['maltitol', /\bmaltitol\b|\be965\b/],
+    ['glucósidos de esteviol', /glucosidos? de esteviol|glycosides? de steviol|steviol glycosides?|\bstevia\b|\be960\b/],
+    ['aspartamo', /\baspartamo\b|\baspartame\b|\be951\b/],
+    ['acesulfamo K', /acesulfam\w*|\be950\b/],
+    ['xilitol', /\bxilitol\b|\bxylitol\b|\be967\b/],
+    ['sacarina', /\bsacarina\b|\bsaccharin\w*\b|\be954\b/],
+  ];
+  const maybeAddSweetenersNote = () => {
+    if (p.category !== 'food') return;
+    const raw = (p.raw || {}) as Record<string, unknown>;
+    const hay = norm(
+      `${p.ingredients_text || ''} ${(Array.isArray(raw.additives_tags) ? (raw.additives_tags as string[]) : []).join(' ')}`,
+    );
+    if (!hay.trim()) return;
+    const found = SWEETENERS.filter(([, re]) => re.test(hay)).map(([name]) => name);
+    if (found.length === 0) return;
+    factors.push({
+      label: `Contiene edulcorantes: ${found.join(', ')}`,
+      delta: null,
+      tone: 'neutral',
+    });
+  };
+
+
 
   const nutriGrade = (p.nutriscore_grade || '').toLowerCase();
   const hasNutri = ['a', 'b', 'c', 'd', 'e'].includes(nutriGrade);
@@ -815,6 +845,7 @@ export function calculateScoreBreakdown(
     }
     score = applyEfsaAdditives(score, nutriGrade);
     maybeAddNoRiskAdditivesNote();
+    maybeAddSweetenersNote();
     score = applyAlcoholCap(score);
     score = applyConfidenceCap(score);
     return { score: clamp100(score), factors };
@@ -862,6 +893,7 @@ export function calculateScoreBreakdown(
       }
       score = applyEfsaAdditives(score, computed.grade);
       maybeAddNoRiskAdditivesNote();
+    maybeAddSweetenersNote();
       score = applyAlcoholCap(score);
       score = applyConfidenceCap(score);
       return { score: clamp100(score), factors };
@@ -942,6 +974,7 @@ export function calculateScoreBreakdown(
 
   score = applyEfsaAdditives(score);
   maybeAddNoRiskAdditivesNote();
+    maybeAddSweetenersNote();
   score = applyAlcoholCap(score);
   score = applyConfidenceCap(score);
 

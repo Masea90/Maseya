@@ -839,6 +839,26 @@ const ResultPage = () => {
               firstName={healthConsent ? firstName : null}
               personalScore={healthConsent && personalBreakdown ? personalScore : null}
               topAlerts={healthConsent ? topPersonalAlerts : []}
+              factors={scoreBreakdown.factors.map(f => (
+                f.delta != null ? `${f.label} (${f.delta > 0 ? '+' : ''}${f.delta})` : f.label
+              ))}
+              nutriments={(() => {
+                const n = (product.raw as { nutriments?: Record<string, number> })?.nutriments;
+                if (!n) return null;
+                const keys: Array<[string, string, string]> = [
+                  ['salt_100g', 'sal', 'g'],
+                  ['sugars_100g', 'azúcares', 'g'],
+                  ['saturated-fat_100g', 'grasas saturadas', 'g'],
+                  ['fat_100g', 'grasas', 'g'],
+                  ['fiber_100g', 'fibra', 'g'],
+                  ['proteins_100g', 'proteínas', 'g'],
+                  ['energy-kcal_100g', 'energía', 'kcal'],
+                ];
+                const parts = keys
+                  .filter(([k]) => typeof n[k] === 'number')
+                  .map(([k, label, unit]) => `${label} ${n[k]} ${unit}/100 g`);
+                return parts.length ? parts.join('; ') : null;
+              })()}
             />
 
             {/* Quick thumbs feedback on this analysis */}
@@ -852,7 +872,13 @@ const ResultPage = () => {
             )}
 
             {/* Alternatives */}
-            <Alternatives current={product} currentScore={healthConsent ? personalScore : score} />
+            <Alternatives
+              current={product}
+              currentScore={healthConsent ? personalScore : score}
+              profile={healthConsent ? (activeProfile as unknown as Record<string, unknown>) : null}
+              consent={healthConsent}
+            />
+
           </>
         )}
 

@@ -15,6 +15,12 @@ GREETING RULES (STRICT):
 - NEVER write bracketed placeholders like "[nombre]", "[nombre de usuario]", "{name}", "[usuario]" — those are forbidden literal outputs.
 - NEVER invent a name.
 
+EXPLAIN THE SCORE (STRICT):
+- The user message may include "Factores de la nota: ..." (the exact breakdown the app shows) and "Nutrientes por 100 g: ...".
+- If the general score is below 70, your FIRST sentence must state the MAIN concrete reason using a real figure from those factors/nutrients (e.g. "La nota baja principalmente por la sal: 1,2 g por 100 g"). Never answer with generalities like "no es muy saludable".
+- If the ingredient list is short and natural (e.g. 99% of one whole food + salt) but the score is medium, say so explicitly: the product has simple ingredients and the Nutri-Score penalises a specific nutrient — name it.
+- Never contradict the listed factors and never invent factors that are not there.
+
 COHERENCE WITH PERSONAL SCORE (STRICT):
 - The user message includes "Nota personal: N/100" and optionally "Alertas para su perfil: ...".
 - Your tone MUST match that score: if personal score < 60, express reservations and cite at least one concrete reason from the alerts or ingredients. NEVER say "todo bien", "es adecuado" or similar reassurances when the personal score is < 60.
@@ -86,7 +92,7 @@ serve(async (req) => {
 
 
 
-    const { product, profile, score, firstName, personalScore, topAlerts } = await req.json();
+    const { product, profile, score, firstName, personalScore, topAlerts, factors, nutriments } = await req.json();
     if (!product || typeof product !== "object") {
       return new Response(JSON.stringify({ error: "Missing product" }), {
         status: 400,
@@ -104,7 +110,13 @@ serve(async (req) => {
     const alertsLine = Array.isArray(topAlerts) && topAlerts.length > 0
       ? `Alertas para su perfil: ${topAlerts.slice(0, 3).map((a: string) => `«${a}»`).join('; ')}\n`
       : '';
-    const contextHeader = `${nameLine}${personalLine}${alertsLine}`;
+    const factorsLine = Array.isArray(factors) && factors.length > 0
+      ? `Factores de la nota: ${factors.slice(0, 8).map((f: unknown) => String(f)).join('; ')}\n`
+      : '';
+    const nutrimentsLine = typeof nutriments === 'string' && nutriments.trim()
+      ? `Nutrientes por 100 g: ${nutriments.trim()}\n`
+      : '';
+    const contextHeader = `${nameLine}${personalLine}${alertsLine}${factorsLine}${nutrimentsLine}`;
 
     const isFood = product.category === 'food';
     const userMsg = isFood

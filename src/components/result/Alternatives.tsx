@@ -18,6 +18,10 @@ interface Props {
   current: ProductData;
   /** Baseline to beat. Pass the personal score when consent is on, else the general score. */
   currentScore: number;
+  /** Normalized profile (buildActiveProfile) so cards show the PERSONAL score. */
+  profile?: Record<string, unknown> | null;
+  /** Health-data consent — when true the card score is the personal one. */
+  consent?: boolean;
 }
 
 interface Candidate {
@@ -27,17 +31,37 @@ interface Candidate {
   flagged: ReturnType<typeof flagIngredients>;
 }
 
-// v9: STRICT Spain filter — a candidate must have `countries_tags` AND
-// contain en:spain. Previously we let products through when countries_tags
-// was missing, which surfaced e.g. Argentine "La Serenísima" as an
-// alternative to a Spanish dairy. Also introduces a hard MIN_SCORE floor
-// so we never recommend a red/regular product as "mejor" (real case: a
-// product scoring 0/100 was offered alternatives at 18/100).
-const CACHE_PREFIX = 'maseya_alts_v11::';
+// v12: card score parity with the product page (full fields + per-finalist
+// refetch) and strict category/family filtering on EVERY candidate route.
+const CACHE_PREFIX = 'maseya_alts_v12::';
 const FETCH_TIMEOUT_MS = 8000;
 const MIN_SCORE = 50;
 // TODO: derive country from user locale/settings when we expand beyond Spain.
 const COUNTRY_TAG = 'en:spain';
+
+// Categories that are NEVER a valid alternative for food or cosmetics
+// (OBF also hosts household cleaning products — real case: dishwasher tablets
+// surfacing as an alternative to a cleansing milk).
+const HOUSEHOLD_TAG_HINTS = [
+  'dishwash', 'detergent', 'cleaning', 'cleaner', 'laundry', 'household',
+  'bleach', 'descaler', 'fabric-softener', 'washing-up', 'washing-machine',
+  'air-freshener', 'insecticide', 'pet-', 'stain-remover',
+];
+const HOUSEHOLD_NAME_HINTS = [
+  'lavavajillas', 'loica', 'loiça', 'detergente', 'limpiahogar', 'quitagrasas',
+  'lejia', 'suavizante', 'friegasuelos', 'limpiacristales', 'antical',
+  'dishwasher', 'laundry', 'detergent', 'fabric softener', 'bleach',
+];
+// Cosmetic-ish tags that must never appear as a FOOD alternative.
+const COSMETIC_TAG_HINTS = [
+  'shampoo', 'cosmetic', 'deodorant', 'toothpaste', 'sunscreen', 'sun-care',
+  'shower-gel', 'soap', 'cream', 'lotion', 'cleanser', 'perfume', 'makeup',
+  'hair-care', 'skin-care',
+];
+
+const normTxt = (s: string) =>
+  s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
 
 
 const hostForCategory = (category: 'food' | 'cosmetic') =>
@@ -71,6 +95,10 @@ interface SearchItem {
   allergens_tags?: string[];
   traces_tags?: string[];
   countries_tags?: string[];
+  categories_tags?: string[];
+  additives_tags?: string[];
+  nova_group?: number;
+  nutriments?: Record<string, number>;
 }
 
 interface CatalogItem {
@@ -150,7 +178,45 @@ const loadProfile = (): Record<string, unknown> | null => {
   }
 };
 
-export const Alternatives = ({ current, currentScore }: Props) => {
+/**
+ * Rejects a candidate that can never be a sensible alternative:
+ * household/cleaning products, the wrong family (food vs cosmetic) and
+ * anything whose own category doesn't match what we searched for.
+ * Applied to EVERY route (OFF search, OBF search, local catalog).
+ */
+const isDisallowedCandidate = (
+  pd: ProductData,
+  cat: 'food' | 'cosmetic',
+  tagSet: Set<string>,
+): boolean => {
+  const cats = (Array.isArray((pd.raw as { categories_tags?: unknown }).categories_tags)
+    ? ((pd.raw as { categories_tags?: string[] }).categories_tags as string[])
+    : []
+  ).filter((t): t is string => typeof t === 'string').map(t => t.toLowerCase());
+  const name = normTxt(pd.name || '');
+
+  // 1. Household / cleaning products are never an alternative.
+  if (cats.some(t => HOUSEHOLD_TAG_HINTS.some(h => t.includes(h)))) return true;
+  if (HOUSEHOLD_NAME_HINTS.some(h => name.includes(h))) return true;
+
+  // 2. Family mismatch (food vs cosmetic).
+  if (cat === 'cosmetic' && cats.some(isFoodCategoryTag)) return true;
+  if (cat === 'food' && cats.some(t => COSMETIC_TAG_HINTS.some(h => t.includes(h)))) return true;
+
+  // 3. Strict category: the candidate must declare a category and it must be
+  //    one of the tags we searched. No category → out (never guess for candidates).
+  if (cats.length === 0) return true;
+  if (!cats.some(t => tagSet.has(t))) return true;
+
+  // 4. Name conflict: if the candidate's own name maps to a different specific
+  //    category (real case: "Protector solar" offered as shampoo alternative).
+  const guessed = guessCategoryTagsFromName(pd.name || '', cat);
+  if (guessed.length > 0 && !guessed.some(t => tagSet.has(t))) return true;
+
+  return false;
+};
+
+export const Alternatives = ({ current, currentScore, profile: profileProp, consent: consentProp }: Props) => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<Candidate[] | null>(null);
@@ -208,7 +274,8 @@ export const Alternatives = ({ current, currentScore }: Props) => {
           'code', 'product_name', 'product_name_es', 'brands', 'image_front_url',
           'nutriscore_grade', 'ingredients_text', 'ingredients_tags',
           'labels_tags', 'ingredients_analysis_tags', 'allergens_tags', 'traces_tags',
-          'countries_tags',
+          'countries_tags', 'categories_tags', 'additives_tags', 'nova_group',
+          'nutriments',
         ].join(',');
 
         // Strict Spain filter — we intentionally do NOT fall back to a
@@ -263,14 +330,23 @@ export const Alternatives = ({ current, currentScore }: Props) => {
           }
         }
 
-        const consent = hasHealthDataConsent();
-        const profile = consent ? loadProfile() : null;
+        const consent = consentProp ?? hasHealthDataConsent();
+        const profile = consent ? (profileProp ?? loadProfile()) : null;
+        const tagSet = new Set(tagCandidates);
+
+        const scoreOf = (pd: ProductData, fl: ReturnType<typeof flagIngredients>) => {
+          const general = calculateScore(pd, fl);
+          return consent && profile
+            ? calculatePersonalScore(pd, fl, profile, general)
+            : general;
+        };
 
         const scored: Candidate[] = [];
         const seenCodes = new Set<string>([current.barcode]);
         const addCandidate = (pd: ProductData | null) => {
           if (!pd) return;
           if (!pd.barcode || seenCodes.has(pd.barcode)) return;
+          if (isDisallowedCandidate(pd, cat, tagSet)) return;
           // Data floor per candidate: food needs a nutriscore, cosmetic needs
           // at least 3 parseable ingredients. Prevents empty "shell" entries
           // from scoring 100 and drowning real products.
@@ -283,10 +359,7 @@ export const Alternatives = ({ current, currentScore }: Props) => {
             if (!pd.ingredients_text && !pd.nutriscore_grade) return;
           }
           seenCodes.add(pd.barcode);
-          const general = calculateScore(pd, candidateFlagged);
-          const score = consent && profile
-            ? calculatePersonalScore(pd, candidateFlagged, profile, general)
-            : general;
+          const score = scoreOf(pd, candidateFlagged);
           scored.push({ data: pd, score, label: scoreLabel(score), flagged: candidateFlagged });
         };
 
@@ -294,7 +367,6 @@ export const Alternatives = ({ current, currentScore }: Props) => {
           addCandidate(toProductData(raw, candidateSource, cat));
         }
 
-        const tagSet = new Set(tagCandidates);
         const { data: catalogRows, error: catalogError } = await supabase
           .from('maseya_products')
           .select('barcode, product_name, brand, category, category_tag, ingredients_text, image_url, source')
@@ -326,7 +398,38 @@ export const Alternatives = ({ current, currentScore }: Props) => {
         const eligible = scored
           .filter(c => c.score >= MIN_SCORE && c.score > currentScore)
           .sort((a, b) => b.score - a.score);
-        const top = eligible.slice(0, 3);
+
+        // Score parity with the product page: the search payload can still be
+        // partial, so refetch the FULL record for the finalists and rescore
+        // exactly like ResultPage does (real case: a jam shown at 95 on the
+        // card and 65 once opened, because additives were missing).
+        const finalists = eligible.slice(0, 4);
+        await Promise.all(finalists.map(async (c) => {
+          if (c.data.source !== 'off' && c.data.source !== 'obf') return;
+          try {
+            const res = await fetch(
+              `https://${host}/api/v2/product/${encodeURIComponent(c.data.barcode)}.json`,
+              { signal: controller.signal },
+            );
+            if (!res.ok) return;
+            const json = (await res.json()) as { product?: SearchItem };
+            if (!json.product) return;
+            const full = toProductData({ ...json.product, code: c.data.barcode }, c.data.source, cat);
+            if (!full) return;
+            const fl = flagIngredients(full);
+            c.data = full;
+            c.flagged = fl;
+            c.score = scoreOf(full, fl);
+            c.label = scoreLabel(c.score);
+          } catch {
+            /* keep the search-based score */
+          }
+        }));
+
+        const top = finalists
+          .filter(c => c.score >= MIN_SCORE && c.score > currentScore)
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 3);
 
         if (cancelled) return;
         try { sessionStorage.setItem(cacheKey, JSON.stringify(top)); } catch {}
@@ -347,7 +450,8 @@ export const Alternatives = ({ current, currentScore }: Props) => {
       controller.abort();
       clearTimeout(timeout);
     };
-  }, [current.barcode, current.source, current.category, current.name, rawTagsKey, guessedTagsKey, currentScore, eligible]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current.barcode, current.source, current.category, current.name, rawTagsKey, guessedTagsKey, currentScore, eligible, consentProp]);
 
   if (!eligible) return null;
 
@@ -366,7 +470,7 @@ export const Alternatives = ({ current, currentScore }: Props) => {
 
   if (!items || items.length === 0) return null;
 
-  const consent = hasHealthDataConsent();
+  const consent = consentProp ?? hasHealthDataConsent();
   const title = consent ? '💡 Alternativas mejores para ti' : '💡 Alternativas mejores';
 
   return (
