@@ -1032,7 +1032,7 @@ const SUPPLEMENT_WEAK_SIGNALS = [
   'cápsulas', 'capsulas', 'capsules', 'no sobrepasar la cantidad diaria recomendada',
 ];
 function hasWordSignal(hay: string, needle: string): boolean {
-  const esc = needle.replace(/[.*+?^${}()|[\]\]/g, '\$&');
+  const esc = needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return new RegExp(`(^|[^a-z0-9áéíóúñç])${esc}([^a-z0-9áéíóúñç]|$)`, 'i').test(hay);
 }
 export function hasSupplementTextSignals(text: string | null | undefined): boolean {
