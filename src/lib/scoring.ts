@@ -748,7 +748,7 @@ export function calculateScoreBreakdown(
   const maybeAddSweetenersNote = () => {
     if (p.category !== 'food') return;
     const raw = (p.raw || {}) as Record<string, unknown>;
-    const hay = normalizeText(
+    const hay = norm(
       `${p.ingredients_text || ''} ${(Array.isArray(raw.additives_tags) ? (raw.additives_tags as string[]) : []).join(' ')}`,
     );
     if (!hay.trim()) return;
