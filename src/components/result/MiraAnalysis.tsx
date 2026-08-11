@@ -21,6 +21,10 @@ interface Props {
   personalScore?: number | null;
   /** Top personal alerts (danger/warn) — Mira must be coherent with these. */
   topAlerts?: string[];
+  /** Score breakdown factors so Mira can explain WHY the score is what it is. */
+  factors?: string[];
+  /** Key nutrients per 100 g, pre-formatted, so Mira can cite real numbers. */
+  nutriments?: string | null;
 }
 
 // Generates a 1-2 sentence basic summary using the highest-priority personal alert.
