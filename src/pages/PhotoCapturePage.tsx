@@ -284,7 +284,7 @@ const PhotoCapturePage = () => {
 
   const onRetake = () => { setPreview(null); };
 
-  const postExtract = async (body: Record<string, unknown>): Promise<{ ok: true; data: any } | { ok: false; kind: ErrorKind; msg?: string | null }> => {
+  const postExtract = async (body: Record<string, unknown>): Promise<{ ok: true; data: any } | { ok: false; kind: ErrorKind; msg?: string | null; code?: string }> => {
     const { data: sess } = await supabase.auth.getSession();
     const token = sess.session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
     const url = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/extract-ingredients`;
@@ -310,7 +310,7 @@ const PhotoCapturePage = () => {
       else if (res.status === 402) kind = 'payment';
       else if (data?.error === 'nutritional_table_detected') kind = 'nutritional';
       else if (data?.error === 'no_ingredients' || data?.error === 'parse_failed') kind = 'lighting';
-      return { ok: false, kind, msg };
+      return { ok: false, kind, msg, code: typeof data?.error === 'string' ? data.error : undefined };
     }
     return { ok: true, data };
   };
@@ -339,6 +339,13 @@ const PhotoCapturePage = () => {
     // Deep-link nutrition-only mode (from result CTA): POST just the table.
     if (nutritionOnly && realBarcode) {
       const res = await postExtract({ nutrition_image: nutritionImage, barcode: realBarcode });
+      if (!res.ok && res.code === 'supplement_detected') {
+        // Supplement table ("por dosis diaria / %VRN") → straight to the
+        // supplement branch of the result, no retry loop.
+        toast({ description: c.supplementDetected });
+        navigate(`/result/${realBarcode}`, { replace: true });
+        return;
+      }
       if (!res.ok || res.data?.error === 'nutrition_rejected') {
         // Don't fail silently ("no pasa nada"): show the reason and let the
         // user retake the photo from here.
@@ -360,6 +367,11 @@ const PhotoCapturePage = () => {
         ? pendingProduct.finalBarcode
         : undefined,
     });
+    if (!res.ok && res.code === 'supplement_detected') {
+      toast({ description: c.supplementDetected });
+      finalizeAndNavigate(null);
+      return;
+    }
     if (!res.ok || res.data?.error === 'nutrition_rejected') {
       console.warn('[photo-capture] nutrition extraction failed', res);
       localStorage.setItem('maseya_nutrition_rejected', '1');
