@@ -470,7 +470,7 @@ export const Alternatives = ({ current, currentScore, profile: profileProp, cons
 
   if (!items || items.length === 0) return null;
 
-  const consent = hasHealthDataConsent();
+  const consent = consentProp ?? hasHealthDataConsent();
   const title = consent ? '💡 Alternativas mejores para ti' : '💡 Alternativas mejores';
 
   return (
