@@ -13,7 +13,8 @@ const SYSTEM_PROMPT = `You are an expert at reading product labels. Extract the 
   "brand": "brand name",
   "category": "food or cosmetic or other",
   "ingredients_text": "complete ingredient list",
-  "category_tag": "most specific Open Food Facts / Open Beauty Facts category tag"
+  "category_tag": "most specific Open Food Facts / Open Beauty Facts category tag",
+  "is_supplement": true or false
 }
 Rules for "category":
 - "food" for edible products (drinks, snacks, groceries…)
@@ -24,6 +25,10 @@ Rules for "category_tag":
 - Choose the MOST SPECIFIC reasonable category (e.g. "en:coconut-oils" not just "en:vegetable-oils"; "en:face-creams" not just "en:cosmetics").
 - Examples: "en:vegetable-oils", "en:coconut-oils", "en:biscuits", "en:yogurts", "en:breakfast-cereals", "en:shampoos", "en:face-creams", "en:body-lotions", "en:toothpastes".
 - If unsure, fall back to a more generic valid category. Never invent tags.
+Rules for "is_supplement" (boolean):
+- true when the label shows unambiguous FOOD SUPPLEMENT signals in any language (es/pt/en/fr): "complemento alimenticio", "complementos alimenticios", "suplemento alimentar", "food supplement", "complément alimentaire", "no sobrepasar la cantidad diaria recomendada", "dosis diaria", "toma diaria", "VRN", "Valor de Referencia de Nutriente", "% NRV", "comprimido efervescente", "cápsulas", "comprimidos recubiertos", "no deben utilizarse como sustitutos de una dieta variada".
+- true when the product format is clearly capsules / tablets / vials / supplement sachets.
+- false for ordinary food and cosmetics.
 Use empty string if any field is not found. Include ALL ingredients exactly as written.`;
 
 const NUTRITION_SYSTEM_PROMPT = `You extract nutrition facts from a product label photo. Labels may be a classic column table OR a Spanish/European front-of-pack "GDA" layout with circles/bubbles (e.g. "1/6 PARTE DEL ENVASE (35 g) CONTIENE: ENERGÍA 420 kJ/101 kcal · GRASAS 7,5 g · GRASAS SATURADAS 0,7 g · AZÚCARES 1,4 g · SAL 0,63 g"), often with a small separate line like "Energía por 100 g: 1199 kJ / 289 kcal". Read ALL of these formats.
@@ -210,6 +215,29 @@ interface NutritionValidation {
   basis?: string;
 }
 
+const SUPPLEMENT_STRONG = [
+  "complemento alimenticio", "complementos alimenticios", "suplemento alimentar",
+  "food supplement", "complement alimentaire", "complément alimentaire",
+  "valor de referencia de nutriente", "vrn", "nrv",
+  "no deben utilizarse como sustitutos de una dieta variada",
+];
+const SUPPLEMENT_WEAK = [
+  "dosis diaria", "toma diaria", "daily dose", "dose journaliere", "dose journalière",
+  "comprimido efervescente", "comprimidos efervescentes", "comprimidos recubiertos",
+  "capsulas", "cápsulas", "capsules", "no sobrepasar la cantidad diaria recomendada",
+];
+/** Word-ish match to avoid false positives inside other words. */
+function hasSignal(hay: string, needle: string): boolean {
+  const esc = needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(^|[^a-z0-9áéíóúñç])${esc}([^a-z0-9áéíóúñç]|$)`, "i").test(hay);
+}
+export function detectSupplementText(text: string): boolean {
+  const t = (text || "").toLowerCase();
+  if (!t) return false;
+  if (SUPPLEMENT_STRONG.some((k) => hasSignal(t, k))) return true;
+  return SUPPLEMENT_WEAK.filter((k) => hasSignal(t, k)).length >= 2;
+}
+
 function validateNutrition(raw: NutritionRaw): NutritionValidation {
   const basis = String(raw.basis_detected || "unknown");
   const servingG = toNum(raw.serving_size_g);
@@ -367,6 +395,25 @@ serve(async (req) => {
       if (!isRealBarcode) return json({ error: "barcode_required" }, 400);
       const result = await extractNutrition(nutrition, LOVABLE_API_KEY);
       if (!result.ok) {
+        // "Per daily dose / %VRN" tables belong to food supplements: route the
+        // client to the supplement branch instead of a generic retry error.
+        let supplement = result.reason === "per_serving_only";
+        if (supplement) {
+          try {
+            const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+            const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+            if (serviceKey && supabaseUrl) {
+              const admin = createClient(supabaseUrl, serviceKey);
+              const { data: row } = await admin
+                .from("maseya_products")
+                .select("category_tag, product_name, ingredients_text")
+                .eq("barcode", rawBarcode).maybeSingle();
+              supplement = row?.category_tag === "en:dietary-supplements" ||
+                detectSupplementText(`${row?.product_name ?? ""} ${row?.ingredients_text ?? ""}`);
+            } else supplement = false;
+          } catch { supplement = false; }
+        }
+        if (supplement) return json({ error: "supplement_detected" }, 422);
         return json({ error: "nutrition_rejected", reason: result.reason }, 422);
       }
       // Persist
@@ -420,7 +467,7 @@ serve(async (req) => {
     const data = await response.json();
     const raw: string = data.choices?.[0]?.message?.content || "";
 
-    let extracted: { product_name?: string; brand?: string; category?: string; ingredients_text?: string; category_tag?: string } = {};
+    let extracted: { product_name?: string; brand?: string; category?: string; ingredients_text?: string; category_tag?: string; is_supplement?: boolean } = {};
     const tryParse = (s: string) => { try { return JSON.parse(s); } catch { return null; } };
     const cleaned = raw.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim();
     let parsed = tryParse(cleaned);
@@ -458,11 +505,23 @@ serve(async (req) => {
     const product_name = (extracted.product_name || "").trim() || "Producto fotografiado";
     const brand = (extracted.brand || "").trim();
     const rawTag = (extracted.category_tag || "").trim().toLowerCase();
-    const category_tag = /^en:[a-z0-9-]+$/.test(rawTag) ? rawTag : null;
+    let category_tag = /^en:[a-z0-9-]+$/.test(rawTag) ? rawTag : null;
+
+    // Food supplements: never scored with Nutri-Score, so we must not ask for
+    // a nutrition table. Persisted by forcing category_tag to
+    // "en:dietary-supplements" so future scans of the same barcode land in the
+    // supplement branch directly (client isSupplement reads categories_tags).
+    const is_supplement = category === "food" && (
+      extracted.is_supplement === true ||
+      detectSupplementText(`${product_name} ${brand} ${ingredients}`)
+    );
+    if (is_supplement) category_tag = "en:dietary-supplements";
 
     // Optional nutrition extraction (only meaningful for food)
     let nutritionResult: NutritionValidation | null = null;
-    if (nutrition && category === "food") {
+    if (is_supplement) {
+      console.log("[classify] supplement detected — skipping nutrition extraction");
+    } else if (nutrition && category === "food") {
       console.log("[classify] dedicated nutrition image provided");
       nutritionResult = await extractNutrition(nutrition, LOVABLE_API_KEY);
     } else if (category === "food") {
@@ -529,7 +588,7 @@ serve(async (req) => {
 
     const responsePayload: Record<string, unknown> = {
       product_name, brand, category, category_tag,
-      ingredients_text: ingredients, saved,
+      ingredients_text: ingredients, saved, is_supplement,
     };
     if (nutritionResult) {
       if (nutritionResult.ok) responsePayload.nutriments = nutritionResult.nutriments;
