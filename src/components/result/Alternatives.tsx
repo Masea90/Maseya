@@ -274,7 +274,8 @@ export const Alternatives = ({ current, currentScore, profile: profileProp, cons
           'code', 'product_name', 'product_name_es', 'brands', 'image_front_url',
           'nutriscore_grade', 'ingredients_text', 'ingredients_tags',
           'labels_tags', 'ingredients_analysis_tags', 'allergens_tags', 'traces_tags',
-          'countries_tags',
+          'countries_tags', 'categories_tags', 'additives_tags', 'nova_group',
+          'nutriments',
         ].join(',');
 
         // Strict Spain filter — we intentionally do NOT fall back to a
