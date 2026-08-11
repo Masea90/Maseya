@@ -330,14 +330,23 @@ export const Alternatives = ({ current, currentScore, profile: profileProp, cons
           }
         }
 
-        const consent = hasHealthDataConsent();
-        const profile = consent ? loadProfile() : null;
+        const consent = consentProp ?? hasHealthDataConsent();
+        const profile = consent ? (profileProp ?? loadProfile()) : null;
+        const tagSet = new Set(tagCandidates);
+
+        const scoreOf = (pd: ProductData, fl: ReturnType<typeof flagIngredients>) => {
+          const general = calculateScore(pd, fl);
+          return consent && profile
+            ? calculatePersonalScore(pd, fl, profile, general)
+            : general;
+        };
 
         const scored: Candidate[] = [];
         const seenCodes = new Set<string>([current.barcode]);
         const addCandidate = (pd: ProductData | null) => {
           if (!pd) return;
           if (!pd.barcode || seenCodes.has(pd.barcode)) return;
+          if (isDisallowedCandidate(pd, cat, tagSet)) return;
           // Data floor per candidate: food needs a nutriscore, cosmetic needs
           // at least 3 parseable ingredients. Prevents empty "shell" entries
           // from scoring 100 and drowning real products.
@@ -350,10 +359,7 @@ export const Alternatives = ({ current, currentScore, profile: profileProp, cons
             if (!pd.ingredients_text && !pd.nutriscore_grade) return;
           }
           seenCodes.add(pd.barcode);
-          const general = calculateScore(pd, candidateFlagged);
-          const score = consent && profile
-            ? calculatePersonalScore(pd, candidateFlagged, profile, general)
-            : general;
+          const score = scoreOf(pd, candidateFlagged);
           scored.push({ data: pd, score, label: scoreLabel(score), flagged: candidateFlagged });
         };
 
@@ -361,7 +367,6 @@ export const Alternatives = ({ current, currentScore, profile: profileProp, cons
           addCandidate(toProductData(raw, candidateSource, cat));
         }
 
-        const tagSet = new Set(tagCandidates);
         const { data: catalogRows, error: catalogError } = await supabase
           .from('maseya_products')
           .select('barcode, product_name, brand, category, category_tag, ingredients_text, image_url, source')
@@ -393,7 +398,38 @@ export const Alternatives = ({ current, currentScore, profile: profileProp, cons
         const eligible = scored
           .filter(c => c.score >= MIN_SCORE && c.score > currentScore)
           .sort((a, b) => b.score - a.score);
-        const top = eligible.slice(0, 3);
+
+        // Score parity with the product page: the search payload can still be
+        // partial, so refetch the FULL record for the finalists and rescore
+        // exactly like ResultPage does (real case: a jam shown at 95 on the
+        // card and 65 once opened, because additives were missing).
+        const finalists = eligible.slice(0, 4);
+        await Promise.all(finalists.map(async (c) => {
+          if (c.data.source !== 'off' && c.data.source !== 'obf') return;
+          try {
+            const res = await fetch(
+              `https://${host}/api/v2/product/${encodeURIComponent(c.data.barcode)}.json`,
+              { signal: controller.signal },
+            );
+            if (!res.ok) return;
+            const json = (await res.json()) as { product?: SearchItem };
+            if (!json.product) return;
+            const full = toProductData({ ...json.product, code: c.data.barcode }, c.data.source, cat);
+            if (!full) return;
+            const fl = flagIngredients(full);
+            c.data = full;
+            c.flagged = fl;
+            c.score = scoreOf(full, fl);
+            c.label = scoreLabel(c.score);
+          } catch {
+            /* keep the search-based score */
+          }
+        }));
+
+        const top = finalists
+          .filter(c => c.score >= MIN_SCORE && c.score > currentScore)
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 3);
 
         if (cancelled) return;
         try { sessionStorage.setItem(cacheKey, JSON.stringify(top)); } catch {}
