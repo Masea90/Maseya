@@ -6,6 +6,7 @@ import { useUser } from '@/contexts/UserContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { SignupInvite } from '@/components/onboarding/SignupInvite';
 
 const COPY = {
   es: {
@@ -76,11 +77,25 @@ const COPY = {
   },
 };
 
+const hasLegacyLocalProfile = (): boolean => {
+  try {
+    const raw = localStorage.getItem('maseya_onboarding');
+    if (!raw) return false;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed?.skin) && parsed.skin.length > 0;
+  } catch {
+    return false;
+  }
+};
+
 export const OnboardingQuiz = () => {
   const navigate = useNavigate();
   const { user, completeOnboarding } = useUser();
   const { currentUser } = useAuth();
   const c = COPY[user.language] ?? COPY.es;
+  // The personal layer requires an account. Anonymous users who already saved a
+  // profile locally (before this gate existed) keep their access untouched.
+  const gated = !currentUser?.id && !hasLegacyLocalProfile();
 
   const [skin, setSkin] = useState<string[]>([]);
   const [allergies, setAllergies] = useState<string[]>([]);
@@ -137,6 +152,8 @@ export const OnboardingQuiz = () => {
   };
 
 
+
+  if (gated) return <SignupInvite />;
 
   const progress = ((skin.length > 0 ? 1 : 0) + (allergies.length > 0 ? 1 : 0)) * 50;
 

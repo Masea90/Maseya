@@ -33,6 +33,11 @@ const getStoredLanguage = (): Language => {
   return 'es'; // default Spanish
 };
 
+const getExplicitStoredLanguage = (): Language | null => {
+  const stored = typeof window !== 'undefined' ? localStorage.getItem('maseya_language') : null;
+  return stored === 'en' || stored === 'es' || stored === 'fr' ? stored : null;
+};
+
 const createDefaultUser = (email?: string): UserProfile => ({
   name: email?.split('@')[0] || 'Guest',
   nickname: '',
@@ -74,7 +79,9 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
           setUser({
             name: currentUser?.email?.split('@')[0] || 'Guest',
             nickname: data.nickname || '',
-            language: (data.language as Language) || getStoredLanguage(),
+            // An explicit local choice always wins over the stored column
+            // (whose historical default was 'en'). Market default is Spanish.
+            language: getExplicitStoredLanguage() ?? (data.language as Language) ?? 'es',
             onboardingComplete: data.onboarding_complete || false,
             avatarUrl: data.avatar_url || null,
             consentAnalytics: data.consent_analytics || false,
