@@ -30,6 +30,7 @@ import { toast } from '@/hooks/use-toast';
 
 import { hasHealthDataConsent, getStoredConsent, saveConsent } from '@/components/consent/ConsentModal';
 import { buildActiveProfile } from '@/lib/activeProfile';
+import { SignupInvite } from '@/components/onboarding/SignupInvite';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { HeartPulse } from 'lucide-react';
 
@@ -374,9 +375,12 @@ const ResultPage = () => {
   const nat = naturalness(product, flagged);
   const dataConfidence = evaluateDataConfidence(product);
   const profile = loadOnboarding();
+  // The personal layer is a registered-user feature. Anonymous users who already
+  // had a local profile from before this gate keep working exactly as before.
+  const personalAllowed = !!currentUser?.id || (Array.isArray((profile as { skin?: unknown } | null)?.skin) && ((profile as { skin?: unknown[] }).skin?.length ?? 0) > 0);
   const activeProfile = buildActiveProfile(healthProfile, profile as unknown as Record<string, unknown>);
-  const alerts = healthConsent ? personalAlerts(product, activeProfile) : [];
-  const personalBreakdown = healthConsent && !nonScorable
+  const alerts = healthConsent && personalAllowed ? personalAlerts(product, activeProfile) : [];
+  const personalBreakdown = healthConsent && personalAllowed && !nonScorable
     ? calculatePersonalScoreBreakdown(product, flagged, activeProfile, score)
     : null;
   const personalScore = personalBreakdown ? personalBreakdown.score : score;
@@ -789,7 +793,9 @@ const ResultPage = () => {
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <div className="p-4 pt-0 space-y-2">
-                    {!healthConsent ? (
+                    {!personalAllowed ? (
+                      <SignupInvite compact />
+                    ) : !healthConsent ? (
                       <div className="flex gap-3 items-start p-3 rounded-xl border border-primary/30 bg-primary/5">
                         <HeartPulse className="w-5 h-5 text-primary mt-0.5 shrink-0" />
                         <div className="flex-1 space-y-2">
