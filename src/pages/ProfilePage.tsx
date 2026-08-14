@@ -45,12 +45,12 @@ const OPTIONS = {
   skin_conditions_label: { psoriasis: 'Psoriasis', rosacea: 'Rosácea', acne: 'Acné', none: '✓ Ninguna' } as Record<string, string>,
   sensitivities: ['fragrance', 'alcohol', 'sulfate', 'paraben', 'none'],
   sensitivities_label: { fragrance: 'Perfumes', alcohol: 'Alcohol', sulfate: 'Sulfatos', paraben: 'Parabenos', none: '✓ Ninguna' } as Record<string, string>,
-  hair_type: ['straight', 'wavy', 'curly', 'coily'],
-  hair_type_label: { straight: 'Liso', wavy: 'Ondulado', curly: 'Rizado', coily: 'Muy rizado' } as Record<string, string>,
+  hair_type: ['straight', 'wavy', 'curly', 'coily', 'none'],
+  hair_type_label: { straight: 'Liso', wavy: 'Ondulado', curly: 'Rizado', coily: 'Muy rizado', none: '✓ No aplica / No tengo pelo' } as Record<string, string>,
   hair_condition: ['dry', 'oily', 'normal', 'damaged'],
   hair_condition_label: { dry: 'Seco', oily: 'Graso', normal: 'Normal', damaged: 'Dañado' } as Record<string, string>,
-  hair_concerns: ['hairloss', 'dandruff', 'frizz', 'colored'],
-  hair_concerns_label: { hairloss: 'Caída', dandruff: 'Caspa', frizz: 'Frizz', colored: 'Color tratado' } as Record<string, string>,
+  hair_concerns: ['hairloss', 'dandruff', 'frizz', 'colored', 'none'],
+  hair_concerns_label: { hairloss: 'Caída', dandruff: 'Caspa', frizz: 'Frizz', colored: 'Color tratado', none: '✓ Ninguna' } as Record<string, string>,
   allergies: ['gluten', 'lactose', 'nuts', 'fish', 'none'],
   allergies_label: { gluten: 'Gluten', lactose: 'Lactosa', nuts: 'Frutos secos', fish: 'Pescado/marisco', none: '✓ No tengo alergias ni intolerancias' } as Record<string, string>,
   diet: ['omnivore', 'vegetarian', 'vegan', 'keto', 'no-sugar', 'halal'],
@@ -90,9 +90,14 @@ const computePct = (s: HealthState): number => {
   let filled = 0;
   const total = 6;
   if (s.skin_type.length) filled++;
-  if (s.hair_type) filled++;
-  if (s.hair_condition) filled++;
-  if (s.hair_concerns.length) filled++;
+  if (s.hair_type === 'none') {
+    // "No tengo pelo": the whole hair section is answered, not incomplete.
+    filled += 3;
+  } else {
+    if (s.hair_type) filled++;
+    if (s.hair_condition) filled++;
+    if (s.hair_concerns.length) filled++;
+  }
   if (s.diet.length) filled++;
   if (s.nutrition_goals.length) filled++;
   return Math.round((filled / total) * 100);
@@ -151,7 +156,7 @@ const ProfilePage = () => {
     setState(prev => {
       const arr = prev[key] as string[];
       // Mutually exclusive 'none' for allergies + skin conditions/sensitivities
-      if (key === 'allergies' || key === 'skin_conditions' || key === 'skin_sensitivities') {
+      if (key === 'allergies' || key === 'skin_conditions' || key === 'skin_sensitivities' || key === 'hair_concerns') {
         if (val === 'none') {
           return { ...prev, [key]: arr.includes('none') ? [] : ['none'] };
         }
@@ -163,7 +168,17 @@ const ProfilePage = () => {
   };
 
   const setSingle = (key: keyof HealthState, val: string) => {
-    setState(prev => ({ ...prev, [key]: prev[key] === val ? '' : val }));
+    setState(prev => {
+      const next = { ...prev, [key]: prev[key] === val ? '' : val };
+      // "No tengo pelo" is mutually exclusive with the rest of the hair section.
+      if (key === 'hair_type') {
+        if (next.hair_type === 'none') {
+          next.hair_condition = '';
+          next.hair_concerns = [];
+        }
+      }
+      return next;
+    });
   };
 
   const save = async () => {
@@ -266,6 +281,7 @@ const ProfilePage = () => {
               ))}
             </div>
           </div>
+          {state.hair_type !== 'none' && (
           <div>
             <p className="text-xs text-muted-foreground mb-2">Condición</p>
             <div className="flex flex-wrap gap-2">
@@ -276,6 +292,8 @@ const ProfilePage = () => {
               ))}
             </div>
           </div>
+          )}
+          {state.hair_type !== 'none' && (
           <div>
             <p className="text-xs text-muted-foreground mb-2">Preocupaciones</p>
             <div className="flex flex-wrap gap-2">
@@ -286,6 +304,7 @@ const ProfilePage = () => {
               ))}
             </div>
           </div>
+          )}
         </Section>
 
         <Section title="Alimentación" emoji="🥗">
