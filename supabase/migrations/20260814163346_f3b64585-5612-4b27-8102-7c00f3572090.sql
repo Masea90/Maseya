@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ALTER COLUMN language SET DEFAULT 'es'; UPDATE public.profiles SET language = 'es' WHERE language = 'en';
