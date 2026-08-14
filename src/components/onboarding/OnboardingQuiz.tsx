@@ -76,11 +76,25 @@ const COPY = {
   },
 };
 
+const hasLegacyLocalProfile = (): boolean => {
+  try {
+    const raw = localStorage.getItem('maseya_onboarding');
+    if (!raw) return false;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed?.skin) && parsed.skin.length > 0;
+  } catch {
+    return false;
+  }
+};
+
 export const OnboardingQuiz = () => {
   const navigate = useNavigate();
   const { user, completeOnboarding } = useUser();
   const { currentUser } = useAuth();
   const c = COPY[user.language] ?? COPY.es;
+  // The personal layer requires an account. Anonymous users who already saved a
+  // profile locally (before this gate existed) keep their access untouched.
+  const gated = !currentUser?.id && !hasLegacyLocalProfile();
 
   const [skin, setSkin] = useState<string[]>([]);
   const [allergies, setAllergies] = useState<string[]>([]);
