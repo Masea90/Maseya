@@ -6,6 +6,7 @@ import { useUser } from '@/contexts/UserContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { SignupInvite } from '@/components/onboarding/SignupInvite';
 
 const COPY = {
   es: {
@@ -151,6 +152,8 @@ export const OnboardingQuiz = () => {
   };
 
 
+
+  if (gated) return <SignupInvite />;
 
   const progress = ((skin.length > 0 ? 1 : 0) + (allergies.length > 0 ? 1 : 0)) * 50;
 
