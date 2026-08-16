@@ -5,8 +5,16 @@ import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
 import { mcpPlugin } from "@lovable.dev/mcp-js/stacks/supabase/vite";
 
+const buildVersion =
+  process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ||
+  process.env.GITHUB_SHA?.slice(0, 7) ||
+  new Date().toISOString().replace(/[-:]/g, "").slice(0, 13);
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  define: {
+    __APP_VERSION__: JSON.stringify(buildVersion),
+  },
   server: {
     host: "::",
     port: 8080,
@@ -17,7 +25,7 @@ export default defineConfig(({ mode }) => ({
     mcpPlugin(),
     VitePWA({
       registerType: "prompt",
-      injectRegister: false,
+      injectRegister: null,
       manifestFilename: "manifest.json",
       devOptions: {
         enabled: false,
@@ -57,9 +65,21 @@ export default defineConfig(({ mode }) => ({
         clientsClaim: true,
         navigateFallback: null,
         navigateFallbackDenylist: [/^\/~oauth/],
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        // Keep the entry HTML and manifest out of the precache. Navigations
+        // use NetworkFirst below, so opening the app checks the network for
+        // the current build instead of pinning an old shell indefinitely.
+        globPatterns: ["**/*.{js,css,ico,png,svg,woff2}"],
         importScripts: ["/push-sw.js"],
         runtimeCaching: [
+          {
+            urlPattern: ({ url }) =>
+              url.hostname.endsWith(".supabase.co") ||
+              url.hostname === "world.openfoodfacts.org" ||
+              url.hostname === "world.openbeautyfacts.org" ||
+              url.hostname.endsWith(".openfoodfacts.org") ||
+              url.hostname.endsWith(".openbeautyfacts.org"),
+            handler: "NetworkOnly",
+          },
           {
             urlPattern: ({ request, url }) =>
               request.mode === "navigate" &&
@@ -68,10 +88,10 @@ export default defineConfig(({ mode }) => ({
             handler: "NetworkFirst",
             options: {
               cacheName: "maseya-html-cache",
-              networkTimeoutSeconds: 4,
+              networkTimeoutSeconds: 10,
               expiration: {
                 maxEntries: 24,
-                maxAgeSeconds: 60 * 60 * 24 * 7,
+                maxAgeSeconds: 60 * 60 * 24,
               },
               cacheableResponse: {
                 statuses: [0, 200],

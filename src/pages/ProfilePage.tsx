@@ -365,6 +365,10 @@ const ProfilePage = () => {
           <LogOut className="w-4 h-4" /> Cerrar sesión
         </Button>
 
+        <p className="text-center text-[11px] text-muted-foreground">
+          Versión {__APP_VERSION__}
+        </p>
+
         {devMode && (
           <div className="mt-6 p-4 rounded-2xl border border-dashed border-primary/40 bg-primary/5 space-y-3">
             <p className="text-xs font-semibold text-primary uppercase tracking-wider">Dev tools</p>

@@ -1,4 +1,7 @@
+import { registerSW } from "virtual:pwa-register";
+
 const APP_SW_URL = "/sw.js";
+const UPDATE_INTERVAL_MS = 45 * 60 * 1000;
 
 const isInIframe = () => {
   try {
@@ -54,21 +57,7 @@ const unregisterAppServiceWorkers = async () => {
   );
 };
 
-const dispatchUpdateAvailable = (worker: ServiceWorker) => {
-  window.dispatchEvent(
-    new CustomEvent("maseya:update-available", { detail: { worker } })
-  );
-};
-
-const watchInstallingWorker = (worker: ServiceWorker) => {
-  worker.addEventListener("statechange", () => {
-    if (worker.state === "installed" && navigator.serviceWorker.controller) {
-      dispatchUpdateAvailable(worker);
-    }
-  });
-};
-
-export const registerPwaServiceWorker = () => {
+export const registerPwaServiceWorker = (onNeedRefresh: (update: () => Promise<void>) => void) => {
   if (!("serviceWorker" in navigator)) return;
 
   if (shouldDisableAppServiceWorker()) {
@@ -76,41 +65,25 @@ export const registerPwaServiceWorker = () => {
     return;
   }
 
-  window.addEventListener("load", () => {
-    navigator.serviceWorker
-      .register(APP_SW_URL, { scope: "/" })
-      .then((registration) => {
-        let reloaded = false;
-        navigator.serviceWorker.addEventListener("controllerchange", () => {
-          if (reloaded) return;
-          reloaded = true;
-          window.location.reload();
-        });
+  let intervalId: number | undefined;
 
-        const checkForUpdate = () => registration.update().catch(() => {});
-
-        if (registration.waiting && navigator.serviceWorker.controller) {
-          dispatchUpdateAvailable(registration.waiting);
-        }
-
-        if (registration.installing) {
-          watchInstallingWorker(registration.installing);
-        }
-
-        registration.addEventListener("updatefound", () => {
-          if (registration.installing) {
-            watchInstallingWorker(registration.installing);
-          }
-        });
-
-        checkForUpdate();
-        window.setInterval(checkForUpdate, 15 * 60 * 1000);
-        window.addEventListener("focus", checkForUpdate);
-        window.addEventListener("online", checkForUpdate);
-        document.addEventListener("visibilitychange", () => {
-          if (document.visibilityState === "visible") checkForUpdate();
-        });
-      })
-      .catch((error) => console.warn("[pwa] service worker registration failed", error));
+  const updateSW = registerSW({
+    immediate: true,
+    onNeedRefresh() {
+      onNeedRefresh(() => updateSW(true));
+    },
+    onRegisteredSW(_swUrl, registration) {
+      if (!registration) return;
+      const checkForUpdate = () => registration.update().catch(() => {});
+      checkForUpdate();
+      intervalId = window.setInterval(checkForUpdate, UPDATE_INTERVAL_MS);
+    },
+    onRegisterError(error) {
+      console.warn("[pwa] service worker registration failed", error);
+    },
   });
+
+  return () => {
+    if (intervalId !== undefined) window.clearInterval(intervalId);
+  };
 };
