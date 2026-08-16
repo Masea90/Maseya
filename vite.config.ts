@@ -63,6 +63,7 @@ export default defineConfig(({ mode }) => ({
       workbox: {
         skipWaiting: false,
         clientsClaim: true,
+        cleanupOutdatedCaches: true,
         navigateFallback: null,
         navigateFallbackDenylist: [/^\/~oauth/],
         // Keep the entry HTML and manifest out of the precache. Navigations
