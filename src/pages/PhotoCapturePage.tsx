@@ -617,11 +617,16 @@ const PhotoCapturePage = () => {
 
 
   const goBack = () => {
+    if (liveCamera) {
+      closeLiveCamera();
+      return;
+    }
     if (preview) {
       setPreview(null);
       return;
     }
     if (step === 'ingredients') { setStep('front'); return; }
+
     if (step === 'nutrition-capture') { setStep(nutritionOnly ? 'front' : 'nutrition-offer'); return; }
     if (step === 'nutrition-offer') { finalizeAndNavigate(); return; }
 
