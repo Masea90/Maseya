@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as Sonner } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -9,9 +9,12 @@ import { UserProvider } from '@/contexts/UserContext';
 import { AppRoutes } from '@/components/AppRoutes';
 import { ConsentModal } from '@/components/consent/ConsentModal';
 import { UpdateBanner } from '@/components/UpdateBanner';
+import { trackAppOpen } from '@/lib/analytics';
 
 function App() {
   const [queryClient] = useState(() => new QueryClient());
+
+  useEffect(() => { trackAppOpen(); }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

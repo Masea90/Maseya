@@ -16,6 +16,7 @@ import {
   FlaggedIngredient, PersonalAlert,
 } from '@/lib/scoring';
 import { getVoiceLine } from '@/lib/voiceLines';
+import { track } from '@/lib/analytics';
 import { inciLabel } from '@/lib/inciLabels';
 import { RegistrationSheet } from '@/components/auth/RegistrationSheet';
 import { MiraAnalysis } from '@/components/result/MiraAnalysis';
@@ -228,6 +229,7 @@ const ResultPage = () => {
       const data = await lookupProduct(barcode);
       if (cancelled) return;
       if (data) {
+        track('scan_success', { barcode, source: data.source, category: data.category });
         setProduct(data);
         setLoading(false);
         return;
@@ -249,10 +251,12 @@ const ResultPage = () => {
       setEnriching(false);
       if (!retry) {
         if (loadFromPhotoLocalStorage(barcode)) return;
+        track('scan_not_found', { barcode });
         setNotFound(true);
         setLoading(false);
         return;
       }
+      track('scan_success', { barcode, source: retry.source, category: retry.category });
       setProduct(retry);
       setLoading(false);
     })();
