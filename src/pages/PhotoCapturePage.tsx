@@ -684,7 +684,25 @@ const PhotoCapturePage = () => {
             </div>
 
             <div className="relative w-full max-h-[55vh] aspect-[3/4] max-w-full rounded-3xl overflow-hidden bg-gradient-to-br from-muted to-muted/50 border border-border flex items-center justify-center mx-auto">
-              {preview ? (
+              {liveCamera ? (
+                <>
+                  <video
+                    ref={videoRef}
+                    className="w-full h-full object-cover"
+                    playsInline
+                    muted
+                    autoPlay
+                  />
+                  <button
+                    type="button"
+                    onClick={flipCamera}
+                    aria-label={c.flip}
+                    className="absolute top-3 right-3 min-w-[44px] min-h-[44px] rounded-full bg-black/45 text-white flex items-center justify-center backdrop-blur-sm"
+                  >
+                    <RefreshCw className="w-5 h-5" />
+                  </button>
+                </>
+              ) : preview ? (
                 <img src={preview} alt="" className="w-full h-full max-w-full max-h-full object-contain" />
               ) : processing ? (
                 <div className="flex flex-col items-center justify-center text-muted-foreground gap-3">
@@ -700,6 +718,11 @@ const PhotoCapturePage = () => {
                 </div>
               )}
             </div>
+
+            {cameraDenied && !liveCamera && (
+              <p className="text-xs text-muted-foreground text-center leading-relaxed">{c.cameraDenied}</p>
+            )}
+
 
             {/* Hidden native camera input — `capture="environment"` opens the
                 rear camera app on mobile with full resolution, autofocus and
