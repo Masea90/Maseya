@@ -268,6 +268,20 @@ const ResultPage = () => {
   // regardless of how many times deps like isAuthenticated/currentUser?.id
   // hydrate (previously this incremented the anon counter multiple times and
   // could also toggle showSheet back and forth on re-renders).
+  // Anonymous usage event: a product sheet was rendered. No personal data.
+  const viewTrackedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!product) return;
+    const key = product.barcode || product.name;
+    if (viewTrackedRef.current === key) return;
+    viewTrackedRef.current = key;
+    const conf = evaluateDataConfidence(product);
+    const hasScore = product.category === 'cosmetic'
+      ? !!product.ingredients_text
+      : (!!product.nutriscore_grade || !!product.ingredients_text);
+    track('result_view', { category: product.category, has_score: hasScore, confidence: conf.level });
+  }, [product]);
+
   const persistedRef = useRef<string | null>(null);
   useEffect(() => {
     if (!product) return;
