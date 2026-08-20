@@ -236,6 +236,7 @@ const isDisallowedCandidate = (
   pd: ProductData,
   cat: 'food' | 'cosmetic',
   tagSet: Set<string>,
+  currentGroup?: SubGroup | null,
 ): boolean => {
   const cats = (Array.isArray((pd.raw as { categories_tags?: unknown }).categories_tags)
     ? ((pd.raw as { categories_tags?: string[] }).categories_tags as string[])
@@ -260,6 +261,14 @@ const isDisallowedCandidate = (
   //    category (real case: "Protector solar" offered as shampoo alternative).
   const guessed = guessCategoryTagsFromName(pd.name || '', cat);
   if (guessed.length > 0 && !guessed.some(t => tagSet.has(t))) return true;
+
+  // 5. Semantic incompatibility: same parent category is not enough
+  //    (mayonesa vs kétchup). Only applied when the scanned product belongs
+  //    to a known subgroup; otherwise the previous strict behaviour stands.
+  if (currentGroup) {
+    const candidateGroup = subgroupOf(cats, pd.name || '');
+    if (!candidateGroup || candidateGroup.id !== currentGroup.id) return true;
+  }
 
   return false;
 };
@@ -381,6 +390,12 @@ export const Alternatives = ({ current, currentScore, profile: profileProp, cons
         const consent = consentProp ?? hasHealthDataConsent();
         const profile = consent ? (profileProp ?? loadProfile()) : null;
         const tagSet = new Set(tagCandidates);
+        const currentGroup = subgroupOf(
+          (Array.isArray((current.raw as { categories_tags?: unknown }).categories_tags)
+            ? ((current.raw as { categories_tags?: string[] }).categories_tags as string[])
+            : []).map(t => String(t).toLowerCase()),
+          current.name,
+        );
 
         const scoreOf = (pd: ProductData, fl: ReturnType<typeof flagIngredients>) => {
           const general = calculateScore(pd, fl);
@@ -394,7 +409,7 @@ export const Alternatives = ({ current, currentScore, profile: profileProp, cons
         const addCandidate = (pd: ProductData | null) => {
           if (!pd) return;
           if (!pd.barcode || seenCodes.has(pd.barcode)) return;
-          if (isDisallowedCandidate(pd, cat, tagSet)) return;
+          if (isDisallowedCandidate(pd, cat, tagSet, currentGroup)) return;
           // Data floor per candidate: food needs a nutriscore, cosmetic needs
           // at least 3 parseable ingredients. Prevents empty "shell" entries
           // from scoring 100 and drowning real products.
