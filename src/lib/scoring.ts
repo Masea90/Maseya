@@ -416,6 +416,28 @@ function isInstructionChip(raw: string): boolean {
   return false;
 }
 
+/**
+ * Ordered canonical keys of the INCI list parsed from `ingredients_text`.
+ * Order matters: Reg. (CE) 1223/2009 requires decreasing concentration.
+ * Returns [] when there is no usable text (never guess order from tags).
+ */
+export function orderedInciKeys(text: string): string[] {
+  if (!text || isNutritionalData(text)) return [];
+  const cleaned = cleanIngredientsText(text);
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const part of cleaned.split(/[,;()\n\r]/)) {
+    const s = part.trim();
+    if (s.length < 2 || s.length > 80) continue;
+    if (isRegulatoryChip(s) || isInstructionChip(s)) continue;
+    const key = canonicalKey(s);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(key);
+  }
+  return out;
+}
+
 export function flagIngredients(p: ProductData): FlaggedIngredient[] {
   if (isNutritionalData(p.ingredients_text)) return [];
   const fromTags = p.ingredients_tags
