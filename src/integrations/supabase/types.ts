@@ -122,6 +122,57 @@ export type Database = {
         }
         Relationships: []
       }
+      ingredient_candidates: {
+        Row: {
+          category: string | null
+          confidence: number | null
+          display_name: string | null
+          first_seen_at: string
+          id: string
+          ingredient_name: string
+          last_seen_at: string
+          occurrences: number
+          reason: string | null
+          reviewed_at: string | null
+          reviewer_note: string | null
+          sample_barcodes: string[]
+          status: string
+          suggested_level: string
+        }
+        Insert: {
+          category?: string | null
+          confidence?: number | null
+          display_name?: string | null
+          first_seen_at?: string
+          id?: string
+          ingredient_name: string
+          last_seen_at?: string
+          occurrences?: number
+          reason?: string | null
+          reviewed_at?: string | null
+          reviewer_note?: string | null
+          sample_barcodes?: string[]
+          status?: string
+          suggested_level?: string
+        }
+        Update: {
+          category?: string | null
+          confidence?: number | null
+          display_name?: string | null
+          first_seen_at?: string
+          id?: string
+          ingredient_name?: string
+          last_seen_at?: string
+          occurrences?: number
+          reason?: string | null
+          reviewed_at?: string | null
+          reviewer_note?: string | null
+          sample_barcodes?: string[]
+          status?: string
+          suggested_level?: string
+        }
+        Relationships: []
+      }
       maseya_products: {
         Row: {
           barcode: string
@@ -529,6 +580,39 @@ export type Database = {
           user_email: string
         }[]
       }
+      admin_candidates_counts: {
+        Args: never
+        Returns: {
+          approved: number
+          pending: number
+          rejected: number
+        }[]
+      }
+      admin_candidates_list: {
+        Args: { p_limit?: number; p_status?: string }
+        Returns: {
+          category: string | null
+          confidence: number | null
+          display_name: string | null
+          first_seen_at: string
+          id: string
+          ingredient_name: string
+          last_seen_at: string
+          occurrences: number
+          reason: string | null
+          reviewed_at: string | null
+          reviewer_note: string | null
+          sample_barcodes: string[]
+          status: string
+          suggested_level: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "ingredient_candidates"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       admin_feedback_counts: {
         Args: never
         Returns: {
@@ -609,6 +693,10 @@ export type Database = {
       }
       admin_resolve_feedback: {
         Args: { p_id: string; p_notes: string; p_resolved?: boolean }
+        Returns: undefined
+      }
+      admin_set_candidate_status: {
+        Args: { p_id: string; p_note?: string; p_status: string }
         Returns: undefined
       }
       admin_set_feedback_resolved: {

@@ -46,6 +46,23 @@ type ActivityRow = {
 
 type TopRow = { barcode: string; product_name: string | null; scans: number; users: number };
 
+type CandidateRow = {
+  id: string;
+  ingredient_name: string;
+  display_name: string | null;
+  suggested_level: string;
+  reason: string | null;
+  confidence: number | null;
+  category: string | null;
+  occurrences: number;
+  sample_barcodes: string[] | null;
+  first_seen_at: string;
+  last_seen_at: string;
+  status: string;
+  reviewed_at: string | null;
+  reviewer_note: string | null;
+};
+
 const PAGE_SIZE = 20;
 
 const fmtTime = (iso: string) => {
@@ -84,6 +101,45 @@ export default function AdminPage() {
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
+  const [candTab, setCandTab] = useState<'pending' | 'approved' | 'rejected'>('pending');
+  const [candidates, setCandidates] = useState<CandidateRow[]>([]);
+  const [candCounts, setCandCounts] = useState<{ pending: number; approved: number; rejected: number } | null>(null);
+  const [candNotes, setCandNotes] = useState<Record<string, string>>({});
+
+  const loadCandidates = useCallback(async (status: 'pending' | 'approved' | 'rejected') => {
+    const [list, counts] = await Promise.all([
+      supabase.rpc('admin_candidates_list', { p_status: status, p_limit: 100 }),
+      supabase.rpc('admin_candidates_counts'),
+    ]);
+    if (list.error) {
+      toast({ title: 'Error al cargar candidatos', description: list.error.message, variant: 'destructive' });
+    } else {
+      setCandidates((list.data ?? []) as unknown as CandidateRow[]);
+    }
+    const c = Array.isArray(counts.data) ? (counts.data[0] as unknown as { pending: number; approved: number; rejected: number }) : null;
+    if (c) setCandCounts({ pending: Number(c.pending), approved: Number(c.approved), rejected: Number(c.rejected) });
+  }, []);
+
+  const setCandidateStatus = async (id: string, status: 'approved' | 'rejected') => {
+    const { error } = await supabase.rpc('admin_set_candidate_status', {
+      p_id: id,
+      p_status: status,
+      p_note: candNotes[id]?.trim() || null,
+    });
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      return;
+    }
+    setCandidates((prev) => prev.filter((c) => c.id !== id));
+    setCandNotes((n) => { const copy = { ...n }; delete copy[id]; return copy; });
+    toast({
+      title: status === 'approved' ? 'Aprobado' : 'Descartado',
+      description: status === 'approved'
+        ? 'Aprobado. Añádelo a las listas de riesgo en el próximo despliegue con su fuente.'
+        : 'No volverá a proponerse.',
+    });
+    await loadCandidates(candTab);
+  };
 
   const loadFeedback = useCallback(async (pending: boolean, offset: number) => {
     const { data, error } = await supabase.rpc('admin_feedback_list', {
@@ -115,8 +171,8 @@ export default function AdminPage() {
     if (Array.isArray(p.data) && p.data[0]) setPulse(p.data[0] as unknown as Pulse);
     if (a.data) setActivity(a.data as unknown as ActivityRow[]);
     if (t.data) setTop(t.data as unknown as TopRow[]);
-    await Promise.all([loadCounts(), loadFeedback(tab === 'pending', 0)]);
-  }, [loadCounts, loadFeedback, tab]);
+    await Promise.all([loadCounts(), loadFeedback(tab === 'pending', 0), loadCandidates(candTab)]);
+  }, [loadCounts, loadFeedback, tab, loadCandidates, candTab]);
 
   useEffect(() => {
     if (!currentUser?.id) return;
@@ -217,6 +273,7 @@ export default function AdminPage() {
           <StatCard label="Productos por foto 7d" value={pulse?.photo_products_7d} />
           <StatCard label="Productos en BD" value={pulse?.total_products} />
           <StatCard label="Feedback pendiente" value={pulse?.pending_feedback} accent />
+          <StatCard label="Candidatos pendientes" value={candCounts?.pending} accent />
         </div>
 
         {/* Feedback */}
@@ -309,6 +366,81 @@ export default function AdminPage() {
               >
                 Cargar más
               </Button>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Candidatos a revisar */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">🧪 Candidatos a revisar</CardTitle>
+            <p className="text-xs text-muted-foreground">
+              La IA propone, tú decides. Aprobar no cambia el motor: la incorporación se hace a mano con su fuente.
+            </p>
+            <div className="flex gap-2 pt-2">
+              {(['pending', 'approved', 'rejected'] as const).map((s) => (
+                <Button
+                  key={s}
+                  size="sm"
+                  variant={candTab === s ? 'default' : 'outline'}
+                  onClick={() => { setCandTab(s); loadCandidates(s); }}
+                >
+                  {s === 'pending' ? 'Pendientes' : s === 'approved' ? 'Aprobados' : 'Descartados'} (
+                  {candCounts ? candCounts[s] : '—'})
+                </Button>
+              ))}
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {candidates.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nada por aquí.</p>
+            ) : (
+              <ul className="space-y-3">
+                {candidates.map((c) => (
+                  <li key={c.id} className="border border-border rounded-lg p-3 space-y-2">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <p className="text-sm font-medium truncate">{c.display_name || c.ingredient_name}</p>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded shrink-0 ${c.suggested_level === 'avoid' ? 'bg-destructive/10 text-destructive' : 'bg-muted'}`}>
+                        {c.suggested_level === 'avoid' ? 'evitar' : 'precaución'}
+                      </span>
+                    </div>
+                    {c.reason && <p className="text-xs text-muted-foreground">{c.reason}</p>}
+                    <p className="text-[10px] text-muted-foreground">
+                      {c.category || '—'} · {c.occurrences} aparici{c.occurrences === 1 ? 'ón' : 'ones'} ·
+                      confianza {c.confidence != null ? `${Math.round(Number(c.confidence) * 100)}%` : '—'} ·
+                      1.ª {fmtTime(c.first_seen_at)} · últ. {fmtTime(c.last_seen_at)}
+                    </p>
+                    {(c.sample_barcodes || []).length > 0 && (
+                      <p className="text-[10px] font-mono space-x-2">
+                        {(c.sample_barcodes || []).map((b) => (
+                          <a key={b} href={`/result/${b}`} className="underline text-primary">{b}</a>
+                        ))}
+                      </p>
+                    )}
+                    {c.status === 'pending' ? (
+                      <div className="space-y-2">
+                        <Textarea
+                          rows={2}
+                          placeholder="Nota (fuente, criterio…)"
+                          value={candNotes[c.id] || ''}
+                          onChange={(e) => setCandNotes((n) => ({ ...n, [c.id]: e.target.value }))}
+                          className="text-xs rounded-lg"
+                        />
+                        <div className="flex gap-2">
+                          <Button size="sm" onClick={() => setCandidateStatus(c.id, 'approved')}>Aprobar</Button>
+                          <Button size="sm" variant="outline" onClick={() => setCandidateStatus(c.id, 'rejected')}>Descartar</Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-[10px] text-muted-foreground">
+                        {c.status === 'approved' ? '✅ Aprobado' : '🚫 Descartado'}
+                        {c.reviewed_at ? ` · ${fmtTime(c.reviewed_at)}` : ''}
+                        {c.reviewer_note ? ` · ${c.reviewer_note}` : ''}
+                      </p>
+                    )}
+                  </li>
+                ))}
+              </ul>
             )}
           </CardContent>
         </Card>

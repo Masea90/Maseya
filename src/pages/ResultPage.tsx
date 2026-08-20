@@ -844,7 +844,9 @@ const ResultPage = () => {
               hasIngredientData={hasIngredientData}
               firstName={healthConsent ? firstName : null}
               personalScore={healthConsent && personalBreakdown ? personalScore : null}
+              flaggedIngredients={flagged.filter(f => f.level !== 'safe').map(f => f.name)}
               topAlerts={healthConsent ? topPersonalAlerts : []}
+
               factors={scoreBreakdown.factors.map(f => (
                 f.delta != null ? `${f.label} (${f.delta > 0 ? '+' : ''}${f.delta})` : f.label
               ))}

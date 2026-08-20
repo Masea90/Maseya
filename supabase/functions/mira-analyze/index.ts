@@ -45,7 +45,91 @@ const humanizeDiets = (d: unknown): string => {
   return arr.map((x) => DIET_LABEL[String(x).toLowerCase()] || String(x)).join(', ') || '—';
 };
 
+// --- Candidate ingredient detection (observe only, never scores) -----------
+const normIng = (s: string) =>
+  s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+
+const CANDIDATE_PROMPT = `Eres un revisor científico. Señala ÚNICAMENTE ingredientes con evidencia científica reconocida de riesgo (organismos oficiales, literatura revisada por pares) que NO estén ya en la lista de ingredientes marcados que se te pasa. Si no hay ninguno, devuelve un array vacío. No inventes: si dudas, no lo incluyas. Máximo 3 por producto.
+Responde SOLO con JSON válido: {"flagged_candidates":[{"name":"...","level":"avoid|caution","reason":"motivo breve en español","confidence":0.0}]}`;
+
+async function collectCandidates(opts: {
+  apiKey: string;
+  product: Record<string, unknown>;
+  alreadyFlagged: string[];
+  barcode: string | null;
+  category: string;
+}) {
+  const { apiKey, product, alreadyFlagged, barcode, category } = opts;
+  const known = new Set(alreadyFlagged.map(normIng));
+  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash",
+      messages: [
+        { role: "system", content: CANDIDATE_PROMPT },
+        {
+          role: "user",
+          content: `Categoría: ${category}\nProducto: ${product.product_name || ""}\nIngredientes: ${String(product.ingredients_text || "").slice(0, 4000)}\nIngredientes YA marcados por nosotros (no los repitas): ${alreadyFlagged.join(", ") || "—"}`,
+        },
+      ],
+    }),
+  });
+  if (!res.ok) return;
+  const json = await res.json();
+  const raw = json.choices?.[0]?.message?.content ?? "";
+  const match = String(raw).match(/\{[\s\S]*\}/);
+  if (!match) return;
+  const parsed = JSON.parse(match[0]);
+  const list = Array.isArray(parsed?.flagged_candidates) ? parsed.flagged_candidates.slice(0, 3) : [];
+  if (list.length === 0) return;
+
+  const admin = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    { auth: { persistSession: false } },
+  );
+
+  for (const c of list) {
+    const name = normIng(String(c?.name ?? ""));
+    const level = c?.level === "avoid" ? "avoid" : "caution";
+    if (!name || name.length < 3 || name.length > 80) continue;
+    // Never re-propose what we already detect, nor E-numbers (EFSA list).
+    if (known.has(name)) continue;
+    if (/^e-?\s?\d{3}/i.test(name)) continue;
+    if ([...known].some((k) => k.length > 3 && (name.includes(k) || k.includes(name)))) continue;
+
+    const { data: existing } = await admin
+      .from("ingredient_candidates")
+      .select("id, status, occurrences, sample_barcodes")
+      .eq("ingredient_name", name)
+      .eq("category", category)
+      .maybeSingle();
+
+    if (existing) {
+      if (existing.status === "rejected") continue; // discarded stays discarded
+      const samples: string[] = Array.isArray(existing.sample_barcodes) ? existing.sample_barcodes : [];
+      const next = barcode && !samples.includes(barcode) ? [...samples, barcode].slice(0, 5) : samples;
+      await admin
+        .from("ingredient_candidates")
+        .update({ occurrences: (existing.occurrences ?? 1) + 1, last_seen_at: new Date().toISOString(), sample_barcodes: next })
+        .eq("id", existing.id);
+    } else {
+      await admin.from("ingredient_candidates").insert({
+        ingredient_name: name,
+        display_name: String(c?.name ?? "").trim().slice(0, 80),
+        suggested_level: level,
+        reason: typeof c?.reason === "string" ? c.reason.slice(0, 500) : null,
+        confidence: typeof c?.confidence === "number" ? Math.max(0, Math.min(1, c.confidence)) : null,
+        category,
+        sample_barcodes: barcode ? [barcode] : [],
+      });
+    }
+  }
+}
+
 serve(async (req) => {
+
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
@@ -92,7 +176,7 @@ serve(async (req) => {
 
 
 
-    const { product, profile, score, firstName, personalScore, topAlerts, factors, nutriments } = await req.json();
+    const { product, profile, score, firstName, personalScore, topAlerts, factors, nutriments, flaggedIngredients } = await req.json();
     if (!product || typeof product !== "object") {
       return new Response(JSON.stringify({ error: "Missing product" }), {
         status: 400,
@@ -175,7 +259,25 @@ Explícame si este cosmético es adecuado para mi piel específicamente y por qu
       });
     }
 
+    // Best-effort candidate mining — never blocks or breaks Mira's answer.
+    try {
+      const task = collectCandidates({
+        apiKey: LOVABLE_API_KEY,
+        product,
+        alreadyFlagged: Array.isArray(flaggedIngredients)
+          ? flaggedIngredients.map((x: unknown) => String(x)).slice(0, 40)
+          : [],
+        barcode: typeof product.barcode === "string" && product.barcode ? product.barcode : null,
+        category: product.category === "food" ? "food" : "cosmetic",
+      }).catch((e) => console.error("[candidates] failed", e));
+      const rt = (globalThis as { EdgeRuntime?: { waitUntil: (p: Promise<unknown>) => void } }).EdgeRuntime;
+      if (rt?.waitUntil) rt.waitUntil(task);
+    } catch (e) {
+      console.error("[candidates] skipped", e);
+    }
+
     return new Response(upstream.body, {
+
       status: 200,
       headers: {
         ...corsHeaders,
