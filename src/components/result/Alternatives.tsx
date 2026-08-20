@@ -62,6 +62,54 @@ const COSMETIC_TAG_HINTS = [
 const normTxt = (s: string) =>
   s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
+// --- Semantic incompatibility ----------------------------------------------
+// Two products can share a parent category (en:sauces) and still be absurd
+// substitutes (mayonnaise vs ketchup). Within a known family, a candidate is
+// only valid if it belongs to the SAME subgroup as the scanned product.
+interface SubGroup {
+  id: string;
+  family: 'sauces' | 'dairy' | 'drinks' | 'cosmetic';
+  tags: string[];      // exact OFF/OBF category tags
+  names: string[];     // normalized name hints
+}
+
+const SUBGROUPS: SubGroup[] = [
+  // Sauces & condiments
+  { id: 'mayo', family: 'sauces', tags: ['en:mayonnaises', 'en:mayonnaise', 'en:light-mayonnaises'], names: ['mayonesa', 'mayonnaise', 'ligeresa'] },
+  { id: 'ketchup', family: 'sauces', tags: ['en:ketchup', 'en:ketchups', 'en:tomato-ketchup'], names: ['ketchup', 'catsup'] },
+  { id: 'mustard', family: 'sauces', tags: ['en:mustards', 'en:mustard'], names: ['mostaza', 'mustard', 'moutarde'] },
+  { id: 'tomato-sauce', family: 'sauces', tags: ['en:tomato-sauces', 'en:tomato-pastes', 'en:pasta-sauces'], names: ['tomate frito', 'salsa de tomate', 'tomato sauce', 'sofrito'] },
+  { id: 'hot-sauce', family: 'sauces', tags: ['en:hot-sauces', 'en:chili-sauces'], names: ['salsa picante', 'hot sauce', 'sriracha', 'tabasco'] },
+  // Dairy
+  { id: 'yogurt', family: 'dairy', tags: ['en:yogurts', 'en:yoghurts', 'en:plain-yogurts', 'en:fermented-milk-products'], names: ['yogur', 'yoghurt', 'yogurt', 'skyr', 'kefir'] },
+  { id: 'cheese', family: 'dairy', tags: ['en:cheeses', 'en:fresh-cheeses', 'en:processed-cheese'], names: ['queso', 'cheese', 'fromage'] },
+  { id: 'milk', family: 'dairy', tags: ['en:milks', 'en:semi-skimmed-milks', 'en:whole-milks', 'en:skimmed-milks', 'en:plant-based-milk-alternatives'], names: ['leche', 'milk', 'bebida de avena', 'bebida de soja', 'bebida de almendra'] },
+  // Drinks
+  { id: 'water', family: 'drinks', tags: ['en:waters', 'en:mineral-waters', 'en:spring-waters', 'en:natural-mineral-waters'], names: ['agua', 'water'] },
+  { id: 'soda', family: 'drinks', tags: ['en:sodas', 'en:carbonated-drinks', 'en:colas', 'en:soft-drinks'], names: ['refresco', 'cola', 'soda', 'gaseosa'] },
+  { id: 'juice', family: 'drinks', tags: ['en:fruit-juices', 'en:juices', 'en:nectars', 'en:fruit-nectars'], names: ['zumo', 'jugo', 'juice', 'nectar'] },
+  { id: 'energy', family: 'drinks', tags: ['en:energy-drinks'], names: ['energy', 'energetica', 'energetico'] },
+  // Cosmetics
+  { id: 'shampoo', family: 'cosmetic', tags: ['en:shampoos', 'en:shampoo'], names: ['champu', 'shampoo', 'shampooing'] },
+  { id: 'conditioner', family: 'cosmetic', tags: ['en:hair-conditioners', 'en:conditioners', 'en:hair-masks'], names: ['acondicionador', 'conditioner', 'mascarilla capilar'] },
+  { id: 'shower', family: 'cosmetic', tags: ['en:shower-gels', 'en:body-washes', 'en:soaps'], names: ['gel de ducha', 'shower gel', 'jabon'] },
+  { id: 'sunscreen', family: 'cosmetic', tags: ['en:sunscreens', 'en:sun-care', 'en:sun-protection'], names: ['protector solar', 'proteccion solar', 'sunscreen', 'spf', 'solar'] },
+  { id: 'face-cream', family: 'cosmetic', tags: ['en:face-creams', 'en:moisturizers', 'en:face-moisturizers', 'en:day-creams', 'en:night-creams'], names: ['crema facial', 'hidratante facial', 'face cream', 'moisturizer'] },
+  { id: 'toner', family: 'cosmetic', tags: ['en:toners', 'en:face-toners', 'en:lotions-toniques'], names: ['tonico', 'toner'] },
+];
+
+const subgroupOf = (cats: string[], name: string): SubGroup | null => {
+  const tagSet = new Set(cats.map(t => t.toLowerCase()));
+  for (const g of SUBGROUPS) {
+    if (g.tags.some(t => tagSet.has(t))) return g;
+  }
+  const n = normTxt(name || '');
+  for (const g of SUBGROUPS) {
+    if (g.names.some(h => n.includes(h))) return g;
+  }
+  return null;
+};
+
 
 
 const hostForCategory = (category: 'food' | 'cosmetic') =>
