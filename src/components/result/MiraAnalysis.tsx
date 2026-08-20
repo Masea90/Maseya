@@ -25,6 +25,8 @@ interface Props {
   factors?: string[];
   /** Key nutrients per 100 g, pre-formatted, so Mira can cite real numbers. */
   nutriments?: string | null;
+  /** Names of ingredients we already flag — server skips them as candidates. */
+  flaggedIngredients?: string[];
 }
 
 // Generates a 1-2 sentence basic summary using the highest-priority personal alert.
@@ -67,7 +69,7 @@ function buildBasicSummary(
   return `${productLabel} no es ideal según tu perfil — revisa los ingredientes destacados.`;
 }
 
-export const MiraAnalysis = ({ product, profile, score, hasIngredientData = true, firstName = null, personalScore = null, topAlerts = [], factors = [], nutriments = null }: Props) => {
+export const MiraAnalysis = ({ product, profile, score, hasIngredientData = true, firstName = null, personalScore = null, topAlerts = [], factors = [], nutriments = null, flaggedIngredients = [] }: Props) => {
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -128,7 +130,7 @@ export const MiraAnalysis = ({ product, profile, score, hasIngredientData = true
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ product, profile, score, firstName, personalScore, topAlerts, factors, nutriments }),
+          body: JSON.stringify({ product, profile, score, firstName, personalScore, topAlerts, factors, nutriments, flaggedIngredients }),
         });
         if (cancelled) return;
         if (!res.ok || !res.body) {
