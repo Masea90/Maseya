@@ -910,18 +910,48 @@ export function calculateScoreBreakdown(
     }
   }
 
-  let score = 100 - (reds * 15) - (oranges * 6);
+  // --- Cosmetic position weighting (Reg. CE 1223/2009) ----------------------
+  // INCI lists are ordered by decreasing concentration, so a problematic
+  // ingredient in the first positions is present in a much higher amount.
+  // Only applied when we know the REAL order (parsed ingredients_text).
+  const inciOrder = p.category === 'cosmetic' ? orderedInciKeys(rawText) : null;
+  const boosted: string[] = [];
+  const positionWeight = (name: string): number => {
+    if (!inciOrder || inciOrder.length < 3) return 1;
+    const i = inciOrder.indexOf(canonicalKey(name));
+    if (i < 0) return 1;
+    const w = i < 3 ? 1.6 : i < 5 ? 1.3 : 1;
+    if (w > 1) boosted.push(name);
+    return w;
+  };
+  const weightedCount = (level: IngredientLevel) =>
+    flagged
+      .filter(f => f.level === level && !isEfsaCoveredChip(f.name, efsaCovered))
+      .reduce((sum, f) => sum + positionWeight(f.name), 0);
+  const redsW = p.category === 'cosmetic' ? weightedCount('avoid') : reds;
+  const orangesW = p.category === 'cosmetic' ? weightedCount('caution') : oranges;
+
+  const redPenalty = Math.round(redsW * 15);
+  const orangePenalty = Math.round(orangesW * 6);
+  let score = 100 - redPenalty - orangePenalty;
 
   if (reds > 0) {
     factors.push({
       label: `${reds} ingrediente${reds > 1 ? 's' : ''} a evitar`,
-      delta: -reds * 15, tone: 'negative',
+      delta: -redPenalty, tone: 'negative',
     });
   }
   if (oranges > 0) {
     factors.push({
       label: `${oranges} ingrediente${oranges > 1 ? 's' : ''} con precaución`,
-      delta: -oranges * 6, tone: 'negative',
+      delta: -orangePenalty, tone: 'negative',
+    });
+  }
+  if (boosted.length > 0) {
+    const uniq = Array.from(new Set(boosted)).slice(0, 3);
+    factors.push({
+      label: `${uniq.join(', ')} aparece${uniq.length > 1 ? 'n' : ''} entre los primeros de la lista (mayor concentración)`,
+      delta: null, tone: 'negative',
     });
   }
   if (reds === 0 && oranges === 0 && flagged.length > 0) {
