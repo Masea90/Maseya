@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_events: {
+        Row: {
+          created_at: string
+          event: string
+          id: number
+          props: Json | null
+          session_id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event: string
+          id?: never
+          props?: Json | null
+          session_id: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event?: string
+          id?: never
+          props?: Json | null
+          session_id?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       feedback: {
         Row: {
           context: Json | null
@@ -650,6 +677,15 @@ export type Database = {
           total_users: number
         }[]
       }
+      admin_recent_events: {
+        Args: { p_limit?: number }
+        Returns: {
+          created_at: string
+          event: string
+          is_auth: boolean
+          props: Json
+        }[]
+      }
       admin_recent_feedback: {
         Args: { p_barcode?: string; p_limit?: number; p_resolved?: boolean }
         Returns: {
@@ -721,6 +757,24 @@ export type Database = {
           product_name: string
           scans: number
           users: number
+        }[]
+      }
+      admin_usage_stats: {
+        Args: never
+        Returns: {
+          not_found_pct: number
+          photo_error: number
+          photo_start: number
+          photo_success: number
+          register_completed: number
+          register_conv_pct: number
+          register_prompt: number
+          scans: number
+          scans_not_found: number
+          sessions: number
+          sessions_anon: number
+          sessions_auth: number
+          window_days: number
         }[]
       }
       admin_users_list: {
