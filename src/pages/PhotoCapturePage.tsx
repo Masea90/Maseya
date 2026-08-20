@@ -136,6 +136,9 @@ const COPY = {
     retake: 'Repetir',
     use: 'Usar esta foto',
     starting: 'Iniciando cámara...',
+    shoot: 'Disparar',
+    flip: 'Girar cámara',
+
   },
   en: {
     title: 'Add product',
@@ -181,6 +184,9 @@ const COPY = {
     retake: 'Retake',
     use: 'Use photo',
     starting: 'Starting camera...',
+    shoot: 'Shoot',
+    flip: 'Flip camera',
+
   },
   fr: {
     title: 'Ajouter un produit',
@@ -226,6 +232,9 @@ const COPY = {
     retake: 'Reprendre',
     use: 'Utiliser',
     starting: 'Démarrage de la caméra...',
+    shoot: 'Déclencher',
+    flip: 'Changer de caméra',
+
   },
 };
 
@@ -257,6 +266,11 @@ const PhotoCapturePage = () => {
   }>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const [liveCamera, setLiveCamera] = useState(false);
+  const [facing, setFacing] = useState<'environment' | 'user'>('environment');
+  const [cameraDenied, setCameraDenied] = useState(false);
 
   useEffect(() => {
     console.log('[photo-capture] mount — realBarcode URL param =', realBarcode, '| addImageFor =', addImageFor, '| nutritionOnly =', nutritionOnly);
@@ -268,6 +282,108 @@ const PhotoCapturePage = () => {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
       fileInputRef.current.click();
+    }
+  };
+
+  const stopStream = () => {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    if (videoRef.current) videoRef.current.srcObject = null;
+  };
+
+  const closeLiveCamera = () => {
+    stopStream();
+    setLiveCamera(false);
+  };
+
+  // Always release the camera when leaving the screen or changing step.
+  useEffect(() => () => stopStream(), []);
+  useEffect(() => { if (!liveCamera) stopStream(); }, [liveCamera]);
+  useEffect(() => { closeLiveCamera(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [step]);
+
+  /**
+   * `capture="environment"` is only a hint — several Android browsers ignore it
+   * and reopen the last used (front) camera. So we drive the camera ourselves
+   * with an explicit facingMode constraint, falling back to the native input.
+   */
+  const getRearStream = async (want: 'environment' | 'user'): Promise<MediaStream> => {
+    const base = { width: { ideal: 1920 }, height: { ideal: 1080 } };
+    try {
+      return await navigator.mediaDevices.getUserMedia({
+        video: { ...base, facingMode: { exact: want } }, audio: false,
+      });
+    } catch (e) {
+      console.warn('[photo-capture] exact facingMode failed', e);
+    }
+    try {
+      return await navigator.mediaDevices.getUserMedia({
+        video: { ...base, facingMode: want }, audio: false,
+      });
+    } catch (e) {
+      console.warn('[photo-capture] loose facingMode failed', e);
+    }
+    // Last resort: pick a device whose label looks like the rear camera.
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const cams = devices.filter((d) => d.kind === 'videoinput');
+    const rear = want === 'environment'
+      ? cams.find((d) => /back|rear|trasera|environment|\b0\b/i.test(d.label)) ?? cams[cams.length - 1]
+      : cams.find((d) => /front|user|frontal/i.test(d.label)) ?? cams[0];
+    if (!rear) throw new Error('no camera device');
+    return navigator.mediaDevices.getUserMedia({ video: { ...base, deviceId: { exact: rear.deviceId } }, audio: false });
+  };
+
+  const startLiveCamera = async (want: 'environment' | 'user' = 'environment') => {
+    const isMobile = /android|iphone|ipad|ipod/i.test(navigator.userAgent);
+    if (!isMobile || !navigator.mediaDevices?.getUserMedia) {
+      openNativeCamera();
+      return;
+    }
+    setProcessing(true);
+    try {
+      stopStream();
+      const stream = await getRearStream(want);
+      streamRef.current = stream;
+      setFacing(want);
+      setCameraDenied(false);
+      setLiveCamera(true);
+      // Wait for the <video> to mount before attaching the stream.
+      setTimeout(() => {
+        if (videoRef.current && streamRef.current) {
+          videoRef.current.srcObject = streamRef.current;
+          void videoRef.current.play().catch(() => {});
+        }
+      }, 0);
+    } catch (e) {
+      console.error('[photo-capture] getUserMedia failed, falling back to file input', e);
+      setLiveCamera(false);
+      setCameraDenied(true);
+      openNativeCamera();
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const flipCamera = () => { void startLiveCamera(facing === 'environment' ? 'user' : 'environment'); };
+
+  const shoot = async () => {
+    const video = videoRef.current;
+    if (!video || !video.videoWidth) return;
+    setProcessing(true);
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+      closeLiveCamera();
+      if (!blob) return;
+      // Reuse the shared resize/square-crop pipeline (accepts Blob).
+      const dataUrl = await fileToResizedDataUrl(blob, { square: step === 'front' });
+      if (dataUrl) setPreview(dataUrl);
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -284,6 +400,7 @@ const PhotoCapturePage = () => {
   };
 
   const onRetake = () => { setPreview(null); };
+
 
   const postExtract = async (body: Record<string, unknown>): Promise<{ ok: true; data: any } | { ok: false; kind: ErrorKind; msg?: string | null; code?: string }> => {
     const { data: sess } = await supabase.auth.getSession();
@@ -500,11 +617,16 @@ const PhotoCapturePage = () => {
 
 
   const goBack = () => {
+    if (liveCamera) {
+      closeLiveCamera();
+      return;
+    }
     if (preview) {
       setPreview(null);
       return;
     }
     if (step === 'ingredients') { setStep('front'); return; }
+
     if (step === 'nutrition-capture') { setStep(nutritionOnly ? 'front' : 'nutrition-offer'); return; }
     if (step === 'nutrition-offer') { finalizeAndNavigate(); return; }
 
@@ -562,7 +684,25 @@ const PhotoCapturePage = () => {
             </div>
 
             <div className="relative w-full max-h-[55vh] aspect-[3/4] max-w-full rounded-3xl overflow-hidden bg-gradient-to-br from-muted to-muted/50 border border-border flex items-center justify-center mx-auto">
-              {preview ? (
+              {liveCamera ? (
+                <>
+                  <video
+                    ref={videoRef}
+                    className="w-full h-full object-cover"
+                    playsInline
+                    muted
+                    autoPlay
+                  />
+                  <button
+                    type="button"
+                    onClick={flipCamera}
+                    aria-label={c.flip}
+                    className="absolute top-3 right-3 min-w-[44px] min-h-[44px] rounded-full bg-black/45 text-white flex items-center justify-center backdrop-blur-sm"
+                  >
+                    <RefreshCw className="w-5 h-5" />
+                  </button>
+                </>
+              ) : preview ? (
                 <img src={preview} alt="" className="w-full h-full max-w-full max-h-full object-contain" />
               ) : processing ? (
                 <div className="flex flex-col items-center justify-center text-muted-foreground gap-3">
@@ -579,6 +719,11 @@ const PhotoCapturePage = () => {
               )}
             </div>
 
+            {cameraDenied && !liveCamera && (
+              <p className="text-xs text-muted-foreground text-center leading-relaxed">{c.cameraDenied}</p>
+            )}
+
+
             {/* Hidden native camera input — `capture="environment"` opens the
                 rear camera app on mobile with full resolution, autofocus and
                 flash. On desktop it falls back to a normal file picker. */}
@@ -591,7 +736,17 @@ const PhotoCapturePage = () => {
               onChange={onFileSelected}
             />
 
-            {preview ? (
+            {liveCamera ? (
+              <div className="flex gap-3">
+                <Button onClick={closeLiveCamera} variant="outline" className="h-14 rounded-2xl px-5">
+                  <X className="w-4 h-4" />
+                </Button>
+                <Button onClick={shoot} disabled={processing} className="flex-1 h-14 rounded-2xl">
+                  <Camera className="w-5 h-5 mr-2" />
+                  {c.shoot}
+                </Button>
+              </div>
+            ) : preview ? (
               <div className="flex gap-3">
                 <Button onClick={onRetake} variant="outline" className="flex-1 h-14 rounded-2xl">
                   <X className="w-4 h-4 mr-2" />
@@ -604,7 +759,7 @@ const PhotoCapturePage = () => {
               </div>
             ) : (
               <Button
-                onClick={openNativeCamera}
+                onClick={() => void startLiveCamera('environment')}
                 disabled={processing}
                 className="w-full h-14 rounded-2xl"
               >
@@ -612,6 +767,7 @@ const PhotoCapturePage = () => {
                 {heading.cta}
               </Button>
             )}
+
           </>
 
         )}
