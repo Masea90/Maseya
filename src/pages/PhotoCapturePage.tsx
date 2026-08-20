@@ -452,6 +452,7 @@ const PhotoCapturePage = () => {
     if (nutriments) payload.nutriments = nutriments;
     localStorage.setItem('maseya_photo_product', JSON.stringify(payload));
     localStorage.removeItem('maseya_photo_front');
+    track('photo_flow_success', { category: pendingProduct.category, has_nutriments: !!nutriments });
     navigate(realBarcode ? `/result/${realBarcode}` : '/result/photo', { replace: true });
   };
 
