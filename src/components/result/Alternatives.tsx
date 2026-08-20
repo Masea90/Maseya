@@ -33,7 +33,7 @@ interface Candidate {
 
 // v12: card score parity with the product page (full fields + per-finalist
 // refetch) and strict category/family filtering on EVERY candidate route.
-const CACHE_PREFIX = 'maseya_alts_v12::';
+const CACHE_PREFIX = 'maseya_alts_v13::';
 const FETCH_TIMEOUT_MS = 8000;
 const MIN_SCORE = 50;
 // TODO: derive country from user locale/settings when we expand beyond Spain.
