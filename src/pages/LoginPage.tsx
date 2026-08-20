@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { track } from '@/lib/analytics';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -67,6 +68,7 @@ const LoginPage = () => {
       if (isSignUp) {
         const result = await signUp(email, password);
         if (result.success) {
+          track('register_completed');
           setSignupEmail(email.toLowerCase().trim());
           setShowEmailConfirmation(true);
         } else if (result.code === 'already_registered') {
