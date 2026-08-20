@@ -176,7 +176,7 @@ serve(async (req) => {
 
 
 
-    const { product, profile, score, firstName, personalScore, topAlerts, factors, nutriments } = await req.json();
+    const { product, profile, score, firstName, personalScore, topAlerts, factors, nutriments, flaggedIngredients } = await req.json();
     if (!product || typeof product !== "object") {
       return new Response(JSON.stringify({ error: "Missing product" }), {
         status: 400,
