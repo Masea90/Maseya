@@ -1,4 +1,6 @@
+import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { track } from '@/lib/analytics';
 import { Button } from '@/components/ui/button';
 import { HeartPulse } from 'lucide-react';
 
@@ -9,6 +11,13 @@ import { HeartPulse } from 'lucide-react';
  */
 export const SignupInvite = ({ compact = false }: { compact?: boolean }) => {
   const navigate = useNavigate();
+
+  const promptTracked = useRef(false);
+  useEffect(() => {
+    if (promptTracked.current) return;
+    promptTracked.current = true;
+    track('register_prompt_shown');
+  }, []);
 
   const skipToScan = () => {
     try { localStorage.setItem('maseya_onboarding_skipped', '1'); } catch { /* ignore */ }

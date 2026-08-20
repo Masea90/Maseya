@@ -44,6 +44,24 @@ type ActivityRow = {
   score: number | null;
 };
 
+type UsageRow = {
+  window_days: number;
+  sessions: number;
+  sessions_anon: number;
+  sessions_auth: number;
+  scans: number;
+  scans_not_found: number;
+  not_found_pct: number | null;
+  photo_start: number;
+  photo_success: number;
+  photo_error: number;
+  register_prompt: number;
+  register_completed: number;
+  register_conv_pct: number | null;
+};
+
+type EventRow = { created_at: string; event: string; is_auth: boolean; props: Record<string, unknown> | null };
+
 type TopRow = { barcode: string; product_name: string | null; scans: number; users: number };
 
 type CandidateRow = {
@@ -105,6 +123,8 @@ export default function AdminPage() {
   const [candidates, setCandidates] = useState<CandidateRow[]>([]);
   const [candCounts, setCandCounts] = useState<{ pending: number; approved: number; rejected: number } | null>(null);
   const [candNotes, setCandNotes] = useState<Record<string, string>>({});
+  const [usage, setUsage] = useState<UsageRow[]>([]);
+  const [events, setEvents] = useState<EventRow[]>([]);
 
   const loadCandidates = useCallback(async (status: 'pending' | 'approved' | 'rejected') => {
     const [list, counts] = await Promise.all([
@@ -163,14 +183,18 @@ export default function AdminPage() {
   }, []);
 
   const loadAll = useCallback(async () => {
-    const [p, a, t] = await Promise.all([
+    const [p, a, t, u, e] = await Promise.all([
       supabase.rpc('admin_pulse'),
       supabase.rpc('admin_activity_feed', { p_limit: 30 }),
       supabase.rpc('admin_top_scanned', { p_limit: 10 }),
+      supabase.rpc('admin_usage_stats'),
+      supabase.rpc('admin_recent_events', { p_limit: 20 }),
     ]);
     if (Array.isArray(p.data) && p.data[0]) setPulse(p.data[0] as unknown as Pulse);
     if (a.data) setActivity(a.data as unknown as ActivityRow[]);
     if (t.data) setTop(t.data as unknown as TopRow[]);
+    if (u.data) setUsage(u.data as unknown as UsageRow[]);
+    if (e.data) setEvents(e.data as unknown as EventRow[]);
     await Promise.all([loadCounts(), loadFeedback(tab === 'pending', 0), loadCandidates(candTab)]);
   }, [loadCounts, loadFeedback, tab, loadCandidates, candTab]);
 
@@ -442,6 +466,72 @@ export default function AdminPage() {
                 ))}
               </ul>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Uso real (incluye anónimos) */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">📈 Uso real (incluye anónimos)</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {usage.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Sin eventos todavía.</p>
+            ) : (
+              usage.map((u) => (
+                <div key={u.window_days} className="space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground">Últimos {u.window_days} días</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <StatCard label="Sesiones" value={Number(u.sessions)} accent />
+                    <StatCard label="Sesiones anónimas" value={Number(u.sessions_anon)} />
+                    <StatCard label="Sesiones registradas" value={Number(u.sessions_auth)} />
+                    <StatCard label="Escaneos" value={Number(u.scans)} />
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <div className="rounded-xl border border-border p-3">
+                      <p className="text-[10px] uppercase text-muted-foreground">No encontrados</p>
+                      <p className="text-lg font-semibold">
+                        {Number(u.scans_not_found)} <span className="text-xs text-muted-foreground">({u.not_found_pct ?? 0}%)</span>
+                      </p>
+                    </div>
+                    <StatCard label="Fotos iniciadas" value={Number(u.photo_start)} />
+                    <StatCard label="Fotos completadas" value={Number(u.photo_success)} />
+                    <StatCard label="Fotos fallidas" value={Number(u.photo_error)} />
+                  </div>
+                  <div className="rounded-xl border border-border p-3">
+                    <p className="text-[10px] uppercase text-muted-foreground">Conversión a registro</p>
+                    <p className="text-lg font-semibold">
+                      {u.register_conv_pct ?? 0}%{' '}
+                      <span className="text-xs text-muted-foreground">
+                        ({Number(u.register_completed)} / {Number(u.register_prompt)} invitaciones)
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
+
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground mb-1.5">Últimos 20 eventos</p>
+              {events.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Sin eventos.</p>
+              ) : (
+                <ul className="space-y-1 max-h-72 overflow-auto">
+                  {events.map((e, i) => (
+                    <li key={i} className="text-[11px] font-mono flex gap-2 border-b border-border/60 pb-1">
+                      <span className="shrink-0 text-muted-foreground">
+                        {new Date(e.created_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                      <span className="shrink-0 font-semibold">{e.event}</span>
+                      <span className="shrink-0">{e.is_auth ? '👤' : '👻'}</span>
+                      <span className="truncate text-muted-foreground">
+                        {e.props ? JSON.stringify(e.props).slice(0, 90) : ''}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </CardContent>
         </Card>
 

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { track } from '@/lib/analytics';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Camera, ArrowLeft, Sparkles, RefreshCw, Check, X } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
@@ -252,6 +253,8 @@ const PhotoCapturePage = () => {
   const c = COPY[user.language] ?? COPY.es;
 
   const [step, setStep] = useState<Step>(nutritionOnly ? 'nutrition-capture' : 'front');
+
+  useEffect(() => { track('photo_flow_start', { step: 'front' }); }, []);
   const [errorKind, setErrorKind] = useState<ErrorKind>('lighting');
   const [serverErrorMessage, setServerErrorMessage] = useState<string | null>(null);
   const [frontPhoto, setFrontPhoto] = useState<string | null>(null);
@@ -449,6 +452,7 @@ const PhotoCapturePage = () => {
     if (nutriments) payload.nutriments = nutriments;
     localStorage.setItem('maseya_photo_product', JSON.stringify(payload));
     localStorage.removeItem('maseya_photo_front');
+    track('photo_flow_success', { category: pendingProduct.category, has_nutriments: !!nutriments });
     navigate(realBarcode ? `/result/${realBarcode}` : '/result/photo', { replace: true });
   };
 
@@ -541,6 +545,7 @@ const PhotoCapturePage = () => {
         if (res.ok === false) {
           setServerErrorMessage(res.msg ?? null);
           setErrorKind(res.kind);
+          track('photo_flow_error', { kind: res.kind });
           setStep('error');
           return;
         }
@@ -580,6 +585,7 @@ const PhotoCapturePage = () => {
             nutriments: autoNutriments,
           }));
           localStorage.removeItem('maseya_photo_front');
+          track('photo_flow_success', { category, has_nutriments: true });
           navigate(realBarcode ? `/result/${realBarcode}` : '/result/photo', { replace: true });
           return;
         }
@@ -602,11 +608,13 @@ const PhotoCapturePage = () => {
           ingredients_text, image, saved: serverSaved, savedAt: Date.now(),
         }));
         localStorage.removeItem('maseya_photo_front');
+        track('photo_flow_success', { category, has_nutriments: false });
         navigate(realBarcode ? `/result/${realBarcode}` : '/result/photo', { replace: true });
       } catch (e) {
         console.error('[photo-capture] ingredients error', e);
         setServerErrorMessage(null);
         setErrorKind('unexpected');
+        track('photo_flow_error', { kind: 'unexpected' });
         setStep('error');
       }
     }

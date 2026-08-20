@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { track } from '@/lib/analytics';
 import { useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import type { ProductData } from '@/lib/productLookup';
@@ -496,6 +497,7 @@ export const Alternatives = ({ current, currentScore, profile: profileProp, cons
 
         if (cancelled) return;
         try { sessionStorage.setItem(cacheKey, JSON.stringify(top)); } catch {}
+        track('alternatives_shown', { count: top.length });
         setItems(top);
       } catch (e) {
         if (!cancelled) {

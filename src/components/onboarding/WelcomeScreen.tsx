@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { track } from '@/lib/analytics';
 import { Button } from '@/components/ui/button';
 import { useUser } from '@/contexts/UserContext';
 
@@ -44,6 +45,7 @@ export const WelcomeScreen = () => {
     } catch {
       /* ignore storage errors (private mode) */
     }
+    track('welcome_cta');
     navigate('/scan');
   };
 
