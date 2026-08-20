@@ -232,6 +232,9 @@ const COPY = {
     retake: 'Reprendre',
     use: 'Utiliser',
     starting: 'Démarrage de la caméra...',
+    shoot: 'Déclencher',
+    flip: 'Changer de caméra',
+
   },
 };
 
