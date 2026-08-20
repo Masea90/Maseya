@@ -736,7 +736,17 @@ const PhotoCapturePage = () => {
               onChange={onFileSelected}
             />
 
-            {preview ? (
+            {liveCamera ? (
+              <div className="flex gap-3">
+                <Button onClick={closeLiveCamera} variant="outline" className="h-14 rounded-2xl px-5">
+                  <X className="w-4 h-4" />
+                </Button>
+                <Button onClick={shoot} disabled={processing} className="flex-1 h-14 rounded-2xl">
+                  <Camera className="w-5 h-5 mr-2" />
+                  {c.shoot}
+                </Button>
+              </div>
+            ) : preview ? (
               <div className="flex gap-3">
                 <Button onClick={onRetake} variant="outline" className="flex-1 h-14 rounded-2xl">
                   <X className="w-4 h-4 mr-2" />
@@ -749,7 +759,7 @@ const PhotoCapturePage = () => {
               </div>
             ) : (
               <Button
-                onClick={openNativeCamera}
+                onClick={() => void startLiveCamera('environment')}
                 disabled={processing}
                 className="w-full h-14 rounded-2xl"
               >
@@ -757,6 +767,7 @@ const PhotoCapturePage = () => {
                 {heading.cta}
               </Button>
             )}
+
           </>
 
         )}
