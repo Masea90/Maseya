@@ -184,6 +184,9 @@ const COPY = {
     retake: 'Retake',
     use: 'Use photo',
     starting: 'Starting camera...',
+    shoot: 'Shoot',
+    flip: 'Flip camera',
+
   },
   fr: {
     title: 'Ajouter un produit',
