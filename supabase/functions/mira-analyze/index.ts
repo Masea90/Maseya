@@ -259,7 +259,25 @@ Explícame si este cosmético es adecuado para mi piel específicamente y por qu
       });
     }
 
+    // Best-effort candidate mining — never blocks or breaks Mira's answer.
+    try {
+      const task = collectCandidates({
+        apiKey: LOVABLE_API_KEY,
+        product,
+        alreadyFlagged: Array.isArray(flaggedIngredients)
+          ? flaggedIngredients.map((x: unknown) => String(x)).slice(0, 40)
+          : [],
+        barcode: typeof product.barcode === "string" && product.barcode ? product.barcode : null,
+        category: product.category === "food" ? "food" : "cosmetic",
+      }).catch((e) => console.error("[candidates] failed", e));
+      const rt = (globalThis as { EdgeRuntime?: { waitUntil: (p: Promise<unknown>) => void } }).EdgeRuntime;
+      if (rt?.waitUntil) rt.waitUntil(task);
+    } catch (e) {
+      console.error("[candidates] skipped", e);
+    }
+
     return new Response(upstream.body, {
+
       status: 200,
       headers: {
         ...corsHeaders,
