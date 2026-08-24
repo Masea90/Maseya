@@ -55,7 +55,7 @@ export const WelcomeScreen = () => {
     } catch {
       /* ignore storage errors (private mode) */
     }
-    track('welcome_cta');
+    track('welcome_cta', { language: user.language });
     navigate('/scan');
   };
 
