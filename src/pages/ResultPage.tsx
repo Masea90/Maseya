@@ -218,6 +218,8 @@ const COPY = {
     buscarMasTarde: "Tu peux aussi rechercher ce produit plus tard, une fois qu'il sera intégré à notre base de données.",
     general: 'Général',
     paraTi: 'Pour toi',
+    bloqueoCtaCuenta: "Crée ton compte gratuit pour voir ta note personnelle",
+    bloqueoCtaConsent: "Active la personnalisation pour voir ta note personnelle",
     comoCalculamos: 'Comment calculons-nous la note ?',
     generalExplainPre: 'La ',
     generalExplainBold: 'note générale',
