@@ -66,6 +66,8 @@ const COPY = {
     buscarMasTarde: 'También puedes buscar este producto más tarde cuando nuestra base de datos lo incluya.',
     general: 'General',
     paraTi: 'Para ti',
+    bloqueoCtaCuenta: 'Crea tu cuenta gratis para ver tu nota personal',
+    bloqueoCtaConsent: 'Activa la personalización para ver tu nota personal',
     comoCalculamos: '¿Cómo calculamos la puntuación?',
     generalExplainPre: 'La ',
     generalExplainBold: 'puntuación general',
