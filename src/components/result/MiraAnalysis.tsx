@@ -2,6 +2,42 @@ import { useEffect, useRef, useState } from 'react';
 import { Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { personalAlerts } from '@/lib/scoring';
+import { useUser } from '@/contexts/UserContext';
+import type { Language } from '@/lib/i18n';
+
+const COPY: Record<Language, {
+  noData: string; general: string; analyzing: string;
+  good: (n: string) => string; ok: (n: string) => string; bad: (n: string) => string;
+  fallbackName: string;
+}> = {
+  es: {
+    noData: 'Fotografía la etiqueta para obtener un análisis completo de este producto.',
+    general: 'Análisis general del producto. Activa la personalización para ver si es adecuado para tu perfil.',
+    analyzing: 'Mira está analizando...',
+    good: n => `${n} parece una buena opción según tu perfil.`,
+    ok: n => `${n} es aceptable, aunque no destaca para tu perfil.`,
+    bad: n => `${n} no es ideal según tu perfil — revisa los ingredientes destacados.`,
+    fallbackName: 'Este producto',
+  },
+  en: {
+    noData: 'Photograph the label to get a full analysis of this product.',
+    general: 'General product analysis. Turn on personalization to see if it suits your profile.',
+    analyzing: 'Mira is analyzing...',
+    good: n => `${n} looks like a good option for your profile.`,
+    ok: n => `${n} is acceptable, though it does not stand out for your profile.`,
+    bad: n => `${n} is not ideal for your profile — check the highlighted ingredients.`,
+    fallbackName: 'This product',
+  },
+  fr: {
+    noData: "Photographie l'étiquette pour obtenir une analyse complète de ce produit.",
+    general: 'Analyse générale du produit. Active la personnalisation pour voir si ce produit te convient.',
+    analyzing: 'Mira analyse...',
+    good: n => `${n} semble une bonne option pour ton profil.`,
+    ok: n => `${n} est acceptable, mais ne se distingue pas pour ton profil.`,
+    bad: n => `${n} n'est pas idéal pour ton profil — vérifie les ingrédients signalés.`,
+    fallbackName: 'Ce produit',
+  },
+};
 
 
 interface Props {
@@ -35,6 +71,7 @@ function buildBasicSummary(
   product: Props['product'],
   profile: any,
   score: number,
+  c: (typeof COPY)[Language],
 ): string {
   const productLike: any = {
     name: product.product_name,
@@ -55,21 +92,20 @@ function buildBasicSummary(
   };
   const alerts = personalAlerts(productLike, profile);
   const top = alerts.find(a => a.level === 'danger') || alerts.find(a => a.level === 'warn') || alerts[0];
-  const productLabel = product.product_name || 'Este producto';
+  const productLabel = product.product_name || c.fallbackName;
 
   if (top) {
     return `${productLabel}: ${top.text}`;
   }
-  if (score >= 70) {
-    return `${productLabel} parece una buena opción según tu perfil.`;
-  }
-  if (score >= 40) {
-    return `${productLabel} es aceptable, aunque no destaca para tu perfil.`;
-  }
-  return `${productLabel} no es ideal según tu perfil — revisa los ingredientes destacados.`;
+  if (score >= 70) return c.good(productLabel);
+  if (score >= 40) return c.ok(productLabel);
+  return c.bad(productLabel);
 }
 
 export const MiraAnalysis = ({ product, profile, score, hasIngredientData = true, firstName = null, personalScore = null, topAlerts = [], factors = [], nutriments = null, flaggedIngredients = [] }: Props) => {
+  const { user } = useUser();
+  const language = user.language;
+  const c = COPY[language] ?? COPY.es;
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -81,10 +117,10 @@ export const MiraAnalysis = ({ product, profile, score, hasIngredientData = true
   // Free basic summary (always available, no AI call). Used as a fallback while
   // the streaming AI response arrives or if it fails.
   const basicSummary = !hasIngredientData
-    ? 'Fotografía la etiqueta para obtener un análisis completo de este producto.'
+    ? c.noData
     : profile
-      ? buildBasicSummary(product, profile, score)
-      : 'Análisis general del producto. Activa la personalización para ver si es adecuado para tu perfil.';
+      ? buildBasicSummary(product, profile, score, c)
+      : c.general;
 
   // Track cancellation per identity so a parent re-render (which creates new
   // `product`/`profile` object refs) does NOT kill an in-flight Mira stream.
@@ -97,7 +133,7 @@ export const MiraAnalysis = ({ product, profile, score, hasIngredientData = true
     // without a barcode.
     const identity = (product.barcode && product.barcode !== 'photo'
       ? `bc:${product.barcode}`
-      : `nm:${product.product_name}::${product.ingredients_text || ''}`) + `::ps:${personalScore ?? 'x'}`;
+      : `nm:${product.product_name}::${product.ingredients_text || ''}`) + `::ps:${personalScore ?? 'x'}::lg:${language}`;
     if (startedForRef.current === identity) return;
 
     // New identity → cancel any previous stream AND wipe the previous product's
@@ -130,7 +166,7 @@ export const MiraAnalysis = ({ product, profile, score, hasIngredientData = true
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ product, profile, score, firstName, personalScore, topAlerts, factors, nutriments, flaggedIngredients }),
+          body: JSON.stringify({ product, profile, score, firstName, personalScore, topAlerts, factors, nutriments, flaggedIngredients, language }),
         });
         if (cancelled) return;
         if (!res.ok || !res.body) {
@@ -175,7 +211,7 @@ export const MiraAnalysis = ({ product, profile, score, hasIngredientData = true
     // NOTE: no cleanup that unconditionally cancels — a parent re-render
     // must not abort an in-flight analysis. Cancellation happens above only
     // when the product identity actually changes.
-  }, [product, profile, score, hasIngredientData, personalScore]);
+  }, [product, profile, score, hasIngredientData, personalScore, language]);
 
   const displayText = text || basicSummary;
 
@@ -187,7 +223,7 @@ export const MiraAnalysis = ({ product, profile, score, hasIngredientData = true
       <div className="flex-1 min-w-0">
         <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Mira</p>
         {loading && !text ? (
-          <p className="text-sm text-muted-foreground italic">Mira está analizando...</p>
+          <p className="text-sm text-muted-foreground italic">{c.analyzing}</p>
         ) : error ? (
           <p className="text-sm leading-relaxed">{basicSummary}</p>
         ) : (

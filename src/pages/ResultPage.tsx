@@ -946,7 +946,7 @@ const ResultPage = () => {
             <Collapsible defaultOpen>
               <div className="bg-card rounded-2xl border border-border overflow-hidden">
                 <CollapsibleTrigger className="w-full p-4 flex items-center justify-between">
-                  <span className="font-semibold flex items-center gap-2">🔬 Ingredientes generales</span>
+                  <span className="font-semibold flex items-center gap-2">🔬 {c.ingredientesGenerales}</span>
                   <ChevronDown className="w-4 h-4" />
                 </CollapsibleTrigger>
                 <CollapsibleContent>
@@ -954,11 +954,11 @@ const ResultPage = () => {
                     {!hasIngredientData ? (
                       <div className="space-y-3 text-center">
                         <p className="text-sm text-muted-foreground">
-                          Sin lista de ingredientes disponible para este producto. Puedes fotografiar la etiqueta para un análisis completo.
+                          {c.sinListaIngredientes}
                         </p>
                         <Button onClick={() => navigate(barcode && barcode !== 'photo' ? `/scan/photo?barcode=${barcode}` : '/scan/photo')} variant="outline" className="rounded-xl">
                           <Camera className="w-4 h-4 mr-2" />
-                          Fotografiar etiqueta
+                          {c.fotografiarEtiqueta}
                         </Button>
                       </div>
                     ) : (
@@ -981,20 +981,20 @@ const ResultPage = () => {
             <Collapsible defaultOpen>
               <div className="bg-card rounded-2xl border border-border overflow-hidden">
                 <CollapsibleTrigger className="w-full p-4 flex items-center justify-between">
-                  <span className="font-semibold flex items-center gap-2">🌿 ¿Es natural?</span>
+                  <span className="font-semibold flex items-center gap-2">🌿 {c.esNatural}</span>
                   <ChevronDown className="w-4 h-4" />
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <div className="p-4 pt-0 space-y-3">
                     {!hasIngredientData ? (
                       <p className="text-sm text-muted-foreground">
-                        Datos insuficientes — fotografía la etiqueta para calcular naturalidad
+                        {c.datosInsuficientesNatural}
                       </p>
                     ) : (
                       <>
                         <div>
                           <div className="flex justify-between text-sm mb-1">
-                            <span>Ingredientes limpios</span><span className="font-semibold">{nat.pct}%</span>
+                            <span>{c.ingredientesLimpios}</span><span className="font-semibold">{nat.pct}%</span>
                           </div>
                           <div className="h-2 bg-muted rounded-full overflow-hidden">
                             <div className="h-full bg-primary" style={{ width: `${nat.pct}%` }} />
@@ -1002,7 +1002,7 @@ const ResultPage = () => {
                         </div>
                         <div className="flex flex-wrap gap-2">
                           <Badge className="bg-primary/10 text-primary border border-primary/20">{nat.level}</Badge>
-                          {nat.organic && <Badge className="bg-[#95D5B2] text-[#1B1B1B]">Bio / Orgánico</Badge>}
+                          {nat.organic && <Badge className="bg-[#95D5B2] text-[#1B1B1B]">{c.bioOrganico}</Badge>}
                         </div>
                       </>
                     )}
@@ -1014,7 +1014,7 @@ const ResultPage = () => {
             <Collapsible defaultOpen>
               <div className="bg-card rounded-2xl border-2 border-primary/40 overflow-hidden">
                 <CollapsibleTrigger className="w-full p-4 flex items-center justify-between">
-                  <span className="font-semibold flex items-center gap-2">👤 ¿Es para ti?</span>
+                  <span className="font-semibold flex items-center gap-2">👤 {c.esParaTi}</span>
                   <ChevronDown className="w-4 h-4" />
                 </CollapsibleTrigger>
                 <CollapsibleContent>
@@ -1026,22 +1026,22 @@ const ResultPage = () => {
                         <HeartPulse className="w-5 h-5 text-primary mt-0.5 shrink-0" />
                         <div className="flex-1 space-y-2">
                           <p className="text-sm text-foreground/90">
-                            Activa la personalización para saber si este producto es adecuado para tu perfil.
+                            {c.activaPersonalizacion}
                           </p>
                           <Button
                             size="sm"
                             className="rounded-xl"
                             onClick={() => setShowConsentDialog(true)}
                           >
-                            Activar personalización
+                            {c.activarPersonalizacion}
                           </Button>
                         </div>
                       </div>
                     ) : alerts.length === 0 ? (
                       <p className="text-sm text-muted-foreground">
                         {hasIngredientData
-                          ? 'No hemos detectado incompatibilidades con tu perfil. Verifica siempre el etiquetado.'
-                          : 'Fotografía la etiqueta para ver si este producto es adecuado para ti.'}
+                          ? c.noIncompatibilidades
+                          : c.fotografiaParaTi}
                       </p>
                     ) : (
                       alerts.map((a, i) => (
@@ -1122,8 +1122,8 @@ const ResultPage = () => {
         {/* Medical / legal disclaimer — always visible on results */}
         <div className="mt-4 rounded-2xl border border-border/70 bg-muted/40 p-4">
           <p className="text-[11px] leading-relaxed text-muted-foreground">
-            <span className="font-semibold text-foreground/80">Aviso: </span>
-            Maseya ofrece información orientativa basada en datos públicos y en tu perfil. No sustituye el consejo de un médico, dermatólogo o nutricionista. Si tienes alergias graves, verifica siempre el etiquetado oficial del producto.
+            <span className="font-semibold text-foreground/80">{c.avisoBold}</span>
+            {c.avisoBody}
           </p>
         </div>
 
@@ -1133,7 +1133,7 @@ const ResultPage = () => {
             onClick={() => setShowFeedbackDialog(true)}
             className="text-xs text-muted-foreground hover:text-primary underline underline-offset-2"
           >
-            ¿Algo no cuadra en este análisis? Cuéntanoslo
+            {c.feedbackLink}
           </button>
         </div>
       </div>
@@ -1182,24 +1182,22 @@ const ResultPage = () => {
               </div>
             </div>
             <DialogTitle className="text-center font-display">
-              Activar personalización
+              {c.activarPersonalizacion}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3 text-sm text-foreground/90">
             <p>
-              Acepto el tratamiento de mis datos de salud (alergias, tipo de piel, embarazo) para
-              personalizar los análisis.
+              {c.consentBody}
             </p>
             <p className="text-xs text-muted-foreground">
-              Sin este consentimiento la app sigue funcionando, pero solo con análisis generales.
-              Puedes cambiarlo en cualquier momento.{' '}
+              {c.consentNotePre}{' '}
               <a
                 href="/privacy"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="underline underline-offset-2"
               >
-                Política de privacidad
+                {c.politicaPrivacidad}
               </a>
               .
             </p>
@@ -1210,10 +1208,10 @@ const ResultPage = () => {
               className="flex-1 rounded-xl"
               onClick={() => setShowConsentDialog(false)}
             >
-              Ahora no
+              {c.ahoraNo}
             </Button>
             <Button className="flex-1 rounded-xl" onClick={grantHealthConsent}>
-              Acepto
+              {c.acepto}
             </Button>
           </DialogFooter>
         </DialogContent>
