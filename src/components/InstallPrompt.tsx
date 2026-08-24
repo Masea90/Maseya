@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { X, Share, Plus, Download, Compass } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
+import { track } from '@/lib/analytics';
 
 const DISMISS_KEY = 'maseya_install_dismissed_at';
 const DISMISS_DAYS = 14;
@@ -132,7 +133,15 @@ export const InstallPrompt = () => {
     };
   }, []);
 
+  const shownTracked = useRef(false);
+  useEffect(() => {
+    if (!visible || shownTracked.current) return;
+    shownTracked.current = true;
+    track('install_prompt_shown', { variant: inApp ? 'in_app' : iosHint ? 'ios_hint' : 'native' });
+  }, [visible, inApp, iosHint]);
+
   const dismiss = () => {
+    track('install_prompt_dismissed');
     try { localStorage.setItem(DISMISS_KEY, String(Date.now())); } catch {}
     setVisible(false);
   };

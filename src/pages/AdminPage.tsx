@@ -60,6 +60,21 @@ type UsageRow = {
   register_conv_pct: number | null;
 };
 
+type FunnelRow = { window_days: number; step: string; step_order: number; sessions: number };
+type DenialRow = { window_days: number; reason: string; events: number; sessions: number };
+
+const STEP_LABELS: Record<string, string> = {
+  app_open: 'Abre la app',
+  welcome_view: 'Ve la bienvenida',
+  welcome_cta: 'Pulsa "Escanear"',
+  scanner_view: 'Llega al escáner',
+  camera_permission_granted: 'Cámara concedida',
+  scan_success: 'Escaneo con éxito',
+  result_view: 'Ve el resultado',
+  register_prompt_shown: 'Ve la invitación',
+  register_completed: 'Se registra',
+};
+
 type EventRow = { created_at: string; event: string; is_auth: boolean; props: Record<string, unknown> | null };
 
 type TopRow = { barcode: string; product_name: string | null; scans: number; users: number };
@@ -125,6 +140,8 @@ export default function AdminPage() {
   const [candNotes, setCandNotes] = useState<Record<string, string>>({});
   const [usage, setUsage] = useState<UsageRow[]>([]);
   const [events, setEvents] = useState<EventRow[]>([]);
+  const [funnel, setFunnel] = useState<FunnelRow[]>([]);
+  const [denials, setDenials] = useState<DenialRow[]>([]);
 
   const loadCandidates = useCallback(async (status: 'pending' | 'approved' | 'rejected') => {
     const [list, counts] = await Promise.all([
@@ -183,18 +200,22 @@ export default function AdminPage() {
   }, []);
 
   const loadAll = useCallback(async () => {
-    const [p, a, t, u, e] = await Promise.all([
+    const [p, a, t, u, e, f, d] = await Promise.all([
       supabase.rpc('admin_pulse'),
       supabase.rpc('admin_activity_feed', { p_limit: 30 }),
       supabase.rpc('admin_top_scanned', { p_limit: 10 }),
       supabase.rpc('admin_usage_stats'),
       supabase.rpc('admin_recent_events', { p_limit: 20 }),
+      supabase.rpc('admin_funnel'),
+      supabase.rpc('admin_camera_denials'),
     ]);
     if (Array.isArray(p.data) && p.data[0]) setPulse(p.data[0] as unknown as Pulse);
     if (a.data) setActivity(a.data as unknown as ActivityRow[]);
     if (t.data) setTop(t.data as unknown as TopRow[]);
     if (u.data) setUsage(u.data as unknown as UsageRow[]);
     if (e.data) setEvents(e.data as unknown as EventRow[]);
+    if (f.data) setFunnel(f.data as unknown as FunnelRow[]);
+    if (d.data) setDenials(d.data as unknown as DenialRow[]);
     await Promise.all([loadCounts(), loadFeedback(tab === 'pending', 0), loadCandidates(candTab)]);
   }, [loadCounts, loadFeedback, tab, loadCandidates, candTab]);
 
@@ -510,6 +531,48 @@ export default function AdminPage() {
                 </div>
               ))
             )}
+
+            {[7, 30].map((win) => {
+              const rows = funnel
+                .filter((r) => Number(r.window_days) === win)
+                .sort((a, b) => Number(a.step_order) - Number(b.step_order));
+              if (rows.length === 0) return null;
+              const first = Number(rows[0].sessions) || 0;
+              const dens = denials.filter((r) => Number(r.window_days) === win);
+              return (
+                <div key={`funnel-${win}`} className="space-y-1.5">
+                  <p className="text-xs font-semibold text-muted-foreground">
+                    Embudo de entrada · últimos {win} días (sesiones únicas)
+                  </p>
+                  {rows.map((r, i) => {
+                    const value = Number(r.sessions) || 0;
+                    const prev = i === 0 ? value : Number(rows[i - 1].sessions) || 0;
+                    const stepPct = i === 0 ? 100 : prev > 0 ? Math.round((value / prev) * 1000) / 10 : 0;
+                    const totalPct = first > 0 ? Math.round((value / first) * 1000) / 10 : 0;
+                    return (
+                      <div key={r.step} className="flex items-center gap-2 text-xs">
+                        <span className="w-40 shrink-0 truncate">{STEP_LABELS[r.step] ?? r.step}</span>
+                        <div className="flex-1 h-2.5 rounded-full bg-muted overflow-hidden">
+                          <div className="h-full bg-primary" style={{ width: `${Math.min(totalPct, 100)}%` }} />
+                        </div>
+                        <span className="w-10 text-right font-semibold">{value}</span>
+                        <span className="w-28 text-right text-muted-foreground">
+                          {stepPct}% del paso previo
+                        </span>
+                      </div>
+                    );
+                  })}
+                  <p className="text-[11px] text-muted-foreground">
+                    Cámara denegada:{' '}
+                    {dens.length === 0
+                      ? '0'
+                      : dens
+                          .map((d) => `${d.reason} (${Number(d.sessions)} sesiones / ${Number(d.events)} eventos)`)
+                          .join(' · ')}
+                  </p>
+                </div>
+              );
+            })}
 
             <div>
               <p className="text-xs font-semibold text-muted-foreground mb-1.5">Últimos 20 eventos</p>

@@ -7,6 +7,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { useUser } from '@/contexts/UserContext';
 import { Button } from '@/components/ui/button';
 import { InstallPrompt } from '@/components/InstallPrompt';
+import { track } from '@/lib/analytics';
 
 const COPY = {
   es: {
@@ -170,7 +171,9 @@ const ScannerPage = () => {
   };
 
   const startNative = async (detector: BarcodeDetectorLike) => {
+    track('camera_permission_requested', { engine: 'native' });
     const stream = await navigator.mediaDevices.getUserMedia(getCameraConstraints());
+    track('camera_permission_granted', { engine: 'native' });
     nativeStreamRef.current = stream;
     const video = videoRef.current;
     if (!video) throw new Error('video element missing');
@@ -203,9 +206,11 @@ const ScannerPage = () => {
       rafRef.current = requestAnimationFrame(tick);
     };
     rafRef.current = requestAnimationFrame(tick);
+    track('scanner_active', { engine: 'native' });
   };
 
   const startZxingWithRotation = async () => {
+    track('camera_permission_requested', { engine: 'zxing' });
     const codeReader = new BrowserMultiFormatReader(getScanHints(), {
       delayBetweenScanAttempts: 120,
       delayBetweenScanSuccess: 250,
@@ -221,6 +226,8 @@ const ScannerPage = () => {
       }
     );
     controlsRef.current = controls;
+    track('camera_permission_granted', { engine: 'zxing' });
+    track('scanner_active', { engine: 'zxing' });
     await improveVideoTrack();
 
     // Rotation fallback: after ~2s without success, try decoding rotated frames
@@ -261,6 +268,7 @@ const ScannerPage = () => {
     setErrorMsg('');
     setPhase('scanning');
     stoppedRef.current = false;
+    let nativeFailed = false;
     try {
       if (NativeBarcodeDetector) {
         try {
@@ -271,10 +279,13 @@ const ScannerPage = () => {
           return;
         } catch (e) {
           console.warn('[scanner] native BarcodeDetector failed, falling back to zxing', e);
+          nativeFailed = true;
         }
       }
       await startZxingWithRotation();
     } catch (e) {
+      const reason = e instanceof Error ? (e.name || e.message) : String(e);
+      track('camera_permission_denied', { reason, after_native_fallback: nativeFailed });
       console.error('[scanner] camera error', e);
       setErrorMsg(c.cameraError);
       setPhase('error');
@@ -283,7 +294,12 @@ const ScannerPage = () => {
 
   const location = useLocation();
 
+  const viewTracked = useRef(false);
   useEffect(() => {
+    if (!viewTracked.current) {
+      viewTracked.current = true;
+      track('scanner_view');
+    }
     startScanning();
     return () => { void stop(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -607,6 +607,15 @@ export type Database = {
           user_email: string
         }[]
       }
+      admin_camera_denials: {
+        Args: never
+        Returns: {
+          events: number
+          reason: string
+          sessions: number
+          window_days: number
+        }[]
+      }
       admin_candidates_counts: {
         Args: never
         Returns: {
@@ -661,6 +670,15 @@ export type Database = {
           resolved_at: string
           type: string
           user_id: string
+        }[]
+      }
+      admin_funnel: {
+        Args: never
+        Returns: {
+          sessions: number
+          step: string
+          step_order: number
+          window_days: number
         }[]
       }
       admin_pulse: {
