@@ -1398,7 +1398,17 @@ export function calculatePersonalScoreBreakdown(
   if (hardFailReasons.length > 0) {
     return { score: 5, factors };
   }
-  return { score: clamp100(score), factors };
+  // The personal layer may only warn, never improve: cap at the general score.
+  const capped = clamp100(score);
+  if (capped > baseScore) {
+    factors.push({
+      label: 'Tu perfil no penaliza este producto: coincide con la nota general',
+      delta: null,
+      tone: 'neutral',
+    });
+    return { score: baseScore, factors };
+  }
+  return { score: capped, factors };
 }
 
 export function calculatePersonalScore(
