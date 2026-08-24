@@ -60,11 +60,20 @@ export function track(event: string, props?: Record<string, unknown>): void {
   }
 }
 
+/** Current UI language, read defensively from storage (no personal data). */
+export function currentLanguage(): string {
+  try {
+    return localStorage.getItem('maseya_language') || 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
+
 /** Fires 'app_open' at most once per browser tab session. */
 export function trackAppOpen(): void {
   try {
     if (sessionStorage.getItem('maseya_app_open')) return;
     sessionStorage.setItem('maseya_app_open', '1');
   } catch { /* keep going — worst case we log one extra open */ }
-  track('app_open');
+  track('app_open', { language: currentLanguage() });
 }
