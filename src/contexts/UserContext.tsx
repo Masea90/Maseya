@@ -1,5 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Language, getTranslation, TranslationKey } from '@/lib/i18n';
+import {
+  Language,
+  getTranslation,
+  TranslationKey,
+  detectDeviceLanguage,
+  LANGUAGE_STORAGE_KEY,
+  LANGUAGE_SOURCE_KEY,
+} from '@/lib/i18n';
 import { useAuth } from './AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -27,16 +34,45 @@ interface UserContextType {
   isLoading: boolean;
 }
 
-const getStoredLanguage = (): Language => {
-  const stored = typeof window !== 'undefined' ? localStorage.getItem('maseya_language') : null;
-  if (stored === 'en' || stored === 'es' || stored === 'fr') return stored;
-  return 'es'; // default Spanish
+const readStored = (key: string): string | null => {
+  try {
+    return typeof window !== 'undefined' ? localStorage.getItem(key) : null;
+  } catch {
+    return null;
+  }
 };
 
-const getExplicitStoredLanguage = (): Language | null => {
-  const stored = typeof window !== 'undefined' ? localStorage.getItem('maseya_language') : null;
+/** Language explicitly chosen by the user (manual pick always wins). */
+const getManualLanguage = (): Language | null => {
+  const stored = readStored(LANGUAGE_STORAGE_KEY);
+  const source = readStored(LANGUAGE_SOURCE_KEY);
+  if (source !== 'manual') return null;
   return stored === 'en' || stored === 'es' || stored === 'fr' ? stored : null;
 };
+
+/** Any stored language, manual or auto-detected. */
+const getStoredLanguage = (): Language | null => {
+  const stored = readStored(LANGUAGE_STORAGE_KEY);
+  return stored === 'en' || stored === 'es' || stored === 'fr' ? stored : null;
+};
+
+/**
+ * First boot: no stored language and no profile language -> detect from the
+ * device and persist it flagged as auto-detected.
+ */
+const resolveInitialLanguage = (): Language => {
+  const stored = getStoredLanguage();
+  if (stored) return stored;
+  const detected = detectDeviceLanguage();
+  try {
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, detected);
+    localStorage.setItem(LANGUAGE_SOURCE_KEY, 'auto');
+  } catch {
+    /* ignore */
+  }
+  return detected;
+};
+
 
 const createDefaultUser = (email?: string): UserProfile => ({
   name: email?.split('@')[0] || 'Guest',
