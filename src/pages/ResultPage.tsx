@@ -35,6 +35,219 @@ import { SignupInvite } from '@/components/onboarding/SignupInvite';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { HeartPulse } from 'lucide-react';
 
+const COPY = {
+  es: {
+    volver: 'Volver',
+    verFotoGrande: 'Ver foto en grande',
+    buscandoInfo: 'Buscando información del producto...',
+    analizando: 'Analizando producto...',
+    enrichingHint: 'Estamos consultando bases de datos internacionales para encontrar este producto.',
+    fueraDeAmbito: 'Fuera de ámbito',
+    productoNoEncontrado: 'Producto no encontrado',
+    fueraDeAmbitoBody: 'Maseya analiza alimentación y cosmética 📚 — este código corresponde a otro tipo de producto.',
+    noInfoBody: 'No tenemos información de este producto en nuestras bases.',
+    volverAEscanear: 'Volver a escanear',
+    fotografiarIngredientes: 'Fotografiar ingredientes',
+    fotografiarEtiqueta: 'Fotografiar etiqueta',
+    complemento: 'Complemento alimenticio',
+    bebidaAlcoholica: 'Bebida alcohólica',
+    alimentacion: 'Alimentación',
+    cosmetica: 'Cosmética',
+    anadidoBaseDatos: 'Añadido a nuestra base de datos',
+    guardadoDispositivo: 'Análisis guardado en tu dispositivo',
+    complementoWarning: 'Los complementos alimenticios no se evalúan con criterios de alimentos (Nutriscore no aplica). Consulta a un profesional sanitario antes de tomarlos.',
+    alcoholWarning: 'Maseya no puntúa bebidas alcohólicas — el Nutri-Score no aplica a este tipo de producto.',
+    ingredientesTitle: 'Ingredientes',
+    esParaTi: '¿Es para ti?',
+    ayudanosAnalizar: 'Ayúdanos a analizar este producto',
+    ayudanosAnalizarBody: 'Este producto aún no tiene ingredientes en nuestra base de datos. Fotografía la etiqueta y Mira lo analizará al instante.',
+    buscarMasTarde: 'También puedes buscar este producto más tarde cuando nuestra base de datos lo incluya.',
+    general: 'General',
+    paraTi: 'Para ti',
+    comoCalculamos: '¿Cómo calculamos la puntuación?',
+    generalExplainPre: 'La ',
+    generalExplainBold: 'puntuación general',
+    generalExplainPost: ' evalúa el producto para el público general (Nutriscore + ingredientes).',
+    personalExplainPre: 'La ',
+    personalExplainBold: 'puntuación personal',
+    personalExplainPost: ' ajusta esa nota según tu perfil: piel, alergias, dieta y objetivos.',
+    confAlta: 'Confianza alta',
+    confMedia: 'Confianza media',
+    confBaja: 'Confianza baja',
+    faltaPrefix: 'Falta: ',
+    ctaMissingIngredients: 'Nota provisional — fotografía la lista de ingredientes para completar el análisis',
+    ctaFoodNutrition: 'Nota provisional — fotografía la tabla nutricional para desbloquear la nota completa',
+    ctaCosmeticIngredients: 'Nota provisional — fotografía la lista de ingredientes completa para desbloquear la nota completa',
+    fotografiar: 'Fotografiar',
+    whyGeneral: '¿Por qué esta nota general?',
+    whyPersonal: '¿Por qué tu nota personal?',
+    incompleteBold: 'Análisis incompleto:',
+    incompleteRest: ' esta nota se basa solo en el Nutriscore. Fotografía la lista de ingredientes para un análisis completo.',
+    sinDatos: 'Sin datos',
+    datosInsuficientes: 'Datos insuficientes',
+    fotografiaParaPuntuacion: 'Fotografía la etiqueta para obtener tu puntuación personalizada.',
+    ingredientesGenerales: 'Ingredientes generales',
+    sinListaIngredientes: 'Sin lista de ingredientes disponible para este producto. Puedes fotografiar la etiqueta para un análisis completo.',
+    esNatural: '¿Es natural?',
+    datosInsuficientesNatural: 'Datos insuficientes — fotografía la etiqueta para calcular naturalidad',
+    ingredientesLimpios: 'Ingredientes limpios',
+    bioOrganico: 'Bio / Orgánico',
+    activaPersonalizacion: 'Activa la personalización para saber si este producto es adecuado para tu perfil.',
+    activarPersonalizacion: 'Activar personalización',
+    noIncompatibilidades: 'No hemos detectado incompatibilidades con tu perfil. Verifica siempre el etiquetado.',
+    fotografiaParaTi: 'Fotografía la etiqueta para ver si este producto es adecuado para ti.',
+    avisoBold: 'Aviso: ',
+    avisoBody: 'Maseya ofrece información orientativa basada en datos públicos y en tu perfil. No sustituye el consejo de un médico, dermatólogo o nutricionista. Si tienes alergias graves, verifica siempre el etiquetado oficial del producto.',
+    feedbackLink: '¿Algo no cuadra en este análisis? Cuéntanoslo',
+    consentBody: 'Acepto el tratamiento de mis datos de salud (alergias, tipo de piel, embarazo) para personalizar los análisis.',
+    consentNotePre: 'Sin este consentimiento la app sigue funcionando, pero solo con análisis generales. Puedes cambiarlo en cualquier momento.',
+    politicaPrivacidad: 'Política de privacidad',
+    ahoraNo: 'Ahora no',
+    acepto: 'Acepto',
+    nutritionRejected: 'No pudimos leer la tabla con seguridad — puedes reintentarlo desde el resultado.',
+  },
+  en: {
+    volver: 'Back',
+    verFotoGrande: 'View full-size photo',
+    buscandoInfo: 'Looking up product information...',
+    analizando: 'Analyzing product...',
+    enrichingHint: "We're checking international databases to find this product.",
+    fueraDeAmbito: 'Out of scope',
+    productoNoEncontrado: 'Product not found',
+    fueraDeAmbitoBody: 'Maseya analyzes food and cosmetics 📚 — this barcode belongs to another type of product.',
+    noInfoBody: "We don't have information on this product in our databases.",
+    volverAEscanear: 'Scan again',
+    fotografiarIngredientes: 'Photograph ingredients',
+    fotografiarEtiqueta: 'Photograph label',
+    complemento: 'Dietary supplement',
+    bebidaAlcoholica: 'Alcoholic drink',
+    alimentacion: 'Food',
+    cosmetica: 'Cosmetics',
+    anadidoBaseDatos: 'Added to our database',
+    guardadoDispositivo: 'Analysis saved on your device',
+    complementoWarning: 'Dietary supplements are not evaluated with food criteria (Nutriscore does not apply). Consult a healthcare professional before taking them.',
+    alcoholWarning: "Maseya doesn't score alcoholic drinks — Nutri-Score doesn't apply to this type of product.",
+    ingredientesTitle: 'Ingredients',
+    esParaTi: 'Is this for you?',
+    ayudanosAnalizar: 'Help us analyze this product',
+    ayudanosAnalizarBody: "This product doesn't have ingredients in our database yet. Photograph the label and Mira will analyze it instantly.",
+    buscarMasTarde: 'You can also search for this product later once our database includes it.',
+    general: 'General',
+    paraTi: 'For you',
+    comoCalculamos: 'How do we calculate the score?',
+    generalExplainPre: 'The ',
+    generalExplainBold: 'general score',
+    generalExplainPost: ' evaluates the product for the general public (Nutriscore + ingredients).',
+    personalExplainPre: 'The ',
+    personalExplainBold: 'personal score',
+    personalExplainPost: ' adjusts that score to your profile: skin, allergies, diet and goals.',
+    confAlta: 'High confidence',
+    confMedia: 'Medium confidence',
+    confBaja: 'Low confidence',
+    faltaPrefix: 'Missing: ',
+    ctaMissingIngredients: 'Provisional score — photograph the ingredient list to complete the analysis',
+    ctaFoodNutrition: 'Provisional score — photograph the nutrition table to unlock the full score',
+    ctaCosmeticIngredients: 'Provisional score — photograph the full ingredient list to unlock the full score',
+    fotografiar: 'Photograph',
+    whyGeneral: 'Why this general score?',
+    whyPersonal: 'Why your personal score?',
+    incompleteBold: 'Incomplete analysis:',
+    incompleteRest: ' this score is based only on Nutriscore. Photograph the ingredient list for a complete analysis.',
+    sinDatos: 'No data',
+    datosInsuficientes: 'Insufficient data',
+    fotografiaParaPuntuacion: 'Photograph the label to get your personalized score.',
+    ingredientesGenerales: 'General ingredients',
+    sinListaIngredientes: "No ingredient list available for this product. You can photograph the label for a complete analysis.",
+    esNatural: 'Is it natural?',
+    datosInsuficientesNatural: 'Insufficient data — photograph the label to calculate naturalness',
+    ingredientesLimpios: 'Clean ingredients',
+    bioOrganico: 'Organic',
+    activaPersonalizacion: 'Turn on personalization to know if this product suits your profile.',
+    activarPersonalizacion: 'Turn on personalization',
+    noIncompatibilidades: "We haven't detected incompatibilities with your profile. Always check the label.",
+    fotografiaParaTi: 'Photograph the label to see if this product suits you.',
+    avisoBold: 'Notice: ',
+    avisoBody: "Maseya offers guidance based on public data and your profile. It doesn't replace advice from a doctor, dermatologist or nutritionist. If you have severe allergies, always check the official product label.",
+    feedbackLink: "Something off in this analysis? Tell us",
+    consentBody: 'I agree to the processing of my health data (allergies, skin type, pregnancy) to personalize the analyses.',
+    consentNotePre: 'Without this consent the app still works, but only with general analyses. You can change this at any time.',
+    politicaPrivacidad: 'Privacy policy',
+    ahoraNo: 'Not now',
+    acepto: 'I agree',
+    nutritionRejected: "We couldn't read the nutrition table reliably — you can try again from the result.",
+  },
+  fr: {
+    volver: 'Retour',
+    verFotoGrande: 'Voir la photo en grand',
+    buscandoInfo: 'Recherche des informations du produit...',
+    analizando: 'Analyse du produit...',
+    enrichingHint: 'Nous consultons des bases de données internationales pour trouver ce produit.',
+    fueraDeAmbito: 'Hors périmètre',
+    productoNoEncontrado: 'Produit non trouvé',
+    fueraDeAmbitoBody: 'Maseya analyse l’alimentation et les cosmétiques 📚 — ce code correspond à un autre type de produit.',
+    noInfoBody: "Nous n'avons pas d'informations sur ce produit dans nos bases.",
+    volverAEscanear: 'Scanner à nouveau',
+    fotografiarIngredientes: 'Photographier les ingrédients',
+    fotografiarEtiqueta: "Photographier l'étiquette",
+    complemento: 'Complément alimentaire',
+    bebidaAlcoholica: 'Boisson alcoolisée',
+    alimentacion: 'Alimentation',
+    cosmetica: 'Cosmétique',
+    anadidoBaseDatos: 'Ajouté à notre base de données',
+    guardadoDispositivo: 'Analyse enregistrée sur ton appareil',
+    complementoWarning: "Les compléments alimentaires ne sont pas évalués avec les critères des aliments (le Nutriscore ne s'applique pas). Consulte un professionnel de santé avant d'en prendre.",
+    alcoholWarning: "Maseya ne note pas les boissons alcoolisées — le Nutri-Score ne s'applique pas à ce type de produit.",
+    ingredientesTitle: 'Ingrédients',
+    esParaTi: 'Est-ce fait pour toi ?',
+    ayudanosAnalizar: 'Aide-nous à analyser ce produit',
+    ayudanosAnalizarBody: "Ce produit n'a pas encore d'ingrédients dans notre base de données. Photographie l'étiquette et Mira l'analysera instantanément.",
+    buscarMasTarde: 'Tu peux aussi rechercher ce produit plus tard, une fois qu'il sera intégré à notre base de données.',
+    general: 'Général',
+    paraTi: 'Pour toi',
+    comoCalculamos: 'Comment calculons-nous la note ?',
+    generalExplainPre: 'La ',
+    generalExplainBold: 'note générale',
+    generalExplainPost: ' évalue le produit pour le grand public (Nutriscore + ingrédients).',
+    personalExplainPre: 'La ',
+    personalExplainBold: 'note personnelle',
+    personalExplainPost: ' ajuste cette note selon ton profil : peau, allergies, régime et objectifs.',
+    confAlta: 'Confiance élevée',
+    confMedia: 'Confiance moyenne',
+    confBaja: 'Confiance faible',
+    faltaPrefix: 'Manque : ',
+    ctaMissingIngredients: 'Note provisoire — photographie la liste des ingrédients pour compléter l'analyse',
+    ctaFoodNutrition: 'Note provisoire — photographie le tableau nutritionnel pour débloquer la note complète',
+    ctaCosmeticIngredients: 'Note provisoire — photographie la liste complète des ingrédients pour débloquer la note complète',
+    fotografiar: 'Photographier',
+    whyGeneral: 'Pourquoi cette note générale ?',
+    whyPersonal: 'Pourquoi ta note personnelle ?',
+    incompleteBold: 'Analyse incomplète :',
+    incompleteRest: ' cette note repose uniquement sur le Nutriscore. Photographie la liste des ingrédients pour une analyse complète.',
+    sinDatos: 'Aucune donnée',
+    datosInsuficientes: 'Données insuffisantes',
+    fotografiaParaPuntuacion: 'Photographie l'étiquette pour obtenir ta note personnalisée.',
+    ingredientesGenerales: 'Ingrédients généraux',
+    sinListaIngredientes: "Aucune liste d'ingrédients disponible pour ce produit. Tu peux photographier l'étiquette pour une analyse complète.",
+    esNatural: 'Est-ce naturel ?',
+    datosInsuficientesNatural: "Données insuffisantes — photographie l'étiquette pour calculer la naturalité",
+    ingredientesLimpios: 'Ingrédients propres',
+    bioOrganico: 'Bio / Biologique',
+    activaPersonalizacion: 'Active la personnalisation pour savoir si ce produit convient à ton profil.',
+    activarPersonalizacion: 'Activer la personnalisation',
+    noIncompatibilidades: "Nous n'avons détecté aucune incompatibilité avec ton profil. Vérifie toujours l'étiquetage.",
+    fotografiaParaTi: "Photographie l'étiquette pour voir si ce produit te convient.",
+    avisoBold: 'Avis : ',
+    avisoBody: "Maseya propose des informations indicatives basées sur des données publiques et ton profil. Cela ne remplace pas l'avis d'un médecin, dermatologue ou nutritionniste. En cas d'allergies graves, vérifie toujours l'étiquetage officiel du produit.",
+    feedbackLink: 'Quelque chose ne va pas dans cette analyse ? Dis-le-nous',
+    consentBody: "J'accepte le traitement de mes données de santé (allergies, type de peau, grossesse) pour personnaliser les analyses.",
+    consentNotePre: "Sans ce consentement, l'application continue de fonctionner, mais uniquement avec des analyses générales. Tu peux le modifier à tout moment.",
+    politicaPrivacidad: 'Politique de confidentialité',
+    ahoraNo: 'Pas maintenant',
+    acepto: "J'accepte",
+    nutritionRejected: "Nous n'avons pas pu lire le tableau nutritionnel avec certitude — vous pouvez réessayer depuis le résultat.",
+  },
+};
+
 const ResultPage = () => {
   const { barcode } = useParams<{ barcode: string }>();
   const navigate = useNavigate();
@@ -42,6 +255,7 @@ const ResultPage = () => {
   const skipHistory = (location.state as { skipHistory?: boolean } | null)?.skipHistory === true;
   const { isAuthenticated, currentUser } = useAuth();
   const { user } = useUser();
+  const c = COPY[user.language] ?? COPY.es;
   
 
   const [product, setProduct] = useState<ProductData | null>(null);
@@ -80,13 +294,7 @@ const ResultPage = () => {
       const flag = localStorage.getItem('maseya_nutrition_rejected');
       if (flag) {
         localStorage.removeItem('maseya_nutrition_rejected');
-        const lang = user.language;
-        const msg = lang === 'en'
-          ? "We couldn't read the nutrition table reliably — you can try again from the result."
-          : lang === 'fr'
-          ? "Nous n'avons pas pu lire le tableau nutritionnel avec certitude — vous pouvez réessayer depuis le résultat."
-          : 'No pudimos leer la tabla con seguridad — puedes reintentarlo desde el resultado.';
-        toast({ description: msg });
+        toast({ description: c.nutritionRejected });
       }
     } catch {}
   }, [user.language]);
@@ -336,11 +544,11 @@ const ResultPage = () => {
       <div className="min-h-[100dvh] flex flex-col items-center justify-center gap-3 px-6 text-center">
         <Loader2 className="w-10 h-10 text-primary animate-spin" />
         <p className="text-sm text-muted-foreground">
-          {enriching ? 'Buscando información del producto...' : 'Analizando producto...'}
+          {enriching ? c.buscandoInfo : c.analizando}
         </p>
         {enriching && (
           <p className="text-xs text-muted-foreground/80 max-w-xs">
-            Estamos consultando bases de datos internacionales para encontrar este producto.
+            {c.enrichingHint}
           </p>
         )}
       </div>
@@ -353,27 +561,27 @@ const ResultPage = () => {
       <div className="min-h-[100dvh] bg-background">
         <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border pt-safe">
           <div className="w-full sm:max-w-lg sm:mx-auto px-4 h-14 flex items-center gap-3">
-            <button onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/scan'))} aria-label="Volver">
+            <button onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/scan'))} aria-label={c.volver}>
               <ArrowLeft className="w-5 h-5" />
             </button>
             <h1 className="font-display text-lg font-semibold">
-              {isBookOrPress ? 'Fuera de ámbito' : 'Producto no encontrado'}
+              {isBookOrPress ? c.fueraDeAmbito : c.productoNoEncontrado}
             </h1>
           </div>
         </header>
         <div className="w-full sm:max-w-lg sm:mx-auto p-6 space-y-4 text-center">
           <p className="text-muted-foreground">
             {isBookOrPress
-              ? 'Maseya analiza alimentación y cosmética 📚 — este código corresponde a otro tipo de producto.'
-              : 'No tenemos información de este producto en nuestras bases.'}
+              ? c.fueraDeAmbitoBody
+              : c.noInfoBody}
           </p>
           {isBookOrPress ? (
             <Button onClick={() => navigate('/scan', { replace: true })} className="w-full h-12 rounded-2xl">
-              Volver a escanear
+              {c.volverAEscanear}
             </Button>
           ) : (
             <Button onClick={() => navigate(barcode && barcode !== 'photo' ? `/scan/photo?barcode=${barcode}` : '/scan/photo', { replace: true })} className="w-full h-12 rounded-2xl">
-              Fotografiar ingredientes
+              {c.fotografiarIngredientes}
             </Button>
           )}
         </div>
