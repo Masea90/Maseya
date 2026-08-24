@@ -25,6 +25,7 @@ const COPY: Record<Lang, {
   error: string;
   required: string;
   alsoEmail: string;
+  productContext: string;
 }> = {
   es: {
     title: 'Ayúdanos a mejorar',
@@ -40,6 +41,7 @@ const COPY: Record<Lang, {
     error: 'No se pudo enviar. Inténtalo de nuevo.',
     required: 'Escribe un comentario antes de enviar.',
     alsoEmail: 'También puedes escribirnos a team@maseya.es',
+    productContext: 'Feedback sobre este producto:',
   },
   en: {
     title: 'Help us improve',
@@ -55,6 +57,7 @@ const COPY: Record<Lang, {
     error: 'Could not send. Please try again.',
     required: 'Please write a comment before sending.',
     alsoEmail: 'You can also write to us at team@maseya.es',
+    productContext: 'Feedback about this product:',
   },
   fr: {
     title: 'Aide-nous à améliorer',
@@ -70,6 +73,7 @@ const COPY: Record<Lang, {
     error: 'Envoi impossible. Réessaie.',
     required: 'Écris un commentaire avant d\'envoyer.',
     alsoEmail: 'Tu peux aussi nous écrire à team@maseya.es',
+    productContext: 'Retour sur ce produit :',
   },
 };
 
@@ -137,7 +141,7 @@ export const FeedbackDialog = ({ open, onOpenChange, extraContext }: FeedbackDia
         {(extraContext?.product_name || extraContext?.barcode) && (
           <div className="rounded-xl border border-border bg-muted/40 px-3 py-2 text-xs">
             <p className="text-muted-foreground">
-              {lang === 'en' ? 'Feedback about this product:' : lang === 'fr' ? 'Retour sur ce produit :' : 'Feedback sobre este producto:'}
+              {c.productContext}
             </p>
             <p className="font-medium text-foreground truncate">
               {String(extraContext.product_name || extraContext.barcode)}

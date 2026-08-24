@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { track } from '@/lib/analytics';
 import { Button } from '@/components/ui/button';
 import { useUser } from '@/contexts/UserContext';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 export const ONBOARDING_SKIP_KEY = 'maseya_onboarding_skipped';
 
