@@ -1059,7 +1059,7 @@ const ResultPage = () => {
             </Collapsible>
 
             <Collapsible defaultOpen>
-              <div className="bg-card rounded-2xl border-2 border-primary/40 overflow-hidden">
+              <div id="es-para-ti" className="bg-card rounded-2xl border-2 border-primary/40 overflow-hidden">
                 <CollapsibleTrigger className="w-full p-4 flex items-center justify-between">
                   <span className="font-semibold flex items-center gap-2">👤 {c.esParaTi}</span>
                   <ChevronDown className="w-4 h-4" />
