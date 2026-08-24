@@ -862,13 +862,8 @@ const ResultPage = () => {
                       low: { emoji: '🟠', label: c.confBaja, cls: 'bg-[#F4A261]/20 border-[#F4A261]/50 text-[#8a4a1e]' },
                     } as const;
                     const m = map[dataConfidence.level];
-                    const needsPhoto = dataConfidence.level !== 'high';
-                    const missingIngredients = dataConfidence.missing.some(m => m.toLowerCase().includes('ingrediente'));
-                    const ctaText = missingIngredients
-                      ? c.ctaMissingIngredients
-                      : product.category === 'food'
-                        ? c.ctaFoodNutrition
-                        : c.ctaCosmeticIngredients;
+                    // The badge is an indicator only — no CTA of its own. The single
+                    // "incomplete analysis" notice below holds the only photo button.
                     return (
                       <div className="w-full max-w-sm flex flex-col items-center gap-1.5">
                         <span
@@ -878,30 +873,6 @@ const ResultPage = () => {
                           <span aria-hidden>{m.emoji}</span>
                           <span>{m.label}</span>
                         </span>
-                        {needsPhoto && (
-                          <div className="flex flex-col items-center gap-1">
-                            <p className="text-[11px] text-muted-foreground text-center leading-snug px-3">
-                              {ctaText}
-                            </p>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                const bc = barcode && barcode !== 'photo' ? barcode : (product.barcode !== 'photo' ? product.barcode : '');
-                                if (product.category === 'food' && bc && !bc.startsWith('photo_') && !missingIngredients) {
-                                  navigate(`/scan/photo?step=nutrition&barcode=${bc}`);
-                                } else {
-                                  navigate(bc ? `/scan/photo?barcode=${bc}` : '/scan/photo');
-                                }
-                              }}
-                              className="rounded-xl h-7 text-[11px] px-3"
-                            >
-                              <Camera className="w-3 h-3 mr-1" />
-                              {c.fotografiar}
-                            </Button>
-
-                          </div>
-                        )}
                       </div>
                     );
                   })()}
