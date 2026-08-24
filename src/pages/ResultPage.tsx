@@ -197,6 +197,8 @@ const COPY = {
     volverAEscanear: 'Scanner à nouveau',
     fotografiarIngredientes: 'Photographier les ingrédients',
     fotografiarEtiqueta: "Photographier l'étiquette",
+    fotografiarTabla: 'Photographier le tableau nutritionnel',
+    completarConFotos: 'Compléter avec des photos',
     complemento: 'Complément alimentaire',
     bebidaAlcoholica: 'Boisson alcoolisée',
     alimentacion: 'Alimentation',
