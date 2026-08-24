@@ -959,15 +959,9 @@ const ResultPage = () => {
                 <CollapsibleContent>
                   <div className="p-4 pt-0">
                     {!hasIngredientData ? (
-                      <div className="space-y-3 text-center">
-                        <p className="text-sm text-muted-foreground">
-                          {c.sinListaIngredientes}
-                        </p>
-                        <Button onClick={() => navigate(barcode && barcode !== 'photo' ? `/scan/photo?barcode=${barcode}` : '/scan/photo')} variant="outline" className="rounded-xl">
-                          <Camera className="w-4 h-4 mr-2" />
-                          {c.fotografiarEtiqueta}
-                        </Button>
-                      </div>
+                      <p className="text-sm text-muted-foreground text-center py-2">
+                        {c.sinListaIngredientes}
+                      </p>
                     ) : (
                       <div className="flex flex-wrap gap-1.5">
                         {flagged.slice(0, 20).map((f, i) => {
