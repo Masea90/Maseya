@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, ChevronDown, Sparkles, Loader2, Camera, Info } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Sparkles, Loader2, Camera, Info, Lock } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Badge } from '@/components/ui/badge';
@@ -66,6 +66,8 @@ const COPY = {
     buscarMasTarde: 'También puedes buscar este producto más tarde cuando nuestra base de datos lo incluya.',
     general: 'General',
     paraTi: 'Para ti',
+    bloqueoCtaCuenta: 'Crea tu cuenta gratis para ver tu nota personal',
+    bloqueoCtaConsent: 'Activa la personalización para ver tu nota personal',
     comoCalculamos: '¿Cómo calculamos la puntuación?',
     generalExplainPre: 'La ',
     generalExplainBold: 'puntuación general',
@@ -140,6 +142,8 @@ const COPY = {
     buscarMasTarde: 'You can also search for this product later once our database includes it.',
     general: 'General',
     paraTi: 'For you',
+    bloqueoCtaCuenta: 'Create your free account to see your personal score',
+    bloqueoCtaConsent: 'Turn on personalization to see your personal score',
     comoCalculamos: 'How do we calculate the score?',
     generalExplainPre: 'The ',
     generalExplainBold: 'general score',
@@ -214,6 +218,8 @@ const COPY = {
     buscarMasTarde: "Tu peux aussi rechercher ce produit plus tard, une fois qu'il sera intégré à notre base de données.",
     general: 'Général',
     paraTi: 'Pour toi',
+    bloqueoCtaCuenta: "Crée ton compte gratuit pour voir ta note personnelle",
+    bloqueoCtaConsent: "Active la personnalisation pour voir ta note personnelle",
     comoCalculamos: 'Comment calculons-nous la note ?',
     generalExplainPre: 'La ',
     generalExplainBold: 'note générale',
@@ -258,6 +264,26 @@ const COPY = {
     acepto: "J'accepte",
     nutritionRejected: "Nous n'avons pas pu lire le tableau nutritionnel avec certitude — vous pouvez réessayer depuis le résultat.",
   },
+};
+
+/**
+ * Locked "Para ti" circle for users without active personalization (no
+ * account/profile, or no health-data consent). Shows a lock instead of a
+ * number so the product page never implies personalization works when it
+ * doesn't. Fires `personal_score_locked_view` once on mount.
+ */
+const LockedCircle = ({ label }: { label: string }) => {
+  useEffect(() => {
+    track('personal_score_locked_view');
+  }, []);
+  return (
+    <div className="flex flex-col items-center gap-1.5">
+      <div className="w-32 h-32 rounded-full flex flex-col items-center justify-center shadow-warm-lg ring-4 ring-muted-foreground/15 bg-muted/50 text-muted-foreground">
+        <Lock className="w-10 h-10" aria-hidden />
+      </div>
+      <div className="text-xs font-semibold text-muted-foreground">{label}</div>
+    </div>
+  );
 };
 
 const ResultPage = () => {
@@ -630,6 +656,9 @@ const ResultPage = () => {
     : null;
   const personalScore = personalBreakdown ? personalBreakdown.score : score;
   const psl = scoreLabel(personalScore);
+  // Personalization is active only when a real personal breakdown was computed
+  // (consent + allowed profile). Otherwise the "Para ti" circle shows a lock.
+  const personalizationActive = !!personalBreakdown;
   // Voice line: suppressed for supplements. For alcoholic we still want the
   // rotating one-liner (getVoiceLine already handles halal/pregnancy exclusions).
   const voiceLine = supplement ? null : getVoiceLine(
@@ -812,8 +841,10 @@ const ResultPage = () => {
                       <div className="text-xs font-medium text-muted-foreground">{c.general}</div>
                     </div>
 
-                    {/* Personal score — only when health-data consent is given */}
-                    {healthConsent && (
+                    {/* Personal score — real number when personalization is
+                        active; otherwise a locked circle so the page never
+                        implies personalization works without a profile. */}
+                    {personalizationActive ? (
                       <div className="flex flex-col items-center gap-1.5">
                         <div
                           className="w-32 h-32 rounded-full flex flex-col items-center justify-center shadow-warm-lg ring-4 ring-primary/40"
@@ -824,8 +855,23 @@ const ResultPage = () => {
                         </div>
                         <div className="text-xs font-semibold text-primary">{c.paraTi}</div>
                       </div>
+                    ) : (
+                      <LockedCircle label={c.paraTi} />
                     )}
                   </div>
+
+                  {!personalizationActive && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        track('personal_score_locked_click');
+                        document.getElementById('es-para-ti')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }}
+                      className="text-xs text-primary underline underline-offset-2 text-center max-w-xs"
+                    >
+                      {!personalAllowed ? c.bloqueoCtaCuenta : c.bloqueoCtaConsent}
+                    </button>
+                  )}
 
                   <div className="flex items-center gap-1.5">
                     <div className="font-display text-lg font-semibold" style={{ color: psl.bg }}>{psl.label}</div>
@@ -1013,7 +1059,7 @@ const ResultPage = () => {
             </Collapsible>
 
             <Collapsible defaultOpen>
-              <div className="bg-card rounded-2xl border-2 border-primary/40 overflow-hidden">
+              <div id="es-para-ti" className="bg-card rounded-2xl border-2 border-primary/40 overflow-hidden">
                 <CollapsibleTrigger className="w-full p-4 flex items-center justify-between">
                   <span className="font-semibold flex items-center gap-2">👤 {c.esParaTi}</span>
                   <ChevronDown className="w-4 h-4" />
