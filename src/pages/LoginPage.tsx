@@ -8,41 +8,108 @@ import { Mail, Lock, Eye, EyeOff, UserPlus, LogIn, Loader2, ArrowLeft, RefreshCw
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useUser } from '@/contexts/UserContext';
 
-// Hardcoded Spanish copy — auth pages are Spanish-only for now.
-const T = {
-  subtitle: 'Bienvenida de nuevo',
-  welcomeBack: 'Bienvenida',
-  createAccount: 'Crear cuenta',
-  signInDesc: 'Inicia sesión para continuar',
-  signUpDesc: 'Comienza tu camino personalizado',
-  email: 'Correo electrónico',
-  password: 'Contraseña',
-  minChars: 'Mín. 6 caracteres',
-  forgotPassword: '¿Olvidaste tu contraseña?',
-  signIn: 'Entrar',
-  signUp: 'Regístrate',
-  or: 'o',
-  continueGoogle: 'Continuar con Google',
-  dontHaveAccount: '¿No tienes cuenta?',
-  alreadyHaveAccount: '¿Ya tienes una cuenta?',
-  checkEmailTitle: 'Revisa tu correo',
-  checkEmailDescription: 'Te enviamos un enlace de verificación para activar tu cuenta.',
-  checkEmailSpamHint: '¿No lo ves? Revisa la carpeta de spam o promociones.',
-  checkEmailResend: 'Reenviar correo de verificación',
-  checkEmailResent: '¡Correo de verificación reenviado!',
-  checkEmailBackToLogin: 'Volver al inicio de sesión',
-  welcomeToast: '¡Bienvenida de nuevo! 🌿',
-  signUpFailed: 'Error al registrarse',
-  loginFailed: 'Error al iniciar sesión',
-  unexpectedError: 'Ha ocurrido un error inesperado',
-  googleSignInFailed: 'Error con el inicio de sesión de Google',
-  emptyFields: 'Introduce tu correo y contraseña',
-  alreadyRegistered: 'Este correo ya tiene una cuenta. Inicia sesión con tu contraseña o con Google.',
+const COPY = {
+  es: {
+    subtitle: 'Bienvenida de nuevo',
+    welcomeBack: 'Bienvenida',
+    createAccount: 'Crear cuenta',
+    signInDesc: 'Inicia sesión para continuar',
+    signUpDesc: 'Comienza tu camino personalizado',
+    email: 'Correo electrónico',
+    password: 'Contraseña',
+    minChars: 'Mín. 6 caracteres',
+    forgotPassword: '¿Olvidaste tu contraseña?',
+    signIn: 'Entrar',
+    signUp: 'Regístrate',
+    or: 'o',
+    continueGoogle: 'Continuar con Google',
+    dontHaveAccount: '¿No tienes cuenta?',
+    alreadyHaveAccount: '¿Ya tienes una cuenta?',
+    checkEmailTitle: 'Revisa tu correo',
+    checkEmailDescription: 'Te enviamos un enlace de verificación para activar tu cuenta.',
+    checkEmailSpamHint: '¿No lo ves? Revisa la carpeta de spam o promociones.',
+    checkEmailResend: 'Reenviar correo de verificación',
+    checkEmailResent: '¡Correo de verificación reenviado!',
+    checkEmailBackToLogin: 'Volver al inicio de sesión',
+    welcomeToast: '¡Bienvenida de nuevo! 🌿',
+    signUpFailed: 'Error al registrarse',
+    loginFailed: 'Error al iniciar sesión',
+    unexpectedError: 'Ha ocurrido un error inesperado',
+    googleSignInFailed: 'Error con el inicio de sesión de Google',
+    emptyFields: 'Introduce tu correo y contraseña',
+    alreadyRegistered: 'Este correo ya tiene una cuenta. Inicia sesión con tu contraseña o con Google.',
+    emailPlaceholder: 'tu@email.com',
+  },
+  en: {
+    subtitle: 'Welcome back',
+    welcomeBack: 'Welcome',
+    createAccount: 'Create account',
+    signInDesc: 'Sign in to continue',
+    signUpDesc: 'Start your personalized journey',
+    email: 'Email',
+    password: 'Password',
+    minChars: 'Min. 6 characters',
+    forgotPassword: 'Forgot your password?',
+    signIn: 'Sign in',
+    signUp: 'Sign up',
+    or: 'or',
+    continueGoogle: 'Continue with Google',
+    dontHaveAccount: "Don't have an account?",
+    alreadyHaveAccount: 'Already have an account?',
+    checkEmailTitle: 'Check your email',
+    checkEmailDescription: 'We sent you a verification link to activate your account.',
+    checkEmailSpamHint: "Can't see it? Check your spam or promotions folder.",
+    checkEmailResend: 'Resend verification email',
+    checkEmailResent: 'Verification email resent!',
+    checkEmailBackToLogin: 'Back to sign in',
+    welcomeToast: 'Welcome back! 🌿',
+    signUpFailed: 'Sign up failed',
+    loginFailed: 'Sign in failed',
+    unexpectedError: 'An unexpected error occurred',
+    googleSignInFailed: 'Google sign-in failed',
+    emptyFields: 'Enter your email and password',
+    alreadyRegistered: 'This email already has an account. Sign in with your password or with Google.',
+    emailPlaceholder: 'you@email.com',
+  },
+  fr: {
+    subtitle: 'Bon retour',
+    welcomeBack: 'Bienvenue',
+    createAccount: 'Créer un compte',
+    signInDesc: 'Connecte-toi pour continuer',
+    signUpDesc: 'Commence ton parcours personnalisé',
+    email: 'E-mail',
+    password: 'Mot de passe',
+    minChars: 'Min. 6 caractères',
+    forgotPassword: 'Mot de passe oublié ?',
+    signIn: 'Se connecter',
+    signUp: "S'inscrire",
+    or: 'ou',
+    continueGoogle: 'Continuer avec Google',
+    dontHaveAccount: "Tu n'as pas de compte ?",
+    alreadyHaveAccount: 'Tu as déjà un compte ?',
+    checkEmailTitle: 'Vérifie ton e-mail',
+    checkEmailDescription: "Nous t'avons envoyé un lien de vérification pour activer ton compte.",
+    checkEmailSpamHint: 'Tu ne le vois pas ? Vérifie le dossier spam ou promotions.',
+    checkEmailResend: "Renvoyer l'e-mail de vérification",
+    checkEmailResent: "E-mail de vérification renvoyé !",
+    checkEmailBackToLogin: 'Retour à la connexion',
+    welcomeToast: 'Bon retour ! 🌿',
+    signUpFailed: "Erreur lors de l'inscription",
+    loginFailed: 'Erreur de connexion',
+    unexpectedError: "Une erreur inattendue s'est produite",
+    googleSignInFailed: 'Erreur de connexion avec Google',
+    emptyFields: 'Saisis ton e-mail et ton mot de passe',
+    alreadyRegistered: 'Cet e-mail a déjà un compte. Connecte-toi avec ton mot de passe ou avec Google.',
+    emailPlaceholder: 'toi@email.com',
+  },
 };
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const { user } = useUser();
+  const T = COPY[user.language] ?? COPY.es;
   const [searchParams] = useSearchParams();
   const rawNext = searchParams.get('next');
   const nextPath = rawNext && rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/';
@@ -223,7 +290,7 @@ const LoginPage = () => {
               <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input
                 type="email"
-                placeholder="tu@email.com"
+                placeholder={T.emailPlaceholder}
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 className="h-12 pl-12 rounded-2xl"

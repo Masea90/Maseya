@@ -139,6 +139,7 @@ const COPY = {
     starting: 'Iniciando cámara...',
     shoot: 'Disparar',
     flip: 'Girar cámara',
+    unnamedProduct: 'Producto fotografiado',
 
   },
   en: {
@@ -187,6 +188,7 @@ const COPY = {
     starting: 'Starting camera...',
     shoot: 'Shoot',
     flip: 'Flip camera',
+    unnamedProduct: 'Photographed product',
 
   },
   fr: {
@@ -235,6 +237,7 @@ const COPY = {
     starting: 'Démarrage de la caméra...',
     shoot: 'Déclencher',
     flip: 'Changer de caméra',
+    unnamedProduct: 'Produit photographié',
 
   },
 };
@@ -551,7 +554,7 @@ const PhotoCapturePage = () => {
         }
 
         const data = res.data;
-        const product_name = (data.product_name as string) || 'Producto fotografiado';
+        const product_name = (data.product_name as string) || c.unnamedProduct;
         const brand = (data.brand as string) || '';
         const category = (data.category === 'food' ? 'food' : 'cosmetic') as 'food' | 'cosmetic';
         const ingredients_text = data.ingredients_text as string;

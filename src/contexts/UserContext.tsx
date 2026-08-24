@@ -1,5 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Language, getTranslation, TranslationKey } from '@/lib/i18n';
+import {
+  Language,
+  getTranslation,
+  TranslationKey,
+  detectDeviceLanguage,
+  LANGUAGE_STORAGE_KEY,
+  LANGUAGE_SOURCE_KEY,
+} from '@/lib/i18n';
 import { useAuth } from './AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -27,21 +34,50 @@ interface UserContextType {
   isLoading: boolean;
 }
 
-const getStoredLanguage = (): Language => {
-  const stored = typeof window !== 'undefined' ? localStorage.getItem('maseya_language') : null;
-  if (stored === 'en' || stored === 'es' || stored === 'fr') return stored;
-  return 'es'; // default Spanish
+const readStored = (key: string): string | null => {
+  try {
+    return typeof window !== 'undefined' ? localStorage.getItem(key) : null;
+  } catch {
+    return null;
+  }
 };
 
-const getExplicitStoredLanguage = (): Language | null => {
-  const stored = typeof window !== 'undefined' ? localStorage.getItem('maseya_language') : null;
+/** Language explicitly chosen by the user (manual pick always wins). */
+const getManualLanguage = (): Language | null => {
+  const stored = readStored(LANGUAGE_STORAGE_KEY);
+  const source = readStored(LANGUAGE_SOURCE_KEY);
+  if (source !== 'manual') return null;
   return stored === 'en' || stored === 'es' || stored === 'fr' ? stored : null;
 };
+
+/** Any stored language, manual or auto-detected. */
+const getStoredLanguage = (): Language | null => {
+  const stored = readStored(LANGUAGE_STORAGE_KEY);
+  return stored === 'en' || stored === 'es' || stored === 'fr' ? stored : null;
+};
+
+/**
+ * First boot: no stored language and no profile language -> detect from the
+ * device and persist it flagged as auto-detected.
+ */
+const resolveInitialLanguage = (): Language => {
+  const stored = getStoredLanguage();
+  if (stored) return stored;
+  const detected = detectDeviceLanguage();
+  try {
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, detected);
+    localStorage.setItem(LANGUAGE_SOURCE_KEY, 'auto');
+  } catch {
+    /* ignore */
+  }
+  return detected;
+};
+
 
 const createDefaultUser = (email?: string): UserProfile => ({
   name: email?.split('@')[0] || 'Guest',
   nickname: '',
-  language: getStoredLanguage(),
+  language: resolveInitialLanguage(),
   onboardingComplete: false,
   avatarUrl: null,
   consentAnalytics: false,
@@ -79,9 +115,9 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
           setUser({
             name: currentUser?.email?.split('@')[0] || 'Guest',
             nickname: data.nickname || '',
-            // An explicit local choice always wins over the stored column
-            // (whose historical default was 'en'). Market default is Spanish.
-            language: getExplicitStoredLanguage() ?? (data.language as Language) ?? 'es',
+            // A manual choice always wins; otherwise the profile column, and
+            // finally the auto-detected device language.
+            language: getManualLanguage() ?? (data.language as Language) ?? resolveInitialLanguage(),
             onboardingComplete: data.onboarding_complete || false,
             avatarUrl: data.avatar_url || null,
             consentAnalytics: data.consent_analytics || false,
@@ -124,7 +160,13 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const t = (key: TranslationKey): string => getTranslation(user.language, key);
 
   const setLanguage = (lang: Language) => {
-    localStorage.setItem('maseya_language', lang);
+    // Manual pick: persist it and flag it so detection never overrides it.
+    try {
+      localStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
+      localStorage.setItem(LANGUAGE_SOURCE_KEY, 'manual');
+    } catch {
+      /* ignore */
+    }
     updateUser({ language: lang });
   };
 

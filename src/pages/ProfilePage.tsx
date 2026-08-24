@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useDevMode } from '@/lib/premium';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 interface HealthState {
   skin_type: string[];
@@ -353,9 +354,19 @@ const ProfilePage = () => {
           </div>
         </Section>
 
+        <Section title="Idioma / Language / Langue" emoji="🌍">
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">
+              Elige el idioma de la app
+            </p>
+            <LanguageSwitcher variant="dark" />
+          </div>
+        </Section>
+
         <Button onClick={save} disabled={saving} className="w-full h-12 rounded-2xl">
           {saving ? 'Guardando...' : 'Guardar cambios'}
         </Button>
+
 
         <Button onClick={() => setShowFeedback(true)} variant="outline" className="w-full gap-2">
           <MessageSquare className="w-4 h-4" /> 💬 Ayúdanos a mejorar

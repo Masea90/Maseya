@@ -12,6 +12,36 @@ interface ConsentModalProps {
   onAcceptEssential?: () => void;
 }
 
+const COPY = {
+  es: {
+    bannerText: 'Usamos datos mínimos para personalizar tu experiencia. Sin publicidad.',
+    moreInfo: 'Más info',
+    accept: 'Aceptar',
+    healthConsentLabel: 'Acepto el tratamiento de mis datos de salud (alergias, tipo de piel, embarazo) para personalizar los análisis.',
+    healthConsentHint: 'Sin este consentimiento la app sigue funcionando, pero solo con análisis generales (sin personalización). Puedes cambiarlo en cualquier momento.',
+    privacyPolicy: 'Política de privacidad',
+    savePreferences: 'Guardar mis preferencias',
+  },
+  en: {
+    bannerText: 'We use minimal data to personalize your experience. No ads.',
+    moreInfo: 'More info',
+    accept: 'Accept',
+    healthConsentLabel: 'I agree to the processing of my health data (allergies, skin type, pregnancy) to personalize the analyses.',
+    healthConsentHint: 'Without this consent the app still works, but only with general analyses (no personalization). You can change this anytime.',
+    privacyPolicy: 'Privacy policy',
+    savePreferences: 'Save my preferences',
+  },
+  fr: {
+    bannerText: 'Nous utilisons un minimum de données pour personnaliser ton expérience. Sans publicité.',
+    moreInfo: "Plus d'infos",
+    accept: 'Accepter',
+    healthConsentLabel: "J'accepte le traitement de mes données de santé (allergies, type de peau, grossesse) pour personnaliser les analyses.",
+    healthConsentHint: "Sans ce consentement, l'app fonctionne toujours, mais avec des analyses générales uniquement (sans personnalisation). Tu peux changer cela à tout moment.",
+    privacyPolicy: 'Politique de confidentialité',
+    savePreferences: 'Enregistrer mes préférences',
+  },
+};
+
 interface StoredConsent {
   analytics: boolean;
   personalization: boolean;
@@ -83,7 +113,8 @@ export const ConsentModal = ({ onAcceptEssential }: ConsentModalProps) => {
   // Explicit, non-premarked opt-in for health data processing.
   const [healthConsent, setHealthConsent] = useState(false);
   const { currentUser } = useAuth();
-  const { t } = useUser();
+  const { t, user } = useUser();
+  const c = COPY[user.language] ?? COPY.es;
   const location = useLocation();
 
   useEffect(() => {
@@ -137,20 +168,20 @@ export const ConsentModal = ({ onAcceptEssential }: ConsentModalProps) => {
         <div className="mx-auto max-w-lg rounded-2xl border border-border/60 bg-card/95 backdrop-blur shadow-warm-lg px-4 py-3 flex items-center gap-3">
           <Shield className="w-5 h-5 text-primary shrink-0" aria-hidden />
           <p className="text-xs text-foreground/85 leading-snug flex-1">
-            Usamos datos mínimos para personalizar tu experiencia. Sin publicidad.
+            {c.bannerText}
           </p>
           <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={() => setShowDetails(true)}
               className="text-xs font-medium text-muted-foreground underline underline-offset-2"
             >
-              Más info
+              {c.moreInfo}
             </button>
             <button
               onClick={handleQuickAccept}
               className="text-xs font-semibold text-primary-foreground bg-primary rounded-full px-3 py-1.5"
             >
-              Aceptar
+              {c.accept}
             </button>
           </div>
         </div>
@@ -208,17 +239,17 @@ export const ConsentModal = ({ onAcceptEssential }: ConsentModalProps) => {
                   />
                   <div className="flex-1">
                     <p className="text-xs font-medium text-foreground leading-snug">
-                      Acepto el tratamiento de mis datos de salud (alergias, tipo de piel, embarazo) para personalizar los análisis.
+                      {c.healthConsentLabel}
                     </p>
                     <p className="text-[11px] text-muted-foreground mt-1 leading-snug">
-                      Sin este consentimiento la app sigue funcionando, pero solo con análisis generales (sin personalización). Puedes cambiarlo en cualquier momento.{' '}
+                      {c.healthConsentHint}{' '}
                       <a
                         href="/privacy"
                         className="underline underline-offset-2"
                         target="_blank"
                         rel="noopener noreferrer"
                       >
-                        Política de privacidad
+                        {c.privacyPolicy}
                       </a>
                       .
                     </p>
@@ -231,7 +262,7 @@ export const ConsentModal = ({ onAcceptEssential }: ConsentModalProps) => {
               onClick={handleDetailedAccept}
               className="w-full h-12 rounded-2xl bg-gradient-olive text-primary-foreground font-medium"
             >
-              Guardar mis preferencias
+              {c.savePreferences}
             </button>
             <p className="text-center text-xs text-muted-foreground">
               {t('consentChangeAnytime')}

@@ -2581,3 +2581,29 @@ export const getTranslation = (lang: Language, key: TranslationKey): string => {
   // Fall back to English, then to the key itself
   return translations.en[key] || key;
 };
+
+/** Marks whether the stored language came from device detection (not a manual pick). */
+export const LANGUAGE_STORAGE_KEY = 'maseya_language';
+export const LANGUAGE_SOURCE_KEY = 'maseya_language_source';
+
+const SUPPORTED: Language[] = ['es', 'en', 'fr'];
+
+/**
+ * Maps the device locale to a supported language.
+ * es-* -> es, en-* -> en, fr-* -> fr. Anything else -> English (lingua franca).
+ */
+export const detectDeviceLanguage = (): Language => {
+  try {
+    const candidates: string[] = [
+      ...(Array.isArray(navigator.languages) ? navigator.languages : []),
+      navigator.language,
+    ].filter(Boolean);
+    for (const raw of candidates) {
+      const base = String(raw).toLowerCase().split('-')[0] as Language;
+      if (SUPPORTED.includes(base)) return base;
+    }
+  } catch {
+    /* ignore */
+  }
+  return 'en';
+};

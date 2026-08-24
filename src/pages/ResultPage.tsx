@@ -35,6 +35,219 @@ import { SignupInvite } from '@/components/onboarding/SignupInvite';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { HeartPulse } from 'lucide-react';
 
+const COPY = {
+  es: {
+    volver: 'Volver',
+    verFotoGrande: 'Ver foto en grande',
+    buscandoInfo: 'Buscando información del producto...',
+    analizando: 'Analizando producto...',
+    enrichingHint: 'Estamos consultando bases de datos internacionales para encontrar este producto.',
+    fueraDeAmbito: 'Fuera de ámbito',
+    productoNoEncontrado: 'Producto no encontrado',
+    fueraDeAmbitoBody: 'Maseya analiza alimentación y cosmética 📚 — este código corresponde a otro tipo de producto.',
+    noInfoBody: 'No tenemos información de este producto en nuestras bases.',
+    volverAEscanear: 'Volver a escanear',
+    fotografiarIngredientes: 'Fotografiar ingredientes',
+    fotografiarEtiqueta: 'Fotografiar etiqueta',
+    complemento: 'Complemento alimenticio',
+    bebidaAlcoholica: 'Bebida alcohólica',
+    alimentacion: 'Alimentación',
+    cosmetica: 'Cosmética',
+    anadidoBaseDatos: 'Añadido a nuestra base de datos',
+    guardadoDispositivo: 'Análisis guardado en tu dispositivo',
+    complementoWarning: 'Los complementos alimenticios no se evalúan con criterios de alimentos (Nutriscore no aplica). Consulta a un profesional sanitario antes de tomarlos.',
+    alcoholWarning: 'Maseya no puntúa bebidas alcohólicas — el Nutri-Score no aplica a este tipo de producto.',
+    ingredientesTitle: 'Ingredientes',
+    esParaTi: '¿Es para ti?',
+    ayudanosAnalizar: 'Ayúdanos a analizar este producto',
+    ayudanosAnalizarBody: 'Este producto aún no tiene ingredientes en nuestra base de datos. Fotografía la etiqueta y Mira lo analizará al instante.',
+    buscarMasTarde: 'También puedes buscar este producto más tarde cuando nuestra base de datos lo incluya.',
+    general: 'General',
+    paraTi: 'Para ti',
+    comoCalculamos: '¿Cómo calculamos la puntuación?',
+    generalExplainPre: 'La ',
+    generalExplainBold: 'puntuación general',
+    generalExplainPost: ' evalúa el producto para el público general (Nutriscore + ingredientes).',
+    personalExplainPre: 'La ',
+    personalExplainBold: 'puntuación personal',
+    personalExplainPost: ' ajusta esa nota según tu perfil: piel, alergias, dieta y objetivos.',
+    confAlta: 'Confianza alta',
+    confMedia: 'Confianza media',
+    confBaja: 'Confianza baja',
+    faltaPrefix: 'Falta: ',
+    ctaMissingIngredients: 'Nota provisional — fotografía la lista de ingredientes para completar el análisis',
+    ctaFoodNutrition: 'Nota provisional — fotografía la tabla nutricional para desbloquear la nota completa',
+    ctaCosmeticIngredients: 'Nota provisional — fotografía la lista de ingredientes completa para desbloquear la nota completa',
+    fotografiar: 'Fotografiar',
+    whyGeneral: '¿Por qué esta nota general?',
+    whyPersonal: '¿Por qué tu nota personal?',
+    incompleteBold: 'Análisis incompleto:',
+    incompleteRest: ' esta nota se basa solo en el Nutriscore. Fotografía la lista de ingredientes para un análisis completo.',
+    sinDatos: 'Sin datos',
+    datosInsuficientes: 'Datos insuficientes',
+    fotografiaParaPuntuacion: 'Fotografía la etiqueta para obtener tu puntuación personalizada.',
+    ingredientesGenerales: 'Ingredientes generales',
+    sinListaIngredientes: 'Sin lista de ingredientes disponible para este producto. Puedes fotografiar la etiqueta para un análisis completo.',
+    esNatural: '¿Es natural?',
+    datosInsuficientesNatural: 'Datos insuficientes — fotografía la etiqueta para calcular naturalidad',
+    ingredientesLimpios: 'Ingredientes limpios',
+    bioOrganico: 'Bio / Orgánico',
+    activaPersonalizacion: 'Activa la personalización para saber si este producto es adecuado para tu perfil.',
+    activarPersonalizacion: 'Activar personalización',
+    noIncompatibilidades: 'No hemos detectado incompatibilidades con tu perfil. Verifica siempre el etiquetado.',
+    fotografiaParaTi: 'Fotografía la etiqueta para ver si este producto es adecuado para ti.',
+    avisoBold: 'Aviso: ',
+    avisoBody: 'Maseya ofrece información orientativa basada en datos públicos y en tu perfil. No sustituye el consejo de un médico, dermatólogo o nutricionista. Si tienes alergias graves, verifica siempre el etiquetado oficial del producto.',
+    feedbackLink: '¿Algo no cuadra en este análisis? Cuéntanoslo',
+    consentBody: 'Acepto el tratamiento de mis datos de salud (alergias, tipo de piel, embarazo) para personalizar los análisis.',
+    consentNotePre: 'Sin este consentimiento la app sigue funcionando, pero solo con análisis generales. Puedes cambiarlo en cualquier momento.',
+    politicaPrivacidad: 'Política de privacidad',
+    ahoraNo: 'Ahora no',
+    acepto: 'Acepto',
+    nutritionRejected: 'No pudimos leer la tabla con seguridad — puedes reintentarlo desde el resultado.',
+  },
+  en: {
+    volver: 'Back',
+    verFotoGrande: 'View full-size photo',
+    buscandoInfo: 'Looking up product information...',
+    analizando: 'Analyzing product...',
+    enrichingHint: "We're checking international databases to find this product.",
+    fueraDeAmbito: 'Out of scope',
+    productoNoEncontrado: 'Product not found',
+    fueraDeAmbitoBody: 'Maseya analyzes food and cosmetics 📚 — this barcode belongs to another type of product.',
+    noInfoBody: "We don't have information on this product in our databases.",
+    volverAEscanear: 'Scan again',
+    fotografiarIngredientes: 'Photograph ingredients',
+    fotografiarEtiqueta: 'Photograph label',
+    complemento: 'Dietary supplement',
+    bebidaAlcoholica: 'Alcoholic drink',
+    alimentacion: 'Food',
+    cosmetica: 'Cosmetics',
+    anadidoBaseDatos: 'Added to our database',
+    guardadoDispositivo: 'Analysis saved on your device',
+    complementoWarning: 'Dietary supplements are not evaluated with food criteria (Nutriscore does not apply). Consult a healthcare professional before taking them.',
+    alcoholWarning: "Maseya doesn't score alcoholic drinks — Nutri-Score doesn't apply to this type of product.",
+    ingredientesTitle: 'Ingredients',
+    esParaTi: 'Is this for you?',
+    ayudanosAnalizar: 'Help us analyze this product',
+    ayudanosAnalizarBody: "This product doesn't have ingredients in our database yet. Photograph the label and Mira will analyze it instantly.",
+    buscarMasTarde: 'You can also search for this product later once our database includes it.',
+    general: 'General',
+    paraTi: 'For you',
+    comoCalculamos: 'How do we calculate the score?',
+    generalExplainPre: 'The ',
+    generalExplainBold: 'general score',
+    generalExplainPost: ' evaluates the product for the general public (Nutriscore + ingredients).',
+    personalExplainPre: 'The ',
+    personalExplainBold: 'personal score',
+    personalExplainPost: ' adjusts that score to your profile: skin, allergies, diet and goals.',
+    confAlta: 'High confidence',
+    confMedia: 'Medium confidence',
+    confBaja: 'Low confidence',
+    faltaPrefix: 'Missing: ',
+    ctaMissingIngredients: 'Provisional score — photograph the ingredient list to complete the analysis',
+    ctaFoodNutrition: 'Provisional score — photograph the nutrition table to unlock the full score',
+    ctaCosmeticIngredients: 'Provisional score — photograph the full ingredient list to unlock the full score',
+    fotografiar: 'Photograph',
+    whyGeneral: 'Why this general score?',
+    whyPersonal: 'Why your personal score?',
+    incompleteBold: 'Incomplete analysis:',
+    incompleteRest: ' this score is based only on Nutriscore. Photograph the ingredient list for a complete analysis.',
+    sinDatos: 'No data',
+    datosInsuficientes: 'Insufficient data',
+    fotografiaParaPuntuacion: 'Photograph the label to get your personalized score.',
+    ingredientesGenerales: 'General ingredients',
+    sinListaIngredientes: "No ingredient list available for this product. You can photograph the label for a complete analysis.",
+    esNatural: 'Is it natural?',
+    datosInsuficientesNatural: 'Insufficient data — photograph the label to calculate naturalness',
+    ingredientesLimpios: 'Clean ingredients',
+    bioOrganico: 'Organic',
+    activaPersonalizacion: 'Turn on personalization to know if this product suits your profile.',
+    activarPersonalizacion: 'Turn on personalization',
+    noIncompatibilidades: "We haven't detected incompatibilities with your profile. Always check the label.",
+    fotografiaParaTi: 'Photograph the label to see if this product suits you.',
+    avisoBold: 'Notice: ',
+    avisoBody: "Maseya offers guidance based on public data and your profile. It doesn't replace advice from a doctor, dermatologist or nutritionist. If you have severe allergies, always check the official product label.",
+    feedbackLink: "Something off in this analysis? Tell us",
+    consentBody: 'I agree to the processing of my health data (allergies, skin type, pregnancy) to personalize the analyses.',
+    consentNotePre: 'Without this consent the app still works, but only with general analyses. You can change this at any time.',
+    politicaPrivacidad: 'Privacy policy',
+    ahoraNo: 'Not now',
+    acepto: 'I agree',
+    nutritionRejected: "We couldn't read the nutrition table reliably — you can try again from the result.",
+  },
+  fr: {
+    volver: 'Retour',
+    verFotoGrande: 'Voir la photo en grand',
+    buscandoInfo: 'Recherche des informations du produit...',
+    analizando: 'Analyse du produit...',
+    enrichingHint: 'Nous consultons des bases de données internationales pour trouver ce produit.',
+    fueraDeAmbito: 'Hors périmètre',
+    productoNoEncontrado: 'Produit non trouvé',
+    fueraDeAmbitoBody: 'Maseya analyse l’alimentation et les cosmétiques 📚 — ce code correspond à un autre type de produit.',
+    noInfoBody: "Nous n'avons pas d'informations sur ce produit dans nos bases.",
+    volverAEscanear: 'Scanner à nouveau',
+    fotografiarIngredientes: 'Photographier les ingrédients',
+    fotografiarEtiqueta: "Photographier l'étiquette",
+    complemento: 'Complément alimentaire',
+    bebidaAlcoholica: 'Boisson alcoolisée',
+    alimentacion: 'Alimentation',
+    cosmetica: 'Cosmétique',
+    anadidoBaseDatos: 'Ajouté à notre base de données',
+    guardadoDispositivo: 'Analyse enregistrée sur ton appareil',
+    complementoWarning: "Les compléments alimentaires ne sont pas évalués avec les critères des aliments (le Nutriscore ne s'applique pas). Consulte un professionnel de santé avant d'en prendre.",
+    alcoholWarning: "Maseya ne note pas les boissons alcoolisées — le Nutri-Score ne s'applique pas à ce type de produit.",
+    ingredientesTitle: 'Ingrédients',
+    esParaTi: 'Est-ce fait pour toi ?',
+    ayudanosAnalizar: 'Aide-nous à analyser ce produit',
+    ayudanosAnalizarBody: "Ce produit n'a pas encore d'ingrédients dans notre base de données. Photographie l'étiquette et Mira l'analysera instantanément.",
+    buscarMasTarde: "Tu peux aussi rechercher ce produit plus tard, une fois qu'il sera intégré à notre base de données.",
+    general: 'Général',
+    paraTi: 'Pour toi',
+    comoCalculamos: 'Comment calculons-nous la note ?',
+    generalExplainPre: 'La ',
+    generalExplainBold: 'note générale',
+    generalExplainPost: ' évalue le produit pour le grand public (Nutriscore + ingrédients).',
+    personalExplainPre: 'La ',
+    personalExplainBold: 'note personnelle',
+    personalExplainPost: ' ajuste cette note selon ton profil : peau, allergies, régime et objectifs.',
+    confAlta: 'Confiance élevée',
+    confMedia: 'Confiance moyenne',
+    confBaja: 'Confiance faible',
+    faltaPrefix: 'Manque : ',
+    ctaMissingIngredients: "Note provisoire — photographie la liste des ingrédients pour compléter l'analyse",
+    ctaFoodNutrition: 'Note provisoire — photographie le tableau nutritionnel pour débloquer la note complète',
+    ctaCosmeticIngredients: 'Note provisoire — photographie la liste complète des ingrédients pour débloquer la note complète',
+    fotografiar: 'Photographier',
+    whyGeneral: 'Pourquoi cette note générale ?',
+    whyPersonal: 'Pourquoi ta note personnelle ?',
+    incompleteBold: 'Analyse incomplète :',
+    incompleteRest: ' cette note repose uniquement sur le Nutriscore. Photographie la liste des ingrédients pour une analyse complète.',
+    sinDatos: 'Aucune donnée',
+    datosInsuficientes: 'Données insuffisantes',
+    fotografiaParaPuntuacion: "Photographie l'étiquette pour obtenir ta note personnalisée.",
+    ingredientesGenerales: 'Ingrédients généraux',
+    sinListaIngredientes: "Aucune liste d'ingrédients disponible pour ce produit. Tu peux photographier l'étiquette pour une analyse complète.",
+    esNatural: 'Est-ce naturel ?',
+    datosInsuficientesNatural: "Données insuffisantes — photographie l'étiquette pour calculer la naturalité",
+    ingredientesLimpios: 'Ingrédients propres',
+    bioOrganico: 'Bio / Biologique',
+    activaPersonalizacion: 'Active la personnalisation pour savoir si ce produit convient à ton profil.',
+    activarPersonalizacion: 'Activer la personnalisation',
+    noIncompatibilidades: "Nous n'avons détecté aucune incompatibilité avec ton profil. Vérifie toujours l'étiquetage.",
+    fotografiaParaTi: "Photographie l'étiquette pour voir si ce produit te convient.",
+    avisoBold: 'Avis : ',
+    avisoBody: "Maseya propose des informations indicatives basées sur des données publiques et ton profil. Cela ne remplace pas l'avis d'un médecin, dermatologue ou nutritionniste. En cas d'allergies graves, vérifie toujours l'étiquetage officiel du produit.",
+    feedbackLink: 'Quelque chose ne va pas dans cette analyse ? Dis-le-nous',
+    consentBody: "J'accepte le traitement de mes données de santé (allergies, type de peau, grossesse) pour personnaliser les analyses.",
+    consentNotePre: "Sans ce consentement, l'application continue de fonctionner, mais uniquement avec des analyses générales. Tu peux le modifier à tout moment.",
+    politicaPrivacidad: 'Politique de confidentialité',
+    ahoraNo: 'Pas maintenant',
+    acepto: "J'accepte",
+    nutritionRejected: "Nous n'avons pas pu lire le tableau nutritionnel avec certitude — vous pouvez réessayer depuis le résultat.",
+  },
+};
+
 const ResultPage = () => {
   const { barcode } = useParams<{ barcode: string }>();
   const navigate = useNavigate();
@@ -42,6 +255,7 @@ const ResultPage = () => {
   const skipHistory = (location.state as { skipHistory?: boolean } | null)?.skipHistory === true;
   const { isAuthenticated, currentUser } = useAuth();
   const { user } = useUser();
+  const c = COPY[user.language] ?? COPY.es;
   
 
   const [product, setProduct] = useState<ProductData | null>(null);
@@ -80,13 +294,7 @@ const ResultPage = () => {
       const flag = localStorage.getItem('maseya_nutrition_rejected');
       if (flag) {
         localStorage.removeItem('maseya_nutrition_rejected');
-        const lang = user.language;
-        const msg = lang === 'en'
-          ? "We couldn't read the nutrition table reliably — you can try again from the result."
-          : lang === 'fr'
-          ? "Nous n'avons pas pu lire le tableau nutritionnel avec certitude — vous pouvez réessayer depuis le résultat."
-          : 'No pudimos leer la tabla con seguridad — puedes reintentarlo desde el resultado.';
-        toast({ description: msg });
+        toast({ description: c.nutritionRejected });
       }
     } catch {}
   }, [user.language]);
@@ -336,11 +544,11 @@ const ResultPage = () => {
       <div className="min-h-[100dvh] flex flex-col items-center justify-center gap-3 px-6 text-center">
         <Loader2 className="w-10 h-10 text-primary animate-spin" />
         <p className="text-sm text-muted-foreground">
-          {enriching ? 'Buscando información del producto...' : 'Analizando producto...'}
+          {enriching ? c.buscandoInfo : c.analizando}
         </p>
         {enriching && (
           <p className="text-xs text-muted-foreground/80 max-w-xs">
-            Estamos consultando bases de datos internacionales para encontrar este producto.
+            {c.enrichingHint}
           </p>
         )}
       </div>
@@ -353,27 +561,27 @@ const ResultPage = () => {
       <div className="min-h-[100dvh] bg-background">
         <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border pt-safe">
           <div className="w-full sm:max-w-lg sm:mx-auto px-4 h-14 flex items-center gap-3">
-            <button onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/scan'))} aria-label="Volver">
+            <button onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/scan'))} aria-label={c.volver}>
               <ArrowLeft className="w-5 h-5" />
             </button>
             <h1 className="font-display text-lg font-semibold">
-              {isBookOrPress ? 'Fuera de ámbito' : 'Producto no encontrado'}
+              {isBookOrPress ? c.fueraDeAmbito : c.productoNoEncontrado}
             </h1>
           </div>
         </header>
         <div className="w-full sm:max-w-lg sm:mx-auto p-6 space-y-4 text-center">
           <p className="text-muted-foreground">
             {isBookOrPress
-              ? 'Maseya analiza alimentación y cosmética 📚 — este código corresponde a otro tipo de producto.'
-              : 'No tenemos información de este producto en nuestras bases.'}
+              ? c.fueraDeAmbitoBody
+              : c.noInfoBody}
           </p>
           {isBookOrPress ? (
             <Button onClick={() => navigate('/scan', { replace: true })} className="w-full h-12 rounded-2xl">
-              Volver a escanear
+              {c.volverAEscanear}
             </Button>
           ) : (
             <Button onClick={() => navigate(barcode && barcode !== 'photo' ? `/scan/photo?barcode=${barcode}` : '/scan/photo', { replace: true })} className="w-full h-12 rounded-2xl">
-              Fotografiar ingredientes
+              {c.fotografiarIngredientes}
             </Button>
           )}
         </div>
@@ -453,7 +661,7 @@ const ResultPage = () => {
     <div className="min-h-[100dvh] bg-background pb-12">
       <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border pt-safe">
         <div className="w-full sm:max-w-lg sm:mx-auto px-4 h-14 flex items-center gap-3">
-          <button onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/scan'))} aria-label="Volver">
+          <button onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/scan'))} aria-label={c.volver}>
             <ArrowLeft className="w-5 h-5" />
           </button>
           
@@ -468,7 +676,7 @@ const ResultPage = () => {
               type="button"
               onClick={() => setShowImageLightbox(true)}
               className="shrink-0 rounded-2xl overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary/40"
-              aria-label="Ver foto en grande"
+              aria-label={c.verFotoGrande}
             >
               <img
                 src={product.image}
@@ -488,16 +696,16 @@ const ResultPage = () => {
             <p className="font-display font-semibold leading-tight">{product.name}</p>
             {product.brand && <p className="text-xs text-muted-foreground mt-1 truncate">{product.brand}</p>}
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-2">
-              {supplement ? 'Complemento alimenticio'
-                : alcoholic ? 'Bebida alcohólica'
-                : (product.category === 'food' ? 'Alimentación' : 'Cosmética')}
+              {supplement ? c.complemento
+                : alcoholic ? c.bebidaAlcoholica
+                : (product.category === 'food' ? c.alimentacion : c.cosmetica)}
             </p>
             {fromPhoto && (
               <div className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
                 {photoSaved ? (
-                  <><span>✅</span><span>Añadido a nuestra base de datos</span></>
+                  <><span>✅</span><span>{c.anadidoBaseDatos}</span></>
                 ) : (
-                  <><span>📱</span><span>Análisis guardado en tu dispositivo</span></>
+                  <><span>📱</span><span>{c.guardadoDispositivo}</span></>
                 )}
               </div>
             )}
@@ -509,15 +717,15 @@ const ResultPage = () => {
           <>
             <div className="rounded-2xl border border-[#F4A261]/50 bg-[#F4A261]/10 p-4 text-sm text-[#8a4a1e] leading-relaxed">
               {supplement
-                ? 'Los complementos alimenticios no se evalúan con criterios de alimentos (Nutriscore no aplica). Consulta a un profesional sanitario antes de tomarlos.'
-                : 'Maseya no puntúa bebidas alcohólicas — el Nutri-Score no aplica a este tipo de producto.'}
+                ? c.complementoWarning
+                : c.alcoholWarning}
             </div>
             {voiceLine && (
               <p className="text-center text-xs italic text-muted-foreground">{voiceLine}</p>
             )}
             {hasIngredientData && (
               <div className="bg-card rounded-2xl border border-border p-4 space-y-2">
-                <p className="font-semibold flex items-center gap-2">🧪 Ingredientes</p>
+                <p className="font-semibold flex items-center gap-2">🧪 {c.ingredientesTitle}</p>
                 <div className="flex flex-wrap gap-1.5">
                   {flagged.slice(0, 20).map((f, i) => {
                     const es = inciLabel(f.name);
@@ -532,7 +740,7 @@ const ResultPage = () => {
             )}
             {healthConsent && alerts.length > 0 && (
               <div className="bg-card rounded-2xl border-2 border-primary/40 p-4 space-y-2">
-                <p className="font-semibold flex items-center gap-2">👤 ¿Es para ti?</p>
+                <p className="font-semibold flex items-center gap-2">👤 {c.esParaTi}</p>
                 {alerts.map((a, i) => (
                   <div key={i} className={`flex gap-2 items-start p-3 rounded-xl border ${a.level === 'danger' ? 'bg-[#E63946]/10 border-[#E63946]/30 text-[#E63946]' : a.level === 'warn' ? 'bg-[#F4A261]/10 border-[#F4A261]/40 text-[#8a4a1e]' : 'bg-[#95D5B2]/15 border-[#2D6A4F]/30 text-[#2D6A4F]'}`}>
                     <span className="text-base leading-none">{a.level === 'danger' ? '🚨' : a.level === 'warn' ? '⚠️' : '✅'}</span>
@@ -553,17 +761,17 @@ const ResultPage = () => {
               <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
                 <Camera className="w-8 h-8 text-primary" />
               </div>
-              <h2 className="font-display text-lg font-semibold">Ayúdanos a analizar este producto</h2>
+              <h2 className="font-display text-lg font-semibold">{c.ayudanosAnalizar}</h2>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Este producto aún no tiene ingredientes en nuestra base de datos. Fotografía la etiqueta y Mira lo analizará al instante.
+                {c.ayudanosAnalizarBody}
               </p>
               <Button onClick={() => navigate(barcode && barcode !== 'photo' ? `/scan/photo?barcode=${barcode}` : '/scan/photo', { replace: true })} className="w-full h-12 rounded-2xl">
                 <Camera className="w-4 h-4 mr-2" />
-                Fotografiar etiqueta
+                {c.fotografiarEtiqueta}
               </Button>
             </div>
             <p className="text-xs text-muted-foreground text-center px-4">
-              También puedes buscar este producto más tarde cuando nuestra base de datos lo incluya.
+              {c.buscarMasTarde}
             </p>
           </>
         ) : (
@@ -582,7 +790,7 @@ const ResultPage = () => {
                         <div className="text-3xl font-bold">{score}</div>
                         <div className="text-[10px] uppercase tracking-wider opacity-90">/ 100</div>
                       </div>
-                      <div className="text-xs font-medium text-muted-foreground">General</div>
+                      <div className="text-xs font-medium text-muted-foreground">{c.general}</div>
                     </div>
 
                     {/* Personal score — only when health-data consent is given */}
@@ -595,7 +803,7 @@ const ResultPage = () => {
                           <div className="text-4xl font-bold">{personalScore}</div>
                           <div className="text-[10px] uppercase tracking-wider opacity-90">/ 100</div>
                         </div>
-                        <div className="text-xs font-semibold text-primary">Para ti</div>
+                        <div className="text-xs font-semibold text-primary">{c.paraTi}</div>
                       </div>
                     )}
                   </div>
@@ -606,19 +814,19 @@ const ResultPage = () => {
                       <PopoverTrigger asChild>
                         <button
                           type="button"
-                          aria-label="¿Cómo calculamos la puntuación?"
+                          aria-label={c.comoCalculamos}
                           className="text-muted-foreground hover:text-foreground transition-colors"
                         >
                           <Info className="w-4 h-4" />
                         </button>
                       </PopoverTrigger>
                       <PopoverContent className="w-72 text-sm" align="center">
-                        <p className="font-display font-semibold mb-2">¿Cómo calculamos la puntuación?</p>
+                        <p className="font-display font-semibold mb-2">{c.comoCalculamos}</p>
                         <p className="text-muted-foreground leading-relaxed">
-                          La <strong>puntuación general</strong> evalúa el producto para el público general (Nutriscore + ingredientes).
+                          {c.generalExplainPre}<strong>{c.generalExplainBold}</strong>{c.generalExplainPost}
                         </p>
                         <p className="text-muted-foreground leading-relaxed mt-2">
-                          La <strong>puntuación personal</strong> ajusta esa nota según tu perfil: piel, alergias, dieta y objetivos.
+                          {c.personalExplainPre}<strong>{c.personalExplainBold}</strong>{c.personalExplainPost}
                         </p>
                       </PopoverContent>
                     </Popover>
@@ -630,23 +838,23 @@ const ResultPage = () => {
                   {(() => {
                     if (dataConfidence.level === 'none') return null;
                     const map = {
-                      high: { emoji: '🟢', label: 'Confianza alta', cls: 'bg-[#95D5B2]/20 border-[#2D6A4F]/30 text-[#2D6A4F]' },
-                      medium: { emoji: '🟡', label: 'Confianza media', cls: 'bg-[#F4D35E]/20 border-[#F4A261]/40 text-[#8a4a1e]' },
-                      low: { emoji: '🟠', label: 'Confianza baja', cls: 'bg-[#F4A261]/20 border-[#F4A261]/50 text-[#8a4a1e]' },
+                      high: { emoji: '🟢', label: c.confAlta, cls: 'bg-[#95D5B2]/20 border-[#2D6A4F]/30 text-[#2D6A4F]' },
+                      medium: { emoji: '🟡', label: c.confMedia, cls: 'bg-[#F4D35E]/20 border-[#F4A261]/40 text-[#8a4a1e]' },
+                      low: { emoji: '🟠', label: c.confBaja, cls: 'bg-[#F4A261]/20 border-[#F4A261]/50 text-[#8a4a1e]' },
                     } as const;
                     const m = map[dataConfidence.level];
                     const needsPhoto = dataConfidence.level !== 'high';
                     const missingIngredients = dataConfidence.missing.some(m => m.toLowerCase().includes('ingrediente'));
                     const ctaText = missingIngredients
-                      ? 'Nota provisional — fotografía la lista de ingredientes para completar el análisis'
+                      ? c.ctaMissingIngredients
                       : product.category === 'food'
-                        ? 'Nota provisional — fotografía la tabla nutricional para desbloquear la nota completa'
-                        : 'Nota provisional — fotografía la lista de ingredientes completa para desbloquear la nota completa';
+                        ? c.ctaFoodNutrition
+                        : c.ctaCosmeticIngredients;
                     return (
                       <div className="w-full max-w-sm flex flex-col items-center gap-1.5">
                         <span
                           className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-full border ${m.cls}`}
-                          title={dataConfidence.missing.length ? `Falta: ${dataConfidence.missing.join(', ')}` : undefined}
+                          title={dataConfidence.missing.length ? `${c.faltaPrefix}${dataConfidence.missing.join(', ')}` : undefined}
                         >
                           <span aria-hidden>{m.emoji}</span>
                           <span>{m.label}</span>
@@ -670,7 +878,7 @@ const ResultPage = () => {
                               className="rounded-xl h-7 text-[11px] px-3"
                             >
                               <Camera className="w-3 h-3 mr-1" />
-                              Fotografiar
+                              {c.fotografiar}
                             </Button>
 
                           </div>
@@ -687,9 +895,9 @@ const ResultPage = () => {
 
                   {/* Score composition: helps users understand where the number comes from. */}
                   <div className="w-full flex flex-col items-center gap-2">
-                    <ScoreBreakdown factors={scoreBreakdown.factors} title="¿Por qué esta nota general?" />
+                    <ScoreBreakdown factors={scoreBreakdown.factors} title={c.whyGeneral} />
                     {personalBreakdown && (
-                      <ScoreBreakdown factors={personalBreakdown.factors} title="¿Por qué tu nota personal?" />
+                      <ScoreBreakdown factors={personalBreakdown.factors} title={c.whyPersonal} />
                     )}
                   </div>
 
@@ -698,7 +906,7 @@ const ResultPage = () => {
                       <span className="text-base leading-none">⚠️</span>
                       <div className="flex-1 space-y-2">
                         <p className="text-xs text-[#8a4a1e] leading-relaxed">
-                          <strong>Análisis incompleto:</strong> esta nota se basa solo en el Nutriscore. Fotografía la lista de ingredientes para un análisis completo.
+                          <strong>{c.incompleteBold}</strong>{c.incompleteRest}
                         </p>
                         <Button
                           size="sm"
@@ -707,7 +915,7 @@ const ResultPage = () => {
                           className="rounded-xl h-8 text-xs border-[#F4A261]/60 bg-white/60 hover:bg-white"
                         >
                           <Camera className="w-3.5 h-3.5 mr-1.5" />
-                          Fotografiar ingredientes
+                          {c.fotografiarIngredientes}
                         </Button>
                       </div>
                     </div>
@@ -717,15 +925,15 @@ const ResultPage = () => {
                 <>
                   <div className="w-36 h-36 rounded-full flex flex-col items-center justify-center bg-muted text-muted-foreground border border-border">
                     <div className="text-2xl">—</div>
-                    <div className="text-[10px] uppercase tracking-wider mt-1">Sin datos</div>
+                    <div className="text-[10px] uppercase tracking-wider mt-1">{c.sinDatos}</div>
                   </div>
-                  <div className="font-display text-lg font-semibold text-muted-foreground">Datos insuficientes</div>
+                  <div className="font-display text-lg font-semibold text-muted-foreground">{c.datosInsuficientes}</div>
                   <p className="text-xs text-muted-foreground text-center max-w-xs">
-                    Fotografía la etiqueta para obtener tu puntuación personalizada.
+                    {c.fotografiaParaPuntuacion}
                   </p>
                   <Button onClick={() => navigate(barcode && barcode !== 'photo' ? `/scan/photo?barcode=${barcode}` : '/scan/photo')} variant="outline" className="rounded-xl mt-1">
                     <Camera className="w-4 h-4 mr-2" />
-                    Fotografiar etiqueta
+                    {c.fotografiarEtiqueta}
                   </Button>
                 </>
               )}
@@ -738,7 +946,7 @@ const ResultPage = () => {
             <Collapsible defaultOpen>
               <div className="bg-card rounded-2xl border border-border overflow-hidden">
                 <CollapsibleTrigger className="w-full p-4 flex items-center justify-between">
-                  <span className="font-semibold flex items-center gap-2">🔬 Ingredientes generales</span>
+                  <span className="font-semibold flex items-center gap-2">🔬 {c.ingredientesGenerales}</span>
                   <ChevronDown className="w-4 h-4" />
                 </CollapsibleTrigger>
                 <CollapsibleContent>
@@ -746,11 +954,11 @@ const ResultPage = () => {
                     {!hasIngredientData ? (
                       <div className="space-y-3 text-center">
                         <p className="text-sm text-muted-foreground">
-                          Sin lista de ingredientes disponible para este producto. Puedes fotografiar la etiqueta para un análisis completo.
+                          {c.sinListaIngredientes}
                         </p>
                         <Button onClick={() => navigate(barcode && barcode !== 'photo' ? `/scan/photo?barcode=${barcode}` : '/scan/photo')} variant="outline" className="rounded-xl">
                           <Camera className="w-4 h-4 mr-2" />
-                          Fotografiar etiqueta
+                          {c.fotografiarEtiqueta}
                         </Button>
                       </div>
                     ) : (
@@ -773,20 +981,20 @@ const ResultPage = () => {
             <Collapsible defaultOpen>
               <div className="bg-card rounded-2xl border border-border overflow-hidden">
                 <CollapsibleTrigger className="w-full p-4 flex items-center justify-between">
-                  <span className="font-semibold flex items-center gap-2">🌿 ¿Es natural?</span>
+                  <span className="font-semibold flex items-center gap-2">🌿 {c.esNatural}</span>
                   <ChevronDown className="w-4 h-4" />
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <div className="p-4 pt-0 space-y-3">
                     {!hasIngredientData ? (
                       <p className="text-sm text-muted-foreground">
-                        Datos insuficientes — fotografía la etiqueta para calcular naturalidad
+                        {c.datosInsuficientesNatural}
                       </p>
                     ) : (
                       <>
                         <div>
                           <div className="flex justify-between text-sm mb-1">
-                            <span>Ingredientes limpios</span><span className="font-semibold">{nat.pct}%</span>
+                            <span>{c.ingredientesLimpios}</span><span className="font-semibold">{nat.pct}%</span>
                           </div>
                           <div className="h-2 bg-muted rounded-full overflow-hidden">
                             <div className="h-full bg-primary" style={{ width: `${nat.pct}%` }} />
@@ -794,7 +1002,7 @@ const ResultPage = () => {
                         </div>
                         <div className="flex flex-wrap gap-2">
                           <Badge className="bg-primary/10 text-primary border border-primary/20">{nat.level}</Badge>
-                          {nat.organic && <Badge className="bg-[#95D5B2] text-[#1B1B1B]">Bio / Orgánico</Badge>}
+                          {nat.organic && <Badge className="bg-[#95D5B2] text-[#1B1B1B]">{c.bioOrganico}</Badge>}
                         </div>
                       </>
                     )}
@@ -806,7 +1014,7 @@ const ResultPage = () => {
             <Collapsible defaultOpen>
               <div className="bg-card rounded-2xl border-2 border-primary/40 overflow-hidden">
                 <CollapsibleTrigger className="w-full p-4 flex items-center justify-between">
-                  <span className="font-semibold flex items-center gap-2">👤 ¿Es para ti?</span>
+                  <span className="font-semibold flex items-center gap-2">👤 {c.esParaTi}</span>
                   <ChevronDown className="w-4 h-4" />
                 </CollapsibleTrigger>
                 <CollapsibleContent>
@@ -818,22 +1026,22 @@ const ResultPage = () => {
                         <HeartPulse className="w-5 h-5 text-primary mt-0.5 shrink-0" />
                         <div className="flex-1 space-y-2">
                           <p className="text-sm text-foreground/90">
-                            Activa la personalización para saber si este producto es adecuado para tu perfil.
+                            {c.activaPersonalizacion}
                           </p>
                           <Button
                             size="sm"
                             className="rounded-xl"
                             onClick={() => setShowConsentDialog(true)}
                           >
-                            Activar personalización
+                            {c.activarPersonalizacion}
                           </Button>
                         </div>
                       </div>
                     ) : alerts.length === 0 ? (
                       <p className="text-sm text-muted-foreground">
                         {hasIngredientData
-                          ? 'No hemos detectado incompatibilidades con tu perfil. Verifica siempre el etiquetado.'
-                          : 'Fotografía la etiqueta para ver si este producto es adecuado para ti.'}
+                          ? c.noIncompatibilidades
+                          : c.fotografiaParaTi}
                       </p>
                     ) : (
                       alerts.map((a, i) => (
@@ -914,8 +1122,8 @@ const ResultPage = () => {
         {/* Medical / legal disclaimer — always visible on results */}
         <div className="mt-4 rounded-2xl border border-border/70 bg-muted/40 p-4">
           <p className="text-[11px] leading-relaxed text-muted-foreground">
-            <span className="font-semibold text-foreground/80">Aviso: </span>
-            Maseya ofrece información orientativa basada en datos públicos y en tu perfil. No sustituye el consejo de un médico, dermatólogo o nutricionista. Si tienes alergias graves, verifica siempre el etiquetado oficial del producto.
+            <span className="font-semibold text-foreground/80">{c.avisoBold}</span>
+            {c.avisoBody}
           </p>
         </div>
 
@@ -925,7 +1133,7 @@ const ResultPage = () => {
             onClick={() => setShowFeedbackDialog(true)}
             className="text-xs text-muted-foreground hover:text-primary underline underline-offset-2"
           >
-            ¿Algo no cuadra en este análisis? Cuéntanoslo
+            {c.feedbackLink}
           </button>
         </div>
       </div>
@@ -974,24 +1182,22 @@ const ResultPage = () => {
               </div>
             </div>
             <DialogTitle className="text-center font-display">
-              Activar personalización
+              {c.activarPersonalizacion}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3 text-sm text-foreground/90">
             <p>
-              Acepto el tratamiento de mis datos de salud (alergias, tipo de piel, embarazo) para
-              personalizar los análisis.
+              {c.consentBody}
             </p>
             <p className="text-xs text-muted-foreground">
-              Sin este consentimiento la app sigue funcionando, pero solo con análisis generales.
-              Puedes cambiarlo en cualquier momento.{' '}
+              {c.consentNotePre}{' '}
               <a
                 href="/privacy"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="underline underline-offset-2"
               >
-                Política de privacidad
+                {c.politicaPrivacidad}
               </a>
               .
             </p>
@@ -1002,10 +1208,10 @@ const ResultPage = () => {
               className="flex-1 rounded-xl"
               onClick={() => setShowConsentDialog(false)}
             >
-              Ahora no
+              {c.ahoraNo}
             </Button>
             <Button className="flex-1 rounded-xl" onClick={grantHealthConsent}>
-              Acepto
+              {c.acepto}
             </Button>
           </DialogFooter>
         </DialogContent>
