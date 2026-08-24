@@ -656,6 +656,9 @@ const ResultPage = () => {
     : null;
   const personalScore = personalBreakdown ? personalBreakdown.score : score;
   const psl = scoreLabel(personalScore);
+  // Personalization is active only when a real personal breakdown was computed
+  // (consent + allowed profile). Otherwise the "Para ti" circle shows a lock.
+  const personalizationActive = !!personalBreakdown;
   // Voice line: suppressed for supplements. For alcoholic we still want the
   // rotating one-liner (getVoiceLine already handles halal/pregnancy exclusions).
   const voiceLine = supplement ? null : getVoiceLine(
