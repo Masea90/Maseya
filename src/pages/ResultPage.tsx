@@ -49,6 +49,8 @@ const COPY = {
     volverAEscanear: 'Volver a escanear',
     fotografiarIngredientes: 'Fotografiar ingredientes',
     fotografiarEtiqueta: 'Fotografiar etiqueta',
+    fotografiarTabla: 'Fotografiar tabla nutricional',
+    completarConFotos: 'Completar con fotos',
     complemento: 'Complemento alimenticio',
     bebidaAlcoholica: 'Bebida alcohólica',
     alimentacion: 'Alimentación',
