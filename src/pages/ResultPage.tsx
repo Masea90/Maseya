@@ -841,8 +841,10 @@ const ResultPage = () => {
                       <div className="text-xs font-medium text-muted-foreground">{c.general}</div>
                     </div>
 
-                    {/* Personal score — only when health-data consent is given */}
-                    {healthConsent && (
+                    {/* Personal score — real number when personalization is
+                        active; otherwise a locked circle so the page never
+                        implies personalization works without a profile. */}
+                    {personalizationActive ? (
                       <div className="flex flex-col items-center gap-1.5">
                         <div
                           className="w-32 h-32 rounded-full flex flex-col items-center justify-center shadow-warm-lg ring-4 ring-primary/40"
@@ -853,8 +855,23 @@ const ResultPage = () => {
                         </div>
                         <div className="text-xs font-semibold text-primary">{c.paraTi}</div>
                       </div>
+                    ) : (
+                      <LockedCircle label={c.paraTi} />
                     )}
                   </div>
+
+                  {!personalizationActive && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        track('personal_score_locked_click');
+                        document.getElementById('es-para-ti')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }}
+                      className="text-xs text-primary underline underline-offset-2 text-center max-w-xs"
+                    >
+                      {!personalAllowed ? c.bloqueoCtaCuenta : c.bloqueoCtaConsent}
+                    </button>
+                  )}
 
                   <div className="flex items-center gap-1.5">
                     <div className="font-display text-lg font-semibold" style={{ color: psl.bg }}>{psl.label}</div>
