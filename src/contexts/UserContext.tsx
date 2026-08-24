@@ -115,9 +115,9 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
           setUser({
             name: currentUser?.email?.split('@')[0] || 'Guest',
             nickname: data.nickname || '',
-            // An explicit local choice always wins over the stored column
-            // (whose historical default was 'en'). Market default is Spanish.
-            language: getExplicitStoredLanguage() ?? (data.language as Language) ?? 'es',
+            // A manual choice always wins; otherwise the profile column, and
+            // finally the auto-detected device language.
+            language: getManualLanguage() ?? (data.language as Language) ?? resolveInitialLanguage(),
             onboardingComplete: data.onboarding_complete || false,
             avatarUrl: data.avatar_url || null,
             consentAnalytics: data.consent_analytics || false,

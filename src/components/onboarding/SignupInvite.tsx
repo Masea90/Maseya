@@ -3,6 +3,28 @@ import { useNavigate } from 'react-router-dom';
 import { track } from '@/lib/analytics';
 import { Button } from '@/components/ui/button';
 import { HeartPulse } from 'lucide-react';
+import { useUser } from '@/contexts/UserContext';
+
+const COPY = {
+  es: {
+    heading: '{c.heading}',
+    body: 'Te diremos si cada producto es apto para TI según tus alergias, tu dieta y tu piel',
+    create: 'Crear cuenta',
+    notNow: 'Ahora no',
+  },
+  en: {
+    heading: 'Create your free account to personalize your analysis',
+    body: "We'll tell you if each product is right for YOU based on your allergies, diet and skin",
+    create: 'Create account',
+    notNow: 'Not now',
+  },
+  fr: {
+    heading: 'Crée ton compte gratuit pour personnaliser ton analyse',
+    body: "Nous te dirons si chaque produit te convient selon tes allergies, ton régime et ta peau",
+    create: 'Créer un compte',
+    notNow: 'Pas maintenant',
+  },
+};
 
 /**
  * Shown to ANONYMOUS users where the personal layer would normally appear
@@ -11,6 +33,8 @@ import { HeartPulse } from 'lucide-react';
  */
 export const SignupInvite = ({ compact = false }: { compact?: boolean }) => {
   const navigate = useNavigate();
+  const { user } = useUser();
+  const c = COPY[user.language] ?? COPY.es;
 
   const promptTracked = useRef(false);
   useEffect(() => {
@@ -30,20 +54,20 @@ export const SignupInvite = ({ compact = false }: { compact?: boolean }) => {
         <HeartPulse className="w-6 h-6 text-primary" />
       </div>
       <h2 className={compact ? 'font-display text-lg font-bold' : 'font-display text-2xl font-bold leading-tight'}>
-        Crea tu cuenta gratis para personalizar tu análisis
+        {c.heading}
       </h2>
       <p className="text-sm text-muted-foreground">
-        Te diremos si cada producto es apto para TI según tus alergias, tu dieta y tu piel
+        {c.body}
       </p>
       <div className="space-y-2 pt-1">
         <Button
           className="w-full rounded-2xl h-12 font-semibold"
           onClick={() => navigate('/login?mode=signup')}
         >
-          Crear cuenta
+          {c.create}
         </Button>
         <Button variant="ghost" className="w-full rounded-2xl" onClick={skipToScan}>
-          Ahora no
+          {c.notNow}
         </Button>
       </div>
     </div>
