@@ -891,21 +891,38 @@ const ResultPage = () => {
                     )}
                   </div>
 
-                  {!hasIngredientData && hasNutriscore && (
+                  {needsPhoto && (
                     <div className="w-full max-w-sm mt-1 rounded-2xl border border-[#F4A261]/50 bg-[#F4A261]/10 p-3 flex gap-2 items-start">
                       <span className="text-base leading-none">⚠️</span>
                       <div className="flex-1 space-y-2">
                         <p className="text-xs text-[#8a4a1e] leading-relaxed">
-                          <strong>{c.incompleteBold}</strong>{c.incompleteRest}
+                          <strong>{c.incompleteBold}</strong>
+                          {missingIngredients && missingNutrition
+                            ? c.incompleteBothRest
+                            : missingNutrition
+                              ? c.incompleteNutritionRest
+                              : c.incompleteIngredientsRest}
                         </p>
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => navigate(barcode && barcode !== 'photo' ? `/scan/photo?barcode=${barcode}` : '/scan/photo')}
+                          onClick={() => {
+                            const bc = barcode && barcode !== 'photo' ? barcode : (product.barcode !== 'photo' ? product.barcode : '');
+                            // Nutrition-only gap → jump straight to the nutrition step.
+                            if (missingNutrition && !missingIngredients && bc && !bc.startsWith('photo_')) {
+                              navigate(`/scan/photo?step=nutrition&barcode=${bc}`);
+                            } else {
+                              navigate(bc ? `/scan/photo?barcode=${bc}` : '/scan/photo');
+                            }
+                          }}
                           className="rounded-xl h-8 text-xs border-[#F4A261]/60 bg-white/60 hover:bg-white"
                         >
                           <Camera className="w-3.5 h-3.5 mr-1.5" />
-                          {c.fotografiarIngredientes}
+                          {missingIngredients && missingNutrition
+                            ? c.completarConFotos
+                            : missingNutrition
+                              ? c.fotografiarTabla
+                              : c.fotografiarIngredientes}
                         </Button>
                       </div>
                     </div>
