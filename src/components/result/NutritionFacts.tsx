@@ -11,7 +11,7 @@ const COPY: Record<Language, Record<string, string>> = {
     sugars: 'Azúcares', lowSugar: 'Bajo en azúcar', highSugar: 'Alto en azúcar',
     satFat: 'Grasas saturadas', lowSat: 'Bajo en grasas sat.', highSat: 'Alto en grasas sat.',
     kcal: 'Calorías', lowKcal: 'Poco calórico', highKcal: 'Muy calórico',
-    proteins: 'Proteínas', fiber: 'Fibra', moderate: 'Moderado', goodAmount: L.goodAmount,
+    proteins: 'Proteínas', fiber: 'Fibra', moderate: 'Moderado', goodAmount: 'Buena cantidad',
   },
   en: {
     title: 'Nutrition facts', per100: '(per 100 g)',
