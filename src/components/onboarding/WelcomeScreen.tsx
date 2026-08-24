@@ -39,6 +39,14 @@ export const WelcomeScreen = () => {
   const { user } = useUser();
   const c = COPY[user.language] ?? COPY.es;
 
+  const viewTracked = useRef(false);
+  useEffect(() => {
+    if (viewTracked.current) return;
+    viewTracked.current = true;
+    track('welcome_view', { language: user.language });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleScan = () => {
     // Same effect the old "continue without signing up" had: let anonymous users
     // through the onboarding gate. We flag the skip locally (no quiz answers).
