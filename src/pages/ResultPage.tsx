@@ -612,6 +612,13 @@ const ResultPage = () => {
   const sl = scoreLabel(score);
   const nat = naturalness(product, flagged);
   const dataConfidence = evaluateDataConfidence(product);
+  // What's actually missing — drives the single "incomplete analysis" notice.
+  // (Spanish strings come from evaluateDataConfidence; detect by category-agnostic
+  //  substring so the message matches reality instead of always saying "Nutriscore".)
+  const missingIngredients = dataConfidence.missing.some(m => m.toLowerCase().includes('ingrediente'));
+  const missingNutrition = product.category === 'food'
+    && dataConfidence.missing.some(m => !m.toLowerCase().includes('ingrediente'));
+  const needsPhoto = dataConfidence.level === 'low' || dataConfidence.level === 'medium';
   const profile = loadOnboarding();
   // The personal layer is a registered-user feature. Anonymous users who already
   // had a local profile from before this gate keep working exactly as before.
