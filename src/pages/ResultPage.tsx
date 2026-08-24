@@ -49,6 +49,8 @@ const COPY = {
     volverAEscanear: 'Volver a escanear',
     fotografiarIngredientes: 'Fotografiar ingredientes',
     fotografiarEtiqueta: 'Fotografiar etiqueta',
+    fotografiarTabla: 'Fotografiar tabla nutricional',
+    completarConFotos: 'Completar con fotos',
     complemento: 'Complemento alimenticio',
     bebidaAlcoholica: 'Bebida alcohólica',
     alimentacion: 'Alimentación',
@@ -82,7 +84,9 @@ const COPY = {
     whyGeneral: '¿Por qué esta nota general?',
     whyPersonal: '¿Por qué tu nota personal?',
     incompleteBold: 'Análisis incompleto:',
-    incompleteRest: ' esta nota se basa solo en el Nutriscore. Fotografía la lista de ingredientes para un análisis completo.',
+    incompleteIngredientsRest: ' esta nota se basa solo en los valores nutricionales. Fotografía la lista de ingredientes para completarlo.',
+    incompleteNutritionRest: ' falta la información nutricional. Fotografía la tabla nutricional para completarlo.',
+    incompleteBothRest: ' faltan la lista de ingredientes y la información nutricional. Completa el análisis con fotos.',
     sinDatos: 'Sin datos',
     datosInsuficientes: 'Datos insuficientes',
     fotografiaParaPuntuacion: 'Fotografía la etiqueta para obtener tu puntuación personalizada.',
@@ -119,6 +123,8 @@ const COPY = {
     volverAEscanear: 'Scan again',
     fotografiarIngredientes: 'Photograph ingredients',
     fotografiarEtiqueta: 'Photograph label',
+    fotografiarTabla: 'Photograph nutrition table',
+    completarConFotos: 'Complete with photos',
     complemento: 'Dietary supplement',
     bebidaAlcoholica: 'Alcoholic drink',
     alimentacion: 'Food',
@@ -152,7 +158,9 @@ const COPY = {
     whyGeneral: 'Why this general score?',
     whyPersonal: 'Why your personal score?',
     incompleteBold: 'Incomplete analysis:',
-    incompleteRest: ' this score is based only on Nutriscore. Photograph the ingredient list for a complete analysis.',
+    incompleteIngredientsRest: ' this score is based only on nutrition values. Photograph the ingredient list to complete it.',
+    incompleteNutritionRest: ' nutrition information is missing. Photograph the nutrition table to complete it.',
+    incompleteBothRest: ' the ingredient list and nutrition information are missing. Complete the analysis with photos.',
     sinDatos: 'No data',
     datosInsuficientes: 'Insufficient data',
     fotografiaParaPuntuacion: 'Photograph the label to get your personalized score.',
@@ -189,6 +197,8 @@ const COPY = {
     volverAEscanear: 'Scanner à nouveau',
     fotografiarIngredientes: 'Photographier les ingrédients',
     fotografiarEtiqueta: "Photographier l'étiquette",
+    fotografiarTabla: 'Photographier le tableau nutritionnel',
+    completarConFotos: 'Compléter avec des photos',
     complemento: 'Complément alimentaire',
     bebidaAlcoholica: 'Boisson alcoolisée',
     alimentacion: 'Alimentation',
@@ -222,7 +232,9 @@ const COPY = {
     whyGeneral: 'Pourquoi cette note générale ?',
     whyPersonal: 'Pourquoi ta note personnelle ?',
     incompleteBold: 'Analyse incomplète :',
-    incompleteRest: ' cette note repose uniquement sur le Nutriscore. Photographie la liste des ingrédients pour une analyse complète.',
+    incompleteIngredientsRest: " cette note repose uniquement sur les valeurs nutritionnelles. Photographie la liste des ingrédients pour la compléter.",
+    incompleteNutritionRest: " les informations nutritionnelles manquent. Photographie le tableau nutritionnel pour le compléter.",
+    incompleteBothRest: " la liste des ingrédients et les informations nutritionnelles manquent. Complète l'analyse avec des photos.",
     sinDatos: 'Aucune donnée',
     datosInsuficientes: 'Données insuffisantes',
     fotografiaParaPuntuacion: "Photographie l'étiquette pour obtenir ta note personnalisée.",
@@ -600,6 +612,13 @@ const ResultPage = () => {
   const sl = scoreLabel(score);
   const nat = naturalness(product, flagged);
   const dataConfidence = evaluateDataConfidence(product);
+  // What's actually missing — drives the single "incomplete analysis" notice.
+  // (Spanish strings come from evaluateDataConfidence; detect by category-agnostic
+  //  substring so the message matches reality instead of always saying "Nutriscore".)
+  const missingIngredients = dataConfidence.missing.some(m => m.toLowerCase().includes('ingrediente'));
+  const missingNutrition = product.category === 'food'
+    && dataConfidence.missing.some(m => !m.toLowerCase().includes('ingrediente'));
+  const needsPhoto = dataConfidence.level === 'low' || dataConfidence.level === 'medium';
   const profile = loadOnboarding();
   // The personal layer is a registered-user feature. Anonymous users who already
   // had a local profile from before this gate keep working exactly as before.
@@ -843,13 +862,8 @@ const ResultPage = () => {
                       low: { emoji: '🟠', label: c.confBaja, cls: 'bg-[#F4A261]/20 border-[#F4A261]/50 text-[#8a4a1e]' },
                     } as const;
                     const m = map[dataConfidence.level];
-                    const needsPhoto = dataConfidence.level !== 'high';
-                    const missingIngredients = dataConfidence.missing.some(m => m.toLowerCase().includes('ingrediente'));
-                    const ctaText = missingIngredients
-                      ? c.ctaMissingIngredients
-                      : product.category === 'food'
-                        ? c.ctaFoodNutrition
-                        : c.ctaCosmeticIngredients;
+                    // The badge is an indicator only — no CTA of its own. The single
+                    // "incomplete analysis" notice below holds the only photo button.
                     return (
                       <div className="w-full max-w-sm flex flex-col items-center gap-1.5">
                         <span
@@ -859,30 +873,6 @@ const ResultPage = () => {
                           <span aria-hidden>{m.emoji}</span>
                           <span>{m.label}</span>
                         </span>
-                        {needsPhoto && (
-                          <div className="flex flex-col items-center gap-1">
-                            <p className="text-[11px] text-muted-foreground text-center leading-snug px-3">
-                              {ctaText}
-                            </p>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                const bc = barcode && barcode !== 'photo' ? barcode : (product.barcode !== 'photo' ? product.barcode : '');
-                                if (product.category === 'food' && bc && !bc.startsWith('photo_') && !missingIngredients) {
-                                  navigate(`/scan/photo?step=nutrition&barcode=${bc}`);
-                                } else {
-                                  navigate(bc ? `/scan/photo?barcode=${bc}` : '/scan/photo');
-                                }
-                              }}
-                              className="rounded-xl h-7 text-[11px] px-3"
-                            >
-                              <Camera className="w-3 h-3 mr-1" />
-                              {c.fotografiar}
-                            </Button>
-
-                          </div>
-                        )}
                       </div>
                     );
                   })()}
@@ -901,21 +891,38 @@ const ResultPage = () => {
                     )}
                   </div>
 
-                  {!hasIngredientData && hasNutriscore && (
+                  {needsPhoto && (
                     <div className="w-full max-w-sm mt-1 rounded-2xl border border-[#F4A261]/50 bg-[#F4A261]/10 p-3 flex gap-2 items-start">
                       <span className="text-base leading-none">⚠️</span>
                       <div className="flex-1 space-y-2">
                         <p className="text-xs text-[#8a4a1e] leading-relaxed">
-                          <strong>{c.incompleteBold}</strong>{c.incompleteRest}
+                          <strong>{c.incompleteBold}</strong>
+                          {missingIngredients && missingNutrition
+                            ? c.incompleteBothRest
+                            : missingNutrition
+                              ? c.incompleteNutritionRest
+                              : c.incompleteIngredientsRest}
                         </p>
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => navigate(barcode && barcode !== 'photo' ? `/scan/photo?barcode=${barcode}` : '/scan/photo')}
+                          onClick={() => {
+                            const bc = barcode && barcode !== 'photo' ? barcode : (product.barcode !== 'photo' ? product.barcode : '');
+                            // Nutrition-only gap → jump straight to the nutrition step.
+                            if (missingNutrition && !missingIngredients && bc && !bc.startsWith('photo_')) {
+                              navigate(`/scan/photo?step=nutrition&barcode=${bc}`);
+                            } else {
+                              navigate(bc ? `/scan/photo?barcode=${bc}` : '/scan/photo');
+                            }
+                          }}
                           className="rounded-xl h-8 text-xs border-[#F4A261]/60 bg-white/60 hover:bg-white"
                         >
                           <Camera className="w-3.5 h-3.5 mr-1.5" />
-                          {c.fotografiarIngredientes}
+                          {missingIngredients && missingNutrition
+                            ? c.completarConFotos
+                            : missingNutrition
+                              ? c.fotografiarTabla
+                              : c.fotografiarIngredientes}
                         </Button>
                       </div>
                     </div>
@@ -952,15 +959,9 @@ const ResultPage = () => {
                 <CollapsibleContent>
                   <div className="p-4 pt-0">
                     {!hasIngredientData ? (
-                      <div className="space-y-3 text-center">
-                        <p className="text-sm text-muted-foreground">
-                          {c.sinListaIngredientes}
-                        </p>
-                        <Button onClick={() => navigate(barcode && barcode !== 'photo' ? `/scan/photo?barcode=${barcode}` : '/scan/photo')} variant="outline" className="rounded-xl">
-                          <Camera className="w-4 h-4 mr-2" />
-                          {c.fotografiarEtiqueta}
-                        </Button>
-                      </div>
+                      <p className="text-sm text-muted-foreground text-center py-2">
+                        {c.sinListaIngredientes}
+                      </p>
                     ) : (
                       <div className="flex flex-wrap gap-1.5">
                         {flagged.slice(0, 20).map((f, i) => {
