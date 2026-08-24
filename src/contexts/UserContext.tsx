@@ -77,7 +77,7 @@ const resolveInitialLanguage = (): Language => {
 const createDefaultUser = (email?: string): UserProfile => ({
   name: email?.split('@')[0] || 'Guest',
   nickname: '',
-  language: getStoredLanguage(),
+  language: resolveInitialLanguage(),
   onboardingComplete: false,
   avatarUrl: null,
   consentAnalytics: false,
