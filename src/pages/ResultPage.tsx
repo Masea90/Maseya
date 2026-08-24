@@ -266,6 +266,26 @@ const COPY = {
   },
 };
 
+/**
+ * Locked "Para ti" circle for users without active personalization (no
+ * account/profile, or no health-data consent). Shows a lock instead of a
+ * number so the product page never implies personalization works when it
+ * doesn't. Fires `personal_score_locked_view` once on mount.
+ */
+const LockedCircle = ({ label }: { label: string }) => {
+  useEffect(() => {
+    track('personal_score_locked_view');
+  }, []);
+  return (
+    <div className="flex flex-col items-center gap-1.5">
+      <div className="w-32 h-32 rounded-full flex flex-col items-center justify-center shadow-warm-lg ring-4 ring-muted-foreground/15 bg-muted/50 text-muted-foreground">
+        <Lock className="w-10 h-10" aria-hidden />
+      </div>
+      <div className="text-xs font-semibold text-muted-foreground">{label}</div>
+    </div>
+  );
+};
+
 const ResultPage = () => {
   const { barcode } = useParams<{ barcode: string }>();
   const navigate = useNavigate();
