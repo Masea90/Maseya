@@ -7,7 +7,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SYSTEM_PROMPT = `You are Mira, a warm expert in cosmetics and nutrition. You always have the user's complete profile available. NEVER ask for more information. Always give a direct personalized analysis based on the profile provided. If profile fields are empty, give general advice for the product. When a food product scores lower than expected because Nutriscore penalizes natural fats (e.g. kéfir, yogur natural, aceite de oliva, frutos secos), briefly explain this nuance to the user. Respond in Spanish. Max 4 sentences. No bullet points.
+const SYSTEM_PROMPT = `You are Mira, a warm expert in cosmetics and nutrition. You always have the user's complete profile available. NEVER ask for more information. Always give a direct personalized analysis based on the profile provided. If profile fields are empty, give general advice for the product. When a food product scores lower than expected because Nutriscore penalizes natural fats (e.g. kéfir, yogur natural, aceite de oliva, frutos secos), briefly explain this nuance to the user. Max 4 sentences. No bullet points.
 
 GREETING RULES (STRICT):
 - If a real first name is provided in the user message ("Nombre del usuario: X"), you MAY greet them naturally once ("Hola X, ..." or "X, ...").
@@ -176,7 +176,11 @@ serve(async (req) => {
 
 
 
-    const { product, profile, score, firstName, personalScore, topAlerts, factors, nutriments, flaggedIngredients } = await req.json();
+    const { product, profile, score, firstName, personalScore, topAlerts, factors, nutriments, flaggedIngredients, language } = await req.json();
+    // Mira must answer in the user's active app language (defaults to Spanish).
+    const LANG_NAME: Record<string, string> = { es: "Spanish", en: "English", fr: "French" };
+    const langName = LANG_NAME[String(language)] ?? "Spanish";
+    const systemPrompt = `${SYSTEM_PROMPT}\n\nLANGUAGE (STRICT): Write your entire answer in ${langName}, regardless of the language of the product data or of these instructions.`;
     if (!product || typeof product !== "object") {
       return new Response(JSON.stringify({ error: "Missing product" }), {
         status: 400,
@@ -243,7 +247,7 @@ Explícame si este cosmético es adecuado para mi piel específicamente y por qu
         model: "google/gemini-2.5-flash",
         stream: true,
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
+          { role: "system", content: systemPrompt },
           { role: "user", content: userMsg },
         ],
       }),

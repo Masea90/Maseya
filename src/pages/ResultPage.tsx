@@ -661,7 +661,7 @@ const ResultPage = () => {
     <div className="min-h-[100dvh] bg-background pb-12">
       <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border pt-safe">
         <div className="w-full sm:max-w-lg sm:mx-auto px-4 h-14 flex items-center gap-3">
-          <button onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/scan'))} aria-label="Volver">
+          <button onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/scan'))} aria-label={c.volver}>
             <ArrowLeft className="w-5 h-5" />
           </button>
           
@@ -676,7 +676,7 @@ const ResultPage = () => {
               type="button"
               onClick={() => setShowImageLightbox(true)}
               className="shrink-0 rounded-2xl overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary/40"
-              aria-label="Ver foto en grande"
+              aria-label={c.verFotoGrande}
             >
               <img
                 src={product.image}
@@ -696,16 +696,16 @@ const ResultPage = () => {
             <p className="font-display font-semibold leading-tight">{product.name}</p>
             {product.brand && <p className="text-xs text-muted-foreground mt-1 truncate">{product.brand}</p>}
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-2">
-              {supplement ? 'Complemento alimenticio'
-                : alcoholic ? 'Bebida alcohólica'
-                : (product.category === 'food' ? 'Alimentación' : 'Cosmética')}
+              {supplement ? c.complemento
+                : alcoholic ? c.bebidaAlcoholica
+                : (product.category === 'food' ? c.alimentacion : c.cosmetica)}
             </p>
             {fromPhoto && (
               <div className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
                 {photoSaved ? (
-                  <><span>✅</span><span>Añadido a nuestra base de datos</span></>
+                  <><span>✅</span><span>{c.anadidoBaseDatos}</span></>
                 ) : (
-                  <><span>📱</span><span>Análisis guardado en tu dispositivo</span></>
+                  <><span>📱</span><span>{c.guardadoDispositivo}</span></>
                 )}
               </div>
             )}
@@ -717,15 +717,15 @@ const ResultPage = () => {
           <>
             <div className="rounded-2xl border border-[#F4A261]/50 bg-[#F4A261]/10 p-4 text-sm text-[#8a4a1e] leading-relaxed">
               {supplement
-                ? 'Los complementos alimenticios no se evalúan con criterios de alimentos (Nutriscore no aplica). Consulta a un profesional sanitario antes de tomarlos.'
-                : 'Maseya no puntúa bebidas alcohólicas — el Nutri-Score no aplica a este tipo de producto.'}
+                ? c.complementoWarning
+                : c.alcoholWarning}
             </div>
             {voiceLine && (
               <p className="text-center text-xs italic text-muted-foreground">{voiceLine}</p>
             )}
             {hasIngredientData && (
               <div className="bg-card rounded-2xl border border-border p-4 space-y-2">
-                <p className="font-semibold flex items-center gap-2">🧪 Ingredientes</p>
+                <p className="font-semibold flex items-center gap-2">🧪 {c.ingredientesTitle}</p>
                 <div className="flex flex-wrap gap-1.5">
                   {flagged.slice(0, 20).map((f, i) => {
                     const es = inciLabel(f.name);
@@ -740,7 +740,7 @@ const ResultPage = () => {
             )}
             {healthConsent && alerts.length > 0 && (
               <div className="bg-card rounded-2xl border-2 border-primary/40 p-4 space-y-2">
-                <p className="font-semibold flex items-center gap-2">👤 ¿Es para ti?</p>
+                <p className="font-semibold flex items-center gap-2">👤 {c.esParaTi}</p>
                 {alerts.map((a, i) => (
                   <div key={i} className={`flex gap-2 items-start p-3 rounded-xl border ${a.level === 'danger' ? 'bg-[#E63946]/10 border-[#E63946]/30 text-[#E63946]' : a.level === 'warn' ? 'bg-[#F4A261]/10 border-[#F4A261]/40 text-[#8a4a1e]' : 'bg-[#95D5B2]/15 border-[#2D6A4F]/30 text-[#2D6A4F]'}`}>
                     <span className="text-base leading-none">{a.level === 'danger' ? '🚨' : a.level === 'warn' ? '⚠️' : '✅'}</span>
@@ -761,17 +761,17 @@ const ResultPage = () => {
               <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
                 <Camera className="w-8 h-8 text-primary" />
               </div>
-              <h2 className="font-display text-lg font-semibold">Ayúdanos a analizar este producto</h2>
+              <h2 className="font-display text-lg font-semibold">{c.ayudanosAnalizar}</h2>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Este producto aún no tiene ingredientes en nuestra base de datos. Fotografía la etiqueta y Mira lo analizará al instante.
+                {c.ayudanosAnalizarBody}
               </p>
               <Button onClick={() => navigate(barcode && barcode !== 'photo' ? `/scan/photo?barcode=${barcode}` : '/scan/photo', { replace: true })} className="w-full h-12 rounded-2xl">
                 <Camera className="w-4 h-4 mr-2" />
-                Fotografiar etiqueta
+                {c.fotografiarEtiqueta}
               </Button>
             </div>
             <p className="text-xs text-muted-foreground text-center px-4">
-              También puedes buscar este producto más tarde cuando nuestra base de datos lo incluya.
+              {c.buscarMasTarde}
             </p>
           </>
         ) : (
@@ -790,7 +790,7 @@ const ResultPage = () => {
                         <div className="text-3xl font-bold">{score}</div>
                         <div className="text-[10px] uppercase tracking-wider opacity-90">/ 100</div>
                       </div>
-                      <div className="text-xs font-medium text-muted-foreground">General</div>
+                      <div className="text-xs font-medium text-muted-foreground">{c.general}</div>
                     </div>
 
                     {/* Personal score — only when health-data consent is given */}
@@ -803,7 +803,7 @@ const ResultPage = () => {
                           <div className="text-4xl font-bold">{personalScore}</div>
                           <div className="text-[10px] uppercase tracking-wider opacity-90">/ 100</div>
                         </div>
-                        <div className="text-xs font-semibold text-primary">Para ti</div>
+                        <div className="text-xs font-semibold text-primary">{c.paraTi}</div>
                       </div>
                     )}
                   </div>
@@ -814,19 +814,19 @@ const ResultPage = () => {
                       <PopoverTrigger asChild>
                         <button
                           type="button"
-                          aria-label="¿Cómo calculamos la puntuación?"
+                          aria-label={c.comoCalculamos}
                           className="text-muted-foreground hover:text-foreground transition-colors"
                         >
                           <Info className="w-4 h-4" />
                         </button>
                       </PopoverTrigger>
                       <PopoverContent className="w-72 text-sm" align="center">
-                        <p className="font-display font-semibold mb-2">¿Cómo calculamos la puntuación?</p>
+                        <p className="font-display font-semibold mb-2">{c.comoCalculamos}</p>
                         <p className="text-muted-foreground leading-relaxed">
-                          La <strong>puntuación general</strong> evalúa el producto para el público general (Nutriscore + ingredientes).
+                          {c.generalExplainPre}<strong>{c.generalExplainBold}</strong>{c.generalExplainPost}
                         </p>
                         <p className="text-muted-foreground leading-relaxed mt-2">
-                          La <strong>puntuación personal</strong> ajusta esa nota según tu perfil: piel, alergias, dieta y objetivos.
+                          {c.personalExplainPre}<strong>{c.personalExplainBold}</strong>{c.personalExplainPost}
                         </p>
                       </PopoverContent>
                     </Popover>
@@ -838,23 +838,23 @@ const ResultPage = () => {
                   {(() => {
                     if (dataConfidence.level === 'none') return null;
                     const map = {
-                      high: { emoji: '🟢', label: 'Confianza alta', cls: 'bg-[#95D5B2]/20 border-[#2D6A4F]/30 text-[#2D6A4F]' },
-                      medium: { emoji: '🟡', label: 'Confianza media', cls: 'bg-[#F4D35E]/20 border-[#F4A261]/40 text-[#8a4a1e]' },
-                      low: { emoji: '🟠', label: 'Confianza baja', cls: 'bg-[#F4A261]/20 border-[#F4A261]/50 text-[#8a4a1e]' },
+                      high: { emoji: '🟢', label: c.confAlta, cls: 'bg-[#95D5B2]/20 border-[#2D6A4F]/30 text-[#2D6A4F]' },
+                      medium: { emoji: '🟡', label: c.confMedia, cls: 'bg-[#F4D35E]/20 border-[#F4A261]/40 text-[#8a4a1e]' },
+                      low: { emoji: '🟠', label: c.confBaja, cls: 'bg-[#F4A261]/20 border-[#F4A261]/50 text-[#8a4a1e]' },
                     } as const;
                     const m = map[dataConfidence.level];
                     const needsPhoto = dataConfidence.level !== 'high';
                     const missingIngredients = dataConfidence.missing.some(m => m.toLowerCase().includes('ingrediente'));
                     const ctaText = missingIngredients
-                      ? 'Nota provisional — fotografía la lista de ingredientes para completar el análisis'
+                      ? c.ctaMissingIngredients
                       : product.category === 'food'
-                        ? 'Nota provisional — fotografía la tabla nutricional para desbloquear la nota completa'
-                        : 'Nota provisional — fotografía la lista de ingredientes completa para desbloquear la nota completa';
+                        ? c.ctaFoodNutrition
+                        : c.ctaCosmeticIngredients;
                     return (
                       <div className="w-full max-w-sm flex flex-col items-center gap-1.5">
                         <span
                           className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-full border ${m.cls}`}
-                          title={dataConfidence.missing.length ? `Falta: ${dataConfidence.missing.join(', ')}` : undefined}
+                          title={dataConfidence.missing.length ? `${c.faltaPrefix}${dataConfidence.missing.join(', ')}` : undefined}
                         >
                           <span aria-hidden>{m.emoji}</span>
                           <span>{m.label}</span>
@@ -878,7 +878,7 @@ const ResultPage = () => {
                               className="rounded-xl h-7 text-[11px] px-3"
                             >
                               <Camera className="w-3 h-3 mr-1" />
-                              Fotografiar
+                              {c.fotografiar}
                             </Button>
 
                           </div>
@@ -895,9 +895,9 @@ const ResultPage = () => {
 
                   {/* Score composition: helps users understand where the number comes from. */}
                   <div className="w-full flex flex-col items-center gap-2">
-                    <ScoreBreakdown factors={scoreBreakdown.factors} title="¿Por qué esta nota general?" />
+                    <ScoreBreakdown factors={scoreBreakdown.factors} title={c.whyGeneral} />
                     {personalBreakdown && (
-                      <ScoreBreakdown factors={personalBreakdown.factors} title="¿Por qué tu nota personal?" />
+                      <ScoreBreakdown factors={personalBreakdown.factors} title={c.whyPersonal} />
                     )}
                   </div>
 
@@ -906,7 +906,7 @@ const ResultPage = () => {
                       <span className="text-base leading-none">⚠️</span>
                       <div className="flex-1 space-y-2">
                         <p className="text-xs text-[#8a4a1e] leading-relaxed">
-                          <strong>Análisis incompleto:</strong> esta nota se basa solo en el Nutriscore. Fotografía la lista de ingredientes para un análisis completo.
+                          <strong>{c.incompleteBold}</strong>{c.incompleteRest}
                         </p>
                         <Button
                           size="sm"
@@ -915,7 +915,7 @@ const ResultPage = () => {
                           className="rounded-xl h-8 text-xs border-[#F4A261]/60 bg-white/60 hover:bg-white"
                         >
                           <Camera className="w-3.5 h-3.5 mr-1.5" />
-                          Fotografiar ingredientes
+                          {c.fotografiarIngredientes}
                         </Button>
                       </div>
                     </div>
@@ -925,15 +925,15 @@ const ResultPage = () => {
                 <>
                   <div className="w-36 h-36 rounded-full flex flex-col items-center justify-center bg-muted text-muted-foreground border border-border">
                     <div className="text-2xl">—</div>
-                    <div className="text-[10px] uppercase tracking-wider mt-1">Sin datos</div>
+                    <div className="text-[10px] uppercase tracking-wider mt-1">{c.sinDatos}</div>
                   </div>
-                  <div className="font-display text-lg font-semibold text-muted-foreground">Datos insuficientes</div>
+                  <div className="font-display text-lg font-semibold text-muted-foreground">{c.datosInsuficientes}</div>
                   <p className="text-xs text-muted-foreground text-center max-w-xs">
-                    Fotografía la etiqueta para obtener tu puntuación personalizada.
+                    {c.fotografiaParaPuntuacion}
                   </p>
                   <Button onClick={() => navigate(barcode && barcode !== 'photo' ? `/scan/photo?barcode=${barcode}` : '/scan/photo')} variant="outline" className="rounded-xl mt-1">
                     <Camera className="w-4 h-4 mr-2" />
-                    Fotografiar etiqueta
+                    {c.fotografiarEtiqueta}
                   </Button>
                 </>
               )}
