@@ -123,6 +123,8 @@ const COPY = {
     volverAEscanear: 'Scan again',
     fotografiarIngredientes: 'Photograph ingredients',
     fotografiarEtiqueta: 'Photograph label',
+    fotografiarTabla: 'Photograph nutrition table',
+    completarConFotos: 'Complete with photos',
     complemento: 'Dietary supplement',
     bebidaAlcoholica: 'Alcoholic drink',
     alimentacion: 'Food',
