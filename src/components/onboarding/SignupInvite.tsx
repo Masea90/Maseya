@@ -41,9 +41,12 @@ export const SignupInvite = ({ compact = false }: { compact?: boolean }) => {
     if (promptTracked.current) return;
     promptTracked.current = true;
     track('register_prompt_shown');
+    track('signup_invite_view', { language: user.language });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const skipToScan = () => {
+    track('signup_invite_dismissed');
     try { localStorage.setItem('maseya_onboarding_skipped', '1'); } catch { /* ignore */ }
     navigate('/scan', { replace: true });
   };
