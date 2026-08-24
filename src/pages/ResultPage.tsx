@@ -142,6 +142,8 @@ const COPY = {
     buscarMasTarde: 'You can also search for this product later once our database includes it.',
     general: 'General',
     paraTi: 'For you',
+    bloqueoCtaCuenta: 'Create your free account to see your personal score',
+    bloqueoCtaConsent: 'Turn on personalization to see your personal score',
     comoCalculamos: 'How do we calculate the score?',
     generalExplainPre: 'The ',
     generalExplainBold: 'general score',
