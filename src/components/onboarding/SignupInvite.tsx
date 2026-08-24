@@ -7,7 +7,7 @@ import { useUser } from '@/contexts/UserContext';
 
 const COPY = {
   es: {
-    heading: '{c.heading}',
+    heading: 'Crea tu cuenta gratis para personalizar tu análisis',
     body: 'Te diremos si cada producto es apto para TI según tus alergias, tu dieta y tu piel',
     create: 'Crear cuenta',
     notNow: 'Ahora no',

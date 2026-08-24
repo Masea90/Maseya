@@ -160,7 +160,13 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const t = (key: TranslationKey): string => getTranslation(user.language, key);
 
   const setLanguage = (lang: Language) => {
-    localStorage.setItem('maseya_language', lang);
+    // Manual pick: persist it and flag it so detection never overrides it.
+    try {
+      localStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
+      localStorage.setItem(LANGUAGE_SOURCE_KEY, 'manual');
+    } catch {
+      /* ignore */
+    }
     updateUser({ language: lang });
   };
 
