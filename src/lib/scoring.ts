@@ -1295,6 +1295,18 @@ const CONTACT_ALLERGENS: Array<{ label: string; keywords: string[] }> = [
     ],
   },
   { label: 'anetol', keywords: ['anethole', 'anetol'] },
+  // EU mandatory-declaration fragrance allergens (personal layer only).
+  { label: 'linalol', keywords: ['linalool', 'linalol'] },
+  { label: 'cumarina', keywords: ['coumarin', 'cumarina'] },
+  { label: 'hexyl cinnamal', keywords: ['hexyl cinnamal'] },
+  { label: 'salicilato de bencilo', keywords: ['benzyl salicylate'] },
+  { label: 'geraniol', keywords: ['geraniol'] },
+  { label: 'alpha-isometil ionona', keywords: ['alpha-isomethyl ionone', 'alpha isomethyl ionone'] },
+  { label: 'alcohol cinámico', keywords: ['cinnamyl alcohol'] },
+  { label: 'citral', keywords: ['citral'] },
+  { label: 'benzoato de bencilo', keywords: ['benzyl benzoate'] },
+  { label: 'alcohol bencílico', keywords: ['benzyl alcohol'] },
+
 ];
 
 /** True when the profile asks for the contact-allergen layer. */
