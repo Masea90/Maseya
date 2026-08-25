@@ -1204,6 +1204,44 @@ const HALAL_NON_PORK_MEAT_KEYWORDS = [
 ];
 const MEAT_CATEGORY_TAGS = ['en:meats', 'en:poultry', 'en:beef', 'en:chicken', 'en:turkey', 'en:lamb'];
 
+/**
+ * Contact allergens reviewed manually (EU mandatory declaration list).
+ * PERSONAL LAYER ONLY — they never touch the general score, because brands
+ * that declare them correctly should not be punished for complying.
+ * Applied only to sensitive/atopic skin or fragrance sensitivity.
+ */
+const CONTACT_ALLERGENS: Array<{ label: string; keywords: string[] }> = [
+  { label: 'limoneno', keywords: ['limonene', 'd-limonene', 'limoneno'] },
+  { label: 'cocamidopropil betaína', keywords: ['cocamidopropyl betaine', 'cocamidopropil betaina'] },
+  {
+    label: 'aceite de pomelo',
+    keywords: [
+      'citrus paradisi peel oil', 'citrus paradisi fruit oil', 'citrus paradisi seed oil',
+      'citrus paradisi oil', 'aceite de pomelo',
+    ],
+  },
+  {
+    label: 'naranja amarga',
+    keywords: [
+      'citrus aurantium amara peel extract', 'citrus aurantium amara peel oil',
+      'citrus aurantium amara flower extract', 'citrus aurantium amara flower oil',
+      'citrus aurantium amara leaf oil', 'citrus aurantium amara extract',
+      'citrus aurantium amara oil',
+    ],
+  },
+  { label: 'anetol', keywords: ['anethole', 'anetol'] },
+];
+
+/** True when the profile asks for the contact-allergen layer. */
+function wantsContactAllergenLayer(skin: string[], sensitivities: string[]): boolean {
+  return (
+    skin.includes('atopic') ||
+    skin.includes('sensitive') ||
+    sensitivities.includes('fragrance')
+  );
+}
+
+
 export function calculatePersonalScoreBreakdown(
   p: ProductData,
   _flagged: FlaggedIngredient[],
