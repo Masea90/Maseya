@@ -70,6 +70,9 @@ export const registerPwaServiceWorker = (onNeedRefresh: (update: () => Promise<v
   const updateSW = registerSW({
     immediate: true,
     onNeedRefresh() {
+      // First visits have no controller yet: installing the very first worker
+      // is not an "update" and must never trigger a reload.
+      if (!navigator.serviceWorker.controller) return;
       onNeedRefresh(() => updateSW(true));
     },
     onRegisteredSW(_swUrl, registration) {
