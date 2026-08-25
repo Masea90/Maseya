@@ -1568,15 +1568,29 @@ export function personalAlerts(
       if (hit) hits.push(annotate(msg, hit));
     };
 
+    const sensitivities = (profile.skin_sensitivities || []).map(s => String(s).toLowerCase());
+    const skinLc = skin.map(s => String(s).toLowerCase());
+    const contactHits: string[] = [];
+    if (wantsContactAllergenLayer(skinLc, sensitivities)) {
+      const skinLabel = skinLc.includes('atopic') ? 'Tu piel atópica' : 'Tu piel sensible';
+      for (const a of CONTACT_ALLERGENS) {
+        pushHit(contactHits, `${skinLabel}: contiene un alérgeno de contacto (${a.label})`, a.keywords);
+      }
+    }
+
     if (skin.includes('atopic')) {
       const hits: string[] = [];
       pushHit(hits, 'Los sulfatos alteran la barrera cutánea atópica', ['sulfate', 'sulphate']);
       pushHit(hits, 'Las fragancias pueden irritar piel atópica', ['fragrance', 'parfum']);
       pushHit(hits, 'El alcohol puede resecar piel atópica', ['alcohol denat']);
       pushHit(hits, 'El aceite mineral ocluye poros, puede empeorar atopia', ['mineral oil', 'paraffinum']);
+      hits.push(...contactHits);
       if (hits.length === 0) alerts.push({ level: 'good', text: 'Sin ingredientes problemáticos para piel atópica' });
       else hits.forEach(h => alerts.push({ level: 'warn', text: h }));
+    } else {
+      contactHits.forEach(h => alerts.push({ level: 'warn', text: h }));
     }
+
     if (skin.includes('dry')) {
       const hits: string[] = [];
       pushHit(hits, 'Los sulfatos resecan piel ya seca', ['sulfate', 'sulphate']);
