@@ -470,16 +470,48 @@ const ResultPage = () => {
       return;
     }
 
+    // Freshly photographed data (ingredients / nutrition) for THIS barcode.
+    // The public lookup can win the race and return a stale/incomplete entry,
+    // which is why the user kept seeing "photograph the ingredients" right
+    // after finishing the photo flow. Merge the fresh capture on top.
+    const mergeFreshPhoto = (data: ProductData): ProductData => {
+      try {
+        const raw = localStorage.getItem('maseya_photo_product');
+        if (!raw) return data;
+        const p = JSON.parse(raw);
+        if (!p || p.barcode !== data.barcode) return data;
+        const freshIng = typeof p.ingredients_text === 'string' ? p.ingredients_text.trim() : '';
+        const currentIng = (data.ingredients_text || '').trim();
+        const rawObj: Record<string, unknown> = { ...data.raw };
+        if (p.nutriments && typeof p.nutriments === 'object' && !rawObj.nutriments) {
+          rawObj.nutriments = p.nutriments;
+        }
+        const useFresh = freshIng.length > currentIng.length;
+        if (!useFresh && rawObj.nutriments === data.raw?.nutriments) return data;
+        if (useFresh || (p.nutriments && typeof p.nutriments === 'object')) setFromPhoto(true);
+        return {
+          ...data,
+          ingredients_text: useFresh ? freshIng : data.ingredients_text,
+          image: data.image || p.image || null,
+          raw: rawObj,
+        };
+      } catch (e) {
+        console.error('[result] fresh photo merge failed', e);
+        return data;
+      }
+    };
+
     let cancelled = false;
     (async () => {
       const data = await lookupProduct(barcode);
       if (cancelled) return;
       if (data) {
         track('scan_success', { barcode, source: data.source, category: data.category });
-        setProduct(data);
+        setProduct(mergeFreshPhoto(data));
         setLoading(false);
         return;
       }
+
       // Lookup failed. Try local photo capture (race with server upsert) BEFORE
       // enriching — if the user just photographed this exact barcode we already
       // have everything we need in localStorage.
