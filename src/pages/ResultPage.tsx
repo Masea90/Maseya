@@ -535,7 +535,7 @@ const ResultPage = () => {
         return;
       }
       track('scan_success', { barcode, source: retry.source, category: retry.category });
-      setProduct(retry);
+      setProduct(mergeFreshPhoto(retry));
       setLoading(false);
     })();
     return () => { cancelled = true; };
