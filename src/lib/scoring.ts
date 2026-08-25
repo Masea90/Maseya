@@ -35,13 +35,24 @@ const RED_COSMETIC = [
   'dmdm hydantoin', 'imidazolidinyl urea', 'diazolidinyl urea', 'quaternium-15',
   // Problematic UV filters
   'oxybenzone', 'benzophenone-3',
+  // Banned in EU cosmetics since 2022-03-01 (CMR 1B)
+  'butylphenyl methylpropional', 'lilial', 'bmhca',
+  // Isothiazolinone preservatives — strongly restricted contact sensitizers
+  'methylchloroisothiazolinone', 'methylisothiazolinone', 'mci/mi', 'cmit/mit',
 ];
+
 const RED_FOOD = [
   'nitrite', 'aspartame', 'tartrazine', 'e102',
   // Nitrites / nitrates (processed meats)
   'e249', 'e250', 'e251', 'e252',
   // BHA / BHT E-codes
   'e320', 'e321',
+];
+
+// Banned (CMR 1B, EU 2022) or severely restricted cosmetic ingredients.
+const EU_BANNED_COSMETIC = [
+  'butylphenyl methylpropional', 'lilial', 'bmhca',
+  'methylchloroisothiazolinone', 'methylisothiazolinone', 'mci/mi', 'cmit/mit',
 ];
 
 const ORANGE_BOTH: string[] = [];
@@ -972,7 +983,10 @@ export function calculateScoreBreakdown(
     'paraben', 'phthalate', 'formaldehyde', 'triclosan',
     'dmdm hydantoin', 'imidazolidinyl urea', 'diazolidinyl urea', 'quaternium-15',
     'oxybenzone', 'benzophenone-3',
+    'butylphenyl methylpropional', 'lilial', 'bmhca',
+    'methylchloroisothiazolinone', 'methylisothiazolinone', 'mci/mi', 'cmit/mit',
   ];
+
   const isSevereAvoid = (name: string) => findAny(name, SEVERE_AVOID) !== null;
   let hasSevereAvoid = false;
 
@@ -1067,6 +1081,20 @@ export function calculateScoreBreakdown(
       });
       score = ceiling;
     }
+
+    // Ingredients banned / severely restricted in EU cosmetics: a product that
+    // still contains them is a serious signal, so the note is capped very low.
+    const bannedTerm = findAny(rawText, EU_BANNED_COSMETIC);
+    if (bannedTerm && score > 20) {
+      factors.push({
+        label: `Contiene un ingrediente prohibido o muy restringido en la UE (${bannedTerm})`,
+        delta: 20 - score,
+        tone: 'negative',
+      });
+      score = 20;
+    }
+
+
 
     // Floor: without any "avoid" ingredient, an ordinary formula can never be
     // the worst possible product. Accumulated "caution" hits alone stop at 40.
@@ -1287,6 +1315,18 @@ const CONTACT_ALLERGENS: Array<{ label: string; keywords: string[] }> = [
     ],
   },
   { label: 'anetol', keywords: ['anethole', 'anetol'] },
+  // EU mandatory-declaration fragrance allergens (personal layer only).
+  { label: 'linalol', keywords: ['linalool', 'linalol'] },
+  { label: 'cumarina', keywords: ['coumarin', 'cumarina'] },
+  { label: 'hexyl cinnamal', keywords: ['hexyl cinnamal'] },
+  { label: 'salicilato de bencilo', keywords: ['benzyl salicylate'] },
+  { label: 'geraniol', keywords: ['geraniol'] },
+  { label: 'alpha-isometil ionona', keywords: ['alpha-isomethyl ionone', 'alpha isomethyl ionone'] },
+  { label: 'alcohol cinámico', keywords: ['cinnamyl alcohol'] },
+  { label: 'citral', keywords: ['citral'] },
+  { label: 'benzoato de bencilo', keywords: ['benzyl benzoate'] },
+  { label: 'alcohol bencílico', keywords: ['benzyl alcohol'] },
+
 ];
 
 /** True when the profile asks for the contact-allergen layer. */
