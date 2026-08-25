@@ -1059,7 +1059,19 @@ export function calculateScoreBreakdown(
       });
       score = ceiling;
     }
+
+    // Floor: without any "avoid" ingredient, an ordinary formula can never be
+    // the worst possible product. Accumulated "caution" hits alone stop at 40.
+    if (reds === 0 && score < 40) {
+      factors.push({
+        label: 'Sin ingredientes a evitar: la nota no baja de 40',
+        delta: 40 - score,
+        tone: 'positive',
+      });
+      score = 40;
+    }
   }
+
 
   score = applyEfsaAdditives(score);
   maybeAddNoRiskAdditivesNote();
