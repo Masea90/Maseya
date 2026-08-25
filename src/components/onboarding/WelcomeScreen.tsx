@@ -15,6 +15,7 @@ const COPY = {
     subtitle: 'Alimentación y cosmética · Gratis · Sin descargar nada',
     cta: 'Escanear un producto',
     haveAccount: 'Ya tengo cuenta',
+    howItWorks: 'Cómo funciona',
   },
   en: {
     brand: 'MASEYA',
@@ -23,6 +24,7 @@ const COPY = {
     subtitle: 'Food and cosmetics · Free · No download needed',
     cta: 'Scan a product',
     haveAccount: 'I already have an account',
+    howItWorks: 'How it works',
   },
   fr: {
     brand: 'MASEYA',
@@ -31,6 +33,7 @@ const COPY = {
     subtitle: 'Alimentation et cosmétique · Gratuit · Sans rien télécharger',
     cta: 'Scanner un produit',
     haveAccount: 'J’ai déjà un compte',
+    howItWorks: 'Comment ça marche',
   },
 };
 
@@ -97,6 +100,12 @@ export const WelcomeScreen = () => {
           className="block mx-auto text-sm text-white/80 underline-offset-4 hover:underline"
         >
           {c.haveAccount}
+        </button>
+        <button
+          onClick={() => navigate('/como-funciona')}
+          className="block mx-auto text-xs text-white/70 underline-offset-4 hover:underline"
+        >
+          {c.howItWorks}
         </button>
       </div>
     </div>

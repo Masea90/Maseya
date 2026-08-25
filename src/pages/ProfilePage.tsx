@@ -376,6 +376,11 @@ const ProfilePage = () => {
           <LogOut className="w-4 h-4" /> Cerrar sesión
         </Button>
 
+        <p className="text-center text-xs text-muted-foreground space-x-3">
+          <a href="/privacy" className="underline underline-offset-2">Política de privacidad</a>
+          <a href="/como-funciona" className="underline underline-offset-2">Cómo funciona Maseya</a>
+        </p>
+
         <p className="text-center text-[11px] text-muted-foreground">
           Versión {__APP_VERSION__}
         </p>
