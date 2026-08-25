@@ -49,6 +49,12 @@ const RED_FOOD = [
   'e320', 'e321',
 ];
 
+// Banned (CMR 1B, EU 2022) or severely restricted cosmetic ingredients.
+const EU_BANNED_COSMETIC = [
+  'butylphenyl methylpropional', 'lilial', 'bmhca',
+  'methylchloroisothiazolinone', 'methylisothiazolinone', 'mci/mi', 'cmit/mit',
+];
+
 const ORANGE_BOTH: string[] = [];
 const ORANGE_COSMETIC = [
   'alcohol denat', 'fragrance', 'parfum', 'silicone', 'dimethicone',
