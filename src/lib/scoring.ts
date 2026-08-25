@@ -977,7 +977,10 @@ export function calculateScoreBreakdown(
     'paraben', 'phthalate', 'formaldehyde', 'triclosan',
     'dmdm hydantoin', 'imidazolidinyl urea', 'diazolidinyl urea', 'quaternium-15',
     'oxybenzone', 'benzophenone-3',
+    'butylphenyl methylpropional', 'lilial', 'bmhca',
+    'methylchloroisothiazolinone', 'methylisothiazolinone', 'mci/mi', 'cmit/mit',
   ];
+
   const isSevereAvoid = (name: string) => findAny(name, SEVERE_AVOID) !== null;
   let hasSevereAvoid = false;
 
