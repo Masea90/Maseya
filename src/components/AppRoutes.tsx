@@ -178,7 +178,6 @@ export function AppRoutes() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
-        <Route path="/como-funciona" element={<HowItWorksPage />} />
           <Route path="/como-funciona" element={<HowItWorksPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/update-password" element={<UpdatePasswordPage />} />
