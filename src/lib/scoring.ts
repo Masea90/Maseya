@@ -551,10 +551,14 @@ export function evaluateDataConfidence(p: ProductData): DataConfidence {
   const hasIngredients = rawText.length > 0 && !isNutritionalData(rawText);
 
   if (p.category === 'cosmetic') {
+    // Some labels separate INCI items with " - " or bullets instead of commas
+    // (real case: SYOSS). Without this the whole list counted as ONE segment
+    // and the app kept asking for a photo of ingredients we already had.
     const segments = rawText
-      .split(/[,;()\n\r]/)
+      .split(/[,;()\n\r]|\s[-–—•·]\s/)
       .map(s => s.trim())
       .filter(s => s.length > 1 && s.length < 80 && !s.includes(':'));
+
     const count = segments.length;
     if (count >= 5) return { level: 'high', cap: null, missing: [] };
     if (count >= 3) return { level: 'medium', cap: 85, missing: ['lista de ingredientes completa'] };
