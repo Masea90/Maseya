@@ -946,16 +946,52 @@ export function calculateScoreBreakdown(
     if (w > 1) boosted.push(name);
     return w;
   };
-  const weightedCount = (level: IngredientLevel) =>
+  const levelWeights = (level: IngredientLevel): number[] =>
     flagged
       .filter(f => f.level === level && !isEfsaCoveredChip(f.name, efsaCovered))
-      .reduce((sum, f) => sum + positionWeight(f.name), 0);
-  const redsW = p.category === 'cosmetic' ? weightedCount('avoid') : reds;
-  const orangesW = p.category === 'cosmetic' ? weightedCount('caution') : oranges;
+      .map(f => positionWeight(f.name));
+  const weightedCount = (level: IngredientLevel) =>
+    levelWeights(level).reduce((sum, w) => sum + w, 0);
 
-  const redPenalty = Math.round(redsW * 15);
-  const orangePenalty = Math.round(orangesW * 6);
+  // Diminishing returns: a shampoo with several "caution" ingredients (or
+  // several mild "avoid" ones such as sulfates) is a normal supermarket
+  // product, not the worst product on earth. Each extra hit penalizes less so
+  // the accumulation never collapses the score to 0. Severe "avoid" ingredients
+  // (formaldehyde & releasers, parabens, phthalates, triclosan, problematic UV
+  // filters) keep their FULL linear penalty — those may sink a product.
+  const DIMINISH = [1, 0.6, 0.4, 0.25, 0.15];
+  const diminishedSum = (weights: number[]): number =>
+    weights
+      .slice()
+      .sort((a, b) => b - a)
+      .reduce((sum, w, i) => sum + w * (DIMINISH[i] ?? 0.1), 0);
+
+  const SEVERE_AVOID = [
+    'paraben', 'phthalate', 'formaldehyde', 'triclosan',
+    'dmdm hydantoin', 'imidazolidinyl urea', 'diazolidinyl urea', 'quaternium-15',
+    'oxybenzone', 'benzophenone-3',
+  ];
+  const isSevereAvoid = (name: string) => findAny(name, SEVERE_AVOID) !== null;
+
+  let redPenalty: number;
+  let orangePenalty: number;
+  if (p.category === 'cosmetic') {
+    const avoidItems = flagged.filter(
+      f => f.level === 'avoid' && !isEfsaCoveredChip(f.name, efsaCovered)
+    );
+    const severeW = avoidItems.filter(f => isSevereAvoid(f.name)).map(f => positionWeight(f.name));
+    const mildW = avoidItems.filter(f => !isSevereAvoid(f.name)).map(f => positionWeight(f.name));
+    const severeSum = severeW.reduce((s, w) => s + w, 0);
+    redPenalty = Math.round((severeSum + diminishedSum(mildW)) * 15);
+    // Cap the cumulative "caution" penalty: common preservatives, silicones
+    // and fragrance should not add up to a catastrophic score by themselves.
+    orangePenalty = Math.min(30, Math.round(diminishedSum(levelWeights('caution')) * 6));
+  } else {
+    redPenalty = Math.round(reds * 15);
+    orangePenalty = Math.round(oranges * 6);
+  }
   let score = 100 - redPenalty - orangePenalty;
+
 
   if (reds > 0) {
     factors.push({
