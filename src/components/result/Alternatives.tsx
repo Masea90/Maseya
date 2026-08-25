@@ -10,6 +10,7 @@ import {
   calculatePersonalScore,
   scoreLabel,
   loadOnboarding,
+  evaluateDataConfidence,
 } from '@/lib/scoring';
 import { hasHealthDataConsent } from '@/components/consent/ConsentModal';
 import { guessCategoryTagsFromName, isFoodCategoryTag, isBroadCategoryTag } from '@/lib/categoryGuess';
@@ -34,7 +35,7 @@ interface Candidate {
 
 // v12: card score parity with the product page (full fields + per-finalist
 // refetch) and strict category/family filtering on EVERY candidate route.
-const CACHE_PREFIX = 'maseya_alts_v13::';
+const CACHE_PREFIX = 'maseya_alts_v14::';
 const FETCH_TIMEOUT_MS = 8000;
 const MIN_SCORE = 50;
 // TODO: derive country from user locale/settings when we expand beyond Spain.
@@ -99,14 +100,17 @@ const SUBGROUPS: SubGroup[] = [
   { id: 'toner', family: 'cosmetic', tags: ['en:toners', 'en:face-toners', 'en:lotions-toniques'], names: ['tonico', 'toner'] },
 ];
 
+// The NAME wins over the tags: OFF/OBF community tags are frequently wrong
+// (real case: a "Sanex gel de ducha" tagged en:shampoos surfacing as an
+// alternative to a shampoo). The label on the bottle is the reliable signal.
 const subgroupOf = (cats: string[], name: string): SubGroup | null => {
-  const tagSet = new Set(cats.map(t => t.toLowerCase()));
-  for (const g of SUBGROUPS) {
-    if (g.tags.some(t => tagSet.has(t))) return g;
-  }
   const n = normTxt(name || '');
   for (const g of SUBGROUPS) {
     if (g.names.some(h => n.includes(h))) return g;
+  }
+  const tagSet = new Set(cats.map(t => t.toLowerCase()));
+  for (const g of SUBGROUPS) {
+    if (g.tags.some(t => tagSet.has(t))) return g;
   }
   return null;
 };
@@ -225,6 +229,29 @@ const loadProfile = (): Record<string, unknown> | null => {
   } catch {
     return null;
   }
+};
+
+/**
+ * Data floor per candidate. A product we cannot really evaluate must never be
+ * recommended (real case: "No Frizz", shown without an ingredient list).
+ * Cosmetics need a REAL, parseable INCI list (high confidence); food needs a
+ * Nutri-Score and a usable label.
+ */
+const passesDataFloor = (
+  pd: ProductData,
+  flaggedList: ReturnType<typeof flagIngredients>,
+): boolean => {
+  const conf = evaluateDataConfidence(pd);
+  if (pd.category === 'cosmetic') {
+    if ((pd.ingredients_text || '').trim().length < 30) return false;
+    if (conf.level !== 'high') return false;
+    return flaggedList.length >= 5;
+  }
+  if (pd.category === 'food') {
+    if (!pd.nutriscore_grade) return false;
+    return conf.level === 'high' || conf.level === 'medium';
+  }
+  return false;
 };
 
 /**
@@ -415,13 +442,7 @@ export const Alternatives = ({ current, currentScore, profile: profileProp, cons
           // at least 3 parseable ingredients. Prevents empty "shell" entries
           // from scoring 100 and drowning real products.
           const candidateFlagged = flagIngredients(pd);
-          if (pd.category === 'food') {
-            if (!pd.nutriscore_grade) return;
-          } else if (pd.category === 'cosmetic') {
-            if (candidateFlagged.length < 3) return;
-          } else {
-            if (!pd.ingredients_text && !pd.nutriscore_grade) return;
-          }
+          if (!passesDataFloor(pd, candidateFlagged)) return;
           seenCodes.add(pd.barcode);
           const score = scoreOf(pd, candidateFlagged);
           scored.push({ data: pd, score, label: scoreLabel(score), flagged: candidateFlagged });
@@ -481,6 +502,11 @@ export const Alternatives = ({ current, currentScore, profile: profileProp, cons
             const full = toProductData({ ...json.product, code: c.data.barcode }, c.data.source, cat);
             if (!full) return;
             const fl = flagIngredients(full);
+            // Re-validate with the FULL record: the search payload can hide the
+            // real category/name (this is how a shower gel slipped through as a
+            // shampoo alternative) and the real ingredient list.
+            if (isDisallowedCandidate(full, cat, tagSet, currentGroup)) { c.score = -1; return; }
+            if (!passesDataFloor(full, fl)) { c.score = -1; return; }
             c.data = full;
             c.flagged = fl;
             c.score = scoreOf(full, fl);

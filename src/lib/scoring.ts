@@ -426,7 +426,7 @@ export function orderedInciKeys(text: string): string[] {
   const cleaned = cleanIngredientsText(text);
   const out: string[] = [];
   const seen = new Set<string>();
-  for (const part of cleaned.split(/[,;()\n\r]/)) {
+  for (const part of cleaned.split(/[,;()\n\r]|\s[-–—•·]\s/)) {
     const s = part.trim();
     if (s.length < 2 || s.length > 80) continue;
     if (isRegulatoryChip(s) || isInstructionChip(s)) continue;
@@ -445,7 +445,7 @@ export function flagIngredients(p: ProductData): FlaggedIngredient[] {
     .filter(Boolean);
   const cleanedText = cleanIngredientsText(p.ingredients_text || '');
   const fromText = cleanedText
-    .split(/[,;()\n\r]/)
+    .split(/[,;()\n\r]|\s[-–—•·]\s/)
     .map(s => s.trim())
     // "conservador: E-200" / "colorante: E133" → keep the additive itself
     // instead of dropping the whole segment because it contains a colon.
@@ -551,10 +551,14 @@ export function evaluateDataConfidence(p: ProductData): DataConfidence {
   const hasIngredients = rawText.length > 0 && !isNutritionalData(rawText);
 
   if (p.category === 'cosmetic') {
+    // Some labels separate INCI items with " - " or bullets instead of commas
+    // (real case: SYOSS). Without this the whole list counted as ONE segment
+    // and the app kept asking for a photo of ingredients we already had.
     const segments = rawText
-      .split(/[,;()\n\r]/)
+      .split(/[,;()\n\r]|\s[-–—•·]\s/)
       .map(s => s.trim())
       .filter(s => s.length > 1 && s.length < 80 && !s.includes(':'));
+
     const count = segments.length;
     if (count >= 5) return { level: 'high', cap: null, missing: [] };
     if (count >= 3) return { level: 'medium', cap: 85, missing: ['lista de ingredientes completa'] };
@@ -946,16 +950,57 @@ export function calculateScoreBreakdown(
     if (w > 1) boosted.push(name);
     return w;
   };
-  const weightedCount = (level: IngredientLevel) =>
+  const levelWeights = (level: IngredientLevel): number[] =>
     flagged
       .filter(f => f.level === level && !isEfsaCoveredChip(f.name, efsaCovered))
-      .reduce((sum, f) => sum + positionWeight(f.name), 0);
-  const redsW = p.category === 'cosmetic' ? weightedCount('avoid') : reds;
-  const orangesW = p.category === 'cosmetic' ? weightedCount('caution') : oranges;
+      .map(f => positionWeight(f.name));
+  // Diminishing returns: a shampoo with several "caution" ingredients (or
+  // several mild "avoid" ones such as sulfates) is a normal supermarket
+  // product, not the worst product on earth. Each extra hit penalizes less so
+  // the accumulation never collapses the score to 0. Severe "avoid" ingredients
+  // (formaldehyde & releasers, parabens, phthalates, triclosan, problematic UV
+  // filters) keep their FULL linear penalty — those may sink a product.
+  const DIMINISH_AVOID = [1, 0.6, 0.4, 0.25, 0.15];
+  const DIMINISH_CAUTION = [1, 0.95, 0.9, 0.85, 0.8, 0.75, 0.7, 0.6];
+  const diminishedSum = (weights: number[], schedule: number[], tail: number): number =>
+    weights
+      .slice()
+      .sort((a, b) => b - a)
+      .reduce((sum, w, i) => sum + w * (schedule[i] ?? tail), 0);
 
-  const redPenalty = Math.round(redsW * 15);
-  const orangePenalty = Math.round(orangesW * 6);
+  const SEVERE_AVOID = [
+    'paraben', 'phthalate', 'formaldehyde', 'triclosan',
+    'dmdm hydantoin', 'imidazolidinyl urea', 'diazolidinyl urea', 'quaternium-15',
+    'oxybenzone', 'benzophenone-3',
+  ];
+  const isSevereAvoid = (name: string) => findAny(name, SEVERE_AVOID) !== null;
+  let hasSevereAvoid = false;
+
+  let redPenalty: number;
+  let orangePenalty: number;
+  if (p.category === 'cosmetic') {
+    const avoidItems = flagged.filter(
+      f => f.level === 'avoid' && !isEfsaCoveredChip(f.name, efsaCovered)
+    );
+    const severeW = avoidItems.filter(f => isSevereAvoid(f.name)).map(f => positionWeight(f.name));
+    const mildW = avoidItems.filter(f => !isSevereAvoid(f.name)).map(f => positionWeight(f.name));
+    hasSevereAvoid = severeW.length > 0;
+    const severeSum = severeW.reduce((s, w) => s + w, 0);
+    // Severe avoids hit harder (20/unit) so they can still sink a product.
+    redPenalty = Math.round(severeSum * 20 + diminishedSum(mildW, DIMINISH_AVOID, 0.1) * 15);
+    // Cap the cumulative "caution" penalty: common preservatives, silicones
+    // and fragrance should not add up to a catastrophic score by themselves.
+    orangePenalty = Math.min(
+      42,
+      Math.round(diminishedSum(levelWeights('caution'), DIMINISH_CAUTION, 0.5) * 6)
+    );
+  } else {
+    redPenalty = Math.round(reds * 15);
+    orangePenalty = Math.round(oranges * 6);
+  }
+
   let score = 100 - redPenalty - orangePenalty;
+
 
   if (reds > 0) {
     factors.push({
@@ -1022,7 +1067,19 @@ export function calculateScoreBreakdown(
       });
       score = ceiling;
     }
+
+    // Floor: without any "avoid" ingredient, an ordinary formula can never be
+    // the worst possible product. Accumulated "caution" hits alone stop at 40.
+    if (!hasSevereAvoid && score < 40) {
+      factors.push({
+        label: 'Sin ingredientes de alto riesgo: la nota no baja de 40',
+        delta: 40 - score,
+        tone: 'positive',
+      });
+      score = 40;
+    }
   }
+
 
   score = applyEfsaAdditives(score);
   maybeAddNoRiskAdditivesNote();
@@ -1152,7 +1209,7 @@ export function isSupplement(p: ProductData): boolean {
 function topIngredients(text: string, n: number): string[] {
   if (!text) return [];
   return text
-    .split(/[,;()\n\r]/)
+    .split(/[,;()\n\r]|\s[-–—•·]\s/)
     .map(s => s.trim().toLowerCase())
     .filter(s => s.length > 0 && !/^\d/.test(s))
     .slice(0, n);
