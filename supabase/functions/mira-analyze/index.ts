@@ -59,6 +59,25 @@ const humanizeDiets = (d: unknown): string => {
 const normIng = (s: string) =>
   s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
 
+// Aggressive normalization used ONLY for deduplication: strips isomer
+// prefixes, parenthesised content and separators, so 'D-Limonene' and
+// 'jarabe de glucosa-fructosa' collapse onto their family names.
+const dedupKey = (s: string) =>
+  normIng(s)
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/\b(d|l|dl|alpha|beta|gamma)[-\s]/g, ' ')
+    .replace(/\s+(and|y|de|del|la|el)\s+/g, ' ')
+    .replace(/[/\-,.]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const sameFamily = (a: string, b: string) => {
+  if (!a || !b) return false;
+  if (a === b) return true;
+  return (a.length > 3 && b.length > 3) && (a.includes(b) || b.includes(a));
+};
+
+
 const CANDIDATE_PROMPT = `Eres un revisor científico. Señala ÚNICAMENTE ingredientes con evidencia científica reconocida de riesgo (organismos oficiales, literatura revisada por pares) que NO estén ya en la lista de ingredientes marcados que se te pasa. Si no hay ninguno, devuelve un array vacío. No inventes: si dudas, no lo incluyas. Máximo 3 por producto.
 Responde SOLO con JSON válido: {"flagged_candidates":[{"name":"...","level":"avoid|caution","reason":"motivo breve en español","confidence":0.0}]}`;
 
