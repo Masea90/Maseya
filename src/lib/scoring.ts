@@ -1298,7 +1298,21 @@ export function calculatePersonalScoreBreakdown(
       const term = firstTerm(combined, ['mineral oil', 'paraffinum', 'silicone', 'dimethicone']);
       if (term) addNeg(`Tu piel grasa: oclusivo/comedogénico (${term})`, -15);
     }
+    // Reviewed contact allergens — personal layer only, sensitive/atopic skin
+    // or declared fragrance sensitivity.
+    if (wantsContactAllergenLayer(skin, sensitivities)) {
+      const skinLabel = skin.includes('atopic') ? 'Tu piel atópica' : 'Tu piel sensible';
+      let applied = 0;
+      for (const a of CONTACT_ALLERGENS) {
+        if (applied >= 3) break;
+        if (firstTerm(combined, a.keywords)) {
+          addNeg(`${skinLabel}: contiene un alérgeno de contacto (${a.label})`, -8);
+          applied++;
+        }
+      }
+    }
   }
+
 
   if (isFood) {
     const lactoseText = stripPlantMilks(norm(combined));
