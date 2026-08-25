@@ -983,7 +983,8 @@ export function calculateScoreBreakdown(
     const severeW = avoidItems.filter(f => isSevereAvoid(f.name)).map(f => positionWeight(f.name));
     const mildW = avoidItems.filter(f => !isSevereAvoid(f.name)).map(f => positionWeight(f.name));
     const severeSum = severeW.reduce((s, w) => s + w, 0);
-    redPenalty = Math.round((severeSum + diminishedSum(mildW)) * 15);
+    // Severe avoids hit harder (20/unit) so they can still sink a product.
+    redPenalty = Math.round(severeSum * 20 + diminishedSum(mildW) * 15);
     // Cap the cumulative "caution" penalty: common preservatives, silicones
     // and fragrance should not add up to a catastrophic score by themselves.
     orangePenalty = Math.min(30, Math.round(diminishedSum(levelWeights('caution')) * 6));
