@@ -1076,6 +1076,20 @@ export function calculateScoreBreakdown(
       score = ceiling;
     }
 
+    // Ingredients banned / severely restricted in EU cosmetics: a product that
+    // still contains them is a serious signal, so the note is capped very low.
+    const bannedTerm = findAny(rawText, EU_BANNED_COSMETIC);
+    if (bannedTerm && score > 20) {
+      factors.push({
+        label: `Contiene un ingrediente prohibido o muy restringido en la UE (${bannedTerm})`,
+        delta: 20 - score,
+        tone: 'negative',
+      });
+      score = 20;
+    }
+
+
+
     // Floor: without any "avoid" ingredient, an ordinary formula can never be
     // the worst possible product. Accumulated "caution" hits alone stop at 40.
     if (!hasSevereAvoid && score < 40) {
