@@ -119,6 +119,19 @@ async function collectCandidates(opts: {
     { auth: { persistSession: false } },
   );
 
+  // Load every already-decided candidate of this category once: any variant
+  // of something approved or rejected must never come back.
+  const { data: decided } = await admin
+    .from("ingredient_candidates")
+    .select("ingredient_name, status")
+    .eq("category", category)
+    .in("status", ["approved", "rejected"]);
+  const decidedKeys = (decided ?? []).map((d) => ({
+    key: dedupKey(String(d.ingredient_name ?? "")),
+    status: d.status as string,
+  }));
+  const knownKeys = [...known].map(dedupKey);
+
   for (const c of list) {
     const name = normIng(String(c?.name ?? ""));
     const level = c?.level === "avoid" ? "avoid" : "caution";
@@ -127,6 +140,16 @@ async function collectCandidates(opts: {
     if (known.has(name)) continue;
     if (/^e-?\s?\d{3}/i.test(name)) continue;
     if ([...known].some((k) => k.length > 3 && (name.includes(k) || k.includes(name)))) continue;
+    const key = dedupKey(name);
+    if (knownKeys.some((k) => sameFamily(key, k))) {
+      console.log(`[candidates] filtered "${name}": already in our risk lists (family match)`);
+      continue;
+    }
+    const decidedHit = decidedKeys.find((d) => sameFamily(key, d.key));
+    if (decidedHit) {
+      console.log(`[candidates] filtered "${name}": variant of already ${decidedHit.status} candidate`);
+      continue;
+    }
 
     const { data: existing } = await admin
       .from("ingredient_candidates")
@@ -134,6 +157,7 @@ async function collectCandidates(opts: {
       .eq("ingredient_name", name)
       .eq("category", category)
       .maybeSingle();
+
 
     if (existing) {
       if (existing.status === "rejected") continue; // discarded stays discarded
