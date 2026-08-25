@@ -23,8 +23,8 @@ function App() {
           <TooltipProvider>
             <Toaster />
             <Sonner />
-            <UpdateBanner />
             <BrowserRouter>
+              <AutoUpdater />
               <ConsentModal onAcceptAll={() => {}} onAcceptEssential={() => {}} />
               <AppRoutes />
             </BrowserRouter>
