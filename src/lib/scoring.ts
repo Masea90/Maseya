@@ -35,7 +35,12 @@ const RED_COSMETIC = [
   'dmdm hydantoin', 'imidazolidinyl urea', 'diazolidinyl urea', 'quaternium-15',
   // Problematic UV filters
   'oxybenzone', 'benzophenone-3',
+  // Banned in EU cosmetics since 2022-03-01 (CMR 1B)
+  'butylphenyl methylpropional', 'lilial', 'bmhca',
+  // Isothiazolinone preservatives — strongly restricted contact sensitizers
+  'methylchloroisothiazolinone', 'methylisothiazolinone', 'mci/mi', 'cmit/mit',
 ];
+
 const RED_FOOD = [
   'nitrite', 'aspartame', 'tartrazine', 'e102',
   // Nitrites / nitrates (processed meats)
