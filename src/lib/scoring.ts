@@ -1256,6 +1256,7 @@ export function calculatePersonalScoreBreakdown(
     ...(profile.skin_type || []),
     ...(profile.skin_conditions || []),
   ].map(s => String(s).toLowerCase());
+  const sensitivities = (profile.skin_sensitivities || []).map(s => String(s).toLowerCase());
   const allergies = (profile.allergies || []).map(a => String(a).toLowerCase());
   const diets = (Array.isArray(profile.diet) ? profile.diet : (profile.diet ? [profile.diet] : [])).map(d => String(d).toLowerCase());
   const isVegan = diets.includes('vegan') || allergies.includes('vegan');
