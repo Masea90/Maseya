@@ -426,7 +426,7 @@ export function orderedInciKeys(text: string): string[] {
   const cleaned = cleanIngredientsText(text);
   const out: string[] = [];
   const seen = new Set<string>();
-  for (const part of cleaned.split(/[,;()\n\r]/)) {
+  for (const part of cleaned.split(/[,;()\n\r]|\s[-–—•·]\s/)) {
     const s = part.trim();
     if (s.length < 2 || s.length > 80) continue;
     if (isRegulatoryChip(s) || isInstructionChip(s)) continue;
@@ -445,7 +445,7 @@ export function flagIngredients(p: ProductData): FlaggedIngredient[] {
     .filter(Boolean);
   const cleanedText = cleanIngredientsText(p.ingredients_text || '');
   const fromText = cleanedText
-    .split(/[,;()\n\r]/)
+    .split(/[,;()\n\r]|\s[-–—•·]\s/)
     .map(s => s.trim())
     // "conservador: E-200" / "colorante: E133" → keep the additive itself
     // instead of dropping the whole segment because it contains a colon.
@@ -1209,7 +1209,7 @@ export function isSupplement(p: ProductData): boolean {
 function topIngredients(text: string, n: number): string[] {
   if (!text) return [];
   return text
-    .split(/[,;()\n\r]/)
+    .split(/[,;()\n\r]|\s[-–—•·]\s/)
     .map(s => s.trim().toLowerCase())
     .filter(s => s.length > 0 && !/^\d/.test(s))
     .slice(0, n);
