@@ -1204,6 +1204,44 @@ const HALAL_NON_PORK_MEAT_KEYWORDS = [
 ];
 const MEAT_CATEGORY_TAGS = ['en:meats', 'en:poultry', 'en:beef', 'en:chicken', 'en:turkey', 'en:lamb'];
 
+/**
+ * Contact allergens reviewed manually (EU mandatory declaration list).
+ * PERSONAL LAYER ONLY — they never touch the general score, because brands
+ * that declare them correctly should not be punished for complying.
+ * Applied only to sensitive/atopic skin or fragrance sensitivity.
+ */
+const CONTACT_ALLERGENS: Array<{ label: string; keywords: string[] }> = [
+  { label: 'limoneno', keywords: ['limonene', 'd-limonene', 'limoneno'] },
+  { label: 'cocamidopropil betaína', keywords: ['cocamidopropyl betaine', 'cocamidopropil betaina'] },
+  {
+    label: 'aceite de pomelo',
+    keywords: [
+      'citrus paradisi peel oil', 'citrus paradisi fruit oil', 'citrus paradisi seed oil',
+      'citrus paradisi oil', 'aceite de pomelo',
+    ],
+  },
+  {
+    label: 'naranja amarga',
+    keywords: [
+      'citrus aurantium amara peel extract', 'citrus aurantium amara peel oil',
+      'citrus aurantium amara flower extract', 'citrus aurantium amara flower oil',
+      'citrus aurantium amara leaf oil', 'citrus aurantium amara extract',
+      'citrus aurantium amara oil',
+    ],
+  },
+  { label: 'anetol', keywords: ['anethole', 'anetol'] },
+];
+
+/** True when the profile asks for the contact-allergen layer. */
+function wantsContactAllergenLayer(skin: string[], sensitivities: string[]): boolean {
+  return (
+    skin.includes('atopic') ||
+    skin.includes('sensitive') ||
+    sensitivities.includes('fragrance')
+  );
+}
+
+
 export function calculatePersonalScoreBreakdown(
   p: ProductData,
   _flagged: FlaggedIngredient[],
@@ -1218,6 +1256,7 @@ export function calculatePersonalScoreBreakdown(
     ...(profile.skin_type || []),
     ...(profile.skin_conditions || []),
   ].map(s => String(s).toLowerCase());
+  const sensitivities = (profile.skin_sensitivities || []).map(s => String(s).toLowerCase());
   const allergies = (profile.allergies || []).map(a => String(a).toLowerCase());
   const diets = (Array.isArray(profile.diet) ? profile.diet : (profile.diet ? [profile.diet] : [])).map(d => String(d).toLowerCase());
   const isVegan = diets.includes('vegan') || allergies.includes('vegan');
@@ -1260,7 +1299,21 @@ export function calculatePersonalScoreBreakdown(
       const term = firstTerm(combined, ['mineral oil', 'paraffinum', 'silicone', 'dimethicone']);
       if (term) addNeg(`Tu piel grasa: oclusivo/comedogénico (${term})`, -15);
     }
+    // Reviewed contact allergens — personal layer only, sensitive/atopic skin
+    // or declared fragrance sensitivity.
+    if (wantsContactAllergenLayer(skin, sensitivities)) {
+      const skinLabel = skin.includes('atopic') ? 'Tu piel atópica' : 'Tu piel sensible';
+      let applied = 0;
+      for (const a of CONTACT_ALLERGENS) {
+        if (applied >= 3) break;
+        if (firstTerm(combined, a.keywords)) {
+          addNeg(`${skinLabel}: contiene un alérgeno de contacto (${a.label})`, -8);
+          applied++;
+        }
+      }
+    }
   }
+
 
   if (isFood) {
     const lactoseText = stripPlantMilks(norm(combined));
@@ -1515,15 +1568,29 @@ export function personalAlerts(
       if (hit) hits.push(annotate(msg, hit));
     };
 
+    const sensitivities = (profile.skin_sensitivities || []).map(s => String(s).toLowerCase());
+    const skinLc = skin.map(s => String(s).toLowerCase());
+    const contactHits: string[] = [];
+    if (wantsContactAllergenLayer(skinLc, sensitivities)) {
+      const skinLabel = skinLc.includes('atopic') ? 'Tu piel atópica' : 'Tu piel sensible';
+      for (const a of CONTACT_ALLERGENS) {
+        pushHit(contactHits, `${skinLabel}: contiene un alérgeno de contacto (${a.label})`, a.keywords);
+      }
+    }
+
     if (skin.includes('atopic')) {
       const hits: string[] = [];
       pushHit(hits, 'Los sulfatos alteran la barrera cutánea atópica', ['sulfate', 'sulphate']);
       pushHit(hits, 'Las fragancias pueden irritar piel atópica', ['fragrance', 'parfum']);
       pushHit(hits, 'El alcohol puede resecar piel atópica', ['alcohol denat']);
       pushHit(hits, 'El aceite mineral ocluye poros, puede empeorar atopia', ['mineral oil', 'paraffinum']);
+      hits.push(...contactHits);
       if (hits.length === 0) alerts.push({ level: 'good', text: 'Sin ingredientes problemáticos para piel atópica' });
       else hits.forEach(h => alerts.push({ level: 'warn', text: h }));
+    } else {
+      contactHits.forEach(h => alerts.push({ level: 'warn', text: h }));
     }
+
     if (skin.includes('dry')) {
       const hits: string[] = [];
       pushHit(hits, 'Los sulfatos resecan piel ya seca', ['sulfate', 'sulphate']);
