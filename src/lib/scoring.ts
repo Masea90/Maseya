@@ -950,7 +950,8 @@ export function calculateScoreBreakdown(
     flagged
       .filter(f => f.level === level && !isEfsaCoveredChip(f.name, efsaCovered))
       .map(f => positionWeight(f.name));
-  const weightedCountUnused = (level: IngredientLevel) =>
+
+
 
 
   // Diminishing returns: a shampoo with several "caution" ingredients (or
