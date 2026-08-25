@@ -950,8 +950,8 @@ export function calculateScoreBreakdown(
     flagged
       .filter(f => f.level === level && !isEfsaCoveredChip(f.name, efsaCovered))
       .map(f => positionWeight(f.name));
-  const weightedCount = (level: IngredientLevel) =>
-    levelWeights(level).reduce((sum, w) => sum + w, 0);
+  const weightedCountUnused = (level: IngredientLevel) =>
+
 
   // Diminishing returns: a shampoo with several "caution" ingredients (or
   // several mild "avoid" ones such as sulfates) is a normal supermarket
