@@ -23,6 +23,8 @@ import UpdatePasswordPage from '@/pages/UpdatePasswordPage';
 import NotFound from '@/pages/NotFound';
 import OAuthConsentPage from '@/pages/OAuthConsentPage';
 import PrivacyPage from '@/pages/PrivacyPage';
+import HowItWorksPage from '@/pages/HowItWorksPage';
+
 
 const ONBOARDING_KEY = 'maseya_onboarding';
 
