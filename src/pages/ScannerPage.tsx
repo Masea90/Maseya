@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { BarcodeFormat, BrowserMultiFormatReader, type IScannerControls } from '@zxing/browser';
 import { DecodeHintType } from '@zxing/library';
-import { Loader2, Image as ImageIcon, RefreshCw } from 'lucide-react';
+import { Loader2, RefreshCw } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useUser } from '@/contexts/UserContext';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,7 @@ import { track } from '@/lib/analytics';
 
 const COPY = {
   es: {
-    title: 'Escanear', photo: 'Fotografiar el producto',
+    title: 'Escanear',
     analyzing: 'Analizando producto...', notFound: 'Producto no encontrado',
     cameraError: 'No se pudo iniciar la cámara. Revisa los permisos e inténtalo de nuevo.',
     cancel: 'Cancelar', retry: 'Reintentar', tooltip: 'Apunta al código de barras de cualquier producto',
@@ -20,7 +20,7 @@ const COPY = {
     flip: 'Girar cámara',
   },
   en: {
-    title: 'Scan', photo: 'Photograph the product',
+    title: 'Scan',
     analyzing: 'Analyzing product...', notFound: 'Product not found',
     cameraError: 'The camera could not start. Check permissions and try again.',
     cancel: 'Cancel', retry: 'Retry', tooltip: 'Point at the barcode of any product',
@@ -29,7 +29,7 @@ const COPY = {
     flip: 'Flip camera',
   },
   fr: {
-    title: 'Scanner', photo: 'Photographier le produit',
+    title: 'Scanner',
     analyzing: 'Analyse du produit...', notFound: 'Produit non trouvé',
     cameraError: "La caméra n'a pas pu démarrer. Vérifie les permissions et réessaie.",
     cancel: 'Annuler', retry: 'Réessayer', tooltip: 'Vise le code-barres de n’importe quel produit',
@@ -410,11 +410,6 @@ const ScannerPage = () => {
     if (location.pathname !== '/scan') void stop();
   }, [location.pathname]);
 
-  const handlePhoto = () => {
-    void stop();
-    navigate('/scan/photo');
-  };
-
   return (
     <AppLayout title={c.title}>
       <div className="px-4 py-6 space-y-6">
@@ -478,14 +473,6 @@ const ScannerPage = () => {
         <p className="text-xs text-muted-foreground text-center leading-relaxed px-2">
           {c.privacy}
         </p>
-
-        <button
-          onClick={handlePhoto}
-          className="w-full h-14 rounded-2xl bg-card border border-border flex items-center justify-center gap-3 font-medium hover:bg-muted transition-colors"
-        >
-          <ImageIcon className="w-5 h-5 text-primary" />
-          {c.photo}
-        </button>
 
         <InstallPrompt />
       </div>
