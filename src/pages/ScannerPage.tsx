@@ -474,14 +474,6 @@ const ScannerPage = () => {
           {c.privacy}
         </p>
 
-        <button
-          onClick={handlePhoto}
-          className="w-full h-14 rounded-2xl bg-card border border-border flex items-center justify-center gap-3 font-medium hover:bg-muted transition-colors"
-        >
-          <ImageIcon className="w-5 h-5 text-primary" />
-          {c.photo}
-        </button>
-
         <InstallPrompt />
       </div>
     </AppLayout>
