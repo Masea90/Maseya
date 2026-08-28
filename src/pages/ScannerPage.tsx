@@ -20,7 +20,7 @@ const COPY = {
     flip: 'Girar cámara',
   },
   en: {
-    title: 'Scan', photo: 'Photograph the product',
+    title: 'Scan',
     analyzing: 'Analyzing product...', notFound: 'Product not found',
     cameraError: 'The camera could not start. Check permissions and try again.',
     cancel: 'Cancel', retry: 'Retry', tooltip: 'Point at the barcode of any product',
