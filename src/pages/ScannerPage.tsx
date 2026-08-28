@@ -11,7 +11,7 @@ import { track } from '@/lib/analytics';
 
 const COPY = {
   es: {
-    title: 'Escanear', photo: 'Fotografiar el producto',
+    title: 'Escanear',
     analyzing: 'Analizando producto...', notFound: 'Producto no encontrado',
     cameraError: 'No se pudo iniciar la cámara. Revisa los permisos e inténtalo de nuevo.',
     cancel: 'Cancelar', retry: 'Reintentar', tooltip: 'Apunta al código de barras de cualquier producto',
