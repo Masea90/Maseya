@@ -410,11 +410,6 @@ const ScannerPage = () => {
     if (location.pathname !== '/scan') void stop();
   }, [location.pathname]);
 
-  const handlePhoto = () => {
-    void stop();
-    navigate('/scan/photo');
-  };
-
   return (
     <AppLayout title={c.title}>
       <div className="px-4 py-6 space-y-6">
