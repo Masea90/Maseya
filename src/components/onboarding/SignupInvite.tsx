@@ -11,18 +11,21 @@ const COPY = {
     body: 'Te diremos si cada producto es apto para TI según tus alergias, tu dieta y tu piel',
     create: 'Crear cuenta',
     notNow: 'Ahora no',
+    noSpam: 'Sin spam. Solo para guardar tu perfil y tu historial.',
   },
   en: {
     heading: 'Create your free account to personalize your analysis',
     body: "We'll tell you if each product is right for YOU based on your allergies, diet and skin",
     create: 'Create account',
     notNow: 'Not now',
+    noSpam: 'No spam. Only to save your profile and your history.',
   },
   fr: {
     heading: 'Crée ton compte gratuit pour personnaliser ton analyse',
     body: "Nous te dirons si chaque produit te convient selon tes allergies, ton régime et ta peau",
     create: 'Créer un compte',
     notNow: 'Pas maintenant',
+    noSpam: 'Pas de spam. Uniquement pour sauvegarder ton profil et ton historique.',
   },
 };
 
@@ -72,6 +75,7 @@ export const SignupInvite = ({ compact = false }: { compact?: boolean }) => {
         <Button variant="ghost" className="w-full rounded-2xl" onClick={skipToScan}>
           {c.notNow}
         </Button>
+        <p className="text-xs text-muted-foreground pt-1">{c.noSpam}</p>
       </div>
     </div>
   );
