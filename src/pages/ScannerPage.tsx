@@ -29,7 +29,7 @@ const COPY = {
     flip: 'Flip camera',
   },
   fr: {
-    title: 'Scanner', photo: 'Photographier le produit',
+    title: 'Scanner',
     analyzing: 'Analyse du produit...', notFound: 'Produit non trouvé',
     cameraError: "La caméra n'a pas pu démarrer. Vérifie les permissions et réessaie.",
     cancel: 'Annuler', retry: 'Réessayer', tooltip: 'Vise le code-barres de n’importe quel produit',
