@@ -19,6 +19,7 @@ const COPY = {
     paywallTitle: 'Crea tu cuenta gratis para seguir',
     paywallDesc: 'Guarda tu historial, sincroniza tu perfil en todos tus dispositivos y ayúdanos a mejorar la base de datos.',
     create: 'Crear cuenta gratis',
+    noSpam: 'Sin spam. Solo para guardar tu perfil y tu historial.',
   },
   en: {
     title: 'Create your free account',
@@ -31,6 +32,7 @@ const COPY = {
     paywallTitle: 'Create your free account to continue',
     paywallDesc: 'Save your history, sync your profile across devices, and help improve the database.',
     create: 'Create free account',
+    noSpam: 'No spam. Only to save your profile and your history.',
   },
   fr: {
     title: 'Crée ton compte gratuit',
@@ -43,6 +45,7 @@ const COPY = {
     paywallTitle: 'Crée ton compte gratuit pour continuer',
     paywallDesc: "Sauvegarde ton historique, synchronise ton profil et aide à améliorer la base de données.",
     create: 'Créer un compte gratuit',
+    noSpam: 'Pas de spam. Uniquement pour sauvegarder ton profil et ton historique.',
   },
 };
 
@@ -95,6 +98,7 @@ export const RegistrationSheet = ({ open, onOpenChange, variant = 'soft' }: Regi
           <Button onClick={handleEmail} variant="outline" className="w-full h-12 rounded-2xl">
             {variant === 'paywall' ? c.create : c.email}
           </Button>
+          <p className="text-xs text-muted-foreground text-center">{c.noSpam}</p>
           {variant === 'soft' && (
             <button
               onClick={() => onOpenChange(false)}

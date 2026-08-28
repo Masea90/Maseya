@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { BarcodeFormat, BrowserMultiFormatReader, type IScannerControls } from '@zxing/browser';
 import { DecodeHintType } from '@zxing/library';
-import { Loader2, Image as ImageIcon } from 'lucide-react';
+import { Loader2, Image as ImageIcon, RefreshCw } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useUser } from '@/contexts/UserContext';
 import { Button } from '@/components/ui/button';
@@ -11,25 +11,31 @@ import { track } from '@/lib/analytics';
 
 const COPY = {
   es: {
-    title: 'Escanear', photo: 'Fotografiar ingredientes',
+    title: 'Escanear', photo: 'Fotografiar el producto',
     analyzing: 'Analizando producto...', notFound: 'Producto no encontrado',
-    photoCta: 'Fotografiar ingredientes', cameraError: 'No se pudo acceder a la cámara. Revisa los permisos.',
+    cameraError: 'No se pudo iniciar la cámara. Revisa los permisos e inténtalo de nuevo.',
     cancel: 'Cancelar', retry: 'Reintentar', tooltip: 'Apunta al código de barras de cualquier producto',
     gotIt: 'Entendido', center: 'Alinea el código dentro del marco',
+    privacy: 'Usamos la cámara solo para leer el código de barras. No guardamos ninguna imagen.',
+    flip: 'Girar cámara',
   },
   en: {
-    title: 'Scan', photo: 'Photograph ingredients',
+    title: 'Scan', photo: 'Photograph the product',
     analyzing: 'Analyzing product...', notFound: 'Product not found',
-    photoCta: 'Photograph ingredients', cameraError: 'Camera access blocked. Check permissions.',
+    cameraError: 'The camera could not start. Check permissions and try again.',
     cancel: 'Cancel', retry: 'Retry', tooltip: 'Point at the barcode of any product',
     gotIt: 'Got it', center: 'Keep the barcode centered and still',
+    privacy: 'We use the camera only to read the barcode. We never store any image.',
+    flip: 'Flip camera',
   },
   fr: {
-    title: 'Scanner', photo: 'Photographier les ingrédients',
+    title: 'Scanner', photo: 'Photographier le produit',
     analyzing: 'Analyse du produit...', notFound: 'Produit non trouvé',
-    photoCta: 'Photographier les ingrédients', cameraError: 'Accès caméra bloqué. Vérifie les permissions.',
+    cameraError: "La caméra n'a pas pu démarrer. Vérifie les permissions et réessaie.",
     cancel: 'Annuler', retry: 'Réessayer', tooltip: 'Vise le code-barres de n’importe quel produit',
     gotIt: 'Compris', center: 'Garde le code-barres centré et immobile',
+    privacy: "Nous utilisons la caméra uniquement pour lire le code-barres. Aucune image n'est conservée.",
+    flip: 'Changer de caméra',
   },
 };
 
@@ -62,15 +68,8 @@ const NativeBarcodeDetector: BarcodeDetectorCtor | undefined =
     ? (window as unknown as { BarcodeDetector?: BarcodeDetectorCtor }).BarcodeDetector
     : undefined;
 
-
-const getCameraConstraints = (): MediaStreamConstraints => ({
-  video: {
-    facingMode: { ideal: 'environment' },
-    width: { ideal: 1920 },
-    height: { ideal: 1080 },
-  },
-  audio: false,
-});
+const REAR_LABEL = /back|rear|trasera|posterior|environment|arrière|arriere/i;
+const FRONT_LABEL = /front|user|frontal|selfie|avant/i;
 
 const getScanHints = () => {
   const hints = new Map<DecodeHintType, boolean | BarcodeFormat[]>();
@@ -96,6 +95,23 @@ const buildAdvancedConstraints = (capabilities: ExtendedMediaTrackCapabilities) 
   return advanced.length ? { advanced } : null;
 };
 
+const isRearStream = (stream: MediaStream) => {
+  const track = stream.getVideoTracks()[0];
+  if (!track) return false;
+  const settings = (track.getSettings?.() ?? {}) as MediaTrackSettings & { facingMode?: string };
+  if (settings.facingMode) return settings.facingMode === 'environment';
+  if (track.label) {
+    if (REAR_LABEL.test(track.label)) return true;
+    if (FRONT_LABEL.test(track.label)) return false;
+  }
+  // Unknown (desktop webcams don't report facingMode) → accept it.
+  return true;
+};
+
+const stopStream = (stream: MediaStream | null) => {
+  stream?.getTracks().forEach((t) => t.stop());
+};
+
 const ScannerPage = () => {
   const { user } = useUser();
   const navigate = useNavigate();
@@ -106,6 +122,7 @@ const ScannerPage = () => {
   const stoppedRef = useRef<boolean>(false);
   const [phase, setPhase] = useState<Phase>('scanning');
   const [errorMsg, setErrorMsg] = useState<string>('');
+  const facingRef = useRef<'environment' | 'user'>('environment');
   const [showTooltip, setShowTooltip] = useState<boolean>(() => {
     try { return !localStorage.getItem('maseya_scan_tip_seen'); } catch { return false; }
   });
@@ -122,6 +139,10 @@ const ScannerPage = () => {
     setShowTooltip(false);
   };
 
+  const rafRef = useRef<number | null>(null);
+  const activeStreamRef = useRef<MediaStream | null>(null);
+  const zxingRotateTimerRef = useRef<number | null>(null);
+
   const stop = async () => {
     if (stoppedRef.current) return;
     stoppedRef.current = true;
@@ -133,12 +154,13 @@ const ScannerPage = () => {
       clearInterval(zxingRotateTimerRef.current);
       zxingRotateTimerRef.current = null;
     }
-    nativeStreamRef.current?.getTracks().forEach((t) => t.stop());
-    nativeStreamRef.current = null;
+    stopStream(activeStreamRef.current);
+    activeStreamRef.current = null;
+    if (videoRef.current) videoRef.current.srcObject = null;
   };
 
   const improveVideoTrack = async () => {
-    const stream = videoRef.current?.srcObject as MediaStream | null;
+    const stream = activeStreamRef.current;
     const track = stream?.getVideoTracks()[0];
     if (!track?.getCapabilities) return;
 
@@ -150,9 +172,91 @@ const ScannerPage = () => {
     }
   };
 
-  const rafRef = useRef<number | null>(null);
-  const nativeStreamRef = useRef<MediaStream | null>(null);
-  const zxingRotateTimerRef = useRef<number | null>(null);
+  /**
+   * Attach a stream to the <video> and wait until it actually renders frames.
+   * iOS Safari can hand back a "live" stream that never paints (black screen),
+   * so a stream alone is not proof the camera works — we wait for real
+   * dimensions before declaring success.
+   */
+  const attachAndWaitForFrames = async (stream: MediaStream, timeoutMs = 2500): Promise<boolean> => {
+    const video = videoRef.current;
+    if (!video) return false;
+    video.srcObject = stream;
+    video.setAttribute('playsinline', 'true');
+    video.muted = true;
+    try { await video.play(); } catch (e) { console.warn('[scanner] video.play() rejected', e); }
+
+    const start = performance.now();
+    while (performance.now() - start < timeoutMs) {
+      if (stoppedRef.current) return false;
+      if (video.videoWidth > 0 && video.readyState >= 2) return true;
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    return video.videoWidth > 0;
+  };
+
+  /**
+   * Robust camera acquisition chain (iOS Safari friendly):
+   *   1. facingMode preference (NEVER `exact` — Safari throws OverconstrainedError)
+   *   2. if the opened camera is not the rear one, silently reopen by deviceId
+   *   3. plain `video: true` as last resort
+   * Each candidate stream must paint frames within ~2.5s or we move on.
+   */
+  const acquireWorkingStream = async (want: 'environment' | 'user'): Promise<MediaStream> => {
+    const base: MediaTrackConstraints = { width: { ideal: 1920 }, height: { ideal: 1080 } };
+    const tried: MediaStream[] = [];
+
+    const tryStream = async (constraints: MediaStreamConstraints): Promise<MediaStream | null> => {
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+      } catch (e) {
+        console.warn('[scanner] getUserMedia rejected', constraints, e);
+        return null;
+      }
+      const ok = await attachAndWaitForFrames(stream);
+      if (!ok) {
+        console.warn('[scanner] stream produced no frames, discarding', constraints);
+        stopStream(stream);
+        return null;
+      }
+      tried.push(stream);
+      return stream;
+    };
+
+    // 1. Preference, not requirement.
+    let stream = await tryStream({ video: { ...base, facingMode: want }, audio: false });
+
+    // 2. Verify we got the camera we asked for; otherwise switch by deviceId.
+    if (stream && want === 'environment' && !isRearStream(stream)) {
+      console.warn('[scanner] front camera opened, switching to rear by deviceId');
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const cams = devices.filter((d) => d.kind === 'videoinput');
+        const rear = cams.find((d) => REAR_LABEL.test(d.label))
+          ?? (cams.length > 1 ? cams[cams.length - 1] : undefined);
+        if (rear) {
+          stopStream(stream);
+          stream = null;
+          stream = await tryStream({ video: { ...base, deviceId: { exact: rear.deviceId } }, audio: false });
+        }
+      } catch (e) {
+        console.warn('[scanner] enumerateDevices failed', e);
+      }
+    }
+
+    // 3. Anything that works beats a black screen.
+    if (!stream) stream = await tryStream({ video: base, audio: false });
+    if (!stream) stream = await tryStream({ video: true, audio: false });
+
+    // Release any earlier candidates we are not using.
+    tried.filter((s) => s !== stream).forEach(stopStream);
+
+    if (!stream) throw new Error('camera_unavailable');
+    activeStreamRef.current = stream;
+    facingRef.current = isRearStream(stream) ? 'environment' : 'user';
+    return stream;
+  };
 
   const onDecoded = (decodedText: string) => {
     if (!decodedText || stoppedRef.current) return;
@@ -161,24 +265,19 @@ const ScannerPage = () => {
     controlsRef.current = null;
     if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
     rafRef.current = null;
-    nativeStreamRef.current?.getTracks().forEach((t) => t.stop());
-    nativeStreamRef.current = null;
-    // Out-of-scope prefixes: 978/979 = books (ISBN), 977 = press (ISSN).
-    // ResultPage also handles this, but short-circuiting here avoids the
-    // network round-trip and a jarring "not found" flash.
+    if (zxingRotateTimerRef.current !== null) {
+      clearInterval(zxingRotateTimerRef.current);
+      zxingRotateTimerRef.current = null;
+    }
+    stopStream(activeStreamRef.current);
+    activeStreamRef.current = null;
     setPhase('analyzing');
     navigate(`/result/${encodeURIComponent(decodedText)}`);
   };
 
   const startNative = async (detector: BarcodeDetectorLike) => {
-    track('camera_permission_requested', { engine: 'native' });
-    const stream = await navigator.mediaDevices.getUserMedia(getCameraConstraints());
-    track('camera_permission_granted', { engine: 'native' });
-    nativeStreamRef.current = stream;
     const video = videoRef.current;
     if (!video) throw new Error('video element missing');
-    video.srcObject = stream;
-    await video.play().catch(() => {});
     await improveVideoTrack();
 
     const canvas = document.createElement('canvas');
@@ -209,24 +308,23 @@ const ScannerPage = () => {
     track('scanner_active', { engine: 'native' });
   };
 
-  const startZxingWithRotation = async () => {
-    track('camera_permission_requested', { engine: 'zxing' });
+  const startZxingWithRotation = async (stream: MediaStream) => {
     const codeReader = new BrowserMultiFormatReader(getScanHints(), {
       delayBetweenScanAttempts: 120,
       delayBetweenScanSuccess: 250,
     });
 
-    const controls = await codeReader.decodeFromConstraints(
-      getCameraConstraints(),
+    // Decode from the stream we already validated instead of letting zxing
+    // request its own — that request is what used to die on iOS Safari.
+    const controls = await codeReader.decodeFromStream(
+      stream,
       videoRef.current ?? undefined,
       (result) => {
         if (!result) return;
-        const decodedText = result.getText();
-        onDecoded(decodedText);
+        onDecoded(result.getText());
       }
     );
     controlsRef.current = controls;
-    track('camera_permission_granted', { engine: 'zxing' });
     track('scanner_active', { engine: 'zxing' });
     await improveVideoTrack();
 
@@ -239,7 +337,6 @@ const ScannerPage = () => {
       if (stoppedRef.current || !video || !ctx || video.videoWidth === 0) return;
       const w = video.videoWidth;
       const h = video.videoHeight;
-      // Rotate 90°: swap width/height
       canvas.width = h;
       canvas.height = w;
       ctx.save();
@@ -249,9 +346,7 @@ const ScannerPage = () => {
       ctx.restore();
       try {
         const result = await codeReader.decodeFromCanvas(canvas);
-        if (result?.getText()) {
-          onDecoded(result.getText());
-        }
+        if (result?.getText()) onDecoded(result.getText());
       } catch {
         // no code in rotated frame — keep trying
       }
@@ -260,16 +355,19 @@ const ScannerPage = () => {
       if (stoppedRef.current) return;
       void tryRotated();
     }, 700) as unknown as number;
-    // Delay the first rotated attempt ~2s to let the horizontal path try first.
     window.setTimeout(() => { void tryRotated(); }, 2000);
   };
 
-  const startScanning = async () => {
+  const startScanning = async (want: 'environment' | 'user' = 'environment') => {
+    await stop();
     setErrorMsg('');
     setPhase('scanning');
     stoppedRef.current = false;
-    let nativeFailed = false;
     try {
+      track('camera_permission_requested', {});
+      const stream = await acquireWorkingStream(want);
+      track('camera_permission_granted', { facing: facingRef.current });
+
       if (NativeBarcodeDetector) {
         try {
           const detector = new NativeBarcodeDetector({
@@ -279,17 +377,20 @@ const ScannerPage = () => {
           return;
         } catch (e) {
           console.warn('[scanner] native BarcodeDetector failed, falling back to zxing', e);
-          nativeFailed = true;
         }
       }
-      await startZxingWithRotation();
+      await startZxingWithRotation(stream);
     } catch (e) {
       const reason = e instanceof Error ? (e.name || e.message) : String(e);
-      track('camera_permission_denied', { reason, after_native_fallback: nativeFailed });
+      track('camera_permission_denied', { reason });
       console.error('[scanner] camera error', e);
       setErrorMsg(c.cameraError);
       setPhase('error');
     }
+  };
+
+  const flipCamera = () => {
+    void startScanning(facingRef.current === 'environment' ? 'user' : 'environment');
   };
 
   const location = useLocation();
@@ -300,7 +401,7 @@ const ScannerPage = () => {
       viewTracked.current = true;
       track('scanner_view');
     }
-    startScanning();
+    void startScanning('environment');
     return () => { void stop(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -329,6 +430,14 @@ const ScannerPage = () => {
             <>
               <div className="pointer-events-none absolute inset-8 rounded-2xl border-2 border-primary/80 animate-pulse shadow-[0_0_24px_rgba(74,222,128,0.45)]" />
               <div className="pointer-events-none absolute inset-x-12 top-1/2 h-0.5 bg-primary animate-pulse" />
+              <button
+                type="button"
+                onClick={flipCamera}
+                aria-label={c.flip}
+                className="absolute top-3 right-3 min-w-[44px] min-h-[44px] rounded-full bg-black/45 text-white flex items-center justify-center backdrop-blur-sm"
+              >
+                <RefreshCw className="w-5 h-5" />
+              </button>
               <div className="pointer-events-none absolute left-0 right-0 bottom-4 px-6 text-center">
                 <p className="inline-block text-white text-xs font-medium bg-black/45 rounded-full px-3 py-1.5 backdrop-blur-sm">
                   {c.center}
@@ -347,7 +456,7 @@ const ScannerPage = () => {
           {phase === 'error' && (
             <div className="absolute inset-0 bg-background flex flex-col items-center justify-center gap-3 p-6 text-center">
               <p className="text-sm text-destructive">{errorMsg}</p>
-              <Button onClick={startScanning}>{c.retry}</Button>
+              <Button onClick={() => void startScanning('environment')}>{c.retry}</Button>
             </div>
           )}
 
@@ -366,7 +475,9 @@ const ScannerPage = () => {
           )}
         </div>
 
-        
+        <p className="text-xs text-muted-foreground text-center leading-relaxed px-2">
+          {c.privacy}
+        </p>
 
         <button
           onClick={handlePhoto}

@@ -101,13 +101,13 @@ const COPY = {
       heading: 'Fotografía el frontal del producto',
       sub: 'Apunta a la parte delantera',
       tip: 'Incluye el nombre y la marca',
-      cta: 'Capturar',
+      cta: 'Fotografiar el frontal',
     },
     ingredients: {
       heading: 'Fotografía los ingredientes',
       sub: 'Lista de ingredientes (parte trasera o lateral)',
       hint: 'Busca «Ingredients:» o «Ingredientes:»',
-      cta: 'Capturar',
+      cta: 'Fotografiar los ingredientes',
     },
     nutrition: {
       heading: '¿Añadir la tabla nutricional?',
@@ -115,7 +115,7 @@ const COPY = {
       hint: 'Busca la columna «por 100 g»',
       capture: 'Fotografiar tabla',
       skip: 'Omitir',
-      cta: 'Capturar',
+      cta: 'Fotografiar la tabla nutricional',
     },
     analyzing: 'Mira está analizando los ingredientes...',
     analyzingNutrition: 'Leyendo la tabla nutricional...',
@@ -150,13 +150,13 @@ const COPY = {
       heading: 'Photograph the product front',
       sub: 'Aim at the front of the product',
       tip: 'Include the name and brand',
-      cta: 'Capture',
+      cta: 'Photograph the front',
     },
     ingredients: {
       heading: 'Photograph the ingredients',
       sub: 'Ingredient list (back or side)',
       hint: 'Look for "Ingredients:"',
-      cta: 'Capture',
+      cta: 'Photograph the ingredients',
     },
     nutrition: {
       heading: 'Add the nutrition table?',
@@ -164,7 +164,7 @@ const COPY = {
       hint: 'Look for the "per 100 g" column',
       capture: 'Photograph table',
       skip: 'Skip',
-      cta: 'Capture',
+      cta: 'Photograph the nutrition table',
     },
     analyzing: 'Mira is analyzing the ingredients...',
     analyzingNutrition: 'Reading the nutrition table...',
@@ -199,13 +199,13 @@ const COPY = {
       heading: 'Photographiez le devant',
       sub: "Visez l'avant du produit",
       tip: 'Incluez le nom et la marque',
-      cta: 'Capturer',
+      cta: 'Photographier le devant',
     },
     ingredients: {
       heading: 'Photographiez les ingrédients',
       sub: "Liste d'ingrédients (arrière ou côté)",
       hint: 'Cherchez « Ingrédients »',
-      cta: 'Capturer',
+      cta: 'Photographier les ingrédients',
     },
     nutrition: {
       heading: 'Ajouter le tableau nutritionnel ?',
@@ -213,7 +213,7 @@ const COPY = {
       hint: 'Cherchez la colonne « pour 100 g »',
       capture: 'Photographier le tableau',
       skip: 'Ignorer',
-      cta: 'Capturer',
+      cta: 'Photographier le tableau nutritionnel',
     },
     analyzing: 'Mira analyse les ingrédients...',
     analyzingNutrition: 'Lecture du tableau nutritionnel...',
@@ -272,124 +272,22 @@ const PhotoCapturePage = () => {
   }>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const [liveCamera, setLiveCamera] = useState(false);
-  const [facing, setFacing] = useState<'environment' | 'user'>('environment');
-  const [cameraDenied, setCameraDenied] = useState(false);
 
   useEffect(() => {
     console.log('[photo-capture] mount — realBarcode URL param =', realBarcode, '| addImageFor =', addImageFor, '| nutritionOnly =', nutritionOnly);
   }, [realBarcode, addImageFor, nutritionOnly]);
 
-
+  /**
+   * Photo capture uses the NATIVE camera input: full sensor resolution,
+   * autofocus on shutter, system flash and always the correct camera.
+   * (The live viewfinder stays only in the barcode scanner, which needs a
+   * continuous stream.) On desktop `capture` is ignored → file picker.
+   */
   const openNativeCamera = () => {
     // Reset value so selecting the same file twice still fires onChange.
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
       fileInputRef.current.click();
-    }
-  };
-
-  const stopStream = () => {
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    streamRef.current = null;
-    if (videoRef.current) videoRef.current.srcObject = null;
-  };
-
-  const closeLiveCamera = () => {
-    stopStream();
-    setLiveCamera(false);
-  };
-
-  // Always release the camera when leaving the screen or changing step.
-  useEffect(() => () => stopStream(), []);
-  useEffect(() => { if (!liveCamera) stopStream(); }, [liveCamera]);
-  useEffect(() => { closeLiveCamera(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [step]);
-
-  /**
-   * `capture="environment"` is only a hint — several Android browsers ignore it
-   * and reopen the last used (front) camera. So we drive the camera ourselves
-   * with an explicit facingMode constraint, falling back to the native input.
-   */
-  const getRearStream = async (want: 'environment' | 'user'): Promise<MediaStream> => {
-    const base = { width: { ideal: 1920 }, height: { ideal: 1080 } };
-    try {
-      return await navigator.mediaDevices.getUserMedia({
-        video: { ...base, facingMode: { exact: want } }, audio: false,
-      });
-    } catch (e) {
-      console.warn('[photo-capture] exact facingMode failed', e);
-    }
-    try {
-      return await navigator.mediaDevices.getUserMedia({
-        video: { ...base, facingMode: want }, audio: false,
-      });
-    } catch (e) {
-      console.warn('[photo-capture] loose facingMode failed', e);
-    }
-    // Last resort: pick a device whose label looks like the rear camera.
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    const cams = devices.filter((d) => d.kind === 'videoinput');
-    const rear = want === 'environment'
-      ? cams.find((d) => /back|rear|trasera|environment|\b0\b/i.test(d.label)) ?? cams[cams.length - 1]
-      : cams.find((d) => /front|user|frontal/i.test(d.label)) ?? cams[0];
-    if (!rear) throw new Error('no camera device');
-    return navigator.mediaDevices.getUserMedia({ video: { ...base, deviceId: { exact: rear.deviceId } }, audio: false });
-  };
-
-  const startLiveCamera = async (want: 'environment' | 'user' = 'environment') => {
-    const isMobile = /android|iphone|ipad|ipod/i.test(navigator.userAgent);
-    if (!isMobile || !navigator.mediaDevices?.getUserMedia) {
-      openNativeCamera();
-      return;
-    }
-    setProcessing(true);
-    try {
-      stopStream();
-      const stream = await getRearStream(want);
-      streamRef.current = stream;
-      setFacing(want);
-      setCameraDenied(false);
-      setLiveCamera(true);
-      // Wait for the <video> to mount before attaching the stream.
-      setTimeout(() => {
-        if (videoRef.current && streamRef.current) {
-          videoRef.current.srcObject = streamRef.current;
-          void videoRef.current.play().catch(() => {});
-        }
-      }, 0);
-    } catch (e) {
-      console.error('[photo-capture] getUserMedia failed, falling back to file input', e);
-      setLiveCamera(false);
-      setCameraDenied(true);
-      openNativeCamera();
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  const flipCamera = () => { void startLiveCamera(facing === 'environment' ? 'user' : 'environment'); };
-
-  const shoot = async () => {
-    const video = videoRef.current;
-    if (!video || !video.videoWidth) return;
-    setProcessing(true);
-    try {
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92));
-      closeLiveCamera();
-      if (!blob) return;
-      // Reuse the shared resize/square-crop pipeline (accepts Blob).
-      const dataUrl = await fileToResizedDataUrl(blob, { square: step === 'front' });
-      if (dataUrl) setPreview(dataUrl);
-    } finally {
-      setProcessing(false);
     }
   };
 
@@ -628,10 +526,6 @@ const PhotoCapturePage = () => {
 
 
   const goBack = () => {
-    if (liveCamera) {
-      closeLiveCamera();
-      return;
-    }
     if (preview) {
       setPreview(null);
       return;
@@ -695,25 +589,7 @@ const PhotoCapturePage = () => {
             </div>
 
             <div className="relative w-full max-h-[55vh] aspect-[3/4] max-w-full rounded-3xl overflow-hidden bg-gradient-to-br from-muted to-muted/50 border border-border flex items-center justify-center mx-auto">
-              {liveCamera ? (
-                <>
-                  <video
-                    ref={videoRef}
-                    className="w-full h-full object-cover"
-                    playsInline
-                    muted
-                    autoPlay
-                  />
-                  <button
-                    type="button"
-                    onClick={flipCamera}
-                    aria-label={c.flip}
-                    className="absolute top-3 right-3 min-w-[44px] min-h-[44px] rounded-full bg-black/45 text-white flex items-center justify-center backdrop-blur-sm"
-                  >
-                    <RefreshCw className="w-5 h-5" />
-                  </button>
-                </>
-              ) : preview ? (
+              {preview ? (
                 <img src={preview} alt="" className="w-full h-full max-w-full max-h-full object-contain" />
               ) : processing ? (
                 <div className="flex flex-col items-center justify-center text-muted-foreground gap-3">
@@ -730,9 +606,6 @@ const PhotoCapturePage = () => {
               )}
             </div>
 
-            {cameraDenied && !liveCamera && (
-              <p className="text-xs text-muted-foreground text-center leading-relaxed">{c.cameraDenied}</p>
-            )}
 
 
             {/* Hidden native camera input — `capture="environment"` opens the
@@ -747,17 +620,7 @@ const PhotoCapturePage = () => {
               onChange={onFileSelected}
             />
 
-            {liveCamera ? (
-              <div className="flex gap-3">
-                <Button onClick={closeLiveCamera} variant="outline" className="h-14 rounded-2xl px-5">
-                  <X className="w-4 h-4" />
-                </Button>
-                <Button onClick={shoot} disabled={processing} className="flex-1 h-14 rounded-2xl">
-                  <Camera className="w-5 h-5 mr-2" />
-                  {c.shoot}
-                </Button>
-              </div>
-            ) : preview ? (
+            {preview ? (
               <div className="flex gap-3">
                 <Button onClick={onRetake} variant="outline" className="flex-1 h-14 rounded-2xl">
                   <X className="w-4 h-4 mr-2" />
@@ -770,7 +633,7 @@ const PhotoCapturePage = () => {
               </div>
             ) : (
               <Button
-                onClick={() => void startLiveCamera('environment')}
+                onClick={openNativeCamera}
                 disabled={processing}
                 className="w-full h-14 rounded-2xl"
               >
