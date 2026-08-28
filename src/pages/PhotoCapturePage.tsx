@@ -272,8 +272,6 @@ const PhotoCapturePage = () => {
   }>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [liveCamera] = useState(false);
-  const [cameraDenied] = useState(false);
 
   useEffect(() => {
     console.log('[photo-capture] mount — realBarcode URL param =', realBarcode, '| addImageFor =', addImageFor, '| nutritionOnly =', nutritionOnly);
@@ -608,9 +606,6 @@ const PhotoCapturePage = () => {
               )}
             </div>
 
-            {cameraDenied && !liveCamera && (
-              <p className="text-xs text-muted-foreground text-center leading-relaxed">{c.cameraDenied}</p>
-            )}
 
 
             {/* Hidden native camera input — `capture="environment"` opens the
