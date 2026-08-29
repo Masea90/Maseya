@@ -1326,8 +1326,38 @@ const CONTACT_ALLERGENS: Array<{ label: string; keywords: string[] }> = [
   { label: 'citral', keywords: ['citral'] },
   { label: 'benzoato de bencilo', keywords: ['benzyl benzoate'] },
   { label: 'alcohol bencílico', keywords: ['benzyl alcohol'] },
-
+  { label: 'citronelol', keywords: ['citronellol', 'citronelol'] },
+  // Photosensitising citrus oils (furocoumarins) — personal layer only.
+  {
+    label: 'aceite de limón (fotosensibilizante)',
+    keywords: [
+      'citrus limon peel oil', 'citrus limon (lemon) peel oil', 'citrus limon fruit oil',
+      'citrus limon oil', 'citrus limon peel extract', 'lemon peel oil', 'aceite de limon',
+      'citrus limon',
+    ],
+  },
+  {
+    label: 'aceite de naranja (fotosensibilizante)',
+    keywords: [
+      'citrus aurantium dulcis peel oil', 'citrus aurantium dulcis (orange) peel oil',
+      'citrus aurantium dulcis fruit oil', 'citrus aurantium dulcis oil',
+      'citrus aurantium dulcis peel extract', 'citrus sinensis peel oil',
+      'orange peel oil', 'aceite de naranja',
+      'citrus aurantium dulcis',
+    ],
+  },
+  {
+    label: 'bergamota (fotosensibilizante)',
+    keywords: [
+      'citrus aurantium bergamia peel oil', 'citrus aurantium bergamia fruit oil',
+      'citrus aurantium bergamia leaf extract', 'citrus aurantium bergamia leaf oil',
+      'citrus aurantium bergamia peel extract', 'citrus aurantium bergamia oil',
+      'citrus bergamia', 'citrus aurantium bergamia', 'bergamot oil',
+      'aceite de bergamota', 'bergamota',
+    ],
+  },
 ];
+
 
 /** True when the profile asks for the contact-allergen layer. */
 function wantsContactAllergenLayer(skin: string[], sensitivities: string[]): boolean {

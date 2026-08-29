@@ -59,23 +59,86 @@ const humanizeDiets = (d: unknown): string => {
 const normIng = (s: string) =>
   s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
 
-// Aggressive normalization used ONLY for deduplication: strips isomer
-// prefixes, parenthesised content and separators, so 'D-Limonene' and
-// 'jarabe de glucosa-fructosa' collapse onto their family names.
-const dedupKey = (s: string) =>
-  normIng(s)
-    .replace(/\([^)]*\)/g, ' ')
-    .replace(/\b(d|l|dl|alpha|beta|gamma)[-\s]/g, ' ')
-    .replace(/\s+(and|y|de|del|la|el)\s+/g, ' ')
-    .replace(/[/\-,.]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+// Colour-index / E-number codes that carry no naming information.
+const COLOR_CODE_RE = /\b(?:c\.?\s?i\.?|ci)\s*\.?\s*\d{4,5}\b|\be\s?-?\s?\d{3}[a-z]?\b/gi;
+
+// Synonyms / translations (es, en, fr, de) collapsed onto one canonical name,
+// so a French or German spelling of an already decided ingredient is caught.
+const CANON_SYNONYMS: Array<[string[], string]> = [
+  [['linalool', 'linalol', 'linalol de synthese'], 'linalool'],
+  [['benzyl salicylate', 'salicylate de benzyle', 'salicilato de bencilo', 'benzylsalicylat'], 'benzyl salicylate'],
+  [['limonene', 'limoneno', 'd limonene', 'dl limonene'], 'limonene'],
+  [['geraniol', 'geraniol de synthese'], 'geraniol'],
+  [['citronellol', 'citronelol', 'citronnellol'], 'citronellol'],
+  [['coumarin', 'cumarina', 'coumarine', 'cumarin'], 'coumarin'],
+  [['benzyl alcohol', 'alcohol bencilico', 'alcool benzylique', 'benzylalkohol'], 'benzyl alcohol'],
+  [['citral'], 'citral'],
+  [['titanium dioxide', 'dioxido de titanio', 'dioxyde de titane', 'titandioxid', 'titanium dioxid'], 'titanium dioxide'],
+  [['iron oxides', 'iron oxide', 'oxidos de hierro', 'oxido de hierro', 'oxydes de fer', 'oxyde de fer', 'eisenoxid', 'eisenoxide'], 'iron oxides'],
+  [['mica'], 'mica'],
+  [['disodium inosinate', 'dinatriuminosinat', 'dinatrium inosinat', 'inosinato disodico', 'inosinate disodique'], 'disodium inosinate'],
+  [['sodium benzoate', 'benzoato sodico', 'benzoato de sodio', 'benzoate de sodium', 'natriumbenzoat'], 'sodium benzoate'],
+  [['potassium sorbate', 'sorbato potasico', 'sorbato de potasio', 'sorbate de potassium', 'kaliumsorbat'], 'potassium sorbate'],
+  [['caramel', 'caramelo', 'zuckerkulor', 'caramel color', 'colorante caramelo'], 'caramel'],
+  [['palm oil', 'aceite de palma', 'huile de palme', 'palmol', 'palmfett'], 'palm oil'],
+];
+const SYNONYM_INDEX = new Map<string, string>();
+for (const [variants, canonical] of CANON_SYNONYMS) {
+  for (const v of variants) SYNONYM_INDEX.set(v, canonical);
+}
+
+// Bare colour-index codes resolve to the pigment they designate, so
+// "CI 77492" and "CI 77491 (IRON OXIDES)" collapse onto the same key.
+const CI_CODE_MAP: Record<string, string> = {
+  "77491": "iron oxides",
+  "77492": "iron oxides",
+  "77499": "iron oxides",
+  "77891": "titanium dioxide",
+  "77019": "mica",
+  "77266": "carbon black",
+  "77007": "ultramarines",
+};
+
+// Aggressive normalization used ONLY for deduplication: removes colour codes
+// (before OR after the name), isomer prefixes and separators, then resolves
+// translations to a canonical name.
+const dedupKey = (s: string) => {
+  const base = normIng(s);
+  const codes = [...base.matchAll(/\b(?:c\.?\s?i\.?|ci)\s*\.?\s*(\d{4,5})\b/gi)].map((m) => m[1]);
+  const parenMatches = [...base.matchAll(/\(([^)]*)\)/g)].map((m) => m[1]);
+  const outside = base.replace(/\([^)]*\)/g, ' ');
+  const scrub = (t: string, keepConnectors = false) => {
+    let out = t
+      .replace(COLOR_CODE_RE, ' ')
+      .replace(/\b(d|l|dl|alpha|beta|gamma)[-\s]/g, ' ');
+    if (!keepConnectors) out = out.replace(/\s+(and|y|de|del|la|el|of)\s+/g, ' ');
+    return out.replace(/[/\-,.]+/g, ' ').replace(/\s+/g, ' ').trim();
+  };
+  const resolve = (t: string) =>
+    SYNONYM_INDEX.get(scrub(t, true)) ?? SYNONYM_INDEX.get(scrub(t)) ?? null;
+
+  // "CI 77891 (TITANIUM DIOXIDE)": the code sits outside, the real name inside.
+  const parts = [outside, ...parenMatches, base];
+  for (const p of parts) {
+    const hit = resolve(p);
+    if (hit) return hit;
+  }
+  let key = '';
+  for (const p of parts) {
+    key = scrub(p);
+    if (key) break;
+  }
+  if (!key && codes.length) key = CI_CODE_MAP[codes[0]] ?? `ci ${codes[0]}`;
+  return key;
+};
+
 
 const sameFamily = (a: string, b: string) => {
   if (!a || !b) return false;
   if (a === b) return true;
   return (a.length > 3 && b.length > 3) && (a.includes(b) || b.includes(a));
 };
+
 
 
 const CANDIDATE_PROMPT = `Eres un revisor científico. Señala ÚNICAMENTE ingredientes con evidencia científica reconocida de riesgo (organismos oficiales, literatura revisada por pares) que NO estén ya en la lista de ingredientes marcados que se te pasa. Si no hay ninguno, devuelve un array vacío. No inventes: si dudas, no lo incluyas. Máximo 3 por producto.
@@ -119,18 +182,21 @@ async function collectCandidates(opts: {
     { auth: { persistSession: false } },
   );
 
-  // Load every already-decided candidate of this category once: any variant
-  // of something approved or rejected must never come back.
+  // Load every existing candidate of this category once: any variant of
+  // something approved or rejected must never come back, and pending rows are
+  // matched by canonical key so translations/colour codes don't duplicate.
   const { data: decided } = await admin
     .from("ingredient_candidates")
-    .select("ingredient_name, status")
-    .eq("category", category)
-    .in("status", ["approved", "rejected"]);
-  const decidedKeys = (decided ?? []).map((d) => ({
+    .select("id, ingredient_name, status, occurrences, sample_barcodes")
+    .eq("category", category);
+  const allRows = (decided ?? []).map((d) => ({
+    row: d,
+    name: String(d.ingredient_name ?? ""),
     key: dedupKey(String(d.ingredient_name ?? "")),
     status: d.status as string,
   }));
-  const knownKeys = [...known].map(dedupKey);
+  const decidedKeys = allRows.filter((r) => r.status === "approved" || r.status === "rejected");
+  const knownKeys = [...known].map((k) => ({ key: dedupKey(k), name: k }));
 
   for (const c of list) {
     const name = normIng(String(c?.name ?? ""));
@@ -141,15 +207,33 @@ async function collectCandidates(opts: {
     if (/^e-?\s?\d{3}/i.test(name)) continue;
     if ([...known].some((k) => k.length > 3 && (name.includes(k) || k.includes(name)))) continue;
     const key = dedupKey(name);
-    if (knownKeys.some((k) => sameFamily(key, k))) {
-      console.log(`[candidates] filtered "${name}": already in our risk lists (family match)`);
+    const knownHit = knownKeys.find((k) => sameFamily(key, k.key));
+    if (knownHit) {
+      console.log(`[candidates] filtered "${name}" (key "${key}"): already in our risk lists → "${knownHit.name}"`);
       continue;
     }
     const decidedHit = decidedKeys.find((d) => sameFamily(key, d.key));
     if (decidedHit) {
-      console.log(`[candidates] filtered "${name}": variant of already ${decidedHit.status} candidate`);
+      console.log(`[candidates] filtered "${name}" (key "${key}"): variant of already ${decidedHit.status} candidate "${decidedHit.name}"`);
       continue;
     }
+
+    const pendingHit = allRows.find((r) => r.status === "pending" && sameFamily(key, r.key));
+    if (pendingHit) {
+      console.log(`[candidates] merged "${name}" (key "${key}") into pending candidate "${pendingHit.name}"`);
+      const samples: string[] = Array.isArray(pendingHit.row.sample_barcodes) ? pendingHit.row.sample_barcodes : [];
+      const next = barcode && !samples.includes(barcode) ? [...samples, barcode].slice(0, 5) : samples;
+      await admin
+        .from("ingredient_candidates")
+        .update({
+          occurrences: (pendingHit.row.occurrences ?? 1) + 1,
+          last_seen_at: new Date().toISOString(),
+          sample_barcodes: next,
+        })
+        .eq("id", pendingHit.row.id);
+      continue;
+    }
+
 
     const { data: existing } = await admin
       .from("ingredient_candidates")
