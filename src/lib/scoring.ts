@@ -1333,6 +1333,7 @@ const CONTACT_ALLERGENS: Array<{ label: string; keywords: string[] }> = [
     keywords: [
       'citrus limon peel oil', 'citrus limon (lemon) peel oil', 'citrus limon fruit oil',
       'citrus limon oil', 'citrus limon peel extract', 'lemon peel oil', 'aceite de limon',
+      'citrus limon',
     ],
   },
   {
@@ -1342,6 +1343,7 @@ const CONTACT_ALLERGENS: Array<{ label: string; keywords: string[] }> = [
       'citrus aurantium dulcis fruit oil', 'citrus aurantium dulcis oil',
       'citrus aurantium dulcis peel extract', 'citrus sinensis peel oil',
       'orange peel oil', 'aceite de naranja',
+      'citrus aurantium dulcis',
     ],
   },
   {
@@ -1350,7 +1352,8 @@ const CONTACT_ALLERGENS: Array<{ label: string; keywords: string[] }> = [
       'citrus aurantium bergamia peel oil', 'citrus aurantium bergamia fruit oil',
       'citrus aurantium bergamia leaf extract', 'citrus aurantium bergamia leaf oil',
       'citrus aurantium bergamia peel extract', 'citrus aurantium bergamia oil',
-      'citrus bergamia', 'bergamot oil', 'aceite de bergamota', 'bergamota',
+      'citrus bergamia', 'citrus aurantium bergamia', 'bergamot oil',
+      'aceite de bergamota', 'bergamota',
     ],
   },
 ];
