@@ -19,7 +19,7 @@ export const WELCOME_COPY = {
   en: {
     brand: 'MASEYA',
     titleTop: 'Scan what you eat and what you put on',
-    subtitle: 'and find out if it's good ',
+    subtitle: 'and find out if it’s good ',
     subtitleAccent: 'for you',
     ex1Label: 'The same light cheese',
     ex1a: '40 · no allergies',
@@ -36,7 +36,7 @@ export const WELCOME_COPY = {
   fr: {
     brand: 'MASEYA',
     titleTop: 'Scanne ce que tu manges et ce que tu mets',
-    subtitle: 'et découvre si c'est bon ',
+    subtitle: 'et découvre si c’est bon ',
     subtitleAccent: 'pour toi',
     ex1Label: 'Le même fromage light',
     ex1a: '40 · sans allergies',
@@ -47,7 +47,7 @@ export const WELCOME_COPY = {
     reach: 'Allergies · intolérances · régime halal · peau sensible',
     trust: 'Gratuit · Sans téléchargement · Sans pub',
     cta: 'Scanner un produit',
-    haveAccount: 'J'ai déjà un compte',
+    haveAccount: 'J’ai déjà un compte',
     howItWorks: 'Comment ça marche',
   },
 };
