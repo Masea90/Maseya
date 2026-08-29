@@ -35,7 +35,8 @@ export const WelcomeScreen = () => {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-gradient-hero flex flex-col items-center justify-between p-8 pt-safe text-center text-white">
+    <div className="min-h-[100dvh] bg-gradient-hero flex flex-col items-center justify-between p-6 pt-safe text-center text-white">
+      {/* Top bar: brand + language */}
       <div className="w-full grid grid-cols-[1fr_auto_1fr] items-center pt-2">
         <div />
         <div className="flex items-center justify-center gap-2">
@@ -49,21 +50,63 @@ export const WelcomeScreen = () => {
         </div>
       </div>
 
-
-      <div className="flex-1 flex flex-col items-center justify-center max-w-sm">
-        <h1 className="font-display text-4xl sm:text-5xl font-bold leading-tight mb-4">
+      {/* Headline + subtitle */}
+      <div className="w-full max-w-sm">
+        <h1 className="font-display text-3xl sm:text-4xl font-bold leading-tight mb-2">
           {c.titleTop}
-          <span className="block text-secondary mt-2">{c.titleAccent}</span>
         </h1>
-        <p className="text-white/85 text-base leading-relaxed">
+        <p className="text-secondary text-lg font-medium leading-snug">
           {c.subtitle}
+          <span className="font-semibold">{c.subtitleAccent}</span>
         </p>
       </div>
 
-      <div className="w-full max-w-sm space-y-4">
+      {/* Visual proof block: two compact examples showing the personal-vs-general contrast */}
+      <div className="w-full max-w-sm rounded-2xl bg-white/10 backdrop-blur-sm px-3.5 py-3 space-y-2.5">
+        {/* Example 1 — food */}
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2">
+            <span className="text-base leading-none">🧀</span>
+            <span className="text-[13px] text-white/85 font-medium text-left">{c.ex1Label}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-semibold text-white">
+              {c.ex1a}
+            </span>
+            <span className="inline-flex items-center rounded-full bg-[hsl(var(--score-bad)/0.9)] px-2.5 py-1 text-[11px] font-semibold text-white">
+              {c.ex1b}
+            </span>
+          </div>
+        </div>
+        <div className="h-px bg-white/15" />
+        {/* Example 2 — cosmetic */}
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2">
+            <span className="text-base leading-none">🧴</span>
+            <span className="text-[13px] text-white/85 font-medium text-left">{c.ex2Label}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-semibold text-white">
+              {c.ex2a}
+            </span>
+            <span className="inline-flex items-center rounded-full bg-[hsl(var(--score-fair)/0.9)] px-2.5 py-1 text-[11px] font-semibold text-white">
+              {c.ex2b}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Scope + trust lines */}
+      <div className="w-full max-w-sm space-y-1">
+        <p className="text-[12px] text-white/75 font-medium">{c.reach}</p>
+        <p className="text-[11px] text-white/60">{c.trust}</p>
+      </div>
+
+      {/* CTA + secondary links */}
+      <div className="w-full max-w-sm space-y-3">
         <Button
           onClick={handleScan}
-          className="w-full h-16 text-lg font-semibold rounded-2xl bg-white text-primary hover:bg-white/95 shadow-warm-lg leading-tight"
+          className="w-full h-14 text-base font-semibold rounded-2xl bg-white text-primary hover:bg-white/95 shadow-warm-lg leading-tight"
         >
           {c.cta}
         </Button>
