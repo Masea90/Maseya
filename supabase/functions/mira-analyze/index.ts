@@ -59,23 +59,67 @@ const humanizeDiets = (d: unknown): string => {
 const normIng = (s: string) =>
   s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
 
-// Aggressive normalization used ONLY for deduplication: strips isomer
-// prefixes, parenthesised content and separators, so 'D-Limonene' and
-// 'jarabe de glucosa-fructosa' collapse onto their family names.
-const dedupKey = (s: string) =>
-  normIng(s)
-    .replace(/\([^)]*\)/g, ' ')
-    .replace(/\b(d|l|dl|alpha|beta|gamma)[-\s]/g, ' ')
-    .replace(/\s+(and|y|de|del|la|el)\s+/g, ' ')
-    .replace(/[/\-,.]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+// Colour-index / E-number codes that carry no naming information.
+const COLOR_CODE_RE = /\b(?:c\.?\s?i\.?|ci)\s*\.?\s*\d{4,5}\b|\be\s?-?\s?\d{3}[a-z]?\b/gi;
+
+// Synonyms / translations (es, en, fr, de) collapsed onto one canonical name,
+// so a French or German spelling of an already decided ingredient is caught.
+const CANON_SYNONYMS: Array<[string[], string]> = [
+  [['linalool', 'linalol', 'linalol de synthese'], 'linalool'],
+  [['benzyl salicylate', 'salicylate de benzyle', 'salicilato de bencilo', 'benzylsalicylat'], 'benzyl salicylate'],
+  [['limonene', 'limoneno', 'd limonene', 'dl limonene'], 'limonene'],
+  [['geraniol', 'geraniol de synthese'], 'geraniol'],
+  [['citronellol', 'citronelol', 'citronnellol'], 'citronellol'],
+  [['coumarin', 'cumarina', 'coumarine', 'cumarin'], 'coumarin'],
+  [['benzyl alcohol', 'alcohol bencilico', 'alcool benzylique', 'benzylalkohol'], 'benzyl alcohol'],
+  [['citral'], 'citral'],
+  [['titanium dioxide', 'dioxido de titanio', 'dioxyde de titane', 'titandioxid', 'titanium dioxid'], 'titanium dioxide'],
+  [['iron oxides', 'iron oxide', 'oxidos de hierro', 'oxido de hierro', 'oxydes de fer', 'oxyde de fer', 'eisenoxid', 'eisenoxide'], 'iron oxides'],
+  [['mica'], 'mica'],
+  [['disodium inosinate', 'dinatriuminosinat', 'dinatrium inosinat', 'inosinato disodico', 'inosinate disodique'], 'disodium inosinate'],
+  [['sodium benzoate', 'benzoato sodico', 'benzoato de sodio', 'benzoate de sodium', 'natriumbenzoat'], 'sodium benzoate'],
+  [['potassium sorbate', 'sorbato potasico', 'sorbato de potasio', 'sorbate de potassium', 'kaliumsorbat'], 'potassium sorbate'],
+  [['caramel', 'caramelo', 'zuckerkulor', 'caramel color', 'colorante caramelo'], 'caramel'],
+  [['palm oil', 'aceite de palma', 'huile de palme', 'palmol', 'palmfett'], 'palm oil'],
+];
+const SYNONYM_INDEX = new Map<string, string>();
+for (const [variants, canonical] of CANON_SYNONYMS) {
+  for (const v of variants) SYNONYM_INDEX.set(v, canonical);
+}
+
+// Aggressive normalization used ONLY for deduplication: removes colour codes
+// (before OR after the name), isomer prefixes and separators, then resolves
+// translations to a canonical name.
+const dedupKey = (s: string) => {
+  const base = normIng(s);
+  const parenMatches = [...base.matchAll(/\(([^)]*)\)/g)].map((m) => m[1]);
+  const outside = base.replace(/\([^)]*\)/g, ' ');
+  const scrub = (t: string) =>
+    t
+      .replace(COLOR_CODE_RE, ' ')
+      .replace(/\b(d|l|dl|alpha|beta|gamma)[-\s]/g, ' ')
+      .replace(/\s+(and|y|de|del|la|el|of)\s+/g, ' ')
+      .replace(/[/\-,.]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  // "CI 77891 (TITANIUM DIOXIDE)": the code sits outside, the real name inside.
+  let key = scrub(outside);
+  if (!key) {
+    for (const p of parenMatches) {
+      const inner = scrub(p);
+      if (inner) { key = inner; break; }
+    }
+  }
+  if (!key) key = scrub(base);
+  return SYNONYM_INDEX.get(key) ?? key;
+};
 
 const sameFamily = (a: string, b: string) => {
   if (!a || !b) return false;
   if (a === b) return true;
   return (a.length > 3 && b.length > 3) && (a.includes(b) || b.includes(a));
 };
+
 
 
 const CANDIDATE_PROMPT = `Eres un revisor científico. Señala ÚNICAMENTE ingredientes con evidencia científica reconocida de riesgo (organismos oficiales, literatura revisada por pares) que NO estén ya en la lista de ingredientes marcados que se te pasa. Si no hay ninguno, devuelve un array vacío. No inventes: si dudas, no lo incluyas. Máximo 3 por producto.
