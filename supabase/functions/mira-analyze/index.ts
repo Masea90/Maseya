@@ -87,32 +87,51 @@ for (const [variants, canonical] of CANON_SYNONYMS) {
   for (const v of variants) SYNONYM_INDEX.set(v, canonical);
 }
 
+// Bare colour-index codes resolve to the pigment they designate, so
+// "CI 77492" and "CI 77491 (IRON OXIDES)" collapse onto the same key.
+const CI_CODE_MAP: Record<string, string> = {
+  "77491": "iron oxides",
+  "77492": "iron oxides",
+  "77499": "iron oxides",
+  "77891": "titanium dioxide",
+  "77019": "mica",
+  "77266": "carbon black",
+  "77007": "ultramarines",
+};
+
 // Aggressive normalization used ONLY for deduplication: removes colour codes
 // (before OR after the name), isomer prefixes and separators, then resolves
 // translations to a canonical name.
 const dedupKey = (s: string) => {
   const base = normIng(s);
+  const codes = [...base.matchAll(/\b(?:c\.?\s?i\.?|ci)\s*\.?\s*(\d{4,5})\b/gi)].map((m) => m[1]);
   const parenMatches = [...base.matchAll(/\(([^)]*)\)/g)].map((m) => m[1]);
   const outside = base.replace(/\([^)]*\)/g, ' ');
-  const scrub = (t: string) =>
-    t
+  const scrub = (t: string, keepConnectors = false) => {
+    let out = t
       .replace(COLOR_CODE_RE, ' ')
-      .replace(/\b(d|l|dl|alpha|beta|gamma)[-\s]/g, ' ')
-      .replace(/\s+(and|y|de|del|la|el|of)\s+/g, ' ')
-      .replace(/[/\-,.]+/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
+      .replace(/\b(d|l|dl|alpha|beta|gamma)[-\s]/g, ' ');
+    if (!keepConnectors) out = out.replace(/\s+(and|y|de|del|la|el|of)\s+/g, ' ');
+    return out.replace(/[/\-,.]+/g, ' ').replace(/\s+/g, ' ').trim();
+  };
+  const resolve = (t: string) =>
+    SYNONYM_INDEX.get(scrub(t, true)) ?? SYNONYM_INDEX.get(scrub(t)) ?? null;
+
   // "CI 77891 (TITANIUM DIOXIDE)": the code sits outside, the real name inside.
-  let key = scrub(outside);
-  if (!key) {
-    for (const p of parenMatches) {
-      const inner = scrub(p);
-      if (inner) { key = inner; break; }
-    }
+  const parts = [outside, ...parenMatches, base];
+  for (const p of parts) {
+    const hit = resolve(p);
+    if (hit) return hit;
   }
-  if (!key) key = scrub(base);
-  return SYNONYM_INDEX.get(key) ?? key;
+  let key = '';
+  for (const p of parts) {
+    key = scrub(p);
+    if (key) break;
+  }
+  if (!key && codes.length) key = CI_CODE_MAP[codes[0]] ?? `ci ${codes[0]}`;
+  return key;
 };
+
 
 const sameFamily = (a: string, b: string) => {
   if (!a || !b) return false;
