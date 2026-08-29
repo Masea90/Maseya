@@ -32,8 +32,11 @@ function welcomeHtml(): string {
   const c = WELCOME_COPY.es;
   return [
     '<div>',
-    `<h1>${esc(c.titleTop)} ${esc(c.titleAccent)}</h1>`,
-    p(c.subtitle),
+    `<h1>${esc(c.titleTop)}</h1>`,
+    p(`${c.subtitle}${c.subtitleAccent}`),
+    p(`${c.ex1Label} — ${c.ex1a} / ${c.ex1b}`),
+    p(`${c.ex2Label} — ${c.ex2a} / ${c.ex2b}`),
+    p(c.reach),
     '<p><a href="/scan">' + esc(c.cta) + '</a></p>',
     '<p><a href="/como-funciona">' + esc(c.howItWorks) + '</a> · <a href="/privacy">Política de privacidad</a></p>',
     '</div>',
