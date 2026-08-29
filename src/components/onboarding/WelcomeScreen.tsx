@@ -61,37 +61,38 @@ export const WelcomeScreen = () => {
         </p>
       </div>
 
-      {/* Visual proof block: two compact examples showing the personal-vs-general contrast */}
-      <div className="w-full max-w-sm rounded-2xl bg-white/10 backdrop-blur-sm px-3.5 py-3 space-y-2.5">
+      {/* Visual proof block: same product, two verdicts depending on who you are */}
+      <div className="w-full max-w-sm rounded-2xl bg-white/10 backdrop-blur-sm px-4 py-3.5 space-y-4 text-left">
         {/* Example 1 — food */}
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2">
-            <span className="text-base leading-none">🧀</span>
-            <span className="text-[13px] text-white/85 font-medium text-left">{c.ex1Label}</span>
+        <div className="space-y-1">
+          <p className="text-[13px] font-semibold text-white">
+            <span className="mr-1.5" aria-hidden>🧀</span>
+            {c.ex1Label}
+          </p>
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="text-[11.5px] text-white/70">{c.ex1aCond}</span>
+            <span className="text-base font-bold text-white/95 tabular-nums">{c.ex1aVerdict}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-semibold text-white">
-              {c.ex1a}
-            </span>
-            <span className="inline-flex items-center rounded-full bg-[hsl(var(--score-bad)/0.9)] px-2.5 py-1 text-[11px] font-semibold text-white">
-              {c.ex1b}
-            </span>
+          <div className="h-px bg-white/15" aria-hidden />
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="text-[11.5px] text-white/70">{c.ex1bCond}</span>
+            <span className="text-base font-bold text-[hsl(var(--score-bad))]">{c.ex1bVerdict}</span>
           </div>
         </div>
-        <div className="h-px bg-white/15" />
         {/* Example 2 — cosmetic */}
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2">
-            <span className="text-base leading-none">🧴</span>
-            <span className="text-[13px] text-white/85 font-medium text-left">{c.ex2Label}</span>
+        <div className="space-y-1">
+          <p className="text-[13px] font-semibold text-white">
+            <span className="mr-1.5" aria-hidden>🧴</span>
+            {c.ex2Label}
+          </p>
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="text-[11.5px] text-white/70">{c.ex2aCond}</span>
+            <span className="text-base font-bold text-white/95 tabular-nums">{c.ex2aVerdict}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-semibold text-white">
-              {c.ex2a}
-            </span>
-            <span className="inline-flex items-center rounded-full bg-[hsl(var(--score-fair)/0.9)] px-2.5 py-1 text-[11px] font-semibold text-white">
-              {c.ex2b}
-            </span>
+          <div className="h-px bg-white/15" aria-hidden />
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="text-[11.5px] text-white/70">{c.ex2bCond}</span>
+            <span className="text-base font-bold text-[hsl(var(--score-fair))]">{c.ex2bVerdict}</span>
           </div>
         </div>
       </div>
