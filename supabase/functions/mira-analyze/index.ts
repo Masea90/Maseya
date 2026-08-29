@@ -163,18 +163,21 @@ async function collectCandidates(opts: {
     { auth: { persistSession: false } },
   );
 
-  // Load every already-decided candidate of this category once: any variant
-  // of something approved or rejected must never come back.
+  // Load every existing candidate of this category once: any variant of
+  // something approved or rejected must never come back, and pending rows are
+  // matched by canonical key so translations/colour codes don't duplicate.
   const { data: decided } = await admin
     .from("ingredient_candidates")
-    .select("ingredient_name, status")
-    .eq("category", category)
-    .in("status", ["approved", "rejected"]);
-  const decidedKeys = (decided ?? []).map((d) => ({
+    .select("id, ingredient_name, status, occurrences, sample_barcodes")
+    .eq("category", category);
+  const allRows = (decided ?? []).map((d) => ({
+    row: d,
+    name: String(d.ingredient_name ?? ""),
     key: dedupKey(String(d.ingredient_name ?? "")),
     status: d.status as string,
   }));
-  const knownKeys = [...known].map(dedupKey);
+  const decidedKeys = allRows.filter((r) => r.status === "approved" || r.status === "rejected");
+  const knownKeys = [...known].map((k) => ({ key: dedupKey(k), name: k }));
 
   for (const c of list) {
     const name = normIng(String(c?.name ?? ""));
@@ -185,15 +188,33 @@ async function collectCandidates(opts: {
     if (/^e-?\s?\d{3}/i.test(name)) continue;
     if ([...known].some((k) => k.length > 3 && (name.includes(k) || k.includes(name)))) continue;
     const key = dedupKey(name);
-    if (knownKeys.some((k) => sameFamily(key, k))) {
-      console.log(`[candidates] filtered "${name}": already in our risk lists (family match)`);
+    const knownHit = knownKeys.find((k) => sameFamily(key, k.key));
+    if (knownHit) {
+      console.log(`[candidates] filtered "${name}" (key "${key}"): already in our risk lists → "${knownHit.name}"`);
       continue;
     }
     const decidedHit = decidedKeys.find((d) => sameFamily(key, d.key));
     if (decidedHit) {
-      console.log(`[candidates] filtered "${name}": variant of already ${decidedHit.status} candidate`);
+      console.log(`[candidates] filtered "${name}" (key "${key}"): variant of already ${decidedHit.status} candidate "${decidedHit.name}"`);
       continue;
     }
+
+    const pendingHit = allRows.find((r) => r.status === "pending" && sameFamily(key, r.key));
+    if (pendingHit) {
+      console.log(`[candidates] merged "${name}" (key "${key}") into pending candidate "${pendingHit.name}"`);
+      const samples: string[] = Array.isArray(pendingHit.row.sample_barcodes) ? pendingHit.row.sample_barcodes : [];
+      const next = barcode && !samples.includes(barcode) ? [...samples, barcode].slice(0, 5) : samples;
+      await admin
+        .from("ingredient_candidates")
+        .update({
+          occurrences: (pendingHit.row.occurrences ?? 1) + 1,
+          last_seen_at: new Date().toISOString(),
+          sample_barcodes: next,
+        })
+        .eq("id", pendingHit.row.id);
+      continue;
+    }
+
 
     const { data: existing } = await admin
       .from("ingredient_candidates")
