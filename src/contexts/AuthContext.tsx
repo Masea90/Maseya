@@ -171,6 +171,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = async () => {
+    // Purga de datos derivados del perfil autenticado (RGPD): alergias/condiciones
+    // de piel copiadas a localStorage, consentimiento de datos de salud sincronizado
+    // desde la DB y cachés de alternativas calculadas con ese perfil.
+    // No borra: idioma elegido, 'maseya_sid' (analítica anónima), 'maseya_scan_tip_seen',
+    // preferencias de instalación.
+    try {
+      localStorage.removeItem('maseya_onboarding');
+      localStorage.removeItem('maseya_onboarding_skipped');
+      localStorage.removeItem('maseya_consent');
+    } catch (e) {
+      console.error('[auth] failed to clear profile keys on logout', e);
+    }
+    try {
+      const altsKeys: string[] = [];
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const k = sessionStorage.key(i);
+        if (k && k.startsWith('maseya_alts_')) altsKeys.push(k);
+      }
+      altsKeys.forEach((k) => sessionStorage.removeItem(k));
+    } catch (e) {
+      console.error('[auth] failed to clear alternatives cache on logout', e);
+    }
     await supabase.auth.signOut({ scope: 'local' });
   };
 
