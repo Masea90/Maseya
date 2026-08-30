@@ -1568,6 +1568,108 @@ export function ketoFindings(p: ProductData, language?: string): DietFinding[] {
   return out;
 }
 
+/**
+ * Nutrition goals we can evaluate with objective product data.
+ * Legacy values stored in the DB ('more-energy', 'healthy-skin') are ignored
+ * on purpose: there is no defensible criterion to score them.
+ */
+export const SUPPORTED_NUTRITION_GOALS = ['gain-muscle', 'lose-weight'] as const;
+
+const GOAL_TEXT = {
+  proteinHigh: {
+    es: (x: string) => `Alto en proteína (${x} g/100 g): buen aporte para tu objetivo de ganar músculo`,
+    en: (x: string) => `High in protein (${x} g/100 g): a good contribution to your muscle-gain goal`,
+    fr: (x: string) => `Riche en protéines (${x} g/100 g) : bon apport pour ton objectif de prise de muscle`,
+  },
+  proteinGood: {
+    es: (x: string) => `Buena fuente de proteína (${x} g/100 g)`,
+    en: (x: string) => `Good source of protein (${x} g/100 g)`,
+    fr: (x: string) => `Bonne source de protéines (${x} g/100 g)`,
+  },
+  proteinMid: {
+    es: (x: string) => `Aporte moderado de proteína (${x} g/100 g)`,
+    en: (x: string) => `Moderate protein content (${x} g/100 g)`,
+    fr: (x: string) => `Apport modéré en protéines (${x} g/100 g)`,
+  },
+  proteinLow: {
+    es: (x: string) => `Aporte bajo de proteína (${x} g/100 g) para tu objetivo`,
+    en: (x: string) => `Low protein content (${x} g/100 g) for your goal`,
+    fr: (x: string) => `Faible apport en protéines (${x} g/100 g) pour ton objectif`,
+  },
+  proteinUnknown: {
+    es: 'Sin datos de proteína: no podemos evaluar este objetivo',
+    en: 'No protein data: we cannot assess this goal',
+    fr: 'Pas de données sur les protéines : impossible d’évaluer cet objectif',
+  },
+  satiety: {
+    es: (x: string) => `Rico en fibra/proteína (${x} g/100 g): ayuda a la saciedad`,
+    en: (x: string) => `Rich in fibre/protein (${x} g/100 g): helps with satiety`,
+    fr: (x: string) => `Riche en fibres/protéines (${x} g/100 g) : favorise la satiété`,
+  },
+  ultraProcessed: {
+    es: 'Producto ultraprocesado: suelen saciar menos que los alimentos poco procesados',
+    en: 'Ultra-processed product: these tend to be less satiating than minimally processed foods',
+    fr: 'Produit ultra-transformé : ils rassasient généralement moins que les aliments peu transformés',
+  },
+  energyDense: {
+    es: (x: string) => `Densidad energética alta (${x} kcal/100 g)`,
+    en: (x: string) => `High energy density (${x} kcal/100 g)`,
+    fr: (x: string) => `Densité énergétique élevée (${x} kcal/100 g)`,
+  },
+} as const;
+
+/**
+ * Nutrition-goal findings. These NEVER penalise: they only add a small bonus
+ * or inform. Quality and satiety only — no calorie restriction, no judgement.
+ */
+export function nutritionGoalFindings(
+  p: ProductData,
+  goals: string[],
+  language?: string,
+): DietFinding[] {
+  if (p.category !== 'food') return [];
+  const g = (goals || []).map(x => String(x).toLowerCase());
+  const lang = pregLang(language);
+  const rawObj = (p.raw || {}) as Record<string, unknown>;
+  const nutri = (rawObj.nutriments && typeof rawObj.nutriments === 'object')
+    ? rawObj.nutriments as Record<string, unknown>
+    : {};
+  const proteins = readNumber(nutri, 'proteins_100g');
+  const out: DietFinding[] = [];
+
+  if (g.includes('gain-muscle')) {
+    if (proteins == null) {
+      out.push({ id: 'goal-protein-unknown', level: 'info', delta: 0, text: GOAL_TEXT.proteinUnknown[lang] });
+    } else {
+      const x = proteins.toFixed(1);
+      if (proteins >= 20) out.push({ id: 'goal-protein-high', level: 'good', delta: 8, text: GOAL_TEXT.proteinHigh[lang](x) });
+      else if (proteins >= 10) out.push({ id: 'goal-protein-good', level: 'good', delta: 4, text: GOAL_TEXT.proteinGood[lang](x) });
+      else if (proteins >= 5) out.push({ id: 'goal-protein-mid', level: 'info', delta: 0, text: GOAL_TEXT.proteinMid[lang](x) });
+      else out.push({ id: 'goal-protein-low', level: 'info', delta: 0, text: GOAL_TEXT.proteinLow[lang](x) });
+    }
+  }
+
+  if (g.includes('lose-weight')) {
+    const fiber = readNumber(nutri, 'fiber_100g') ?? readNumber(nutri, 'fibre_100g');
+    if ((fiber != null && fiber >= 6) || (proteins != null && proteins >= 15)) {
+      const value = (fiber != null && fiber >= 6) ? fiber : (proteins as number);
+      out.push({ id: 'goal-satiety', level: 'good', delta: 5, text: GOAL_TEXT.satiety[lang](value.toFixed(1)) });
+    }
+    const nova = readNumber(nutri, 'nova_group') ?? readNumber(rawObj, 'nova_group');
+    if (nova === 4) {
+      out.push({ id: 'goal-ultraprocessed', level: 'info', delta: 0, text: GOAL_TEXT.ultraProcessed[lang] });
+    }
+    const kcal = readNumber(nutri, 'energy-kcal_100g');
+    if (kcal != null && kcal > 400) {
+      out.push({ id: 'goal-energy-dense', level: 'info', delta: 0, text: GOAL_TEXT.energyDense[lang](kcal.toFixed(0)) });
+    }
+  }
+
+  return out;
+}
+
+
+
 
 /**
  * Detect dietary supplements — they must NOT be scored with food criteria
