@@ -354,7 +354,8 @@ Ingredientes: ${product.ingredients_text || ""}
 Mi perfil alimentario:
 - Alergias: ${(profile?.allergies || []).join(", ") || "—"}
 - Dieta: ${humanizeDiets(profile?.diet)}
-- Objetivos: ${(profile?.nutrition_goals || []).join(", ") || "—"}
+- Objetivos: ${(profile?.nutrition_goals || []).filter((g: string) => g === "gain-muscle" || g === "lose-weight").join(", ") || "—"}
+(Si tengo el objetivo "gain-muscle" o "lose-weight" y arriba hay un factor de proteína, fibra/saciedad, ultraprocesado o densidad energética, menciónalo de forma útil, informativa y sin juicios de valor: nada de "engorda", nada de calorías diarias ni culpabilizar. Mantén el límite de 3 frases.)
 - Embarazo/lactancia: ${profile?.pregnancy_or_lactation ? "sí" : "no"}${profile?.pregnancy_or_lactation ? "\n(Si el producto activa alguna alerta o factor de embarazo de los indicados arriba, menciónalo en tu PRIMERA frase, citando la recomendación de AESAN y sin alarmismo.)" : ""}
 
 
