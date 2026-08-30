@@ -2462,6 +2462,13 @@ export function personalAlerts(
       if (hits.length === 0) alerts.push({ level: 'good', text: 'Apto para piel grasa' });
       else hits.forEach(h => alerts.push({ level: 'warn', text: h }));
     }
+
+    // Hair layer — additive to the skin rules above.
+    for (const f of hairFindings(p, profile as PersonalProfileLike)) {
+      if (f.delta < 0) alerts.push({ level: 'warn', text: f.text });
+      else if (f.delta > 0) alerts.push({ level: 'good', text: f.text });
+      else alerts.push({ level: 'warn', text: f.text });
+    }
   }
 
   // Food allergy rules — food only.
