@@ -1131,7 +1131,10 @@ export interface PersonalProfileLike {
   diet?: string | string[];
   nutrition_goals?: string[];
   pregnancy_or_lactation?: boolean;
+  /** UI language for personal factors/alerts. Defaults to Spanish. */
+  language?: string;
 }
+
 
 const ANIMAL_KEYWORDS = ['milk', 'lactose', 'whey', 'casein', 'cream', 'egg', 'honey', 'gelatin', 'meat', 'beef', 'pork', 'chicken', 'fish', 'lait', 'leche', 'huevo', 'miel', 'gelatina', 'carne'];
 const SUGAR_KEYWORDS = [
