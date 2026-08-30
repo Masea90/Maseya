@@ -1191,6 +1191,12 @@ const PREG_AESAN_NOTE: Record<PregLang, string> = {
   fr: 'Recommandation de l’AESAN. Parles-en à ta sage-femme ou à ton médecin.',
 };
 
+const PREG_NOT_SUITABLE: Record<PregLang, string> = {
+  es: 'No apto en el embarazo',
+  en: 'Not suitable during pregnancy',
+  fr: 'Non adapté pendant la grossesse',
+};
+
 const PREG_DETECTED: Record<PregLang, (t: string) => string> = {
   es: t => ` (detectado: "${t}")`,
   en: t => ` (detected: "${t}")`,
