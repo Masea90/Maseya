@@ -11,6 +11,9 @@ export interface ActiveProfile {
   diet: string[];
   nutrition_goals: string[];
   pregnancy_or_lactation: boolean;
+  hair_type: string;
+  hair_condition: string;
+  hair_concerns: string[];
   /** UI language, used to localize personal factors/alerts. */
   language?: string;
 }
@@ -37,6 +40,9 @@ export function buildActiveProfile(
     diet: arr(src.diet),
     nutrition_goals: arr(src.nutrition_goals ?? src.goals),
     pregnancy_or_lactation: !!src.pregnancy_or_lactation,
+    hair_type: src.hair_type ? String(src.hair_type) : '',
+    hair_condition: src.hair_condition ? String(src.hair_condition) : '',
+    hair_concerns: arr(src.hair_concerns),
     language,
   };
 }
