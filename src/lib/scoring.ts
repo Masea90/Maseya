@@ -2095,7 +2095,14 @@ export function calculatePersonalScoreBreakdown(
       }
     }
 
+    // Nutrition goals — bonuses and information only, never penalties.
+    for (const f of nutritionGoalFindings(p, profile.nutrition_goals || [], profile.language)) {
+      if (f.delta > 0) addPos(f.text, f.delta);
+      else factors.push({ label: f.text, delta: null, tone: 'neutral' });
+    }
+
   }
+
 
   // Cosmetic-only pregnancy risk list (retinoids, salicylates, etc.).
   if (isPregnant && isCosmetic) {
