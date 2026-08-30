@@ -1772,6 +1772,16 @@ export function calculatePersonalScoreBreakdown(
     if (t) addNeg(`Riesgo en embarazo/lactancia: ${t}`, -40);
   }
 
+  // Pregnancy / lactation — food layer (AESAN).
+  if (isPregnant && isFood) {
+    for (const f of pregnancyFoodFindings(p, profile.language)) {
+      if (f.level === 'A') addHardFail(`No apto en el embarazo — ${f.text}`);
+      else if (f.level === 'B') addNeg(f.text, -40);
+      else factors.push({ label: f.text, delta: null, tone: 'neutral' });
+    }
+  }
+
+
   const beneficial = ['aloe', 'panthenol', 'niacinamide', 'hyaluronic', 'glycerin', 'oat', 'avena', 'centella'];
   if (isCosmetic && skin.length > 0) {
     const t = firstTerm(combined, beneficial);
