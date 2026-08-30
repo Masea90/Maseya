@@ -1180,6 +1180,8 @@ interface PregRule {
   level: PregnancyLevel;
   keywords: string[];
   tags?: string[];
+  excludes?: string[];
+
   text: Record<PregLang, string>;
 }
 
