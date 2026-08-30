@@ -2360,21 +2360,29 @@ export function personalAlerts(
           text: 'Sin azúcares añadidos detectados: compatible con tu dieta sin azúcar.',
         });
       }
-    } else if (diets.includes('keto')) {
-      const combined = `${rawText} ${rawTagsText}`;
-      const sugarTerm = firstTerm(combined, SUGAR_KEYWORDS);
-      if (sugarTerm) {
+    }
+    // Keto alerts — evaluated always when selected (independent of no-sugar).
+    if (diets.includes('keto')) {
+      const noSugarAlso = diets.includes('no-sugar');
+      for (const f of ketoFindings(p, profile?.language)) {
+        // Avoid repeating the sugar message when no-sugar already covered it.
+        if (f.id === 'keto-sugar' && noSugarAlso) continue;
         alerts.push({
-          level: 'danger',
-          text: `Contiene azúcar añadido — no compatible con tu dieta keto (detectado: "${sugarTerm}").`,
-        });
-      } else {
-        alerts.push({
-          level: 'good',
-          text: 'Sin azúcares añadidos detectados: compatible con tu dieta keto.',
+          level: f.level === 'danger' ? 'danger' : f.level === 'good' ? 'good' : 'warn',
+          text: `${f.text}.`,
         });
       }
     }
+    // Vegetarian alerts — vegan (stricter) keeps its own behavior.
+    if (diets.includes('vegetarian') && !diets.includes('vegan')) {
+      for (const f of vegetarianFindings(p, profile?.language)) {
+        alerts.push({
+          level: f.level === 'danger' ? 'danger' : f.level === 'good' ? 'good' : 'warn',
+          text: `${f.text}.`,
+        });
+      }
+    }
+
   }
 
   return alerts;
