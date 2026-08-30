@@ -2064,6 +2064,17 @@ export function personalAlerts(
       });
     }
 
+    // Pregnancy/lactation × AESAN food rules
+    if (profile?.pregnancy_or_lactation) {
+      for (const f of pregnancyFoodFindings(p, profile?.language)) {
+        alerts.push({
+          level: f.level === 'A' ? 'danger' : f.level === 'B' ? 'warn' : 'good',
+          text: f.text,
+        });
+      }
+    }
+
+
     if (allergies.some(a => a !== 'none') && (isUntrustedSource || !hasStructured)) {
       alerts.push({
         level: 'warn',
