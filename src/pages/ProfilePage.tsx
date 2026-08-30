@@ -56,8 +56,11 @@ const OPTIONS = {
   allergies_label: { gluten: 'Gluten', lactose: 'Lactosa', nuts: 'Frutos secos', fish: 'Pescado/marisco', none: '✓ No tengo alergias ni intolerancias' } as Record<string, string>,
   diet: ['omnivore', 'vegetarian', 'vegan', 'keto', 'no-sugar', 'halal'],
   diet_label: { omnivore: 'Omnívora', vegetarian: 'Vegetariana', vegan: 'Vegana', keto: 'Keto', 'no-sugar': 'Sin azúcar', halal: 'Halal' } as Record<string, string>,
-  nutrition_goals: ['lose-weight', 'gain-muscle', 'more-energy', 'healthy-skin'],
-  nutrition_goals_label: { 'lose-weight': 'Perder peso', 'gain-muscle': 'Ganar músculo', 'more-energy': 'Más energía', 'healthy-skin': 'Piel más sana' } as Record<string, string>,
+  // Only goals we can evaluate with objective product data. Legacy values
+  // ('more-energy', 'healthy-skin') stay in the DB but are ignored everywhere.
+  nutrition_goals: ['lose-weight', 'gain-muscle'],
+  nutrition_goals_label: { 'lose-weight': 'Perder peso', 'gain-muscle': 'Ganar músculo' } as Record<string, string>,
+
 };
 
 const Chip = ({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) => (
@@ -100,7 +103,9 @@ const computePct = (s: HealthState): number => {
     if (s.hair_concerns.length) filled++;
   }
   if (s.diet.length) filled++;
-  if (s.nutrition_goals.length) filled++;
+  // Legacy goals removed from the UI don't count toward completeness.
+  if (s.nutrition_goals.some(g => OPTIONS.nutrition_goals.includes(g))) filled++;
+
   return Math.round((filled / total) * 100);
 };
 
