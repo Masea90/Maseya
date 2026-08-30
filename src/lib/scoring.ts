@@ -1327,7 +1327,7 @@ const PREGNANCY_FOOD_RULES: PregRule[] = [
   {
     id: 'caffeine',
     level: 'C',
-    keywords: ['bebida energética', 'bebida energetica', 'energy drink', 'boisson énergisante', 'boisson energisante', 'taurina', 'taurine'],
+    keywords: ['bebida energética', 'bebida energetica', 'energy drink', 'boisson énergisante', 'boisson energisante', 'taurina', 'taurine', 'café', 'cafe', 'coffee', 'té negro', 'te negro', 'té verde', 'te verde', 'tea', 'cafeína', 'cafeina', 'caffeine'],
     tags: ['en:energy-drinks'],
     text: {
       es: 'Bebida energética o con cafeína: se recomienda limitar la cafeína durante el embarazo',
@@ -1607,6 +1607,8 @@ export function calculatePersonalScoreBreakdown(
   const factors: ScoreFactor[] = [];
   let score = baseScore;
   const hardFailReasons: string[] = [];
+  // Total penalty coming from pregnancy level-B warnings (floored at 25 below).
+  let pregLevelBPenalty = 0;
   const isCosmetic = p.category === 'cosmetic';
   const isFood = p.category === 'food';
   const rawObj = (p.raw || {}) as Record<string, unknown>;
@@ -1773,7 +1775,8 @@ export function calculatePersonalScoreBreakdown(
     }
   }
 
-  if (isPregnant) {
+  // Cosmetic-only pregnancy risk list (retinoids, salicylates, etc.).
+  if (isPregnant && isCosmetic) {
     const t = firstTerm(combined, PREGNANCY_RISKY);
     if (t) addNeg(`Riesgo en embarazo/lactancia: ${t}`, -40);
   }
@@ -1782,7 +1785,7 @@ export function calculatePersonalScoreBreakdown(
   if (isPregnant && isFood) {
     for (const f of pregnancyFoodFindings(p, profile.language)) {
       if (f.level === 'A') addHardFail(`${PREG_NOT_SUITABLE[pregLang(profile.language)]} — ${f.text}`);
-      else if (f.level === 'B') addNeg(f.text, -40);
+      else if (f.level === 'B') { addNeg(f.text, -40); pregLevelBPenalty += 40; }
       else factors.push({ label: f.text, delta: null, tone: 'neutral' });
     }
   }
@@ -1802,8 +1805,15 @@ export function calculatePersonalScoreBreakdown(
   if (hardFailReasons.length > 0) {
     return { score: 5, factors };
   }
+  // Pregnancy level-B warnings are cautionary, not disqualifying: they may not
+  // drag the personal score below 25 on their own.
+  let effective = score;
+  if (pregLevelBPenalty > 0) {
+    const withoutB = clamp100(score + pregLevelBPenalty);
+    effective = Math.max(score, Math.min(25, withoutB));
+  }
   // The personal layer may only warn, never improve: cap at the general score.
-  const capped = clamp100(score);
+  const capped = clamp100(effective);
   if (capped > baseScore) {
     factors.push({
       label: 'Tu perfil no penaliza este producto: coincide con la nota general',
