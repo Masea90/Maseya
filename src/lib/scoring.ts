@@ -1355,7 +1355,9 @@ export function pregnancyFoodFindings(p: ProductData, language?: string): Pregna
 
   const out: PregnancyFinding[] = [];
   for (const rule of PREGNANCY_FOOD_RULES) {
+    if (rule.excludes && firstTerm(haystack, rule.excludes)) continue;
     const term = firstTerm(haystack, rule.keywords);
+
     const tagHit = rule.tags ? rule.tags.some(t => catsTags.includes(t)) : false;
     if (!term && !tagHit) continue;
     const detail = term ? PREG_DETECTED[lang](term) : '';
