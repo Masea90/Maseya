@@ -681,7 +681,7 @@ const ResultPage = () => {
   // The personal layer is a registered-user feature. Anonymous users who already
   // had a local profile from before this gate keep working exactly as before.
   const personalAllowed = !!currentUser?.id || (Array.isArray((profile as { skin?: unknown } | null)?.skin) && ((profile as { skin?: unknown[] }).skin?.length ?? 0) > 0);
-  const activeProfile = buildActiveProfile(healthProfile, profile as unknown as Record<string, unknown>);
+  const activeProfile = buildActiveProfile(healthProfile, profile as unknown as Record<string, unknown>, user.language);
   const alerts = healthConsent && personalAllowed ? personalAlerts(product, activeProfile) : [];
   const personalBreakdown = healthConsent && personalAllowed && !nonScorable
     ? calculatePersonalScoreBreakdown(product, flagged, activeProfile, score)
