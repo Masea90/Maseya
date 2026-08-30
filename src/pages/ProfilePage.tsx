@@ -103,7 +103,9 @@ const computePct = (s: HealthState): number => {
     if (s.hair_concerns.length) filled++;
   }
   if (s.diet.length) filled++;
-  if (s.nutrition_goals.length) filled++;
+  // Legacy goals removed from the UI don't count toward completeness.
+  if (s.nutrition_goals.some(g => OPTIONS.nutrition_goals.includes(g))) filled++;
+
   return Math.round((filled / total) * 100);
 };
 
