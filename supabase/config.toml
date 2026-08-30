@@ -1,31 +1,25 @@
 project_id = "tjimqvdnzjivpgkkyylo"
 
-[functions.chat]
-verify_jwt = false
-
-[functions.translate]
-verify_jwt = false
-
-[functions.routine-reminders]
-verify_jwt = false
-
-[functions.moderate-post]
-verify_jwt = false
-
-[functions.send-test-push]
-verify_jwt = false
-
-[functions.extract-ingredients]
-verify_jwt = false
-
-[functions.mira-analyze]
-verify_jwt = false
-
-[functions.enrich-products]
-verify_jwt = false
-
-[functions.import-off-products]
-verify_jwt = false
-
-[functions.mcp]
-verify_jwt = false
+[functions]
+  [functions.auth-email-hook]
+    verify_jwt = false
+  [functions.chat]
+    verify_jwt = false
+  [functions.enrich-products]
+    verify_jwt = false
+  [functions.extract-ingredients]
+    verify_jwt = false
+  [functions.import-off-products]
+    verify_jwt = false
+  [functions.mcp]
+    verify_jwt = false
+  [functions.mira-analyze]
+    verify_jwt = false
+  [functions.moderate-post]
+    verify_jwt = false
+  [functions.routine-reminders]
+    verify_jwt = false
+  [functions.send-test-push]
+    verify_jwt = false
+  [functions.translate]
+    verify_jwt = false
