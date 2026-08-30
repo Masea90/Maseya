@@ -1376,6 +1376,197 @@ export function pregnancyFoodFindings(p: ProductData, language?: string): Pregna
   return out;
 }
 
+// ===========================================================================
+// Vegetarian diet layer (own rules, more permissive than vegan: dairy, eggs
+// and honey are fine). Shared by the score breakdown and personalAlerts so
+// they can never disagree.
+// ===========================================================================
+
+export type DietFindingLevel = 'danger' | 'warn' | 'info' | 'good';
+
+export interface DietFinding {
+  id: string;
+  level: DietFindingLevel;
+  /** Penalty (negative) / bonus (positive) / 0 for informational factors. */
+  delta: number;
+  text: string;
+}
+
+const VEG_MEAT_FISH_KEYWORDS = [
+  'carne', 'pollo', 'cerdo', 'ternera', 'buey', 'cordero', 'jamón', 'jamon',
+  'bacon', 'panceta', 'chorizo', 'salchichón', 'salchichon', 'salami',
+  'gelatina', 'manteca de cerdo', 'sebo', 'pescado', 'atún', 'atun', 'salmón',
+  'salmon', 'anchoa', 'anchoas', 'bacalao', 'merluza', 'gambas', 'marisco',
+  'calamar', 'pulpo', 'surimi', 'meat', 'chicken', 'pork', 'beef', 'fish',
+  'tuna', 'gelatin', 'lard', 'poulet', 'viande', 'poisson', 'gélatine',
+  'gelatine',
+];
+
+// Plant-origin or "free from" mentions that must not trigger the hard fail.
+const VEG_MEAT_EXCLUDES = [
+  'gelatina vegetal', 'gelificante vegetal', 'sin carne', 'sin gelatina',
+  'vegetable gelatin', 'gelatina de origen vegetal',
+];
+
+const VEG_DOUBTFUL_KEYWORDS = [
+  'cuajo animal', 'cuajo', 'rennet', 'présure', 'presure', 'e120', 'e-120',
+  'cochinilla', 'carmín', 'carmin', 'carmine', 'e441', 'e-441', 'e542',
+  'e-542', 'e904', 'e-904', 'goma laca', 'shellac', 'pepsina', 'pepsin',
+  'aceite de pescado', 'fish oil', 'omega-3 de pescado',
+];
+
+const VEG_DOUBTFUL_EXCLUDES = [
+  'cuajo vegetal', 'microbial rennet', 'cuajo microbiano', 'présure microbienne',
+  'presure microbienne', 'vegetable rennet',
+];
+
+const VEG_CERT_LABELS = ['en:vegetarian', 'en:vegan', 'en:v-label'];
+
+const VEG_TEXT = {
+  hardTag: {
+    es: 'No apto para dieta vegetariana: la ficha del producto lo clasifica como no vegetariano',
+    en: 'Not suitable for a vegetarian diet: the product data classifies it as non-vegetarian',
+    fr: 'Non adapté à un régime végétarien : la fiche produit le classe comme non végétarien',
+  },
+  hardIng: {
+    es: (t: string) => `No apto para dieta vegetariana: contiene carne o pescado (detectado: "${t}")`,
+    en: (t: string) => `Not suitable for a vegetarian diet: contains meat or fish (detected: "${t}")`,
+    fr: (t: string) => `Non adapté à un régime végétarien : contient de la viande ou du poisson (détecté : « ${t} »)`,
+  },
+  doubtful: {
+    es: (t: string) => `Ingrediente de origen animal dudoso para tu dieta vegetariana (detectado: "${t}")`,
+    en: (t: string) => `Ingredient of doubtful animal origin for your vegetarian diet (detected: "${t}")`,
+    fr: (t: string) => `Ingrédient d’origine animale douteuse pour ton régime végétarien (détecté : « ${t} »)`,
+  },
+  bonus: {
+    es: 'Apto para dieta vegetariana según la información disponible',
+    en: 'Suitable for a vegetarian diet according to the available information',
+    fr: 'Adapté à un régime végétarien selon les informations disponibles',
+  },
+  unknown: {
+    es: 'No podemos confirmar que sea apto para dieta vegetariana con la información disponible',
+    en: 'We cannot confirm this is suitable for a vegetarian diet with the available information',
+    fr: 'Nous ne pouvons pas confirmer que ce produit convient à un régime végétarien avec les informations disponibles',
+  },
+} as const;
+
+/** Evaluate the vegetarian diet rules against a food product. */
+export function vegetarianFindings(p: ProductData, language?: string): DietFinding[] {
+  if (p.category !== 'food') return [];
+  const lang = pregLang(language);
+  const analysis = (p.ingredients_analysis_tags || []).map(t => String(t).toLowerCase());
+  const labels = (p.labels_tags || []).map(t => String(t).toLowerCase());
+  const haystack = `${p.name || ''} ${p.brand || ''} ${p.ingredients_text || ''} ${tagsAsText(p)}`;
+  const certified = VEG_CERT_LABELS.some(l => labels.includes(l));
+  const out: DietFinding[] = [];
+
+  if (analysis.includes('en:non-vegetarian')) {
+    out.push({ id: 'veg-non-vegetarian-tag', level: 'danger', delta: 0, text: VEG_TEXT.hardTag[lang] });
+    return out;
+  }
+
+  const meat = firstTerm(haystack, VEG_MEAT_EXCLUDES) ? null : firstTerm(haystack, VEG_MEAT_FISH_KEYWORDS);
+  if (meat) {
+    out.push({ id: 'veg-meat', level: 'danger', delta: 0, text: VEG_TEXT.hardIng[lang](meat) });
+    return out;
+  }
+
+  // Certification wins over the doubtful-ingredient warning.
+  if (!certified) {
+    const doubt = firstTerm(haystack, VEG_DOUBTFUL_EXCLUDES) ? null : firstTerm(haystack, VEG_DOUBTFUL_KEYWORDS);
+    if (doubt) {
+      out.push({ id: 'veg-doubtful', level: 'warn', delta: -25, text: VEG_TEXT.doubtful[lang](doubt) });
+      return out;
+    }
+  }
+
+  if (certified || analysis.includes('en:vegetarian') || analysis.includes('en:vegan')) {
+    out.push({ id: 'veg-ok', level: 'good', delta: 5, text: VEG_TEXT.bonus[lang] });
+    return out;
+  }
+
+  if (analysis.includes('en:maybe-vegetarian') || analysis.includes('en:vegetarian-status-unknown')) {
+    out.push({ id: 'veg-unknown', level: 'info', delta: 0, text: VEG_TEXT.unknown[lang] });
+  }
+  return out;
+}
+
+// ===========================================================================
+// Keto diet layer — the real criterion is total carbohydrates per 100 g.
+// ===========================================================================
+
+const KETO_TEXT = {
+  high: {
+    es: (x: string) => `Alto en carbohidratos (${x} g/100 g): no encaja en una dieta cetogénica`,
+    en: (x: string) => `High in carbohydrates (${x} g/100 g): does not fit a ketogenic diet`,
+    fr: (x: string) => `Riche en glucides (${x} g/100 g) : ne convient pas à un régime cétogène`,
+  },
+  mid: {
+    es: (x: string) => `Carbohidratos moderados-altos (${x} g/100 g): difícil de encajar en una dieta cetogénica`,
+    en: (x: string) => `Moderately high carbohydrates (${x} g/100 g): hard to fit into a ketogenic diet`,
+    fr: (x: string) => `Glucides assez élevés (${x} g/100 g) : difficile à intégrer dans un régime cétogène`,
+  },
+  low: {
+    es: (x: string) => `Carbohidratos algo por encima de lo ideal (${x} g/100 g) para una dieta cetogénica`,
+    en: (x: string) => `Carbohydrates slightly above ideal (${x} g/100 g) for a ketogenic diet`,
+    fr: (x: string) => `Glucides un peu au-dessus de l’idéal (${x} g/100 g) pour un régime cétogène`,
+  },
+  ok: {
+    es: (x: string) => `Bajo en carbohidratos (${x} g/100 g): encaja en dieta cetogénica`,
+    en: (x: string) => `Low in carbohydrates (${x} g/100 g): fits a ketogenic diet`,
+    fr: (x: string) => `Pauvre en glucides (${x} g/100 g) : convient à un régime cétogène`,
+  },
+  unknown: {
+    es: 'Sin datos de carbohidratos: no podemos evaluar si encaja en tu dieta cetogénica',
+    en: 'No carbohydrate data: we cannot assess whether it fits your ketogenic diet',
+    fr: 'Pas de données sur les glucides : impossible d’évaluer la compatibilité avec ton régime cétogène',
+  },
+  sugar: {
+    es: (t: string) => `Contiene azúcar añadido, poco compatible con tu dieta cetogénica (detectado: "${t}")`,
+    en: (t: string) => `Contains added sugar, hardly compatible with your ketogenic diet (detected: "${t}")`,
+    fr: (t: string) => `Contient du sucre ajouté, peu compatible avec ton régime cétogène (détecté : « ${t} »)`,
+  },
+} as const;
+
+/** Penalty keto applies for the added-sugar reinforcement rule. */
+export const KETO_SUGAR_PENALTY = 20;
+
+/**
+ * Evaluate the keto diet rules. Carbohydrates per 100 g are the main
+ * criterion; added sugars stay as a reinforcement signal.
+ */
+export function ketoFindings(p: ProductData, language?: string): DietFinding[] {
+  if (p.category !== 'food') return [];
+  const lang = pregLang(language);
+  const rawObj = (p.raw || {}) as Record<string, unknown>;
+  const nutri = (rawObj.nutriments && typeof rawObj.nutriments === 'object')
+    ? rawObj.nutriments as Record<string, unknown>
+    : {};
+  const carbs = readNumber(nutri, 'carbohydrates_100g');
+  const out: DietFinding[] = [];
+
+  if (carbs == null) {
+    out.push({ id: 'keto-no-data', level: 'info', delta: 0, text: KETO_TEXT.unknown[lang] });
+  } else {
+    const x = carbs.toFixed(1);
+    if (carbs > 20) out.push({ id: 'keto-high', level: 'warn', delta: -45, text: KETO_TEXT.high[lang](x) });
+    else if (carbs >= 10) out.push({ id: 'keto-mid', level: 'warn', delta: -25, text: KETO_TEXT.mid[lang](x) });
+    else if (carbs > 5) out.push({ id: 'keto-low', level: 'info', delta: -10, text: KETO_TEXT.low[lang](x) });
+    else out.push({ id: 'keto-ok', level: 'good', delta: 5, text: KETO_TEXT.ok[lang](x) });
+  }
+
+  const combined = `${p.ingredients_text || ''} ${tagsAsText(p)}`;
+  const sugarTerm = firstTerm(combined, SUGAR_KEYWORDS);
+  if (sugarTerm) {
+    out.push({
+      id: 'keto-sugar',
+      level: 'warn',
+      delta: -KETO_SUGAR_PENALTY,
+      text: KETO_TEXT.sugar[lang](sugarTerm),
+    });
+  }
+  return out;
+}
 
 
 /**
