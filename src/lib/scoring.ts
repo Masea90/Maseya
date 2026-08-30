@@ -1980,7 +1980,9 @@ export function hairFindings(
   const isDryish = condition === 'dry' || condition === 'damaged';
   const isCurly = type === 'curly' || type === 'wavy' || type === 'coily';
   const isOily = condition === 'oily';
-  const isFine = type === 'fine' || type === 'straight';
+  // The profile offers straight/wavy/curly/coily; 'fine' only appears in
+  // legacy/imported values. Straight hair is NOT automatically fine.
+  const isFine = type === 'fine';
 
   // 1) Harsh sulfates
   const sulf = firstTerm(text, HAIR_SULFATES);
@@ -2465,9 +2467,7 @@ export function personalAlerts(
 
     // Hair layer — additive to the skin rules above.
     for (const f of hairFindings(p, profile as PersonalProfileLike)) {
-      if (f.delta < 0) alerts.push({ level: 'warn', text: f.text });
-      else if (f.delta > 0) alerts.push({ level: 'good', text: f.text });
-      else alerts.push({ level: 'warn', text: f.text });
+      alerts.push({ level: f.delta < 0 ? 'warn' : 'good', text: f.text });
     }
   }
 
