@@ -1273,6 +1273,9 @@ const PREGNANCY_FOOD_RULES: PregRule[] = [
     id: 'pate',
     level: 'B',
     keywords: ['paté', 'pate', 'foie gras', 'mousse de hígado', 'mousse de higado'],
+    // "pâte(s)" in French means dough/pasta — never a pâté.
+    excludes: ['pate a tartiner', 'pate de fruit', 'pate feuilletee', 'pate brisee', 'pate sablee', 'pate sucree', 'pates alimentaires', 'pate de cacao', 'pate d amande'],
+
     text: {
       es: 'Patés y foie refrigerados: se desaconsejan en el embarazo por el riesgo de listeriosis',
       en: 'Chilled pâté and foie gras: not advised during pregnancy due to listeriosis risk',
