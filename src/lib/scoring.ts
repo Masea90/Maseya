@@ -1167,6 +1167,204 @@ const ADDED_SUGAR_KEYWORDS = [
 ];
 const PREGNANCY_RISKY = ['retinol', 'retinyl', 'retinal', 'salicylic acid', 'salicylate', 'hydroquinone', 'formaldehyde', 'phthalate', 'caffeine', 'cafeina'];
 
+// ---------------------------------------------------------------------------
+// Pregnancy / lactation — FOOD layer (source: AESAN recommendations).
+// Level A = hard fail, Level B = strong warning (-40), Level C = informational.
+// Cosmetic pregnancy rules above are untouched.
+// ---------------------------------------------------------------------------
+export type PregnancyLevel = 'A' | 'B' | 'C';
+type PregLang = 'es' | 'en' | 'fr';
+
+interface PregRule {
+  id: string;
+  level: PregnancyLevel;
+  keywords: string[];
+  tags?: string[];
+  text: Record<PregLang, string>;
+}
+
+const PREG_AESAN_NOTE: Record<PregLang, string> = {
+  es: 'Recomendación de AESAN. Consulta con tu matrona o médico.',
+  en: 'AESAN recommendation. Check with your midwife or doctor.',
+  fr: 'Recommandation de l’AESAN. Parles-en à ta sage-femme ou à ton médecin.',
+};
+
+const PREG_DETECTED: Record<PregLang, (t: string) => string> = {
+  es: t => ` (detectado: "${t}")`,
+  en: t => ` (detected: "${t}")`,
+  fr: t => ` (détecté : « ${t} »)`,
+};
+
+const PREGNANCY_FOOD_RULES: PregRule[] = [
+  {
+    id: 'raw-milk',
+    level: 'A',
+    keywords: [
+      'leche cruda', 'leche sin pasteurizar', 'lait cru', 'au lait cru',
+      'raw milk', 'unpasteurized', 'unpasteurised', 'sin pasteurizar',
+      'no pasteurizado', 'no pasteurizada', 'leite cru',
+    ],
+    tags: ['en:raw-milk-cheeses'],
+    text: {
+      es: 'Leche cruda o sin pasteurizar: se desaconseja durante el embarazo por el riesgo de listeriosis',
+      en: 'Raw or unpasteurized milk: not advised during pregnancy due to listeriosis risk',
+      fr: 'Lait cru ou non pasteurisé : déconseillé pendant la grossesse (risque de listériose)',
+    },
+  },
+  {
+    id: 'high-mercury-fish',
+    level: 'A',
+    keywords: [
+      'pez espada', 'emperador', 'atún rojo', 'atun rojo', 'tiburón', 'tiburon',
+      'cazón', 'cazon', 'marrajo', 'lucio', 'swordfish', 'bluefin tuna', 'shark', 'pike',
+    ],
+    text: {
+      es: 'Pescado con alto contenido en mercurio: AESAN recomienda evitarlo en el embarazo y la lactancia',
+      en: 'High-mercury fish: AESAN advises avoiding it during pregnancy and breastfeeding',
+      fr: 'Poisson à forte teneur en mercure : à éviter pendant la grossesse et l’allaitement',
+    },
+  },
+  {
+    id: 'raw-smoked-fish',
+    level: 'A',
+    keywords: [
+      'salmón ahumado', 'salmon ahumado', 'salmó fumat', 'salmo fumat', 'smoked salmon',
+      'sashimi', 'sushi', 'ceviche', 'carpaccio de pescado', 'boquerones en vinagre',
+      'anchoas marinadas', 'pescado crudo', 'trucha ahumada', 'bacalao ahumado',
+    ],
+    tags: ['en:smoked-salmons', 'en:smoked-fish', 'en:raw-fish'],
+    text: {
+      es: 'Pescado crudo o ahumado en frío: la Listeria sobrevive a la congelación y solo se elimina con calor',
+      en: 'Raw or cold-smoked fish: Listeria survives freezing and is only killed by heat',
+      fr: 'Poisson cru ou fumé à froid : la Listeria survit à la congélation, seule la cuisson l’élimine',
+    },
+  },
+  {
+    id: 'soft-cheese',
+    level: 'B',
+    keywords: [
+      'camembert', 'brie', 'roquefort', 'gorgonzola', 'queso azul', 'cabrales',
+      'queso fresco', 'burrata', 'mozzarella fresca', 'feta', 'queso de cabra fresco',
+      'brique fondante',
+    ],
+    tags: ['en:blue-cheeses', 'en:soft-cheeses', 'en:mould-ripened-cheeses'],
+    text: {
+      es: 'Queso blando o de corteza enmohecida: aunque esté pasteurizado, la Listeria puede crecer durante la maduración; se recomienda tomarlo solo cocinado a más de 70 °C',
+      en: 'Soft or mould-ripened cheese: even when pasteurized, Listeria can grow during ripening; it is advised to eat it only cooked above 70 °C',
+      fr: 'Fromage à pâte molle ou à croûte fleurie : même pasteurisé, la Listeria peut se développer à l’affinage ; à consommer uniquement bien cuit (plus de 70 °C)',
+    },
+  },
+  {
+    id: 'cured-meat',
+    level: 'B',
+    keywords: [
+      'chorizo', 'salchichón', 'salchichon', 'salami', 'jamón curado', 'jamon curado',
+      'jamón serrano', 'jamon serrano', 'jamón ibérico', 'jamon iberico', 'fuet',
+      'lomo embuchado', 'sobrasada', 'cecina', 'mortadela', 'pepperoni',
+    ],
+    tags: ['en:dry-sausages'],
+    text: {
+      es: 'Embutido curado crudo: riesgo de toxoplasmosis; es seguro si se cocina a más de 70 °C',
+      en: 'Raw cured meat: toxoplasmosis risk; it is safe if cooked above 70 °C',
+      fr: 'Charcuterie crue : risque de toxoplasmose ; sans danger si elle est cuite à plus de 70 °C',
+    },
+  },
+  {
+    id: 'pate',
+    level: 'B',
+    keywords: ['paté', 'pate', 'foie gras', 'mousse de hígado', 'mousse de higado'],
+    text: {
+      es: 'Patés y foie refrigerados: se desaconsejan en el embarazo por el riesgo de listeriosis',
+      en: 'Chilled pâté and foie gras: not advised during pregnancy due to listeriosis risk',
+      fr: 'Pâtés et foie gras réfrigérés : déconseillés pendant la grossesse (risque de listériose)',
+    },
+  },
+  {
+    id: 'raw-egg',
+    level: 'B',
+    keywords: [
+      'huevo crudo', 'mayonesa casera', 'mousse', 'tiramisú', 'tiramisu',
+      'merengue', 'salsa césar', 'salsa cesar',
+    ],
+    text: {
+      es: 'Puede contener huevo crudo: riesgo de salmonelosis; mejor con huevo pasteurizado o cocinado',
+      en: 'May contain raw egg: salmonellosis risk; better with pasteurized or cooked egg',
+      fr: 'Peut contenir de l’œuf cru : risque de salmonellose ; préfère l’œuf pasteurisé ou cuit',
+    },
+  },
+  {
+    id: 'ready-to-eat',
+    level: 'B',
+    keywords: ['sándwich envasado', 'sandwich envasado', 'ensalada preparada'],
+    tags: ['en:sandwiches', 'en:prepared-salads'],
+    text: {
+      es: 'Producto envasado listo para consumir con carne, pescado, huevo o vegetales: AESAN recomienda precaución por el riesgo de listeriosis',
+      en: 'Ready-to-eat packaged product with meat, fish, egg or vegetables: AESAN advises caution due to listeriosis risk',
+      fr: 'Produit emballé prêt à consommer (viande, poisson, œuf ou légumes) : prudence recommandée (risque de listériose)',
+    },
+  },
+  {
+    id: 'raw-shellfish',
+    level: 'B',
+    keywords: ['ostra', 'ostras', 'ostra cruda', 'marisco crudo', 'almejas crudas'],
+    text: {
+      es: 'Marisco crudo: se desaconseja durante el embarazo; es seguro bien cocinado',
+      en: 'Raw shellfish: not advised during pregnancy; safe when thoroughly cooked',
+      fr: 'Fruits de mer crus : déconseillés pendant la grossesse ; sans danger bien cuits',
+    },
+  },
+  {
+    id: 'caffeine',
+    level: 'C',
+    keywords: ['bebida energética', 'bebida energetica', 'energy drink', 'boisson énergisante', 'boisson energisante', 'taurina', 'taurine'],
+    tags: ['en:energy-drinks'],
+    text: {
+      es: 'Bebida energética o con cafeína: se recomienda limitar la cafeína durante el embarazo',
+      en: 'Energy or caffeinated drink: limiting caffeine is recommended during pregnancy',
+      fr: 'Boisson énergisante ou caféinée : il est conseillé de limiter la caféine pendant la grossesse',
+    },
+  },
+];
+
+const pregLang = (l?: string): PregLang =>
+  l === 'en' || l === 'fr' ? l : 'es';
+
+export interface PregnancyFinding {
+  id: string;
+  level: PregnancyLevel;
+  text: string;
+}
+
+/**
+ * Evaluate the AESAN pregnancy food rules against a product.
+ * Matching runs on product name + brand + ingredients + tags, word-complete.
+ */
+export function pregnancyFoodFindings(p: ProductData, language?: string): PregnancyFinding[] {
+  if (p.category !== 'food') return [];
+  const lang = pregLang(language);
+  const raw = (p.raw || {}) as Record<string, unknown>;
+  const catsTags = (Array.isArray(raw.categories_tags) ? raw.categories_tags as string[] : [])
+    .map(t => String(t).toLowerCase());
+  const catsText = catsTags.map(t => t.replace(/^[a-z]{2}:/, '').replace(/-/g, ' ')).join(' ');
+  const haystack = `${p.name || ''} ${p.brand || ''} ${p.ingredients_text || ''} ${tagsAsText(p)} ${catsText}`;
+
+  const out: PregnancyFinding[] = [];
+  for (const rule of PREGNANCY_FOOD_RULES) {
+    const term = firstTerm(haystack, rule.keywords);
+    const tagHit = rule.tags ? rule.tags.some(t => catsTags.includes(t)) : false;
+    if (!term && !tagHit) continue;
+    const detail = term ? PREG_DETECTED[lang](term) : '';
+    out.push({
+      id: rule.id,
+      level: rule.level,
+      text: `${rule.text[lang]}${detail}. ${PREG_AESAN_NOTE[lang]}`,
+    });
+  }
+  return out;
+}
+
+
+
 /**
  * Detect dietary supplements — they must NOT be scored with food criteria
  * (Nutriscore doesn't apply, sugars/salt/fat rules make no sense on capsules).
