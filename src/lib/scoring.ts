@@ -1775,7 +1775,7 @@ export function calculatePersonalScoreBreakdown(
   // Pregnancy / lactation — food layer (AESAN).
   if (isPregnant && isFood) {
     for (const f of pregnancyFoodFindings(p, profile.language)) {
-      if (f.level === 'A') addHardFail(`No apto en el embarazo — ${f.text}`);
+      if (f.level === 'A') addHardFail(`${PREG_NOT_SUITABLE[pregLang(profile.language)]} — ${f.text}`);
       else if (f.level === 'B') addNeg(f.text, -40);
       else factors.push({ label: f.text, delta: null, tone: 'neutral' });
     }
