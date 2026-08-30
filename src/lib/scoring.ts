@@ -1907,7 +1907,8 @@ export function isHairProduct(p: ProductData): boolean {
     ...(typeof rawObj.categories === 'string' ? [rawObj.categories as string] : []),
   ].map(t => String(t).toLowerCase());
   if (tags.some(t => HAIR_CAT_TAGS.some(h => t.includes(h) || t.includes(h.replace('en:', ''))))) return true;
-  const name = `${p.name || ''} ${p.brand || ''} ${p.category_tag || ''}`;
+  const rawCatTag = typeof rawObj.category_tag === 'string' ? (rawObj.category_tag as string) : '';
+  const name = `${p.name || ''} ${p.brand || ''} ${rawCatTag}`;
   return !!firstTerm(name, HAIR_NAME_KEYWORDS);
 }
 
