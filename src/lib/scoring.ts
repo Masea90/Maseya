@@ -2053,6 +2053,8 @@ export function calculatePersonalScoreBreakdown(
   const hardFailReasons: string[] = [];
   // Total penalty coming from pregnancy level-B warnings (floored at 25 below).
   let pregLevelBPenalty = 0;
+  // Total penalty coming from the hair layer (floored at 30 below).
+  let hairPenalty = 0;
   const isCosmetic = p.category === 'cosmetic';
   const isFood = p.category === 'food';
   const rawObj = (p.raw || {}) as Record<string, unknown>;
@@ -2271,6 +2273,15 @@ export function calculatePersonalScoreBreakdown(
   }
 
 
+  // Hair layer — cosmetics only, additive to the skin layer above.
+  if (isCosmetic) {
+    for (const f of hairFindings(p, profile)) {
+      if (f.delta < 0) { addNeg(f.text, f.delta); hairPenalty += -f.delta; }
+      else if (f.delta > 0) addPos(f.text, f.delta);
+      else factors.push({ label: f.text, delta: null, tone: 'neutral' });
+    }
+  }
+
   const beneficial = ['aloe', 'panthenol', 'niacinamide', 'hyaluronic', 'glycerin', 'oat', 'avena', 'centella'];
   if (isCosmetic && skin.length > 0) {
     const t = firstTerm(combined, beneficial);
@@ -2288,6 +2299,11 @@ export function calculatePersonalScoreBreakdown(
   // Pregnancy level-B warnings are cautionary, not disqualifying: they may not
   // drag the personal score below 25 on their own.
   let effective = score;
+  // Hair-layer penalties are "not a good match", not dangerous: floor at 30.
+  if (hairPenalty > 0) {
+    const withoutHair = clamp100(score + hairPenalty);
+    effective = Math.max(effective, Math.min(30, withoutHair));
+  }
   if (pregLevelBPenalty > 0) {
     const withoutB = clamp100(score + pregLevelBPenalty);
     effective = Math.max(score, Math.min(25, withoutB));
