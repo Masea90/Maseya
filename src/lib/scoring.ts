@@ -1885,10 +1885,19 @@ export function calculatePersonalScoreBreakdown(
     if (isVegan) {
       const t = firstTerm(combined, ANIMAL_KEYWORDS);
       if (t) addNeg(`Dieta vegana: ingrediente de origen animal (${t})`, -30);
+    } else if (diets.includes('vegetarian')) {
+      // Vegetarian layer — only when vegan isn't selected (vegan is stricter).
+      for (const f of vegetarianFindings(p, profile.language)) {
+        if (f.level === 'danger') addHardFail(f.text);
+        else if (f.delta < 0) addNeg(f.text, f.delta);
+        else if (f.delta > 0) addPos(f.text, f.delta);
+        else factors.push({ label: f.text, delta: null, tone: 'neutral' });
+      }
     }
     if (diets.length && (diets.some(d => p.labels_tags.some(t => t.includes(d))) || (isVegan && p.ingredients_analysis_tags.includes('en:vegan')))) {
       addPos('Alineado con tu dieta', 5);
     }
+
 
     if (isHalal) {
       const isLabeledHalal =
