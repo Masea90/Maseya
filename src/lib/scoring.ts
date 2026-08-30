@@ -1880,6 +1880,151 @@ function wantsContactAllergenLayer(skin: string[], sensitivities: string[]): boo
   );
 }
 
+// ---------------------------------------------------------------------------
+// HAIR layer — cosmetics only. Personal score / alerts only, never the general
+// score. Penalties are floored at 30 (unsuitable, not dangerous).
+// ---------------------------------------------------------------------------
+export interface HairFinding {
+  /** delta < 0 penalty, > 0 bonus, 0 informational */
+  delta: number;
+  text: string;
+}
+
+const HAIR_CAT_TAGS = ['en:shampoos', 'en:conditioners', 'en:hair-care', 'en:hair-products', 'en:hair', 'en:hair-conditioners'];
+const HAIR_NAME_KEYWORDS = [
+  'champu', 'champú', 'shampoo', 'shampooing',
+  'acondicionador', 'conditioner', 'apres-shampooing', 'après-shampooing',
+  'mascarilla capilar', 'hair mask', 'masque capillaire',
+  'capilar', 'capillaire', 'hair', 'cabello', 'cheveux',
+];
+
+/** True when the cosmetic is a hair product (category tags or name). */
+export function isHairProduct(p: ProductData): boolean {
+  if (p.category !== 'cosmetic') return false;
+  const rawObj = (p.raw || {}) as Record<string, unknown>;
+  const tags = [
+    ...(Array.isArray(rawObj.categories_tags) ? (rawObj.categories_tags as string[]) : []),
+    ...(typeof rawObj.categories === 'string' ? [rawObj.categories as string] : []),
+  ].map(t => String(t).toLowerCase());
+  if (tags.some(t => HAIR_CAT_TAGS.some(h => t.includes(h) || t.includes(h.replace('en:', ''))))) return true;
+  const name = `${p.name || ''} ${p.brand || ''} ${p.category_tag || ''}`;
+  return !!firstTerm(name, HAIR_NAME_KEYWORDS);
+}
+
+const HAIR_SULFATES = ['sodium lauryl sulfate', 'sodium laureth sulfate', 'ammonium lauryl sulfate', 'ammonium laureth sulfate', 'sodium lauryl sulphate', 'sodium laureth sulphate'];
+const HAIR_DRYING_ALCOHOLS = ['alcohol denat', 'sd alcohol', 'isopropyl alcohol', 'denatured alcohol'];
+const HAIR_SILICONES = ['dimethicone', 'dimethiconol', 'cyclopentasiloxane', 'amodimethicone'];
+
+const HAIR_ACTIVES: Record<string, string[]> = {
+  frizz: ['argan oil', 'argania spinosa', 'aceite de argan', 'shea butter', 'butyrospermum parkii', 'manteca de karite', 'glycerin', 'panthenol', 'keratin', 'queratina'],
+  dryness: ['hyaluronic acid', 'sodium hyaluronate', 'panthenol', 'glycerin', 'ceramide', 'aloe', 'coconut oil', 'cocos nucifera', 'shea butter', 'butyrospermum parkii'],
+  dandruff: ['zinc pyrithione', 'pyrithione zinc', 'piroctone olamine', 'ketoconazole', 'salicylic acid', 'selenium sulfide', 'climbazole'],
+  hairloss: ['caffeine', 'cafeina', 'biotin', 'biotina', 'niacinamide', 'saw palmetto', 'ketoconazole'],
+  oily: ['salicylic acid', 'tea tree', 'melaleuca', 'niacinamide', 'zinc'],
+  damaged: ['keratin', 'queratina', 'amino acids', 'aminoacidos', 'maleic acid', 'hydrolyzed', 'hidrolizado'],
+};
+
+type HairLang = 'es' | 'en' | 'fr';
+const HAIR_TEXT: Record<HairLang, Record<string, (t: string) => string>> = {
+  es: {
+    sulfDry: t => `Los sulfatos fuertes resecan más un cabello ya seco o dañado (${t})`,
+    sulfCurly: t => `Los sulfatos fuertes eliminan el aceite natural que el pelo rizado necesita (${t})`,
+    sulfOily: t => `Los sulfatos limpian en profundidad, algo que puede convenir a un cuero cabelludo graso (${t})`,
+    alcohol: t => `Alcohol secante: puede resecar y encrespar tu cabello (${t})`,
+    silBad: t => `Las siliconas pueden apelmazar un cabello fino o graso (${t})`,
+    silGood: t => `Las siliconas ayudan a sellar la hidratación y controlar el encrespamiento (${t})`,
+    active: t => `Activo útil para tu cabello (${t})`,
+  },
+  en: {
+    sulfDry: t => `Harsh sulfates dry out already dry or damaged hair (${t})`,
+    sulfCurly: t => `Harsh sulfates strip the natural oil curly hair needs (${t})`,
+    sulfOily: t => `Sulfates cleanse deeply, which can suit an oily scalp (${t})`,
+    alcohol: t => `Drying alcohol: can dry out and frizz your hair (${t})`,
+    silBad: t => `Silicones can weigh down fine or oily hair (${t})`,
+    silGood: t => `Silicones help seal in moisture and control frizz (${t})`,
+    active: t => `Helpful active for your hair (${t})`,
+  },
+  fr: {
+    sulfDry: t => `Les sulfates forts dessèchent encore plus un cheveu sec ou abîmé (${t})`,
+    sulfCurly: t => `Les sulfates forts éliminent l’huile naturelle dont le cheveu bouclé a besoin (${t})`,
+    sulfOily: t => `Les sulfates nettoient en profondeur, ce qui peut convenir à un cuir chevelu gras (${t})`,
+    alcohol: t => `Alcool desséchant : peut dessécher et faire friser tes cheveux (${t})`,
+    silBad: t => `Les silicones peuvent alourdir un cheveu fin ou gras (${t})`,
+    silGood: t => `Les silicones aident à sceller l’hydratation et à contrôler les frisottis (${t})`,
+    active: t => `Actif utile pour tes cheveux (${t})`,
+  },
+};
+
+const hairLang = (l?: string): HairLang => (l === 'en' || l === 'fr' ? l : 'es');
+
+/**
+ * Hair findings for a cosmetic hair product. Returns [] when the product is
+ * not a hair product or the profile has no hair data.
+ */
+export function hairFindings(
+  p: ProductData,
+  profile: PersonalProfileLike,
+): HairFinding[] {
+  if (!isHairProduct(p)) return [];
+  const type = String(profile.hair_type || '').toLowerCase();
+  const condition = String(profile.hair_condition || '').toLowerCase();
+  const concerns = (profile.hair_concerns || []).map(c => String(c).toLowerCase()).filter(c => c !== 'none');
+  if ((!type || type === 'none') && !condition && concerns.length === 0) return [];
+  if (type === 'none') return [];
+
+  const T = HAIR_TEXT[hairLang(profile.language)];
+  const text = `${p.ingredients_text || ''} ${tagsAsText(p)}`;
+  const out: HairFinding[] = [];
+
+  const isDryish = condition === 'dry' || condition === 'damaged';
+  const isCurly = type === 'curly' || type === 'wavy' || type === 'coily';
+  const isOily = condition === 'oily';
+  const isFine = type === 'fine' || type === 'straight';
+
+  // 1) Harsh sulfates
+  const sulf = firstTerm(text, HAIR_SULFATES);
+  if (sulf) {
+    if (isDryish) out.push({ delta: -20, text: T.sulfDry(sulf) });
+    else if (isCurly) out.push({ delta: -20, text: T.sulfCurly(sulf) });
+    else if (isOily) out.push({ delta: 0, text: T.sulfOily(sulf) });
+  }
+
+  // 2) Drying alcohols (fatty alcohols excluded by exact keyword list)
+  const alc = firstTerm(text, HAIR_DRYING_ALCOHOLS);
+  if (alc && (isDryish || isCurly || concerns.includes('frizz'))) {
+    out.push({ delta: -15, text: T.alcohol(alc) });
+  }
+
+  // 3) Non-soluble silicones: good or bad depending on the hair
+  const sil = firstTerm(text, HAIR_SILICONES);
+  if (sil) {
+    if (isDryish || isCurly) out.push({ delta: 5, text: T.silGood(sil) });
+    else if (isOily || isFine) out.push({ delta: -10, text: T.silBad(sil) });
+  }
+
+  // 4) Beneficial actives for declared concerns (max +10)
+  const activeKeys = new Set<string>(concerns.map(c => (c === 'hair-loss' ? 'hairloss' : c)));
+  if (isDryish) activeKeys.add('dryness');
+  if (condition === 'damaged') activeKeys.add('damaged');
+  if (isOily) activeKeys.add('oily');
+  let bonus = 0;
+  const seen = new Set<string>();
+  for (const key of activeKeys) {
+    if (bonus >= 10) break;
+    const kws = HAIR_ACTIVES[key];
+    if (!kws) continue;
+    const hit = firstTerm(text, kws);
+    if (hit && !seen.has(hit)) {
+      seen.add(hit);
+      bonus += 5;
+      out.push({ delta: 5, text: T.active(hit) });
+    }
+  }
+
+  return out;
+}
+
+
 
 export function calculatePersonalScoreBreakdown(
   p: ProductData,
