@@ -1929,7 +1929,10 @@ export function calculatePersonalScoreBreakdown(
 
     // Sugar-restrictive diets.
     // no-sugar → strict rules based on nutriments + added-sugar keywords.
-    // keto (legacy) → penalize any sugar mention (unchanged behavior).
+    // keto → carbohydrates per 100 g (main criterion) + added sugar as backup.
+    // Both are evaluated independently; the sugar penalty is never counted
+    // twice — only the larger of the two applies.
+    let sugarPenaltyApplied = 0;
     if (diets.includes('no-sugar')) {
       const nutri = (rawObj.nutriments && typeof rawObj.nutriments === 'object')
         ? rawObj.nutriments as Record<string, unknown>
@@ -1951,19 +1954,36 @@ export function calculatePersonalScoreBreakdown(
           ? `azúcar añadido entre los 3 primeros ingredientes ("${addedInTop3}")`
           : `alto en azúcar (${sugars?.toFixed(1)}g/100g)`;
         addHardFail(`Alto en azúcar / azúcar añadido — no compatible con tu dieta sin azúcar (detectado: ${reason})`);
+        sugarPenaltyApplied = 100;
       } else if (midSugars && addedAnywhere) {
         addNeg(`Contiene azúcar añadido (${sugars?.toFixed(1)}g/100g, detectado: "${addedAnywhere}") — no ideal para tu dieta sin azúcar`, -30);
+        sugarPenaltyApplied = 30;
       } else if (sugars != null && sugars > 5 && !addedAnywhere) {
         addNeg(`Azúcares naturales presentes (${sugars.toFixed(1)}g/100g)`, -10);
-      }
-    } else if (diets.includes('keto')) {
-      const sugarTerm = firstTerm(combined, SUGAR_KEYWORDS);
-      const sugarTagHit = catsTags.some(t => t.includes('sugared') || t.includes('sweetened') || t.includes('sugary')) ||
-        p.labels_tags.some(t => t.includes('sugared') || t.includes('sweetened'));
-      if (sugarTerm || sugarTagHit) {
-        addNeg(`No apto para tu dieta keto: contiene azúcar añadido${sugarTerm ? ` ("${sugarTerm}")` : ''}`, -40);
+        sugarPenaltyApplied = 10;
       }
     }
+    if (diets.includes('keto')) {
+      for (const f of ketoFindings(p, profile.language)) {
+        if (f.id === 'keto-sugar') {
+          // Deduplicate against the no-sugar branch: keep only the larger one.
+          const extra = KETO_SUGAR_PENALTY - sugarPenaltyApplied;
+          if (extra > 0) {
+            addNeg(f.text, -extra);
+            sugarPenaltyApplied = KETO_SUGAR_PENALTY;
+          } else {
+            factors.push({ label: f.text, delta: null, tone: 'neutral' });
+          }
+        } else if (f.delta < 0) {
+          addNeg(f.text, f.delta);
+        } else if (f.delta > 0) {
+          addPos(f.text, f.delta);
+        } else {
+          factors.push({ label: f.text, delta: null, tone: 'neutral' });
+        }
+      }
+    }
+
   }
 
   // Cosmetic-only pregnancy risk list (retinoids, salicylates, etc.).
