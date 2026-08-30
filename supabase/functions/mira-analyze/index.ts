@@ -355,6 +355,8 @@ Mi perfil alimentario:
 - Alergias: ${(profile?.allergies || []).join(", ") || "—"}
 - Dieta: ${humanizeDiets(profile?.diet)}
 - Objetivos: ${(profile?.nutrition_goals || []).join(", ") || "—"}
+- Embarazo/lactancia: ${profile?.pregnancy_or_lactation ? "sí" : "no"}${profile?.pregnancy_or_lactation ? "\n(Si el producto activa alguna alerta o factor de embarazo de los indicados arriba, menciónalo en tu PRIMERA frase, citando la recomendación de AESAN y sin alarmismo.)" : ""}
+
 
 Explícame si este alimento es adecuado para mi perfil y por qué. Tu tono debe ser coherente con la Nota personal indicada arriba.`
       : `${contextHeader}Analiza este producto cosmético para mi perfil:
