@@ -11,6 +11,8 @@ export interface ActiveProfile {
   diet: string[];
   nutrition_goals: string[];
   pregnancy_or_lactation: boolean;
+  /** UI language, used to localize personal factors/alerts. */
+  language?: string;
 }
 
 const arr = (v: unknown): string[] =>
@@ -23,6 +25,7 @@ const arr = (v: unknown): string[] =>
 export function buildActiveProfile(
   healthProfileRow: Record<string, unknown> | null | undefined,
   onboardingLocal?: Record<string, unknown> | null,
+  language?: string,
 ): ActiveProfile {
   const src = (healthProfileRow ?? onboardingLocal ?? {}) as Record<string, unknown>;
   return {
@@ -34,5 +37,6 @@ export function buildActiveProfile(
     diet: arr(src.diet),
     nutrition_goals: arr(src.nutrition_goals ?? src.goals),
     pregnancy_or_lactation: !!src.pregnancy_or_lactation,
+    language,
   };
 }
