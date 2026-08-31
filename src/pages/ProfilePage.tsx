@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useDevMode } from '@/lib/premium';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { hasHealthDataConsent, setHealthDataConsent } from '@/components/consent/ConsentModal';
 
 interface HealthState {
   skin_type: string[];

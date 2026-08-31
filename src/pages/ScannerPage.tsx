@@ -260,6 +260,18 @@ const ScannerPage = () => {
 
   const onDecoded = (decodedText: string) => {
     if (!decodedText || stoppedRef.current) return;
+    // Coming back from a product sheet with the same barcode still in front of
+    // the camera used to re-open that product instantly, which felt like the
+    // app navigating on its own. Ignore the last barcode for a short window.
+    if (
+      decodedText === lastDecodedRef.current &&
+      Date.now() - lastDecodedAtRef.current < RESCAN_COOLDOWN_MS
+    ) {
+      return;
+    }
+    try {
+      sessionStorage.setItem(LAST_DECODE_KEY, JSON.stringify({ code: decodedText, at: Date.now() }));
+    } catch { /* ignore */ }
     stoppedRef.current = true;
     try { controlsRef.current?.stop(); } catch {}
     controlsRef.current = null;
