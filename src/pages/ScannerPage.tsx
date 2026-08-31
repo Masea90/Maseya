@@ -142,6 +142,18 @@ const ScannerPage = () => {
   const rafRef = useRef<number | null>(null);
   const activeStreamRef = useRef<MediaStream | null>(null);
   const zxingRotateTimerRef = useRef<number | null>(null);
+  // Last barcode opened from this scanner (survives the round-trip to /result).
+  const [lastDecodedRef, lastDecodedAtRef] = [useRef<string | null>(null), useRef<number>(0)];
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(LAST_DECODE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as { code?: string; at?: number };
+      lastDecodedRef.current = parsed.code ?? null;
+      lastDecodedAtRef.current = parsed.at ?? 0;
+    } catch { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const stop = async () => {
     if (stoppedRef.current) return;
