@@ -202,12 +202,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return { success: false, error: error.message };
     }
 
+    // Signup completed: the informed notice is shown next to the signup button,
+    // so personalization is enabled from the first session — no extra click.
+    try { localStorage.setItem(SIGNUP_CONSENT_FLAG, '1'); } catch { /* ignore */ }
+    if (data.session?.user?.id) {
+      await setHealthDataConsent(true, data.session.user.id);
+      clearPendingSignupConsent();
+    }
+
     return { success: true };
   };
 
-  const signInWithGoogle = async (redirectPath?: string): Promise<{ success: boolean; error?: string }> => {
+  const signInWithGoogle = async (redirectPath?: string, isSignUp = false): Promise<{ success: boolean; error?: string }> => {
     const safe = redirectPath && redirectPath.startsWith('/') && !redirectPath.startsWith('//') ? redirectPath : '/';
     const redirectUrl = `${window.location.origin}${safe}`;
+
+    // Google signup and login share one button; a brand-new account is detected
+    // on return via `user.created_at` (see syncConsentFromDb).
+    if (isSignUp) {
+      try { localStorage.setItem(SIGNUP_CONSENT_FLAG, '1'); } catch { /* ignore */ }
+    }
 
     const result = await lovable.auth.signInWithOAuth('google', {
       redirect_uri: redirectUrl,
@@ -219,6 +233,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     return { success: true };
   };
+
 
   const logout = async () => {
     // Purga de datos derivados del perfil autenticado (RGPD): alergias/condiciones
