@@ -22,7 +22,7 @@ interface AuthContextType {
   consentReady: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signUp: (email: string, password: string) => Promise<{ success: boolean; error?: string; code?: 'already_registered' }>;
-  signInWithGoogle: (redirectPath?: string) => Promise<{ success: boolean; error?: string }>;
+  signInWithGoogle: (redirectPath?: string, isSignUp?: boolean) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
 }
 
