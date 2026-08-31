@@ -286,6 +286,8 @@ const ScannerPage = () => {
     ) {
       return;
     }
+    lastDecodedRef.current = decodedText;
+    lastDecodedAtRef.current = Date.now();
     try {
       sessionStorage.setItem(LAST_DECODE_KEY, JSON.stringify({ code: decodedText, at: Date.now() }));
     } catch { /* ignore */ }
