@@ -16,6 +16,9 @@ const UPDATED_COPY = {
 /** Routes where an automatic reload would destroy work in progress. */
 const UNSAFE_PATH_PREFIXES = [
   '/scan/photo',
+  // A product sheet is content the user is actively reading: reloading it
+  // mid-read looks like the app throwing them out.
+  '/result',
   '/onboarding',
   '/login',
   '/reset-password',
