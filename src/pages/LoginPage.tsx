@@ -187,7 +187,8 @@ const LoginPage = () => {
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     try {
-      const result = await signInWithGoogle(nextPath);
+      const result = await signInWithGoogle(nextPath, isSignUp);
+
       if (!result.success) {
         toast.error(result.error || T.googleSignInFailed);
       }
