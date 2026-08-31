@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useDevMode } from '@/lib/premium';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
-import { hasHealthDataConsent, setHealthDataConsent } from '@/components/consent/ConsentModal';
+import { hasHealthDataConsent, setHealthDataConsent, getStoredConsent, setAnalyticsConsent as saveAnalyticsConsent } from '@/components/consent/ConsentModal';
 
 interface HealthState {
   skin_type: string[];
@@ -116,6 +116,8 @@ const ProfilePage = () => {
   // Health-data consent is granted at signup (informed notice next to the
   // signup button). GDPR art. 7.3: withdrawing it must be just as easy.
   const [healthConsent, setHealthConsent] = useState<boolean>(() => hasHealthDataConsent());
+  const [analyticsConsent, setAnalyticsConsent] = useState<boolean>(() => getStoredConsent()?.analytics === true);
+
   const [state, setState] = useState<HealthState>(EMPTY);
   const [saving, setSaving] = useState(false);
   const [productCount, setProductCount] = useState<number | null>(null);
@@ -380,7 +382,24 @@ const ProfilePage = () => {
               }}
             />
           </div>
+          <div className="flex items-center justify-between gap-4 pt-3 border-t border-border/50">
+            <div>
+              <p className="font-medium text-sm">Ayudar a mejorar Maseya con estadísticas de uso anónimas</p>
+              <p className="text-xs text-muted-foreground">
+                Puedes cambiar tu decisión en cualquier momento.
+              </p>
+            </div>
+            <Switch
+              checked={analyticsConsent}
+              onCheckedChange={async (v) => {
+                setAnalyticsConsent(v);
+                await saveAnalyticsConsent(v, currentUser?.id);
+                toast.success(v ? 'Estadísticas activadas' : 'Estadísticas desactivadas');
+              }}
+            />
+          </div>
         </Section>
+
 
         <Section title="Idioma / Language / Langue" emoji="🌍">
           <div className="flex items-center justify-between">
