@@ -108,6 +108,10 @@ const isRearStream = (stream: MediaStream) => {
   return true;
 };
 
+/** Same barcode re-detected within this window right after returning: ignore. */
+const RESCAN_COOLDOWN_MS = 4000;
+const LAST_DECODE_KEY = 'maseya_last_decode';
+
 const stopStream = (stream: MediaStream | null) => {
   stream?.getTracks().forEach((t) => t.stop());
 };
@@ -143,7 +147,8 @@ const ScannerPage = () => {
   const activeStreamRef = useRef<MediaStream | null>(null);
   const zxingRotateTimerRef = useRef<number | null>(null);
   // Last barcode opened from this scanner (survives the round-trip to /result).
-  const [lastDecodedRef, lastDecodedAtRef] = [useRef<string | null>(null), useRef<number>(0)];
+  const lastDecodedRef = useRef<string | null>(null);
+  const lastDecodedAtRef = useRef<number>(0);
   useEffect(() => {
     try {
       const raw = sessionStorage.getItem(LAST_DECODE_KEY);
