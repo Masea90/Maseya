@@ -112,6 +112,9 @@ const computePct = (s: HealthState): number => {
 const ProfilePage = () => {
   const { user } = useUser();
   const { logout, currentUser } = useAuth();
+  // Health-data consent is granted at signup (informed notice next to the
+  // signup button). GDPR art. 7.3: withdrawing it must be just as easy.
+  const [healthConsent, setHealthConsent] = useState<boolean>(() => hasHealthDataConsent());
   const [state, setState] = useState<HealthState>(EMPTY);
   const [saving, setSaving] = useState(false);
   const [productCount, setProductCount] = useState<number | null>(null);
@@ -355,6 +358,25 @@ const ProfilePage = () => {
             <Switch
               checked={state.pregnancy_or_lactation}
               onCheckedChange={(v) => setState(prev => ({ ...prev, pregnancy_or_lactation: v }))}
+            />
+          </div>
+        </Section>
+
+        <Section title="Privacidad" emoji="🔒">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="font-medium text-sm">Personalización con mis datos de salud</p>
+              <p className="text-xs text-muted-foreground">
+                Si lo desactivas, Maseya seguirá funcionando solo con análisis generales.
+              </p>
+            </div>
+            <Switch
+              checked={healthConsent}
+              onCheckedChange={async (v) => {
+                setHealthConsent(v);
+                await setHealthDataConsent(v, currentUser?.id);
+                toast.success(v ? 'Personalización activada' : 'Consentimiento retirado');
+              }}
             />
           </div>
         </Section>
