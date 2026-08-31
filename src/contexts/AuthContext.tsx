@@ -269,7 +269,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       session,
       isAuthenticated: !!user,
       isLoading,
+      consentReady,
       login,
+      signUp,
+      signInWithGoogle,
+      logout,
+    }}>
+
       signUp,
       signInWithGoogle,
       logout,
