@@ -17,6 +17,7 @@ const COPY = {
     bannerText: 'Usamos datos mínimos para personalizar tu experiencia. Sin publicidad.',
     moreInfo: 'Más info',
     accept: 'Aceptar',
+    reject: 'Rechazar',
     healthConsentLabel: 'Acepto el tratamiento de mis datos de salud (alergias, tipo de piel, embarazo) para personalizar los análisis.',
     healthConsentHint: 'Sin este consentimiento la app sigue funcionando, pero solo con análisis generales (sin personalización). Puedes cambiarlo en cualquier momento.',
     privacyPolicy: 'Política de privacidad',
@@ -26,6 +27,7 @@ const COPY = {
     bannerText: 'We use minimal data to personalize your experience. No ads.',
     moreInfo: 'More info',
     accept: 'Accept',
+    reject: 'Reject',
     healthConsentLabel: 'I agree to the processing of my health data (allergies, skin type, pregnancy) to personalize the analyses.',
     healthConsentHint: 'Without this consent the app still works, but only with general analyses (no personalization). You can change this anytime.',
     privacyPolicy: 'Privacy policy',
@@ -35,6 +37,7 @@ const COPY = {
     bannerText: 'Nous utilisons un minimum de données pour personnaliser ton expérience. Sans publicité.',
     moreInfo: "Plus d'infos",
     accept: 'Accepter',
+    reject: 'Refuser',
     healthConsentLabel: "J'accepte le traitement de mes données de santé (allergies, type de peau, grossesse) pour personnaliser les analyses.",
     healthConsentHint: "Sans ce consentement, l'app fonctionne toujours, mais avec des analyses générales uniquement (sans personnalisation). Tu peux changer cela à tout moment.",
     privacyPolicy: 'Politique de confidentialité',
@@ -50,20 +53,31 @@ interface StoredConsent {
 }
 
 const CONSENT_STORAGE_KEY = 'maseya_consent';
+/** AEPD: consent must be renewed periodically (max 24 months). We use 12. */
+const CONSENT_MAX_AGE_MS = 365 * 24 * 60 * 60 * 1000;
 // Routes where the consent banner must NOT appear (welcome / pre-onboarding)
 const HIDE_ON_ROUTES = ['/', '/welcome'];
 
 export const getStoredConsent = (): StoredConsent | null => {
-  const stored = localStorage.getItem(CONSENT_STORAGE_KEY);
+  let stored: string | null = null;
+  try {
+    stored = localStorage.getItem(CONSENT_STORAGE_KEY);
+  } catch {
+    return null;
+  }
   if (stored) {
     try {
       const parsed = JSON.parse(stored);
+      const date = parsed.date ?? '';
+      // Expired consent (>12 months) counts as no consent: the banner returns.
+      const ts = date ? Date.parse(date) : NaN;
+      if (!Number.isFinite(ts) || Date.now() - ts > CONSENT_MAX_AGE_MS) return null;
       return {
         analytics: !!parsed.analytics,
         personalization: !!parsed.personalization,
         // Older stored consents don't have this field — treat as not consented.
         health_data: !!parsed.health_data,
-        date: parsed.date ?? '',
+        date,
       };
     } catch {
       return null;
@@ -71,6 +85,7 @@ export const getStoredConsent = (): StoredConsent | null => {
   }
   return null;
 };
+
 
 /**
  * Convenience for feature code: only true when the user has explicitly consented
@@ -127,6 +142,34 @@ export const setHealthDataConsent = async (granted: boolean, userId?: string | n
   window.dispatchEvent(new Event('maseya:consent-updated'));
 };
 
+/** Removes the anonymous analytics id so nothing is tracked after a refusal. */
+export const clearAnalyticsId = () => {
+  try {
+    localStorage.removeItem('maseya_sid');
+  } catch {
+    /* ignore */
+  }
+};
+
+/**
+ * Sets (or withdraws) the anonymous-analytics consent (AEPD: the user must be
+ * able to change their choice at any time, as easily as they gave it).
+ */
+export const setAnalyticsConsent = async (granted: boolean, userId?: string | null) => {
+  const current = getStoredConsent();
+  saveConsent({
+    analytics: granted,
+    personalization: current?.personalization ?? true,
+    health_data: !!current?.health_data,
+    date: new Date().toISOString(),
+  });
+  if (!granted) clearAnalyticsId();
+  if (userId) {
+    await saveConsentToDb(userId, granted, current?.personalization ?? true, !!current?.health_data);
+  }
+  window.dispatchEvent(new Event('maseya:consent-updated'));
+};
+
 
 export const ConsentModal = ({ onAcceptEssential }: ConsentModalProps) => {
   const [visible, setVisible] = useState(false);
@@ -150,30 +193,31 @@ export const ConsentModal = ({ onAcceptEssential }: ConsentModalProps) => {
     }
   }, [location.pathname]);
 
-  const persist = async (healthData: boolean) => {
+  const persist = async (healthData: boolean, analytics: boolean) => {
     const consent: StoredConsent = {
-      analytics: false,
-      personalization: true,
+      analytics,
+      personalization: analytics,
       health_data: healthData,
       date: new Date().toISOString(),
     };
     saveConsent(consent);
+    if (!analytics) clearAnalyticsId();
     if (currentUser?.id) {
-      await saveConsentToDb(currentUser.id, false, true, healthData);
+      await saveConsentToDb(currentUser.id, analytics, analytics, healthData);
     }
+    window.dispatchEvent(new Event('maseya:consent-updated'));
     setVisible(false);
     setShowDetails(false);
     onAcceptEssential?.();
   };
 
-  const handleQuickAccept = () => {
-    // Banner "Aceptar" = essentials only, health data NOT consented.
-    // Users must open details to opt in explicitly.
-    void persist(false);
-  };
+  // First layer: Reject and Accept have identical visual weight (AEPD).
+  const handleReject = () => { void persist(false, false); };
+  const handleQuickAccept = () => { void persist(false, true); };
+
 
   const handleDetailedAccept = () => {
-    void persist(healthConsent);
+    void persist(healthConsent, !!getStoredConsent()?.analytics);
   };
 
   if (!visible) return null;
@@ -184,29 +228,40 @@ export const ConsentModal = ({ onAcceptEssential }: ConsentModalProps) => {
       <div
         role="dialog"
         aria-live="polite"
-        className="fixed inset-x-0 bottom-0 z-50 px-3 pb-[max(env(safe-area-inset-bottom),12px)] pt-2 animate-fade-in"
+        aria-modal="false"
+        className="fixed inset-x-0 bottom-0 z-50 px-3 pb-[calc(env(safe-area-inset-bottom)+80px)] pt-2 animate-fade-in"
       >
-        <div className="mx-auto max-w-lg rounded-2xl border border-border/60 bg-card/95 backdrop-blur shadow-warm-lg px-4 py-3 flex items-center gap-3">
-          <Shield className="w-5 h-5 text-primary shrink-0" aria-hidden />
-          <p className="text-xs text-foreground/85 leading-snug flex-1">
-            {c.bannerText}
-          </p>
-          <div className="flex items-center gap-2 shrink-0">
+        <div className="mx-auto max-w-lg rounded-2xl border border-border/60 bg-card/95 backdrop-blur shadow-warm-lg px-4 py-3 space-y-3">
+          <div className="flex items-start gap-3">
+            <Shield className="w-5 h-5 text-primary shrink-0 mt-0.5" aria-hidden />
+            <p className="text-xs text-foreground/85 leading-snug flex-1">
+              {c.bannerText}
+            </p>
+          </div>
+          {/* AEPD: reject and accept, same size, same weight, same layer. */}
+          <div className="grid grid-cols-2 gap-2">
             <button
-              onClick={() => setShowDetails(true)}
-              className="text-xs font-medium text-muted-foreground underline underline-offset-2"
+              onClick={handleReject}
+              className="h-10 rounded-full border border-primary text-primary text-sm font-semibold"
             >
-              {c.moreInfo}
+              {c.reject}
             </button>
             <button
               onClick={handleQuickAccept}
-              className="text-xs font-semibold text-primary-foreground bg-primary rounded-full px-3 py-1.5"
+              className="h-10 rounded-full bg-primary text-primary-foreground text-sm font-semibold"
             >
               {c.accept}
             </button>
           </div>
+          <button
+            onClick={() => setShowDetails(true)}
+            className="w-full text-xs font-medium text-muted-foreground underline underline-offset-2"
+          >
+            {c.moreInfo}
+          </button>
         </div>
       </div>
+
 
       {/* Detailed dialog */}
       <Dialog open={showDetails} onOpenChange={setShowDetails}>

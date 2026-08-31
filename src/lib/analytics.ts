@@ -11,6 +11,7 @@
  * must NEVER affect the UI.
  */
 import { supabase } from '@/integrations/supabase/client';
+import { getStoredConsent } from '@/components/consent/ConsentModal';
 
 const SID_KEY = 'maseya_sid';
 let memorySid: string | null = null;
@@ -23,6 +24,11 @@ const randomId = (): string => {
   } catch { /* ignore */ }
   return `sid_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
 };
+
+/** AEPD: no measurement at all without an explicit opt-in. */
+export function analyticsAllowed(): boolean {
+  return getStoredConsent()?.analytics === true;
+}
 
 export function getSessionId(): string {
   try {
@@ -39,6 +45,8 @@ export function getSessionId(): string {
 }
 
 export function track(event: string, props?: Record<string, unknown>): void {
+  // No consent → no id is created and nothing is inserted.
+  if (!analyticsAllowed()) return;
   try {
     const session_id = getSessionId();
     void (async () => {
@@ -59,6 +67,7 @@ export function track(event: string, props?: Record<string, unknown>): void {
     console.debug('[analytics] track skipped', e);
   }
 }
+
 
 /** Current UI language, read defensively from storage (no personal data). */
 export function currentLanguage(): string {
