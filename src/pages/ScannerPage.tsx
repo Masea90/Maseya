@@ -108,6 +108,10 @@ const isRearStream = (stream: MediaStream) => {
   return true;
 };
 
+/** Same barcode re-detected within this window right after returning: ignore. */
+const RESCAN_COOLDOWN_MS = 4000;
+const LAST_DECODE_KEY = 'maseya_last_decode';
+
 const stopStream = (stream: MediaStream | null) => {
   stream?.getTracks().forEach((t) => t.stop());
 };
@@ -142,6 +146,19 @@ const ScannerPage = () => {
   const rafRef = useRef<number | null>(null);
   const activeStreamRef = useRef<MediaStream | null>(null);
   const zxingRotateTimerRef = useRef<number | null>(null);
+  // Last barcode opened from this scanner (survives the round-trip to /result).
+  const lastDecodedRef = useRef<string | null>(null);
+  const lastDecodedAtRef = useRef<number>(0);
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(LAST_DECODE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as { code?: string; at?: number };
+      lastDecodedRef.current = parsed.code ?? null;
+      lastDecodedAtRef.current = parsed.at ?? 0;
+    } catch { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const stop = async () => {
     if (stoppedRef.current) return;
@@ -260,6 +277,20 @@ const ScannerPage = () => {
 
   const onDecoded = (decodedText: string) => {
     if (!decodedText || stoppedRef.current) return;
+    // Coming back from a product sheet with the same barcode still in front of
+    // the camera used to re-open that product instantly, which felt like the
+    // app navigating on its own. Ignore the last barcode for a short window.
+    if (
+      decodedText === lastDecodedRef.current &&
+      Date.now() - lastDecodedAtRef.current < RESCAN_COOLDOWN_MS
+    ) {
+      return;
+    }
+    lastDecodedRef.current = decodedText;
+    lastDecodedAtRef.current = Date.now();
+    try {
+      sessionStorage.setItem(LAST_DECODE_KEY, JSON.stringify({ code: decodedText, at: Date.now() }));
+    } catch { /* ignore */ }
     stoppedRef.current = true;
     try { controlsRef.current?.stop(); } catch {}
     controlsRef.current = null;

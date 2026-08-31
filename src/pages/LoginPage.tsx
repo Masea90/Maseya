@@ -41,6 +41,7 @@ const COPY = {
     emptyFields: 'Introduce tu correo y contraseña',
     alreadyRegistered: 'Este correo ya tiene una cuenta. Inicia sesión con tu contraseña o con Google.',
     emailPlaceholder: 'tu@email.com',
+    healthNotice: 'Al crear tu cuenta aceptas que usemos tu perfil de salud para personalizar tus análisis. Puedes retirarlo cuando quieras desde tu perfil.',
   },
   en: {
     subtitle: 'Welcome back',
@@ -72,6 +73,7 @@ const COPY = {
     emptyFields: 'Enter your email and password',
     alreadyRegistered: 'This email already has an account. Sign in with your password or with Google.',
     emailPlaceholder: 'you@email.com',
+    healthNotice: 'By creating your account you agree that we use your health profile to personalize your analyses. You can withdraw it anytime from your profile.',
   },
   fr: {
     subtitle: 'Bon retour',
@@ -103,6 +105,7 @@ const COPY = {
     emptyFields: 'Saisis ton e-mail et ton mot de passe',
     alreadyRegistered: 'Cet e-mail a déjà un compte. Connecte-toi avec ton mot de passe ou avec Google.',
     emailPlaceholder: 'toi@email.com',
+    healthNotice: 'En créant ton compte, tu acceptes que nous utilisions ton profil de santé pour personnaliser tes analyses. Tu peux le retirer à tout moment depuis ton profil.',
   },
 };
 
@@ -187,7 +190,8 @@ const LoginPage = () => {
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     try {
-      const result = await signInWithGoogle(nextPath);
+      const result = await signInWithGoogle(nextPath, isSignUp);
+
       if (!result.success) {
         toast.error(result.error || T.googleSignInFailed);
       }
@@ -352,6 +356,15 @@ const LoginPage = () => {
               </>
             )}
           </Button>
+          {isSignUp && (
+            <p className="text-[11px] text-muted-foreground leading-snug text-center">
+              {T.healthNotice}{' '}
+              <a href="/privacy" className="underline underline-offset-2" target="_blank" rel="noopener noreferrer">
+                {user.language === 'fr' ? 'Politique de confidentialité' : user.language === 'en' ? 'Privacy policy' : 'Política de privacidad'}
+              </a>
+              .
+            </p>
+          )}
         </form>
 
         {/* Divider */}

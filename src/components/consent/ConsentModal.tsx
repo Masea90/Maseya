@@ -107,6 +107,27 @@ const saveConsentToDb = async (
   }
 };
 
+/**
+ * Sets (or withdraws) the health-data consent everywhere: localStorage + the
+ * `profiles` row, and notifies listeners so open screens re-render instantly.
+ * Used by the signup flow (granted with the informed notice shown next to the
+ * signup button) and by the Profile screen (withdrawal, GDPR art. 7.3).
+ */
+export const setHealthDataConsent = async (granted: boolean, userId?: string | null) => {
+  const current = getStoredConsent();
+  saveConsent({
+    analytics: !!current?.analytics,
+    personalization: current?.personalization ?? true,
+    health_data: granted,
+    date: new Date().toISOString(),
+  });
+  if (userId) {
+    await saveConsentToDb(userId, !!current?.analytics, current?.personalization ?? true, granted);
+  }
+  window.dispatchEvent(new Event('maseya:consent-updated'));
+};
+
+
 export const ConsentModal = ({ onAcceptEssential }: ConsentModalProps) => {
   const [visible, setVisible] = useState(false);
   const [showDetails, setShowDetails] = useState(false);

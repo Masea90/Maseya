@@ -286,12 +286,24 @@ const LockedCircle = ({ label }: { label: string }) => {
   );
 };
 
+/**
+ * Neutral placeholder while the session/consent state is still resolving.
+ * Never a lock and never a number: a freshly registered user must not see the
+ * "create an account" lock for a few hundred milliseconds.
+ */
+const PendingCircle = ({ label }: { label: string }) => (
+  <div className="flex flex-col items-center gap-1.5">
+    <div className="w-32 h-32 rounded-full flex items-center justify-center bg-muted/40 ring-4 ring-muted-foreground/10 animate-pulse" />
+    <div className="text-xs font-semibold text-muted-foreground">{label}</div>
+  </div>
+);
+
 const ResultPage = () => {
   const { barcode } = useParams<{ barcode: string }>();
   const navigate = useNavigate();
   const location = useLocation();
   const skipHistory = (location.state as { skipHistory?: boolean } | null)?.skipHistory === true;
-  const { isAuthenticated, currentUser } = useAuth();
+  const { isAuthenticated, currentUser, consentReady } = useAuth();
   const { user } = useUser();
   const c = COPY[user.language] ?? COPY.es;
   
@@ -691,6 +703,10 @@ const ResultPage = () => {
   // Personalization is active only when a real personal breakdown was computed
   // (consent + allowed profile). Otherwise the "Para ti" circle shows a lock.
   const personalizationActive = !!personalBreakdown;
+  // Session/consent still resolving (or the health profile not loaded yet for a
+  // signed-in user) → show a neutral placeholder instead of the lock.
+  const personalizationPending = !personalizationActive
+    && (!consentReady || (!!currentUser?.id && healthProfile === null));
   // Voice line: suppressed for supplements. For alcoholic we still want the
   // rotating one-liner (getVoiceLine already handles halal/pregnancy exclusions).
   const voiceLine = supplement ? null : getVoiceLine(
@@ -887,12 +903,14 @@ const ResultPage = () => {
                         </div>
                         <div className="text-xs font-semibold text-primary">{c.paraTi}</div>
                       </div>
+                    ) : personalizationPending ? (
+                      <PendingCircle label={c.paraTi} />
                     ) : (
                       <LockedCircle label={c.paraTi} />
                     )}
                   </div>
 
-                  {!personalizationActive && (
+                  {!personalizationActive && !personalizationPending && (
                     <button
                       type="button"
                       onClick={() => {
@@ -1098,9 +1116,12 @@ const ResultPage = () => {
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <div className="p-4 pt-0 space-y-2">
-                    {!personalAllowed ? (
+                    {personalizationPending ? (
+                      <div className="h-16 rounded-xl bg-muted/40 animate-pulse" />
+                    ) : !personalAllowed ? (
                       <SignupInvite compact />
                     ) : !healthConsent ? (
+
                       <div className="flex gap-3 items-start p-3 rounded-xl border border-primary/30 bg-primary/5">
                         <HeartPulse className="w-5 h-5 text-primary mt-0.5 shrink-0" />
                         <div className="flex-1 space-y-2">

@@ -523,7 +523,9 @@ export const Alternatives = ({ current, currentScore, profile: profileProp, cons
 
         if (cancelled) return;
         try { sessionStorage.setItem(cacheKey, JSON.stringify(top)); } catch {}
-        track('alternatives_shown', { count: top.length });
+        // Only report a real, rendered list. An empty result renders nothing,
+        // so firing `alternatives_shown` with count 0 was pure noise.
+        if (top.length > 0) track('alternatives_shown', { count: top.length });
         setItems(top);
       } catch (e) {
         if (!cancelled) {
