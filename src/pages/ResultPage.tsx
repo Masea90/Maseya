@@ -1116,9 +1116,12 @@ const ResultPage = () => {
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <div className="p-4 pt-0 space-y-2">
-                    {!personalAllowed ? (
+                    {personalizationPending ? (
+                      <div className="h-16 rounded-xl bg-muted/40 animate-pulse" />
+                    ) : !personalAllowed ? (
                       <SignupInvite compact />
                     ) : !healthConsent ? (
+
                       <div className="flex gap-3 items-start p-3 rounded-xl border border-primary/30 bg-primary/5">
                         <HeartPulse className="w-5 h-5 text-primary mt-0.5 shrink-0" />
                         <div className="flex-1 space-y-2">
