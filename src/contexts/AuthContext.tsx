@@ -276,10 +276,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       logout,
     }}>
 
-      signUp,
-      signInWithGoogle,
-      logout,
-    }}>
       {children}
     </AuthContext.Provider>
   );
