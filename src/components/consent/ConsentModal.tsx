@@ -229,7 +229,7 @@ export const ConsentModal = ({ onAcceptEssential }: ConsentModalProps) => {
         role="dialog"
         aria-live="polite"
         aria-modal="false"
-        className="fixed inset-x-0 bottom-0 z-50 px-3 pb-[max(env(safe-area-inset-bottom),12px)] pt-2 animate-fade-in"
+        className="fixed inset-x-0 bottom-0 z-50 px-3 pb-[calc(env(safe-area-inset-bottom)+80px)] pt-2 animate-fade-in"
       >
         <div className="mx-auto max-w-lg rounded-2xl border border-border/60 bg-card/95 backdrop-blur shadow-warm-lg px-4 py-3 space-y-3">
           <div className="flex items-start gap-3">
