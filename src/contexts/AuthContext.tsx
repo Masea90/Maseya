@@ -245,6 +245,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.removeItem('maseya_onboarding');
       localStorage.removeItem('maseya_onboarding_skipped');
       localStorage.removeItem('maseya_consent');
+      localStorage.removeItem(SIGNUP_CONSENT_FLAG);
+
     } catch (e) {
       console.error('[auth] failed to clear profile keys on logout', e);
     }
