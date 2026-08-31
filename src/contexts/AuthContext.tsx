@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { lovable } from '@/integrations/lovable';
-import { getStoredConsent, saveConsent } from '@/components/consent/ConsentModal';
+import { getStoredConsent, saveConsent, setHealthDataConsent } from '@/components/consent/ConsentModal';
 
 
 export interface AuthUser {
@@ -18,6 +18,8 @@ interface AuthContextType {
   session: Session | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  /** False while the health-data consent state is still being resolved from the DB. */
+  consentReady: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signUp: (email: string, password: string) => Promise<{ success: boolean; error?: string; code?: 'already_registered' }>;
   signInWithGoogle: (redirectPath?: string) => Promise<{ success: boolean; error?: string }>;
@@ -26,7 +28,36 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-async function syncConsentFromDb(userId: string) {
+/** Set when a signup is completed, so the very next session grants consent. */
+export const SIGNUP_CONSENT_FLAG = 'maseya_signup_consent';
+/** A brand-new account: signing up counts as the consent moment. */
+const FRESH_ACCOUNT_MS = 15 * 60 * 1000;
+
+const hasPendingSignupConsent = (): boolean => {
+  try {
+    return localStorage.getItem(SIGNUP_CONSENT_FLAG) === '1';
+  } catch {
+    return false;
+  }
+};
+
+const clearPendingSignupConsent = () => {
+  try {
+    localStorage.removeItem(SIGNUP_CONSENT_FLAG);
+  } catch {
+    /* ignore */
+  }
+};
+
+/**
+ * Resolves the health-data consent for a signed-in user.
+ *  - DB says granted → mirror it locally (new device / incognito).
+ *  - Never decided yet AND the account was just created (or this tab just
+ *    completed a signup) → grant it: the informed notice is shown at signup,
+ *    so no extra "activate personalization" click is required.
+ *  - Withdrawn (consent_date set, health_data false) → left untouched.
+ */
+async function syncConsentFromDb(userId: string, accountCreatedAt?: string | null) {
   try {
     const { data, error } = await supabase
       .from('profiles')
@@ -35,17 +66,27 @@ async function syncConsentFromDb(userId: string) {
       .maybeSingle();
     if (error || !data) return;
     const stored = getStoredConsent();
-    // Only sync when DB has health consent granted and local doesn't reflect it,
-    // so hasHealthDataConsent() returns true on new devices/incognito sessions.
-    if (data.consent_health_data && !stored?.health_data) {
-      saveConsent({
-        analytics: !!data.consent_analytics,
-        personalization: data.consent_personalization ?? true,
-        health_data: true,
-        date: data.consent_date || new Date().toISOString(),
-      });
-      // Notify listeners (e.g. ResultPage) that consent changed.
-      window.dispatchEvent(new Event('maseya:consent-updated'));
+
+    if (data.consent_health_data) {
+      if (!stored?.health_data) {
+        saveConsent({
+          analytics: !!data.consent_analytics,
+          personalization: data.consent_personalization ?? true,
+          health_data: true,
+          date: data.consent_date || new Date().toISOString(),
+        });
+        window.dispatchEvent(new Event('maseya:consent-updated'));
+      }
+      clearPendingSignupConsent();
+      return;
+    }
+
+    const neverDecided = !data.consent_date;
+    const createdMs = accountCreatedAt ? Date.parse(accountCreatedAt) : NaN;
+    const freshAccount = Number.isFinite(createdMs) && Date.now() - createdMs < FRESH_ACCOUNT_MS;
+    if (neverDecided && (hasPendingSignupConsent() || freshAccount)) {
+      await setHealthDataConsent(true, userId);
+      clearPendingSignupConsent();
     }
   } catch (e) {
     console.error('[auth] consent sync failed', e);
@@ -56,18 +97,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // Anonymous users have nothing to resolve; signed-in users must not see the
+  // lock until the DB consent state is known (race condition on first scan).
+  const [consentReady, setConsentReady] = useState(false);
 
   useEffect(() => {
+    const resolveConsent = (s: Session | null) => {
+      if (!s?.user?.id) {
+        setConsentReady(true);
+        return;
+      }
+      setConsentReady(false);
+      void syncConsentFromDb(s.user.id, s.user.created_at).finally(() => setConsentReady(true));
+    };
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         setIsLoading(false);
-        if (session?.user?.id) {
-          // Defer DB reads (Supabase recommends not calling await inside the callback)
-          setTimeout(() => { void syncConsentFromDb(session.user.id); }, 0);
-        }
+        // Defer DB reads (Supabase recommends not calling await inside the callback)
+        setTimeout(() => resolveConsent(session), 0);
       }
     );
 
@@ -76,9 +127,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setIsLoading(false);
-      if (session?.user?.id) {
-        void syncConsentFromDb(session.user.id);
-      }
+      resolveConsent(session);
     });
 
     return () => subscription.unsubscribe();
@@ -91,6 +140,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     createdAt: user.created_at,
     emailConfirmedAt: user.email_confirmed_at || null,
   } : null;
+
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     const normalizedEmail = email.toLowerCase().trim();
