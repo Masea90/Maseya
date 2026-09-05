@@ -273,8 +273,15 @@ export async function lookupProduct(barcode: string): Promise<ProductData | null
   const publicRich = !!publicHit && isRichPublicHit(publicHit);
   const publicHasIngredients = !!publicHit && (publicHit.ingredients_text || '').trim().length > 0;
 
-  // Fast path: rich public with ingredients → return it directly.
-  if (publicRich && publicHasIngredients) return publicHit!;
+  // Fast path: rich public with ingredients → return it directly, BUT only if
+  // the public source already carries a usable per-100 g table. Otherwise we
+  // must still read maseya_products: that is where a nutrition table the user
+  // photographed lives, and skipping it made the result keep asking for a
+  // photo the user had already taken (real reports: "Clara de huevo
+  // pasteurizada", "Queso en polvo especial pasta").
+  if (publicRich && publicHasIngredients && publicHasNutritionTable(publicHit!)) {
+    return publicHit!;
+  }
 
   const maseya = await fetchFromMaseya(barcode);
   const maseyaHasIngredients = !!maseya && (maseya.ingredients_text || '').trim().length > 0;
