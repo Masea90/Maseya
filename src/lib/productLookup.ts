@@ -319,7 +319,8 @@ function mergePublicIntoMaseya(maseya: ProductData, publicHit: ProductData): Pro
   };
 }
 
-export async function lookupProduct(barcode: string): Promise<ProductData | null> {
+export async function lookupProduct(barcode: string, language?: string): Promise<ProductData | null> {
+  const lang = normalizeUiLang(language);
   // Public sources first (OFF/OBF) — they carry Nutriscore and richer data.
   // But OFF/OBF can also return empty "shell" entries or hits that have a
   // nutriscore/nutriments but NO ingredients. In both cases a maseya
@@ -331,12 +332,12 @@ export async function lookupProduct(barcode: string): Promise<ProductData | null
   const off = await fetchFrom('world.openfoodfacts.org', barcode);
   let publicHit: ProductData | null = null;
   if (off?.status === 1 && off.product) {
-    publicHit = normalize(off, barcode, 'off', 'food');
+    publicHit = normalize(off, barcode, 'off', 'food', lang);
   }
   if (!publicHit) {
     const obf = await fetchFrom('world.openbeautyfacts.org', barcode);
     if (obf?.status === 1 && obf.product) {
-      publicHit = normalize(obf, barcode, 'obf', 'cosmetic');
+      publicHit = normalize(obf, barcode, 'obf', 'cosmetic', lang);
     }
   }
 
