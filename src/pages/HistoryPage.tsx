@@ -601,6 +601,8 @@ const HistoryPage = () => {
         )}
         </>
         )}
+      </div>
+
 
     </AppLayout>
   );
