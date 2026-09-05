@@ -25,6 +25,9 @@ Rules for "category_tag":
 - Choose the MOST SPECIFIC reasonable category (e.g. "en:coconut-oils" not just "en:vegetable-oils"; "en:face-creams" not just "en:cosmetics").
 - Examples: "en:vegetable-oils", "en:coconut-oils", "en:biscuits", "en:yogurts", "en:breakfast-cereals", "en:shampoos", "en:face-creams", "en:body-lotions", "en:toothpastes".
 - If unsure, fall back to a more generic valid category. Never invent tags.
+Rules for "product_name" and "brand":
+- Read them from the FRONT image of the pack, exactly as written (keep accents and capitalisation, drop marketing slogans and net weight).
+- If they cannot be read clearly, return null. NEVER invent, guess or translate a name.
 Rules for "is_supplement" (boolean):
 - true when the label shows unambiguous FOOD SUPPLEMENT signals in any language (es/pt/en/fr): "complemento alimenticio", "complementos alimenticios", "suplemento alimentar", "food supplement", "complément alimentaire", "no sobrepasar la cantidad diaria recomendada", "dosis diaria", "toma diaria", "VRN", "Valor de Referencia de Nutriente", "% NRV", "comprimido efervescente", "cápsulas", "comprimidos recubiertos", "no deben utilizarse como sustitutos de una dieta variada".
 - true when the product format is clearly capsules / tablets / vials / supplement sachets.
