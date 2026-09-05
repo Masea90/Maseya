@@ -599,7 +599,9 @@ const HistoryPage = () => {
             </div>
           ))
         )}
-      </div>
+        </>
+        )}
+
     </AppLayout>
   );
 };
