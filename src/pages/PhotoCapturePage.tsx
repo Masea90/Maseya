@@ -242,6 +242,8 @@ const COPY = {
     shoot: 'Déclencher',
     flip: 'Changer de caméra',
     unnamedProduct: 'Produit photographié',
+    onlyMissingHeading: 'Il ne manque que le tableau nutritionnel',
+    onlyMissingSub: "Photographie-le et nous complétons l'analyse de ce produit",
 
   },
 };
