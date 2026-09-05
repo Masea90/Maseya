@@ -1546,6 +1546,23 @@ const PREG_HARD_CHEESE_TEXT: Record<PregLang, string> = {
 const pregLang = (l?: string): PregLang =>
   l === 'en' || l === 'fr' ? l : 'es';
 
+/**
+ * "Sin azúcar" diet: a WARNING is not a block. Real report ("Lima limón"):
+ * users could not tell why one sugary product is "not suitable" and another
+ * one only "regular". Say the threshold out loud.
+ */
+const NO_SUGAR_WARN_TEXT: Record<PregLang, (g: string, term: string) => string> = {
+  es: (g, term) => `Contiene azúcar (${g} g/100 g, detectado: "${term}") pero por debajo del umbral de bloqueo (22,5 g/100 g y sin azúcar añadido entre los 3 primeros ingredientes): te avisamos sin marcarlo como no apto`,
+  en: (g, term) => `Contains sugar (${g} g/100 g, found: "${term}") but below the blocking threshold (22.5 g/100 g and no added sugar among the first 3 ingredients): we warn you without marking it as unsuitable`,
+  fr: (g, term) => `Contient du sucre (${g} g/100 g, détecté : « ${term} ») mais sous le seuil de blocage (22,5 g/100 g et pas de sucre ajouté parmi les 3 premiers ingrédients) : on te prévient sans le marquer comme non adapté`,
+};
+
+const NO_SUGAR_NATURAL_TEXT: Record<PregLang, (g: string) => string> = {
+  es: (g) => `Azúcares naturales presentes (${g} g/100 g), por debajo del umbral de bloqueo: es un aviso, no un descarte`,
+  en: (g) => `Naturally occurring sugars (${g} g/100 g), below the blocking threshold: this is a warning, not a rejection`,
+  fr: (g) => `Sucres naturellement présents (${g} g/100 g), sous le seuil de blocage : c’est un avertissement, pas un rejet`,
+};
+
 
 export interface PregnancyFinding {
   id: string;
@@ -2533,10 +2550,11 @@ export function calculatePersonalScoreBreakdown(
         addHardFail(`Alto en azúcar / azúcar añadido — no compatible con tu dieta sin azúcar (detectado: ${reason})`);
         sugarPenaltyApplied = 100;
       } else if (midSugars && addedAnywhere) {
-        addNeg(`Contiene azúcar añadido (${sugars?.toFixed(1)}g/100g, detectado: "${addedAnywhere}") — no ideal para tu dieta sin azúcar`, -30);
+        const g = (sugars ?? 0).toFixed(1);
+        addNeg(NO_SUGAR_WARN_TEXT[pregLang(profile.language)](g, addedAnywhere), -30);
         sugarPenaltyApplied = 30;
       } else if (sugars != null && sugars > 5 && !addedAnywhere) {
-        addNeg(`Azúcares naturales presentes (${sugars.toFixed(1)}g/100g)`, -10);
+        addNeg(NO_SUGAR_NATURAL_TEXT[pregLang(profile.language)](sugars.toFixed(1)), -10);
         sugarPenaltyApplied = 10;
       }
     }
