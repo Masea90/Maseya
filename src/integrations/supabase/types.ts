@@ -254,6 +254,63 @@ export type Database = {
         }
         Relationships: []
       }
+      mira_cache: {
+        Row: {
+          analysis: string
+          barcode: string
+          cache_key: string
+          created_at: string
+          hits: number
+          id: string
+          language: string
+          last_used_at: string
+        }
+        Insert: {
+          analysis: string
+          barcode: string
+          cache_key: string
+          created_at?: string
+          hits?: number
+          id?: string
+          language: string
+          last_used_at?: string
+        }
+        Update: {
+          analysis?: string
+          barcode?: string
+          cache_key?: string
+          created_at?: string
+          hits?: number
+          id?: string
+          language?: string
+          last_used_at?: string
+        }
+        Relationships: []
+      }
+      mira_quota: {
+        Row: {
+          count: number
+          day: string
+          id: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          count?: number
+          day?: string
+          id?: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          count?: number
+          day?: string
+          id?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       monthly_scan_counts: {
         Row: {
           count: number
@@ -679,6 +736,20 @@ export type Database = {
           step: string
           step_order: number
           window_days: number
+        }[]
+      }
+      admin_mira_cache_stats: {
+        Args: never
+        Returns: {
+          button_click_7d: number
+          button_shown_7d: number
+          click_rate_7d: number
+          entries: number
+          entries_7d: number
+          hit_rate: number
+          hits: number
+          hits_7d: number
+          shown_cached_7d: number
         }[]
       }
       admin_pulse: {

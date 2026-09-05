@@ -44,6 +44,13 @@ type ActivityRow = {
   score: number | null;
 };
 
+type MiraStats = {
+  entries: number; hits: number; hit_rate: number | null;
+  entries_7d: number; hits_7d: number;
+  button_shown_7d: number; button_click_7d: number; shown_cached_7d: number;
+  click_rate_7d: number | null;
+};
+
 type UsageRow = {
   window_days: number;
   sessions: number;
@@ -142,6 +149,7 @@ export default function AdminPage() {
   const [events, setEvents] = useState<EventRow[]>([]);
   const [funnel, setFunnel] = useState<FunnelRow[]>([]);
   const [denials, setDenials] = useState<DenialRow[]>([]);
+  const [mira, setMira] = useState<MiraStats | null>(null);
 
   const loadCandidates = useCallback(async (status: 'pending' | 'approved' | 'rejected') => {
     const [list, counts] = await Promise.all([
@@ -200,7 +208,7 @@ export default function AdminPage() {
   }, []);
 
   const loadAll = useCallback(async () => {
-    const [p, a, t, u, e, f, d] = await Promise.all([
+    const [p, a, t, u, e, f, d, m] = await Promise.all([
       supabase.rpc('admin_pulse'),
       supabase.rpc('admin_activity_feed', { p_limit: 30 }),
       supabase.rpc('admin_top_scanned', { p_limit: 10 }),
@@ -208,6 +216,7 @@ export default function AdminPage() {
       supabase.rpc('admin_recent_events', { p_limit: 20 }),
       supabase.rpc('admin_funnel'),
       supabase.rpc('admin_camera_denials'),
+      supabase.rpc('admin_mira_cache_stats'),
     ]);
     if (Array.isArray(p.data) && p.data[0]) setPulse(p.data[0] as unknown as Pulse);
     if (a.data) setActivity(a.data as unknown as ActivityRow[]);
@@ -216,6 +225,7 @@ export default function AdminPage() {
     if (e.data) setEvents(e.data as unknown as EventRow[]);
     if (f.data) setFunnel(f.data as unknown as FunnelRow[]);
     if (d.data) setDenials(d.data as unknown as DenialRow[]);
+    if (Array.isArray(m.data) && m.data[0]) setMira(m.data[0] as unknown as MiraStats);
     await Promise.all([loadCounts(), loadFeedback(tab === 'pending', 0), loadCandidates(candTab)]);
   }, [loadCounts, loadFeedback, tab, loadCandidates, candTab]);
 
@@ -530,6 +540,29 @@ export default function AdminPage() {
                   </div>
                 </div>
               ))
+            )}
+
+            {mira && (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground">Mira · caché de análisis</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <StatCard label="Análisis guardados" value={Number(mira.entries)} />
+                  <StatCard label="Reutilizaciones" value={Number(mira.hits)} accent />
+                  <div className="rounded-xl border border-border p-3">
+                    <p className="text-[10px] uppercase text-muted-foreground">Acierto de caché</p>
+                    <p className="text-lg font-semibold">{mira.hit_rate ?? 0}%</p>
+                  </div>
+                  <div className="rounded-xl border border-border p-3">
+                    <p className="text-[10px] uppercase text-muted-foreground">Clics en el botón (7 d)</p>
+                    <p className="text-lg font-semibold">
+                      {mira.click_rate_7d ?? 0}%{' '}
+                      <span className="text-xs text-muted-foreground">
+                        ({Number(mira.button_click_7d)} / {Number(mira.button_shown_7d)})
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              </div>
             )}
 
             {[7, 30].map((win) => {
