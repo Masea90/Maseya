@@ -284,6 +284,84 @@ const HistoryPage = () => {
       });
   }, [currentUser?.id]);
 
+  // Favorites: saved barcodes + the latest scan row of each one, so the card
+  // shows the same data and the SAME recomputed score as the history list.
+  const loadFavorites = useCallback(async () => {
+    if (!currentUser?.id) { setFavItems([]); setFavLoading(false); return; }
+    setFavLoading(true);
+    const { data: favs, error } = await supabase
+      .from('favorites')
+      .select('barcode, created_at')
+      .eq('user_id', currentUser.id)
+      .order('created_at', { ascending: false })
+      .limit(200);
+    if (error) {
+      console.error('[favorites] load', error);
+      setFavItems([]);
+      setFavLoading(false);
+      return;
+    }
+    const barcodes = (favs ?? []).map((f) => f.barcode);
+    if (barcodes.length === 0) { setFavItems([]); setFavLoading(false); return; }
+
+    const { data: scans } = await supabase
+      .from('scan_history')
+      .select('id,barcode,product_name,product_image,category,source,scanned_at,scores,product_data')
+      .eq('user_id', currentUser.id)
+      .in('barcode', barcodes)
+      .order('scanned_at', { ascending: false })
+      .limit(500);
+    const latest = new Map<string, ScanRow>();
+    for (const row of (scans as ScanRow[] | null) ?? []) {
+      if (row.barcode && !latest.has(row.barcode)) latest.set(row.barcode, row);
+    }
+    const rows: HistoryItem[] = (favs ?? []).map((f) => {
+      const scan = latest.get(f.barcode);
+      return {
+        id: `fav:${f.barcode}`,
+        barcode: f.barcode,
+        product_name: scan?.product_name ?? null,
+        product_image: scan?.product_image ?? null,
+        category: scan?.category ?? null,
+        source: scan?.source ?? null,
+        scanned_at: f.created_at,
+        scores: scan?.scores ?? null,
+        product_data: scan?.product_data,
+        scanCount: 1,
+        groupIds: [],
+      };
+    });
+    setFavItems(rows);
+    setFavLoading(false);
+  }, [currentUser?.id]);
+
+  useEffect(() => {
+    void loadFavorites();
+    const refresh = () => { void loadFavorites(); };
+    window.addEventListener('maseya:favorites-updated', refresh);
+    return () => window.removeEventListener('maseya:favorites-updated', refresh);
+  }, [loadFavorites]);
+
+  const removeFavorite = async (barcode: string) => {
+    if (!currentUser?.id) return;
+    const prev = favItems;
+    setFavItems((cur) => cur.filter((f) => f.barcode !== barcode));
+    const { error } = await supabase
+      .from('favorites')
+      .delete()
+      .eq('user_id', currentUser.id)
+      .eq('barcode', barcode);
+    if (error) {
+      console.error('[favorites] remove', error);
+      setFavItems(prev);
+      toast({ title: c.favError, variant: 'destructive' });
+      return;
+    }
+    track('favorite_removed', { barcode });
+    toast({ title: c.favRemoved });
+  };
+
+
   const deleteGroup = async (item: HistoryItem) => {
     const prev = items;
     setItems((cur) => cur.filter((i) => i.id !== item.id));
