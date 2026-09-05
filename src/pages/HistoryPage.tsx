@@ -405,10 +405,90 @@ const HistoryPage = () => {
     toast({ title: c.clearedAll });
   };
 
+  const tabBtn = (id: 'history' | 'favorites', label: string) => (
+    <button
+      key={id}
+      type="button"
+      onClick={() => setTab(id)}
+      aria-pressed={tab === id}
+      className={`flex-1 h-9 rounded-xl text-sm font-medium transition-colors ${
+        tab === id ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground'
+      }`}
+    >
+      {label}
+    </button>
+  );
+
   return (
     <AppLayout title={c.title}>
       <div className="px-4 py-6 space-y-3">
+        <div className="flex gap-1 p-1 rounded-2xl bg-muted">
+          {tabBtn('history', c.tabHistory)}
+          {tabBtn('favorites', c.tabFavorites)}
+        </div>
+
+        {tab === 'favorites' ? (
+          favLoading ? (
+            <HistorySkeleton />
+          ) : !currentUser?.id ? (
+            <div className="px-4 py-12 flex flex-col items-center text-center">
+              <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-4">
+                <Heart className="w-10 h-10 text-muted-foreground/60" />
+              </div>
+              <p className="text-sm text-muted-foreground max-w-xs">{c.favAnon}</p>
+            </div>
+          ) : favItems.length === 0 ? (
+            <div className="px-4 py-12 flex flex-col items-center text-center">
+              <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-4">
+                <Heart className="w-10 h-10 text-muted-foreground/60" />
+              </div>
+              <p className="text-sm text-muted-foreground max-w-xs">{c.favEmpty}</p>
+            </div>
+          ) : (
+            favItems.map((s) => (
+              <div
+                key={s.id}
+                className="bg-card border border-border rounded-2xl p-3 flex gap-3 items-center hover:bg-muted/50 transition-colors"
+              >
+                <Link
+                  to={s.barcode ? `/result/${encodeURIComponent(s.barcode)}` : '#'}
+                  state={{ skipHistory: true }}
+                  className="flex-1 flex gap-3 items-center min-w-0"
+                >
+                  {s.product_image ? (
+                    <img src={s.product_image} alt="" className="w-14 h-14 rounded-xl object-cover bg-muted shrink-0" />
+                  ) : (
+                    <div className="w-14 h-14 rounded-xl bg-muted shrink-0" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{s.product_name || s.barcode}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(s.scanned_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                  {typeof scoreFor(s).value === 'number' && (
+                    <div className="shrink-0 text-right">
+                      <div className="text-sm font-bold text-primary">{scoreFor(s).value}</div>
+                      {scoreFor(s).stale && (
+                        <div className="text-[9px] text-muted-foreground">{c.stale}</div>
+                      )}
+                    </div>
+                  )}
+                </Link>
+                <button
+                  aria-label={c.favRemove}
+                  onClick={() => s.barcode && removeFavorite(s.barcode)}
+                  className="p-2 rounded-lg text-primary hover:bg-primary/10 transition-colors shrink-0"
+                >
+                  <Heart className="w-4 h-4" fill="currentColor" />
+                </button>
+              </div>
+            ))
+          )
+        ) : (
+        <>
         {!loading && items.length > 0 && (
+
           <div className="flex items-center justify-end">
             <AlertDialog>
               <AlertDialogTrigger asChild>
