@@ -709,9 +709,10 @@ const ResultPage = () => {
     && hasNutrimentValue('saturated-fat_100g')
     && hasNutrimentValue('sugars_100g')
     && hasNutrimentValue('salt_100g', 'sodium_100g');
+  const ingredientsRawText = (product.ingredients_text || '').trim();
   const missingIngredients = product.category === 'cosmetic'
     ? dataConfidence.level !== 'high'
-    : !hasIngredientDataEarly;
+    : !(ingredientsRawText.length > 0 && !isNutritionalData(ingredientsRawText));
   const missingNutrition = product.category === 'food' && !hasNutritionTable;
   const needsPhoto = missingIngredients || missingNutrition;
   const profile = loadOnboarding();
