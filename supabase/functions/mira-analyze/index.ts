@@ -80,8 +80,23 @@ const CANON_SYNONYMS: Array<[string[], string]> = [
   [['sodium benzoate', 'benzoato sodico', 'benzoato de sodio', 'benzoate de sodium', 'natriumbenzoat'], 'sodium benzoate'],
   [['potassium sorbate', 'sorbato potasico', 'sorbato de potasio', 'sorbate de potassium', 'kaliumsorbat'], 'potassium sorbate'],
   [['caramel', 'caramelo', 'zuckerkulor', 'caramel color', 'colorante caramelo'], 'caramel'],
-  [['palm oil', 'aceite de palma', 'huile de palme', 'palmol', 'palmfett'], 'palm oil'],
+  [['palm oil', 'aceite de palma', 'huile de palme', 'graisse de palme', 'oleo de palma', 'palmol', 'palmfett', 'palmole', 'grasa de palma'], 'palm oil'],
+  // --- Basic nutritional terms (es/en/fr/pt/de) ----------------------------
+  [['azucar', 'sucre', 'acucar', 'sugar', 'zucker', 'azucares', 'sucres', 'sugars', 'azucar blanco', 'azucar de cana', 'sucre de canne'], 'sugar'],
+  [['jarabe de glucosa', 'sirope de glucosa', 'sirop de glucose', 'xarope de glucose', 'glucose syrup', 'glukosesirup', 'jarabe de glucosa y fructosa', 'sirop de glucose fructose', 'glucose fructose syrup', 'jarabe de glucosa fructosa'], 'glucose syrup'],
+  [['jarabe de fructosa', 'sirop de fructose', 'xarope de frutose', 'fructose syrup', 'fruktosesirup', 'jarabe de maiz de alta fructosa', 'high fructose corn syrup'], 'fructose syrup'],
+  [['azucar invertido', 'jarabe de azucar invertido', 'xarope de acucar invertido', 'sucre inverti', 'sirop de sucre inverti', 'invert sugar', 'invert sugar syrup', 'invertzucker'], 'invert sugar'],
+  [['dextrosa', 'dextrose', 'glucosa deshidratada', 'traubenzucker'], 'dextrose'],
+  [['maltitol', 'jarabe de maltitol', 'sirop de maltitol', 'xarope de maltitol', 'maltitol syrup', 'maltitsirup'], 'maltitol'],
+  [['aceite de girasol', 'huile de tournesol', 'oleo de girassol', 'sunflower oil', 'sonnenblumenol', 'aceite de girasol alto oleico'], 'sunflower oil'],
+  [['margarina', 'margarine'], 'margarine'],
+  [['nata', 'natas', 'crema de leche', 'creme', 'cream', 'sahne', 'nata pasteurizada'], 'cream'],
+  [['sal', 'sel', 'salt', 'salz', 'sal marina', 'sel marin'], 'salt'],
+  [['harina de trigo', 'farine de ble', 'farinha de trigo', 'wheat flour', 'weizenmehl'], 'wheat flour'],
+  [['lactosa', 'lactose', 'laktose'], 'lactose'],
+  [['proteina de soja', 'proteine de soja', 'proteina de soja isolada', 'soy protein', 'sojaprotein', 'soja protein'], 'soy protein'],
 ];
+
 const SYNONYM_INDEX = new Map<string, string>();
 for (const [variants, canonical] of CANON_SYNONYMS) {
   for (const v of variants) SYNONYM_INDEX.set(v, canonical);
