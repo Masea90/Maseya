@@ -553,7 +553,15 @@ const PhotoCapturePage = () => {
   };
 
 
-  const heading = step === 'front' ? c.front : step === 'nutrition-capture' ? c.nutrition : c.ingredients;
+  const heading = step === 'front'
+    ? c.front
+    : step === 'nutrition-capture'
+      // Deep link from the result CTA: only the missing piece is requested,
+      // so the copy must not talk about "step 3 of the add-product flow".
+      ? (nutritionOnly
+          ? { ...c.nutrition, heading: c.onlyMissingHeading, sub: c.onlyMissingSub }
+          : c.nutrition)
+      : c.ingredients;
   const isCaptureStep = step === 'front' || step === 'ingredients' || step === 'nutrition-capture';
 
 
