@@ -259,6 +259,7 @@ const PhotoCapturePage = () => {
   const addImageFor = searchParams.get('addImageFor');
   const realBarcode = searchParams.get('barcode');
   const nutritionOnly = searchParams.get('step') === 'nutrition';
+  const nutritionOnlyName = (searchParams.get('name') || '').trim();
   const c = COPY[user.language] ?? COPY.es;
 
   const [step, setStep] = useState<Step>(nutritionOnly ? 'nutrition-capture' : 'front');
