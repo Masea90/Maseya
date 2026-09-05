@@ -859,6 +859,84 @@ export function calculateScoreBreakdown(
   // Natural-fat explanation helper: some pure fats (coco, oliva, coconut oil)
   // score D/E on Nutriscore because saturated fats are penalized regardless
   // of origin. Add a clarifying factor so users understand the nuance.
+  // === Explanation layer (no effect on the score) ==========================
+  // Real reports: "an ice cream scoring 82?", "so many red ingredients and
+  // still 60". The numbers are defensible; what was missing was saying WHY.
+  const EXP_TEXT = {
+    es: {
+      basis: (parts: string) => `Por 100 g: ${parts} — el Nutri-Score valora la composición real, no el tipo de producto`,
+      redsCovered: 'Los ingredientes señalados en rojo ya están reflejados en la nota nutricional',
+      redsSmall: 'Los ingredientes señalados pesan poco en la nota: la nutrición del producto manda',
+      kcal: 'kcal', sugar: 'g de azúcar', sat: 'g de grasas saturadas', salt: 'g de sal', fat: 'g de grasa', fiber: 'g de fibra', protein: 'g de proteína',
+    },
+    en: {
+      basis: (parts: string) => `Per 100 g: ${parts} — Nutri-Score rates the actual composition, not the type of product`,
+      redsCovered: 'The ingredients flagged in red are already reflected in the nutrition score',
+      redsSmall: 'The flagged ingredients weigh little in the score: the product nutrition leads',
+      kcal: 'kcal', sugar: 'g sugar', sat: 'g saturated fat', salt: 'g salt', fat: 'g fat', fiber: 'g fibre', protein: 'g protein',
+    },
+    fr: {
+      basis: (parts: string) => `Pour 100 g : ${parts} — le Nutri-Score évalue la composition réelle, pas le type de produit`,
+      redsCovered: 'Les ingrédients signalés en rouge sont déjà pris en compte dans la note nutritionnelle',
+      redsSmall: 'Les ingrédients signalés pèsent peu dans la note : la nutrition du produit prime',
+      kcal: 'kcal', sugar: 'g de sucre', sat: 'g d’acides gras saturés', salt: 'g de sel', fat: 'g de matières grasses', fiber: 'g de fibres', protein: 'g de protéines',
+    },
+  } as const;
+  const T = EXP_TEXT[expLang];
+
+  const fmtNum = (n: number) => {
+    const txt = (Math.round(n * 10) / 10).toString();
+    return expLang === 'es' || expLang === 'fr' ? txt.replace('.', ',') : txt;
+  };
+
+  /**
+   * Concrete per-100 g evidence behind the Nutri-Score grade, so a good grade
+   * on a product people expect to be "bad" (water ice, sorbet) is explained
+   * with the actual numbers instead of a bare letter.
+   */
+  const maybeAddNutriEvidenceNote = () => {
+    if (p.category !== 'food') return;
+    const raw = (p.raw || {}) as Record<string, unknown>;
+    const nutri = (raw.nutriments && typeof raw.nutriments === 'object')
+      ? raw.nutriments as Record<string, unknown>
+      : {};
+    const parts: string[] = [];
+    const kcal = readNumber(nutri, 'energy-kcal_100g');
+    if (kcal != null) parts.push(`${fmtNum(kcal)} ${T.kcal}`);
+    const sugars = readNumber(nutri, 'sugars_100g');
+    if (sugars != null) parts.push(`${fmtNum(sugars)} ${T.sugar}`);
+    const sat = readNumber(nutri, 'saturated-fat_100g');
+    if (sat != null) parts.push(`${fmtNum(sat)} ${T.sat}`);
+    const fat = readNumber(nutri, 'fat_100g');
+    if (sat == null && fat != null) parts.push(`${fmtNum(fat)} ${T.fat}`);
+    const salt = readNumber(nutri, 'salt_100g');
+    if (salt != null) parts.push(`${fmtNum(salt)} ${T.salt}`);
+    const fiber = readNumber(nutri, 'fiber_100g');
+    if (fiber != null && fiber > 0) parts.push(`${fmtNum(fiber)} ${T.fiber}`);
+    const protein = readNumber(nutri, 'proteins_100g');
+    if (protein != null && protein > 0) parts.push(`${fmtNum(protein)} ${T.protein}`);
+    if (parts.length < 2) return;
+    factors.push({ label: T.basis(parts.join(', ')), delta: null, tone: 'neutral' });
+  };
+
+  /**
+   * Red/orange chips whose penalty was removed (already priced by the EFSA
+   * additive layer) or is small next to the nutrition grade: say so, so the
+   * chips on screen and the score stop looking contradictory.
+   */
+  const maybeAddAttenuatedRedsNote = () => {
+    if (p.category !== 'food') return;
+    if (redsRaw === 0 && orangesRaw === 0) return;
+    if (redsRaw > redsEff || orangesRaw > orangesEff) {
+      factors.push({ label: T.redsCovered, delta: null, tone: 'neutral' });
+      return;
+    }
+    const penalty = redsEff * 10 + orangesEff * 5;
+    if (penalty > 0 && penalty <= 10) {
+      factors.push({ label: T.redsSmall, delta: null, tone: 'neutral' });
+    }
+  };
+
   const maybeAddNaturalFatNote = (grade: string) => {
     const raw = (p.raw || {}) as Record<string, unknown>;
     const cats = Array.isArray(raw.categories_tags) ? (raw.categories_tags as string[]) : [];
@@ -882,7 +960,9 @@ export function calculateScoreBreakdown(
       : nutriGrade === 'c' ? 'neutral'
       : 'negative';
     factors.push({ label: `Nutriscore ${nutriGrade.toUpperCase()}`, delta: null, tone: nutriTone });
+    maybeAddNutriEvidenceNote();
     maybeAddNaturalFatNote(nutriGrade);
+    maybeAddAttenuatedRedsNote();
 
     if (reds > 0) {
       factors.push({
@@ -937,7 +1017,9 @@ export function calculateScoreBreakdown(
         delta: null,
         tone,
       });
+      maybeAddNutriEvidenceNote();
       maybeAddNaturalFatNote(computed.grade);
+      maybeAddAttenuatedRedsNote();
       if (reds > 0) {
         factors.push({
           label: `${reds} ingrediente${reds > 1 ? 's' : ''} a evitar`,
