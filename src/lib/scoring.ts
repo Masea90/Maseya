@@ -1240,9 +1240,14 @@ const PREGNANCY_FOOD_RULES: PregRule[] = [
     id: 'high-mercury-fish',
     level: 'A',
     keywords: [
-      'pez espada', 'emperador', 'atún rojo', 'atun rojo', 'tiburón', 'tiburon',
-      'cazón', 'cazon', 'marrajo', 'lucio', 'swordfish', 'bluefin tuna', 'shark', 'pike',
+      'pez espada', 'atún rojo', 'atun rojo', 'tiburón', 'tiburon',
+      'cazón', 'cazon', 'marrajo', 'swordfish', 'bluefin tuna', 'shark',
     ],
+    // "emperador", "lucio" and "pike" also name biscuits, brands and people:
+    // they only count with an explicit fish context.
+    weakKeywords: ['emperador', 'lucio', 'pike'],
+    context: ['pescado', 'pescados', 'poisson', 'fish', 'peix', 'filete', 'filetes', 'lomo', 'lomos', 'pesca'],
+
     text: {
       es: 'Pescado con alto contenido en mercurio: AESAN recomienda evitarlo en el embarazo y la lactancia',
       en: 'High-mercury fish: AESAN advises avoiding it during pregnancy and breastfeeding',
