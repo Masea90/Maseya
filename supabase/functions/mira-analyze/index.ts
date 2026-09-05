@@ -148,11 +148,45 @@ const dedupKey = (s: string) => {
 };
 
 
+// Levenshtein distance (small strings only) used to tolerate typos such as
+// "buthylphenyl methylpropional" vs "butylphenyl methylpropional".
+const levenshtein = (a: string, b: string): number => {
+  if (a === b) return 0;
+  if (!a.length) return b.length;
+  if (!b.length) return a.length;
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    for (let j = 1; j <= b.length; j++) {
+      cur[j] = Math.min(
+        prev[j] + 1,
+        cur[j - 1] + 1,
+        prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1),
+      );
+    }
+    prev = cur;
+  }
+  return prev[b.length];
+};
+
+/** True when two canonical keys are close enough to be the same ingredient. */
+const nearDuplicate = (a: string, b: string) => {
+  if (!a || !b) return false;
+  const maxLen = Math.max(a.length, b.length);
+  if (maxLen < 10) return false;
+  const dist = levenshtein(a, b);
+  if (dist === 0) return true;
+  if (dist <= 2) return true;
+  return 1 - dist / maxLen >= 0.9;
+};
+
 const sameFamily = (a: string, b: string) => {
   if (!a || !b) return false;
   if (a === b) return true;
-  return (a.length > 3 && b.length > 3) && (a.includes(b) || b.includes(a));
+  if ((a.length > 3 && b.length > 3) && (a.includes(b) || b.includes(a))) return true;
+  return nearDuplicate(a, b);
 };
+
 
 
 
