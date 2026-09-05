@@ -145,21 +145,21 @@ const COPY = {
   en: {
     title: 'Add product',
     back: 'Back',
-    stepOf: (n: number) => `Step ${n} of 2`,
+    stepOf: (n: number, total: number) => `Step ${n} of ${total}`,
     front: {
-      heading: 'Photograph the product front',
-      sub: 'Aim at the front of the product',
+      heading: 'Step 1: photo of the front',
+      sub: 'To identify the product (name and brand)',
       tip: 'Include the name and brand',
       cta: 'Photograph the front',
     },
     ingredients: {
-      heading: 'Photograph the ingredients',
+      heading: 'Step 2: photo of the ingredients',
       sub: 'Ingredient list (back or side)',
       hint: 'Look for "Ingredients:"',
       cta: 'Photograph the ingredients',
     },
     nutrition: {
-      heading: 'Add the nutrition table?',
+      heading: 'Step 3 (optional): nutrition table',
       sub: 'Unlock the full product score',
       hint: 'Look for the "per 100 g" column',
       capture: 'Photograph table',
