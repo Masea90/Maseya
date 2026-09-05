@@ -202,7 +202,7 @@ const HistoryPage = () => {
       loadOnboarding() as unknown as Record<string, unknown>,
     );
     const map = new Map<string, { value: number | undefined; stale: boolean }>();
-    for (const s of items) {
+    for (const s of [...items, ...favItems]) {
       const saved = typeof s.scores?.global === 'number' ? s.scores.global : undefined;
       let entry = { value: saved, stale: saved !== undefined };
       try {
@@ -234,7 +234,7 @@ const HistoryPage = () => {
       map.set(s.id, entry);
     }
     return map;
-  }, [items, healthProfile, healthConsent]);
+  }, [items, favItems, healthProfile, healthConsent]);
 
 
   const scoreFor = (s: HistoryItem) =>
