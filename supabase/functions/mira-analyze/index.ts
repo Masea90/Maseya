@@ -313,7 +313,13 @@ serve(async (req) => {
 
 
 
-    const { product, profile, score, firstName, personalScore, topAlerts, factors, nutriments, flaggedIngredients, language } = await req.json();
+    const body = await req.json();
+    const { product, profile, score, firstName, personalScore, topAlerts, factors, nutriments, flaggedIngredients, language } = body;
+    // "peek" only asks whether a cached analysis exists — it NEVER calls the model.
+    const mode = body?.mode === "peek" ? "peek" : "generate";
+    const quotaSubject = typeof body?.sessionId === "string" && body.sessionId
+      ? String(body.sessionId).slice(0, 80)
+      : null;
     // Mira must answer in the user's active app language (defaults to Spanish).
     const LANG_NAME: Record<string, string> = { es: "Spanish", en: "English", fr: "French" };
     const langName = LANG_NAME[String(language)] ?? "Spanish";
