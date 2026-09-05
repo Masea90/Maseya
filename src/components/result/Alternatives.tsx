@@ -317,13 +317,31 @@ const isDisallowedCandidate = (
   const guessed = guessCategoryTagsFromName(pd.name || '', cat);
   if (guessed.length > 0 && !guessed.some(t => tagSet.has(t))) return true;
 
-  // 5. Semantic incompatibility: same parent category is not enough
-  //    (mayonesa vs kétchup). Only applied when the scanned product belongs
-  //    to a known subgroup; otherwise the previous strict behaviour stands.
+  // 5. Semantic incompatibility: sharing a parent category is not enough
+  //    (mayonesa vs kétchup, tostadas vs pasta). The candidate must prove its
+  //    subgroup BY NAME; community tags alone are not accepted, because that
+  //    is exactly how a Sanex shower gel tagged en:shampoos kept surfacing as
+  //    an alternative to shampoos.
   if (currentGroup) {
-    const candidateGroup = subgroupOf(cats, pd.name || '');
-    if (!candidateGroup || candidateGroup.id !== currentGroup.id) return true;
+    const byName = subgroupByName(pd.name || '');
+    if (byName) {
+      if (byName.id !== currentGroup.id) return true;
+    } else {
+      // No name evidence: cosmetics are rejected outright (bottle names are
+      // explicit in this market); food may pass on an exact subgroup tag.
+      if (currentGroup.family === 'cosmetic') return true;
+      const byTags = subgroupByTags(cats);
+      if (!byTags || byTags.id !== currentGroup.id) return true;
+    }
+  } else {
+    // 6. Reverse guard: the scanned product has no known subgroup, but the
+    //    candidate clearly belongs to one that the scanned product does not
+    //    share (candidate "tostadas" for an unclassified savoury dish).
+    const byName = subgroupByName(pd.name || '');
+    const currentByTags = subgroupByTags([...tagSet]);
+    if (byName && currentByTags && byName.id !== currentByTags.id) return true;
   }
+
 
   return false;
 };
