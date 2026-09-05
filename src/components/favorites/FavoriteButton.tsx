@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useUser } from '@/contexts/UserContext';
 import { track } from '@/lib/analytics';
 import { toast } from '@/hooks/use-toast';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { SignupInvite } from '@/components/onboarding/SignupInvite';
 import { cn } from '@/lib/utils';
 
@@ -85,6 +85,9 @@ export const FavoriteButton = ({ barcode, className }: Props) => {
 
       <Dialog open={showInvite} onOpenChange={setShowInvite}>
         <DialogContent className="max-w-sm rounded-2xl">
+          <DialogHeader className="sr-only">
+            <DialogTitle>{c.add}</DialogTitle>
+          </DialogHeader>
           <SignupInvite compact />
         </DialogContent>
       </Dialog>
