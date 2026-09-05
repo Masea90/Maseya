@@ -570,13 +570,13 @@ const PhotoCapturePage = () => {
           <div className="w-full sm:max-w-lg sm:mx-auto px-4 pb-3">
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-[11px] font-medium text-primary uppercase tracking-wider">
-                {c.stepOf(stepNumber)}
+                {c.stepOf(stepNumber, totalSteps)}
               </span>
             </div>
             <div className="h-1.5 rounded-full bg-primary/15 overflow-hidden">
               <div
                 className="h-full bg-primary transition-all duration-300"
-                style={{ width: stepNumber === 1 ? '50%' : '100%' }}
+                style={{ width: `${Math.round((stepNumber / totalSteps) * 100)}%` }}
               />
             </div>
           </div>
