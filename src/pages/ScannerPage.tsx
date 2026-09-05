@@ -95,21 +95,69 @@ const buildAdvancedConstraints = (capabilities: ExtendedMediaTrackCapabilities) 
   return advanced.length ? { advanced } : null;
 };
 
-const isRearStream = (stream: MediaStream) => {
+/**
+ * What camera did we actually get?
+ *   'environment' → rear, 'user' → front, 'unknown' → cannot tell (desktop).
+ * Android Chrome labels look like "camera2 0, facing back"; iOS Safari
+ * reports facingMode but sometimes only after the track goes live.
+ */
+const streamFacing = (stream: MediaStream): 'environment' | 'user' | 'unknown' => {
   const track = stream.getVideoTracks()[0];
-  if (!track) return false;
+  if (!track) return 'unknown';
   const settings = (track.getSettings?.() ?? {}) as MediaTrackSettings & { facingMode?: string };
-  if (settings.facingMode) return settings.facingMode === 'environment';
-  if (track.label) {
-    if (REAR_LABEL.test(track.label)) return true;
-    if (FRONT_LABEL.test(track.label)) return false;
+  if (settings.facingMode === 'environment' || settings.facingMode === 'user') return settings.facingMode;
+  const label = track.label || '';
+  if (label) {
+    if (FRONT_LABEL.test(label)) return 'user';
+    if (REAR_LABEL.test(label)) return 'environment';
   }
-  // Unknown (desktop webcams don't report facingMode) → accept it.
-  return true;
+  return 'unknown';
 };
+
+const describeStream = (stream: MediaStream | null) => {
+  const track = stream?.getVideoTracks()[0];
+  if (!track) return { label: '(no track)', facing: 'unknown', deviceId: '' };
+  const settings = (track.getSettings?.() ?? {}) as MediaTrackSettings & { facingMode?: string };
+  return {
+    label: track.label || '(unlabelled)',
+    facing: streamFacing(stream),
+    reported: settings.facingMode ?? '(none)',
+    deviceId: settings.deviceId ?? '',
+  };
+};
+
+/** Unknown (desktop webcams don't report facingMode) counts as acceptable. */
+const isRearStream = (stream: MediaStream) => streamFacing(stream) !== 'user';
+
+/**
+ * First REAR camera reported by the device.
+ * Android phones expose several rear lenses (wide, tele, macro); the first
+ * "back" entry is the main one, which is what a barcode scanner wants.
+ */
+const findRearDeviceId = async (currentDeviceId?: string): Promise<string | null> => {
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const cams = devices.filter((d) => d.kind === 'videoinput');
+    console.info('[scanner] cameras', cams.map((d) => ({ id: d.deviceId.slice(0, 8), label: d.label })));
+    const rears = cams.filter((d) => REAR_LABEL.test(d.label) && !FRONT_LABEL.test(d.label));
+    const pick = rears.find((d) => d.deviceId !== currentDeviceId) ?? rears[0];
+    if (pick) return pick.deviceId;
+    // No labels (permission granted but labels hidden) → last entry is the
+    // rear camera on most Android devices when more than one is present.
+    const other = cams.filter((d) => d.deviceId !== currentDeviceId);
+    if (cams.length > 1 && other.length) return other[other.length - 1].deviceId;
+    return null;
+  } catch (e) {
+    console.warn('[scanner] enumerateDevices failed', e);
+    return null;
+  }
+};
+
 
 /** Same barcode re-detected within this window right after returning: ignore. */
 const RESCAN_COOLDOWN_MS = 4000;
+/** A barcode must be decoded identically this many times in a row to be accepted. */
+const CONFIRM_READS = 2;
 const LAST_DECODE_KEY = 'maseya_last_decode';
 
 const stopStream = (stream: MediaStream | null) => {
@@ -149,6 +197,9 @@ const ScannerPage = () => {
   // Last barcode opened from this scanner (survives the round-trip to /result).
   const lastDecodedRef = useRef<string | null>(null);
   const lastDecodedAtRef = useRef<number>(0);
+  // Double-read confirmation state (see onDecoded).
+  const pendingCodeRef = useRef<string | null>(null);
+  const pendingCountRef = useRef<number>(0);
   useEffect(() => {
     try {
       const raw = sessionStorage.getItem(LAST_DECODE_KEY);
@@ -213,10 +264,12 @@ const ScannerPage = () => {
   };
 
   /**
-   * Robust camera acquisition chain (iOS Safari friendly):
+   * Robust camera acquisition chain (iOS Safari + Android Chrome):
    *   1. facingMode preference (NEVER `exact` — Safari throws OverconstrainedError)
-   *   2. if the opened camera is not the rear one, silently reopen by deviceId
-   *   3. plain `video: true` as last resort
+   *   2. verify what actually opened; if it is the front camera, reopen by the
+   *      deviceId of the first REAR camera (Android labels: "camera2 0, facing back")
+   *   3. plain `video: true` as last resort — and verify that one too, because
+   *      the default camera on many Android phones is the front one.
    * Each candidate stream must paint frames within ~2.5s or we move on.
    */
   const acquireWorkingStream = async (want: 'environment' | 'user'): Promise<MediaStream> => {
@@ -241,30 +294,41 @@ const ScannerPage = () => {
       return stream;
     };
 
-    // 1. Preference, not requirement.
-    let stream = await tryStream({ video: { ...base, facingMode: want }, audio: false });
-
-    // 2. Verify we got the camera we asked for; otherwise switch by deviceId.
-    if (stream && want === 'environment' && !isRearStream(stream)) {
-      console.warn('[scanner] front camera opened, switching to rear by deviceId');
-      try {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const cams = devices.filter((d) => d.kind === 'videoinput');
-        const rear = cams.find((d) => REAR_LABEL.test(d.label))
-          ?? (cams.length > 1 ? cams[cams.length - 1] : undefined);
-        if (rear) {
-          stopStream(stream);
-          stream = null;
-          stream = await tryStream({ video: { ...base, deviceId: { exact: rear.deviceId } }, audio: false });
-        }
-      } catch (e) {
-        console.warn('[scanner] enumerateDevices failed', e);
+    /**
+     * Runs after EVERY successful acquisition path (not only the first one):
+     * that is what was missing on Android, where the plain `video: true`
+     * fallback silently opened the selfie camera.
+     */
+    const ensureRear = async (stream: MediaStream | null): Promise<MediaStream | null> => {
+      if (!stream || want !== 'environment') return stream;
+      const got = describeStream(stream);
+      if (got.facing !== 'user') {
+        console.info('[scanner] camera ok', { requested: want, got });
+        return stream;
       }
-    }
+      console.warn('[scanner] front camera opened, correcting by deviceId', got);
+      const rearId = await findRearDeviceId(got.deviceId || undefined);
+      if (!rearId) {
+        console.warn('[scanner] no rear camera found, keeping', got);
+        return stream;
+      }
+      stopStream(stream);
+      const fixed = await tryStream({ video: { ...base, deviceId: { exact: rearId } }, audio: false });
+      if (!fixed) {
+        console.warn('[scanner] reopen by deviceId failed, retrying default');
+        return null;
+      }
+      console.info('[scanner] camera corrected', { requested: want, got: describeStream(fixed), corrected: true });
+      return fixed;
+    };
 
-    // 3. Anything that works beats a black screen.
-    if (!stream) stream = await tryStream({ video: base, audio: false });
-    if (!stream) stream = await tryStream({ video: true, audio: false });
+    // 1. Preference, not requirement. 2. Verify + correct.
+    let stream = await ensureRear(await tryStream({ video: { ...base, facingMode: want }, audio: false }));
+
+    // 3. Anything that works beats a black screen — but still verify it.
+    if (!stream) stream = await ensureRear(await tryStream({ video: base, audio: false }));
+    if (!stream) stream = await ensureRear(await tryStream({ video: true, audio: false }));
+
 
     // Release any earlier candidates we are not using.
     tried.filter((s) => s !== stream).forEach(stopStream);
@@ -272,6 +336,7 @@ const ScannerPage = () => {
     if (!stream) throw new Error('camera_unavailable');
     activeStreamRef.current = stream;
     facingRef.current = isRearStream(stream) ? 'environment' : 'user';
+    console.info('[scanner] camera started', { requested: want, using: describeStream(stream) });
     return stream;
   };
 
@@ -286,6 +351,22 @@ const ScannerPage = () => {
     ) {
       return;
     }
+
+    // Double-read confirmation: a single decode can carry flipped digits on a
+    // blurry/curved label and open a completely unrelated product. Require the
+    // SAME code twice in a row (costs a couple of frames, ~0.2 s).
+    if (pendingCodeRef.current !== decodedText) {
+      pendingCodeRef.current = decodedText;
+      pendingCountRef.current = 1;
+      console.info('[scanner] first read, waiting for confirmation', decodedText);
+      return;
+    }
+    pendingCountRef.current += 1;
+    if (pendingCountRef.current < CONFIRM_READS) return;
+    pendingCodeRef.current = null;
+    pendingCountRef.current = 0;
+    console.info('[scanner] confirmed barcode', decodedText);
+
     lastDecodedRef.current = decodedText;
     lastDecodedAtRef.current = Date.now();
     try {

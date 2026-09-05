@@ -21,6 +21,12 @@ export interface ProductData {
   allergens_tags: string[];
   /** Structured trace-allergen tags from OFF/OBF (e.g. "en:milk"). Empty for maseya/photo sources. */
   traces_tags: string[];
+  /**
+   * Language code of the ingredient text we ended up showing ('es' | 'en' |
+   * 'fr' | any OFF language code), or null when unknown. Used to warn the user
+   * when the list is in the packaging language instead of theirs.
+   */
+  ingredients_lang?: string | null;
   raw: Record<string, unknown>;
 }
 
@@ -38,6 +44,7 @@ interface OFFResponse {
     ingredients_text_en?: string;
     ingredients_text_fr?: string;
     composition_en?: string;
+    lang?: string;
     ingredients?: Array<{ text?: string; id?: string }>;
     ingredients_tags?: string[];
     labels_tags?: string[];
@@ -45,9 +52,46 @@ interface OFFResponse {
     ingredients_analysis_tags?: string[];
     allergens_tags?: string[];
     traces_tags?: string[];
+    [key: string]: unknown;
   };
 }
 
+export type UiLang = 'es' | 'en' | 'fr';
+
+export const normalizeUiLang = (lang?: string | null): UiLang => {
+  const l = (lang || '').slice(0, 2).toLowerCase();
+  return l === 'en' || l === 'fr' ? l : 'es';
+};
+
+/**
+ * Open Food Facts stores ingredient lists per language and its generic
+ * `ingredients_text` can be in ANY language (real report: oat flakes shown in
+ * Arabic). Prefer the user's language, then a language they are likely to
+ * read, and only then the generic field.
+ */
+const pickIngredientsText = (
+  p: NonNullable<OFFResponse['product']>,
+  lang: UiLang
+): { text: string | null; lang: string | null } => {
+  const order: UiLang[] = [lang, 'es', 'en', 'fr'].filter(
+    (l, i, arr) => arr.indexOf(l) === i
+  ) as UiLang[];
+  for (const code of order) {
+    const value = p[`ingredients_text_${code}`];
+    if (typeof value === 'string' && value.trim()) return { text: value.trim(), lang: code };
+  }
+  if (typeof p.ingredients_text === 'string' && p.ingredients_text.trim()) {
+    // Generic field: OFF's `lang` is the main language of the product sheet.
+    return { text: p.ingredients_text.trim(), lang: (p.lang || null) };
+  }
+  if (typeof p.composition_en === 'string' && p.composition_en.trim()) {
+    return { text: p.composition_en.trim(), lang: 'en' };
+  }
+  const fromArray = Array.isArray(p.ingredients)
+    ? p.ingredients.map(i => i?.text).filter(Boolean).join(', ')
+    : '';
+  return fromArray ? { text: fromArray, lang: null } : { text: null, lang: null };
+};
 
 const fetchFrom = async (host: string, barcode: string): Promise<OFFResponse | null> => {
   try {
@@ -64,20 +108,11 @@ const normalize = (
   json: OFFResponse,
   barcode: string,
   source: ProductSource,
-  category: 'food' | 'cosmetic'
+  category: 'food' | 'cosmetic',
+  lang: UiLang = 'es'
 ): ProductData => {
   const p = json.product ?? {};
-  const ingredientsFromArray = Array.isArray(p.ingredients)
-    ? p.ingredients.map(i => i?.text).filter(Boolean).join(', ')
-    : '';
-  const ingredients_text =
-    p.ingredients_text_es ||
-    p.ingredients_text ||
-    p.ingredients_text_en ||
-    p.ingredients_text_fr ||
-    p.composition_en ||
-    ingredientsFromArray ||
-    null;
+  const picked = pickIngredientsText(p, lang);
   return {
     barcode,
     source,
@@ -86,7 +121,8 @@ const normalize = (
     brand: p.brands || '',
     image: p.image_front_url || p.image_url || null,
     nutriscore_grade: p.nutriscore_grade || null,
-    ingredients_text,
+    ingredients_text: picked.text,
+    ingredients_lang: picked.lang,
     ingredients_tags: p.ingredients_tags || [],
     labels_tags: p.labels_tags || [],
     ingredients_analysis_tags: p.ingredients_analysis_tags || [],
@@ -261,6 +297,7 @@ function mergeMaseyaIntoPublic(publicHit: ProductData, maseya: ProductData): Pro
   return {
     ...publicHit,
     ingredients_text: publicHit.ingredients_text || maseya.ingredients_text || null,
+    ingredients_lang: publicHit.ingredients_text ? publicHit.ingredients_lang ?? null : null,
     image: publicHit.image || maseya.image || null,
     raw,
   };
@@ -283,7 +320,8 @@ function mergePublicIntoMaseya(maseya: ProductData, publicHit: ProductData): Pro
   };
 }
 
-export async function lookupProduct(barcode: string): Promise<ProductData | null> {
+export async function lookupProduct(barcode: string, language?: string): Promise<ProductData | null> {
+  const lang = normalizeUiLang(language);
   // Public sources first (OFF/OBF) — they carry Nutriscore and richer data.
   // But OFF/OBF can also return empty "shell" entries or hits that have a
   // nutriscore/nutriments but NO ingredients. In both cases a maseya
@@ -295,12 +333,12 @@ export async function lookupProduct(barcode: string): Promise<ProductData | null
   const off = await fetchFrom('world.openfoodfacts.org', barcode);
   let publicHit: ProductData | null = null;
   if (off?.status === 1 && off.product) {
-    publicHit = normalize(off, barcode, 'off', 'food');
+    publicHit = normalize(off, barcode, 'off', 'food', lang);
   }
   if (!publicHit) {
     const obf = await fetchFrom('world.openbeautyfacts.org', barcode);
     if (obf?.status === 1 && obf.product) {
-      publicHit = normalize(obf, barcode, 'obf', 'cosmetic');
+      publicHit = normalize(obf, barcode, 'obf', 'cosmetic', lang);
     }
   }
 

@@ -102,6 +102,7 @@ const COPY = {
     esNatural: '¿Es natural?',
     datosInsuficientesNatural: 'Datos insuficientes — fotografía la etiqueta para calcular naturalidad',
     ingredientesLimpios: 'Ingredientes limpios',
+    ingredientesOtroIdioma: 'Ingredientes en el idioma del envase original',
     bioOrganico: 'Bio / Orgánico',
     activaPersonalizacion: 'Activa la personalización para saber si este producto es adecuado para tu perfil.',
     activarPersonalizacion: 'Activar personalización',
@@ -183,6 +184,7 @@ const COPY = {
     esNatural: 'Is it natural?',
     datosInsuficientesNatural: 'Insufficient data — photograph the label to calculate naturalness',
     ingredientesLimpios: 'Clean ingredients',
+    ingredientesOtroIdioma: 'Ingredients in the language of the original packaging',
     bioOrganico: 'Organic',
     activaPersonalizacion: 'Turn on personalization to know if this product suits your profile.',
     activarPersonalizacion: 'Turn on personalization',
@@ -264,6 +266,7 @@ const COPY = {
     esNatural: 'Est-ce naturel ?',
     datosInsuficientesNatural: "Données insuffisantes — photographie l'étiquette pour calculer la naturalité",
     ingredientesLimpios: 'Ingrédients propres',
+    ingredientesOtroIdioma: "Ingrédients dans la langue de l'emballage d'origine",
     bioOrganico: 'Bio / Biologique',
     activaPersonalizacion: 'Active la personnalisation pour savoir si ce produit convient à ton profil.',
     activarPersonalizacion: 'Activer la personnalisation',
@@ -433,6 +436,17 @@ const ResultPage = () => {
 
 
   useEffect(() => {
+    // Clear the previous product BEFORE looking up the new barcode. Without
+    // this, scanning a second code kept the previous sheet on screen while the
+    // new lookup was in flight, which read as "this product has nothing to do
+    // with what I scanned".
+    setProduct(null);
+    setNotFound(false);
+    setEnriching(false);
+    setFromPhoto(false);
+    setPhotoSaved(false);
+    setLoading(true);
+
     if (!barcode) {
       setLoading(false);
       setNotFound(true);
@@ -530,7 +544,7 @@ const ResultPage = () => {
 
     let cancelled = false;
     (async () => {
-      const data = await lookupProduct(barcode);
+      const data = await lookupProduct(barcode, user.language);
       if (cancelled) return;
       if (data) {
         track('scan_success', { barcode, source: data.source, category: data.category });
@@ -551,7 +565,7 @@ const ResultPage = () => {
         console.error('[result] enrich error', e);
       }
       if (cancelled) return;
-      const retry = await lookupProduct(barcode);
+      const retry = await lookupProduct(barcode, user.language);
       if (cancelled) return;
       setEnriching(false);
       if (!retry) {
@@ -693,7 +707,7 @@ const ResultPage = () => {
   const nonScorable = supplement || alcoholic;
   const scoreBreakdown = nonScorable
     ? { score: 0, factors: [] as ReturnType<typeof calculateScoreBreakdown>['factors'] }
-    : calculateScoreBreakdown(product, flagged);
+    : calculateScoreBreakdown(product, flagged, user.language);
   const score = scoreBreakdown.score;
   const sl = scoreLabel(score);
   const nat = naturalness(product, flagged);
@@ -754,6 +768,12 @@ const ResultPage = () => {
     dataConfidence.level === 'high' && dataConfidence.cap == null,
   );
   const rawText = (product.ingredients_text || '').trim();
+  // Ingredient list shown in a language the user did not choose (OFF stores
+  // the list per language and the generic field can be in any of them).
+  const uiLang = (user.language || 'es').slice(0, 2).toLowerCase();
+  const ingLang = (product.ingredients_lang || '').slice(0, 2).toLowerCase();
+  const nonLatinScript = /[\u0600-\u06FF\u0400-\u04FF\u0370-\u03FF\u4E00-\u9FFF\u3040-\u30FF\u0590-\u05FF]/.test(rawText);
+  const ingredientsForeign = rawText.length > 0 && (nonLatinScript || (!!ingLang && ingLang !== uiLang));
   const hasIngredientData = product.category === 'cosmetic'
     ? flagged.length >= 3
     : (flagged.length >= 1 || (rawText.length > 0 && !isNutritionalData(rawText)));
@@ -1111,6 +1131,11 @@ const ResultPage = () => {
                           );
                         })}
                       </div>
+                    )}
+                    {hasIngredientData && ingredientsForeign && (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {c.ingredientesOtroIdioma}
+                      </p>
                     )}
                   </div>
                 </CollapsibleContent>

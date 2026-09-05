@@ -697,10 +697,12 @@ export function isAlcoholicFood(p: ProductData): boolean {
 export function calculateScoreBreakdown(
   p: ProductData,
   flagged: FlaggedIngredient[],
+  language?: string,
 ): ScoreBreakdown {
   const isOrganic = p.labels_tags.some(t => t.includes('organic') || t.includes('bio'));
   const rawText = (p.ingredients_text || '').trim();
   const factors: ScoreFactor[] = [];
+  const expLang = pregLang(language);
 
   // EFSA additive risk: compute once, de-duplicate against RED/ORANGE keyword
   // counters so the same E-number can't penalise twice.
@@ -710,6 +712,8 @@ export function calculateScoreBreakdown(
   const orangesEff = flagged.filter(f => f.level === 'caution' && !isEfsaCoveredChip(f.name, efsaCovered)).length;
   const reds = redsEff;
   const oranges = orangesEff;
+  const redsRaw = flagged.filter(f => f.level === 'avoid').length;
+  const orangesRaw = flagged.filter(f => f.level === 'caution').length;
 
   const applyEfsaAdditives = (score: number, nutriGrade?: string): number => {
     if (additiveRisks.length === 0) return score;
@@ -855,6 +859,84 @@ export function calculateScoreBreakdown(
   // Natural-fat explanation helper: some pure fats (coco, oliva, coconut oil)
   // score D/E on Nutriscore because saturated fats are penalized regardless
   // of origin. Add a clarifying factor so users understand the nuance.
+  // === Explanation layer (no effect on the score) ==========================
+  // Real reports: "an ice cream scoring 82?", "so many red ingredients and
+  // still 60". The numbers are defensible; what was missing was saying WHY.
+  const EXP_TEXT = {
+    es: {
+      basis: (parts: string) => `Por 100 g: ${parts} — el Nutri-Score valora la composición real, no el tipo de producto`,
+      redsCovered: 'Los ingredientes señalados en rojo ya están reflejados en la nota nutricional',
+      redsSmall: 'Los ingredientes señalados pesan poco en la nota: la nutrición del producto manda',
+      kcal: 'kcal', sugar: 'g de azúcar', sat: 'g de grasas saturadas', salt: 'g de sal', fat: 'g de grasa', fiber: 'g de fibra', protein: 'g de proteína',
+    },
+    en: {
+      basis: (parts: string) => `Per 100 g: ${parts} — Nutri-Score rates the actual composition, not the type of product`,
+      redsCovered: 'The ingredients flagged in red are already reflected in the nutrition score',
+      redsSmall: 'The flagged ingredients weigh little in the score: the product nutrition leads',
+      kcal: 'kcal', sugar: 'g sugar', sat: 'g saturated fat', salt: 'g salt', fat: 'g fat', fiber: 'g fibre', protein: 'g protein',
+    },
+    fr: {
+      basis: (parts: string) => `Pour 100 g : ${parts} — le Nutri-Score évalue la composition réelle, pas le type de produit`,
+      redsCovered: 'Les ingrédients signalés en rouge sont déjà pris en compte dans la note nutritionnelle',
+      redsSmall: 'Les ingrédients signalés pèsent peu dans la note : la nutrition du produit prime',
+      kcal: 'kcal', sugar: 'g de sucre', sat: 'g d’acides gras saturés', salt: 'g de sel', fat: 'g de matières grasses', fiber: 'g de fibres', protein: 'g de protéines',
+    },
+  } as const;
+  const T = EXP_TEXT[expLang];
+
+  const fmtNum = (n: number) => {
+    const txt = (Math.round(n * 10) / 10).toString();
+    return expLang === 'es' || expLang === 'fr' ? txt.replace('.', ',') : txt;
+  };
+
+  /**
+   * Concrete per-100 g evidence behind the Nutri-Score grade, so a good grade
+   * on a product people expect to be "bad" (water ice, sorbet) is explained
+   * with the actual numbers instead of a bare letter.
+   */
+  const maybeAddNutriEvidenceNote = () => {
+    if (p.category !== 'food') return;
+    const raw = (p.raw || {}) as Record<string, unknown>;
+    const nutri = (raw.nutriments && typeof raw.nutriments === 'object')
+      ? raw.nutriments as Record<string, unknown>
+      : {};
+    const parts: string[] = [];
+    const kcal = readNumber(nutri, 'energy-kcal_100g');
+    if (kcal != null) parts.push(`${fmtNum(kcal)} ${T.kcal}`);
+    const sugars = readNumber(nutri, 'sugars_100g');
+    if (sugars != null) parts.push(`${fmtNum(sugars)} ${T.sugar}`);
+    const sat = readNumber(nutri, 'saturated-fat_100g');
+    if (sat != null) parts.push(`${fmtNum(sat)} ${T.sat}`);
+    const fat = readNumber(nutri, 'fat_100g');
+    if (sat == null && fat != null) parts.push(`${fmtNum(fat)} ${T.fat}`);
+    const salt = readNumber(nutri, 'salt_100g');
+    if (salt != null) parts.push(`${fmtNum(salt)} ${T.salt}`);
+    const fiber = readNumber(nutri, 'fiber_100g');
+    if (fiber != null && fiber > 0) parts.push(`${fmtNum(fiber)} ${T.fiber}`);
+    const protein = readNumber(nutri, 'proteins_100g');
+    if (protein != null && protein > 0) parts.push(`${fmtNum(protein)} ${T.protein}`);
+    if (parts.length < 2) return;
+    factors.push({ label: T.basis(parts.join(', ')), delta: null, tone: 'neutral' });
+  };
+
+  /**
+   * Red/orange chips whose penalty was removed (already priced by the EFSA
+   * additive layer) or is small next to the nutrition grade: say so, so the
+   * chips on screen and the score stop looking contradictory.
+   */
+  const maybeAddAttenuatedRedsNote = () => {
+    if (p.category !== 'food') return;
+    if (redsRaw === 0 && orangesRaw === 0) return;
+    if (redsRaw > redsEff || orangesRaw > orangesEff) {
+      factors.push({ label: T.redsCovered, delta: null, tone: 'neutral' });
+      return;
+    }
+    const penalty = redsEff * 10 + orangesEff * 5;
+    if (penalty > 0 && penalty <= 10) {
+      factors.push({ label: T.redsSmall, delta: null, tone: 'neutral' });
+    }
+  };
+
   const maybeAddNaturalFatNote = (grade: string) => {
     const raw = (p.raw || {}) as Record<string, unknown>;
     const cats = Array.isArray(raw.categories_tags) ? (raw.categories_tags as string[]) : [];
@@ -878,7 +960,9 @@ export function calculateScoreBreakdown(
       : nutriGrade === 'c' ? 'neutral'
       : 'negative';
     factors.push({ label: `Nutriscore ${nutriGrade.toUpperCase()}`, delta: null, tone: nutriTone });
+    maybeAddNutriEvidenceNote();
     maybeAddNaturalFatNote(nutriGrade);
+    maybeAddAttenuatedRedsNote();
 
     if (reds > 0) {
       factors.push({
@@ -933,7 +1017,9 @@ export function calculateScoreBreakdown(
         delta: null,
         tone,
       });
+      maybeAddNutriEvidenceNote();
       maybeAddNaturalFatNote(computed.grade);
+      maybeAddAttenuatedRedsNote();
       if (reds > 0) {
         factors.push({
           label: `${reds} ingrediente${reds > 1 ? 's' : ''} a evitar`,
@@ -1459,6 +1545,25 @@ const PREG_HARD_CHEESE_TEXT: Record<PregLang, string> = {
 
 const pregLang = (l?: string): PregLang =>
   l === 'en' || l === 'fr' ? l : 'es';
+
+/**
+ * "Sin azúcar" diet: a WARNING is not a block. Real report ("Lima limón"):
+ * users could not tell why one sugary product is "not suitable" and another
+ * one only "regular". Say the threshold out loud.
+ */
+const decSep = (g: string, l: PregLang) => (l === 'en' ? g : g.replace('.', ','));
+
+const NO_SUGAR_WARN_TEXT: Record<PregLang, (g: string, term: string) => string> = {
+  es: (g, term) => `Contiene azúcar (${decSep(g, 'es')} g/100 g, detectado: "${term}") pero por debajo del umbral de bloqueo (22,5 g/100 g y sin azúcar añadido entre los 3 primeros ingredientes): te avisamos sin marcarlo como no apto`,
+  en: (g, term) => `Contains sugar (${g} g/100 g, found: "${term}") but below the blocking threshold (22.5 g/100 g and no added sugar among the first 3 ingredients): we warn you without marking it as unsuitable`,
+  fr: (g, term) => `Contient du sucre (${decSep(g, 'fr')} g/100 g, détecté : « ${term} ») mais sous le seuil de blocage (22,5 g/100 g et pas de sucre ajouté parmi les 3 premiers ingrédients) : on te prévient sans le marquer comme non adapté`,
+};
+
+const NO_SUGAR_NATURAL_TEXT: Record<PregLang, (g: string) => string> = {
+  es: (g) => `Azúcares naturales presentes (${decSep(g, 'es')} g/100 g), por debajo del umbral de bloqueo: es un aviso, no un descarte`,
+  en: (g) => `Naturally occurring sugars (${g} g/100 g), below the blocking threshold: this is a warning, not a rejection`,
+  fr: (g) => `Sucres naturellement présents (${decSep(g, 'fr')} g/100 g), sous le seuil de blocage : c’est un avertissement, pas un rejet`,
+};
 
 
 export interface PregnancyFinding {
@@ -2447,10 +2552,11 @@ export function calculatePersonalScoreBreakdown(
         addHardFail(`Alto en azúcar / azúcar añadido — no compatible con tu dieta sin azúcar (detectado: ${reason})`);
         sugarPenaltyApplied = 100;
       } else if (midSugars && addedAnywhere) {
-        addNeg(`Contiene azúcar añadido (${sugars?.toFixed(1)}g/100g, detectado: "${addedAnywhere}") — no ideal para tu dieta sin azúcar`, -30);
+        const g = (sugars ?? 0).toFixed(1);
+        addNeg(NO_SUGAR_WARN_TEXT[pregLang(profile.language)](g, addedAnywhere), -30);
         sugarPenaltyApplied = 30;
       } else if (sugars != null && sugars > 5 && !addedAnywhere) {
-        addNeg(`Azúcares naturales presentes (${sugars.toFixed(1)}g/100g)`, -10);
+        addNeg(NO_SUGAR_NATURAL_TEXT[pregLang(profile.language)](sugars.toFixed(1)), -10);
         sugarPenaltyApplied = 10;
       }
     }
