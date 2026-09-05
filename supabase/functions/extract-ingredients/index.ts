@@ -437,24 +437,39 @@ serve(async (req) => {
         if (supplement) return json({ error: "supplement_detected" }, 422);
         return json({ error: "nutrition_rejected", reason: result.reason }, 422);
       }
-      // Persist
+      // Persist. UPSERT, not UPDATE: products found in OFF/OBF have no row in
+      // maseya_products, so the previous UPDATE matched 0 rows and the table
+      // the user photographed was silently dropped — the result page kept
+      // asking for the same photo forever.
+      let persisted = false;
       try {
         const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
         const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
         if (serviceKey && supabaseUrl) {
           const admin = createClient(supabaseUrl, serviceKey);
           const { data: existing } = await admin
-            .from("maseya_products").select("verified").eq("barcode", rawBarcode).maybeSingle();
+            .from("maseya_products")
+            .select("verified, product_name, category")
+            .eq("barcode", rawBarcode).maybeSingle();
           if (!existing?.verified) {
+            const bodyName = typeof body.product_name === "string" ? body.product_name.trim() : "";
+            const payload: Record<string, unknown> = {
+              barcode: rawBarcode,
+              nutriments: result.nutriments,
+              product_name: existing?.product_name || bodyName || "Producto fotografiado",
+              category: existing?.category || "food",
+            };
+            if (!existing) payload.source = "photo_nutrition";
             const { error: upErr } = await admin
               .from("maseya_products")
-              .update({ nutriments: result.nutriments })
-              .eq("barcode", rawBarcode);
-            if (upErr) console.error("[extract] nutriments update failed", upErr.message);
-          }
+              .upsert(payload, { onConflict: "barcode" });
+            if (upErr) console.error("[extract] nutriments upsert failed", upErr.message);
+            else persisted = true;
+          } else persisted = true;
         }
       } catch (e) { console.error("[extract] nutrition persist error", e); }
-      return json({ ok: true, nutriments: result.nutriments }, 200);
+      console.log("[extract] nutrition-only persisted:", persisted);
+      return json({ ok: true, nutriments: result.nutriments, persisted }, 200);
     }
 
     // -------- Standard ingredient extraction ---------------------------------
