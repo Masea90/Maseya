@@ -127,7 +127,7 @@ const COPY = {
     errorUnexpected: 'Error inesperado. Reintenta en unos segundos',
     errorNutritional: 'Parece que fotografiaste la tabla nutricional. Fotografía la lista de ingredientes.',
     errorTooLarge: 'La foto es demasiado grande. Reintenta acercándote al producto.',
-    nutritionRejected: 'No pudimos leer la tabla con seguridad — puedes reintentarlo.',
+    nutritionRejected: 'No hemos podido leer la tabla: asegúrate de que se vean los valores por 100 g y vuelve a intentarlo.',
     supplementDetected: 'Este producto es un complemento alimenticio: no se puntúa con el Nutri-Score.',
     loginCta: 'Iniciar sesión',
     retry: 'Reintentar',
@@ -178,7 +178,7 @@ const COPY = {
     errorUnexpected: 'Unexpected error. Try again in a few seconds',
     errorNutritional: 'Looks like you photographed the nutrition table. Photograph the ingredient list instead.',
     errorTooLarge: 'Photo is too large. Try getting closer to the product.',
-    nutritionRejected: "We couldn't read the table reliably — you can try again.",
+    nutritionRejected: "We couldn't read the table: make sure the per-100 g values are visible and try again.",
     supplementDetected: 'This product is a food supplement: it is not scored with the Nutri-Score.',
     loginCta: 'Log in',
     retry: 'Try again',
@@ -229,7 +229,7 @@ const COPY = {
     errorUnexpected: 'Erreur inattendue. Réessayez dans quelques secondes',
     errorNutritional: "Il semble que vous ayez photographié le tableau nutritionnel. Photographiez la liste d'ingrédients.",
     errorTooLarge: 'La photo est trop grande. Essayez de vous rapprocher du produit.',
-    nutritionRejected: "Nous n'avons pas pu lire le tableau avec certitude — vous pouvez réessayer.",
+    nutritionRejected: "Nous n'avons pas pu lire le tableau : assurez-vous que les valeurs pour 100 g soient visibles et réessayez.",
     supplementDetected: "Ce produit est un complément alimentaire : il n'est pas noté avec le Nutri-Score.",
     loginCta: 'Se connecter',
     retry: 'Réessayer',
@@ -367,7 +367,13 @@ const PhotoCapturePage = () => {
     setStep('analyzing-nutrition');
     // Deep-link nutrition-only mode (from result CTA): POST just the table.
     if (nutritionOnly && realBarcode) {
-      const res = await postExtract({ nutrition_image: nutritionImage, barcode: realBarcode });
+      const res = await postExtract({
+        nutrition_image: nutritionImage,
+        barcode: realBarcode,
+        // Sent so the server can create the row when the product only exists
+        // in OFF/OBF (otherwise the table had nowhere to be saved).
+        product_name: nutritionOnlyName || undefined,
+      });
       if (res.ok === false && res.code === 'supplement_detected') {
         // Supplement table ("por dosis diaria / %VRN") → straight to the
         // supplement branch of the result, no retry loop.
