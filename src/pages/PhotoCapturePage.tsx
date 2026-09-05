@@ -194,21 +194,21 @@ const COPY = {
   fr: {
     title: 'Ajouter un produit',
     back: 'Retour',
-    stepOf: (n: number) => `Étape ${n} sur 2`,
+    stepOf: (n: number, total: number) => `Étape ${n} sur ${total}`,
     front: {
-      heading: 'Photographiez le devant',
-      sub: "Visez l'avant du produit",
+      heading: 'Étape 1 : photo du devant',
+      sub: 'Pour identifier le produit (nom et marque)',
       tip: 'Incluez le nom et la marque',
       cta: 'Photographier le devant',
     },
     ingredients: {
-      heading: 'Photographiez les ingrédients',
+      heading: 'Étape 2 : photo des ingrédients',
       sub: "Liste d'ingrédients (arrière ou côté)",
       hint: 'Cherchez « Ingrédients »',
       cta: 'Photographier les ingrédients',
     },
     nutrition: {
-      heading: 'Ajouter le tableau nutritionnel ?',
+      heading: 'Étape 3 (facultatif) : tableau nutritionnel',
       sub: 'Débloquez la note complète du produit',
       hint: 'Cherchez la colonne « pour 100 g »',
       capture: 'Photographier le tableau',
