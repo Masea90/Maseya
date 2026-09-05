@@ -197,6 +197,9 @@ const ScannerPage = () => {
   // Last barcode opened from this scanner (survives the round-trip to /result).
   const lastDecodedRef = useRef<string | null>(null);
   const lastDecodedAtRef = useRef<number>(0);
+  // Double-read confirmation state (see onDecoded).
+  const pendingCodeRef = useRef<string | null>(null);
+  const pendingCountRef = useRef<number>(0);
   useEffect(() => {
     try {
       const raw = sessionStorage.getItem(LAST_DECODE_KEY);
