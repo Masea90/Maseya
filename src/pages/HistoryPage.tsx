@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useUser } from '@/contexts/UserContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { History as HistoryIcon, Trash2 } from 'lucide-react';
+import { History as HistoryIcon, Trash2, Heart } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import {
@@ -30,6 +30,7 @@ import {
 } from '@/lib/scoring';
 import { hasHealthDataConsent } from '@/components/consent/ConsentModal';
 import { buildActiveProfile } from '@/lib/activeProfile';
+import { track } from '@/lib/analytics';
 
 interface ScanRow {
   id: string;
