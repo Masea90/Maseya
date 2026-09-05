@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1788615123197,
+      "tag": "0000_fix_mislabeled_supplement_juice_shot",
+      "breakpoints": true
+    }
+  ]
+}

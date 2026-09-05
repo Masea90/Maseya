@@ -218,14 +218,35 @@ interface NutritionValidation {
 const SUPPLEMENT_STRONG = [
   "complemento alimenticio", "complementos alimenticios", "suplemento alimentar",
   "food supplement", "complement alimentaire", "complément alimentaire",
-  "valor de referencia de nutriente", "vrn", "nrv",
   "no deben utilizarse como sustitutos de una dieta variada",
 ];
 const SUPPLEMENT_WEAK = [
   "dosis diaria", "toma diaria", "daily dose", "dose journaliere", "dose journalière",
   "comprimido efervescente", "comprimidos efervescentes", "comprimidos recubiertos",
   "capsulas", "cápsulas", "capsules", "no sobrepasar la cantidad diaria recomendada",
+  // %VRN/%NRV alone is common on fortified ordinary food: weak signal only.
+  "valor de referencia de nutriente", "vrn", "nrv",
 ];
+/** Category tags of ordinary food — they veto the supplement classification. */
+const FOOD_CATEGORY_TAG_HINTS = [
+  "biscuit", "cookie", "cake", "pastr", "snack", "chocolate", "candy", "confectioner",
+  "beverage", "drink", "juice", "nectar", "water", "soda", "coffee", "tea",
+  "plant-based-beverage", "soy-milk", "soy-based-drink", "milk-substitute",
+  "dairy-substitute", "plant-based-milk", "milk", "dairy", "yogurt", "yoghurt", "cheese",
+  "breakfast", "cereal", "bread", "pasta", "rice", "legume", "meat", "fish", "seafood",
+  "fruit", "vegetable", "nut", "seed", "sauce", "condiment", "soup", "meal", "dessert",
+  "ice-cream", "spread", "oil", "butter", "egg", "flour", "sugar", "honey", "jam",
+  "crisps", "chips", "pizza", "sandwich", "salad", "charcuterie", "ham",
+];
+/** Whole-food ingredient words: two or more means it is ordinary food. */
+const ORDINARY_FOOD_INGREDIENTS = [
+  "zumo", "jugo", "juice", "puré", "pure", "leche", "milk", "agua", "water",
+  "harina", "flour", "azúcar", "azucar", "sugar", "aceite", "oil", "sal", "salt",
+  "cacao", "cocoa", "trigo", "wheat", "avena", "oats", "arroz", "rice",
+  "fruta", "fruit", "tomate", "manzana", "naranja", "mango", "piña", "melocotón",
+  "yogur", "nata", "mantequilla", "huevo", "egg", "soja", "soy", "almendra",
+];
+
 /** Word-ish match to avoid false positives inside other words. */
 function hasSignal(hay: string, needle: string): boolean {
   const esc = needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -511,11 +532,26 @@ serve(async (req) => {
     // a nutrition table. Persisted by forcing category_tag to
     // "en:dietary-supplements" so future scans of the same barcode land in the
     // supplement branch directly (client isSupplement reads categories_tags).
+    // Guard rails (real false positives: fortified biscuits, soy drink with
+    // omega 3, probiotic fruit shot): a clear FOOD category_tag from the AI,
+    // or an ingredient list made of ordinary foods, vetoes the classification
+    // unless the label literally says "complemento alimenticio".
+    const literalSupplement = SUPPLEMENT_STRONG.some((k) =>
+      hasSignal(`${product_name} ${brand} ${ingredients}`.toLowerCase(), k));
+    const foodishTag = !!category_tag && category_tag !== "en:dietary-supplements"
+      && FOOD_CATEGORY_TAG_HINTS.some((h) => category_tag!.includes(h));
+    const ordinaryFood =
+      ORDINARY_FOOD_INGREDIENTS.filter((w) => ingredients.toLowerCase().includes(w)).length >= 2;
     const is_supplement = category === "food" && (
-      extracted.is_supplement === true ||
-      detectSupplementText(`${product_name} ${brand} ${ingredients}`)
+      literalSupplement || (
+        !foodishTag && !ordinaryFood && (
+          extracted.is_supplement === true ||
+          detectSupplementText(`${product_name} ${brand} ${ingredients}`)
+        )
+      )
     );
     if (is_supplement) category_tag = "en:dietary-supplements";
+
 
     // Optional nutrition extraction (only meaningful for food)
     let nutritionResult: NutritionValidation | null = null;

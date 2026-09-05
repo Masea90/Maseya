@@ -28,18 +28,24 @@ interface Props {
 
 interface Candidate {
   data: ProductData;
+  /** Score shown on the card (personal when consent is on, else general). */
   score: number;
+  /** Objective quality, always general — used for the absolute quality floor. */
+  general: number;
   label: ReturnType<typeof scoreLabel>;
   flagged: ReturnType<typeof flagIngredients>;
 }
 
-// v12: card score parity with the product page (full fields + per-finalist
-// refetch) and strict category/family filtering on EVERY candidate route.
-const CACHE_PREFIX = 'maseya_alts_v14::';
+// v15: single ordered pipeline. Subgroups now cover the main food staples and
+// a candidate must prove its subgroup BY NAME (community tags are unreliable:
+// a Sanex shower gel tagged en:shampoos kept surfacing for shampoos).
+const CACHE_PREFIX = 'maseya_alts_v15::';
 const FETCH_TIMEOUT_MS = 8000;
+/** Absolute quality floor, applied to the GENERAL (objective) score. */
 const MIN_SCORE = 50;
 // TODO: derive country from user locale/settings when we expand beyond Spain.
 const COUNTRY_TAG = 'en:spain';
+
 
 // Categories that are NEVER a valid alternative for food or cosmetics
 // (OBF also hosts household cleaning products — real case: dishwasher tablets
@@ -70,7 +76,7 @@ const normTxt = (s: string) =>
 // only valid if it belongs to the SAME subgroup as the scanned product.
 interface SubGroup {
   id: string;
-  family: 'sauces' | 'dairy' | 'drinks' | 'cosmetic';
+  family: 'sauces' | 'dairy' | 'drinks' | 'staples' | 'cosmetic';
   tags: string[];      // exact OFF/OBF category tags
   names: string[];     // normalized name hints
 }
@@ -85,35 +91,56 @@ const SUBGROUPS: SubGroup[] = [
   // Dairy
   { id: 'yogurt', family: 'dairy', tags: ['en:yogurts', 'en:yoghurts', 'en:plain-yogurts', 'en:fermented-milk-products'], names: ['yogur', 'yoghurt', 'yogurt', 'skyr', 'kefir'] },
   { id: 'cheese', family: 'dairy', tags: ['en:cheeses', 'en:fresh-cheeses', 'en:processed-cheese'], names: ['queso', 'cheese', 'fromage'] },
-  { id: 'milk', family: 'dairy', tags: ['en:milks', 'en:semi-skimmed-milks', 'en:whole-milks', 'en:skimmed-milks', 'en:plant-based-milk-alternatives'], names: ['leche', 'milk', 'bebida de avena', 'bebida de soja', 'bebida de almendra'] },
+  { id: 'milk', family: 'dairy', tags: ['en:milks', 'en:semi-skimmed-milks', 'en:whole-milks', 'en:skimmed-milks', 'en:plant-based-milk-alternatives'], names: ['leche', 'milk', 'bebida de avena', 'bebida de soja', 'bebida de almendra', 'bebida vegetal'] },
   // Drinks
   { id: 'water', family: 'drinks', tags: ['en:waters', 'en:mineral-waters', 'en:spring-waters', 'en:natural-mineral-waters'], names: ['agua', 'water'] },
   { id: 'soda', family: 'drinks', tags: ['en:sodas', 'en:carbonated-drinks', 'en:colas', 'en:soft-drinks'], names: ['refresco', 'cola', 'soda', 'gaseosa'] },
   { id: 'juice', family: 'drinks', tags: ['en:fruit-juices', 'en:juices', 'en:nectars', 'en:fruit-nectars'], names: ['zumo', 'jugo', 'juice', 'nectar'] },
   { id: 'energy', family: 'drinks', tags: ['en:energy-drinks'], names: ['energy', 'energetica', 'energetico'] },
+  // Food staples — added after real cross-category cases ("tostadas" offered
+  // as an alternative to pasta and to a nut cocktail).
+  { id: 'biscuits', family: 'staples', tags: ['en:biscuits', 'en:cookies', 'en:biscuits-and-crackers', 'en:sweet-biscuits', 'en:shortbread-cookies'], names: ['galleta', 'galletas', 'biscuit', 'cookie', 'digestive', 'maria'] },
+  { id: 'toasts', family: 'staples', tags: ['en:toasts', 'en:rusks', 'en:crispbreads', 'en:breads', 'en:sliced-breads'], names: ['tostada', 'tostadas', 'pan ', 'biscote', 'crispbread', 'rusk', 'toast'] },
+  { id: 'pasta', family: 'staples', tags: ['en:pastas', 'en:dry-pasta', 'en:fresh-pasta', 'en:noodles', 'en:spaghetti', 'en:macaroni'], names: ['pasta', 'tallarin', 'tallarines', 'espagueti', 'spaghetti', 'macarron', 'fideos', 'noodle'] },
+  { id: 'rice', family: 'staples', tags: ['en:rices', 'en:white-rices', 'en:whole-rices'], names: ['arroz', 'rice', 'riz'] },
+  { id: 'breakfast-cereals', family: 'staples', tags: ['en:breakfast-cereals', 'en:mueslis', 'en:granolas', 'en:corn-flakes'], names: ['cereales', 'muesli', 'granola', 'copos de'] },
+  { id: 'nuts', family: 'staples', tags: ['en:nuts', 'en:nuts-and-their-products', 'en:mixed-nuts', 'en:roasted-nuts', 'en:salted-nuts', 'en:peanuts', 'en:almonds'], names: ['frutos secos', 'coctel', 'cocteleo', 'cacahuete', 'almendra', 'anacardo', 'pistacho', 'nueces', 'nuts'] },
+  { id: 'crisps', family: 'staples', tags: ['en:crisps', 'en:potato-crisps', 'en:chips-and-fries', 'en:appetizers'], names: ['patatas fritas', 'chips', 'crisps', 'aperitivo'] },
+  { id: 'chocolate', family: 'staples', tags: ['en:chocolates', 'en:dark-chocolates', 'en:milk-chocolates', 'en:chocolate-bars'], names: ['chocolate', 'cacao'] },
   // Cosmetics
   { id: 'shampoo', family: 'cosmetic', tags: ['en:shampoos', 'en:shampoo'], names: ['champu', 'shampoo', 'shampooing'] },
   { id: 'conditioner', family: 'cosmetic', tags: ['en:hair-conditioners', 'en:conditioners', 'en:hair-masks'], names: ['acondicionador', 'conditioner', 'mascarilla capilar'] },
-  { id: 'shower', family: 'cosmetic', tags: ['en:shower-gels', 'en:body-washes', 'en:soaps'], names: ['gel de ducha', 'shower gel', 'jabon'] },
+  { id: 'shower', family: 'cosmetic', tags: ['en:shower-gels', 'en:body-washes', 'en:soaps'], names: ['gel de ducha', 'gel de bano', 'shower gel', 'jabon', 'body wash', 'dermo protector', 'higiene corporal'] },
   { id: 'sunscreen', family: 'cosmetic', tags: ['en:sunscreens', 'en:sun-care', 'en:sun-protection'], names: ['protector solar', 'proteccion solar', 'sunscreen', 'spf', 'solar'] },
   { id: 'face-cream', family: 'cosmetic', tags: ['en:face-creams', 'en:moisturizers', 'en:face-moisturizers', 'en:day-creams', 'en:night-creams'], names: ['crema facial', 'hidratante facial', 'face cream', 'moisturizer'] },
   { id: 'toner', family: 'cosmetic', tags: ['en:toners', 'en:face-toners', 'en:lotions-toniques'], names: ['tonico', 'toner'] },
 ];
 
-// The NAME wins over the tags: OFF/OBF community tags are frequently wrong
-// (real case: a "Sanex gel de ducha" tagged en:shampoos surfacing as an
-// alternative to a shampoo). The label on the bottle is the reliable signal.
-const subgroupOf = (cats: string[], name: string): SubGroup | null => {
+/** Subgroup deduced from the product NAME only — the reliable signal. */
+const subgroupByName = (name: string): SubGroup | null => {
   const n = normTxt(name || '');
+  if (!n) return null;
   for (const g of SUBGROUPS) {
     if (g.names.some(h => n.includes(h))) return g;
   }
+  return null;
+};
+
+/** Subgroup deduced from community category tags — unreliable on its own. */
+const subgroupByTags = (cats: string[]): SubGroup | null => {
   const tagSet = new Set(cats.map(t => t.toLowerCase()));
   for (const g of SUBGROUPS) {
     if (g.tags.some(t => tagSet.has(t))) return g;
   }
   return null;
 };
+
+// The NAME wins over the tags: OFF/OBF community tags are frequently wrong
+// (real case: a "Sanex" shower gel tagged en:shampoos surfacing as an
+// alternative to a shampoo). The label on the bottle is the reliable signal.
+const subgroupOf = (cats: string[], name: string): SubGroup | null =>
+  subgroupByName(name) ?? subgroupByTags(cats);
+
 
 
 
