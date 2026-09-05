@@ -707,7 +707,7 @@ const ResultPage = () => {
   const nonScorable = supplement || alcoholic;
   const scoreBreakdown = nonScorable
     ? { score: 0, factors: [] as ReturnType<typeof calculateScoreBreakdown>['factors'] }
-    : calculateScoreBreakdown(product, flagged);
+    : calculateScoreBreakdown(product, flagged, user.language);
   const score = scoreBreakdown.score;
   const sl = scoreLabel(score);
   const nat = naturalness(product, flagged);
