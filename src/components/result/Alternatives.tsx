@@ -521,19 +521,29 @@ export const Alternatives = ({ current, currentScore, profile: profileProp, cons
           return { general, shown };
         };
 
+        // Diagnostics: how many candidates each stage removes. Logged once per
+        // product so we can tell "no good alternative exists" apart from
+        // "a filter is eating legitimate candidates".
+        const stats = {
+          raw: 0, dupe: 0, incompatible: 0, dataFloor: 0,
+          scored: 0, revalidation: 0, notMeaningful: 0, shown: 0, widened: false,
+        };
+
         const scored: Candidate[] = [];
         const seenCodes = new Set<string>([current.barcode]);
         const addCandidate = (pd: ProductData | null) => {
           if (!pd) return;
-          if (!pd.barcode || seenCodes.has(pd.barcode)) return;
-          if (isDisallowedCandidate(pd, cat, tagSet, currentGroup)) return;
+          stats.raw += 1;
+          if (!pd.barcode || seenCodes.has(pd.barcode)) { stats.dupe += 1; return; }
+          if (isDisallowedCandidate(pd, cat, tagSet, currentGroup)) { stats.incompatible += 1; return; }
           // Data floor per candidate: food needs a nutriscore, cosmetic needs
-          // at least 3 parseable ingredients. Prevents empty "shell" entries
-          // from scoring 100 and drowning real products.
+          // a real parseable INCI list. Prevents empty "shell" entries from
+          // scoring 100 and drowning real products.
           const candidateFlagged = flagIngredients(pd);
-          if (!passesDataFloor(pd, candidateFlagged)) return;
+          if (!passesDataFloor(pd, candidateFlagged)) { stats.dataFloor += 1; return; }
           seenCodes.add(pd.barcode);
           const { general, shown } = scoreOf(pd, candidateFlagged);
+          stats.scored += 1;
           scored.push({ data: pd, score: shown, general, label: scoreLabel(shown), flagged: candidateFlagged });
         };
 
@@ -566,21 +576,30 @@ export const Alternatives = ({ current, currentScore, profile: profileProp, cons
           }
         }
 
+        // Meaningful-improvement rule: clearly better AND good on its own.
+        const meaningful = (c: Candidate) =>
+          isMeaningfulAlternative(c.score, c.general, currentScore);
 
-        // Quality floor. The absolute floor applies to the GENERAL score
-        // (objective quality); the comparison "must be better" applies to the
-        // score we actually show. A strict profile used to push every personal
-        // score below 50 and empty the list even when clearly better products
-        // existed (real case: "Campurrianas" with no alternatives at all).
-        const eligible = scored
-          .filter(c => c.general >= MIN_SCORE && c.score > currentScore)
-          .sort((a, b) => b.score - a.score);
+        // Second, wider sweep inside the SAME subgroup before giving up: the
+        // first pass only reads the 24 most-scanned products of the tightest
+        // tag, which often contains no product good enough to recommend.
+        if (scored.filter(meaningful).length < 2) {
+          stats.widened = true;
+          for (const tag of tagCandidates) {
+            const wider = await fetchTag(tag, 100, 'popularity_key');
+            for (const raw of wider) addCandidate(toProductData(raw, candidateSource, cat));
+            if (scored.filter(meaningful).length >= 4) break;
+          }
+        }
+
+        const eligible = scored.filter(meaningful).sort((a, b) => b.score - a.score);
+        stats.notMeaningful = scored.length - eligible.length;
 
         // Score parity with the product page: the search payload can still be
         // partial, so refetch the FULL record for the finalists and rescore
         // exactly like ResultPage does (real case: a jam shown at 95 on the
         // card and 65 once opened, because additives were missing).
-        const finalists = eligible.slice(0, 6);
+        const finalists = eligible.slice(0, 8);
         await Promise.all(finalists.map(async (c) => {
           if (c.data.source !== 'off' && c.data.source !== 'obf') return;
           try {
@@ -610,10 +629,18 @@ export const Alternatives = ({ current, currentScore, profile: profileProp, cons
           }
         }));
 
+        stats.revalidation = finalists.filter(c => c.general < 0).length;
+
         const top = finalists
-          .filter(c => c.general >= MIN_SCORE && c.score > currentScore)
+          .filter(c => c.general >= 0 && meaningful(c))
           .sort((a, b) => b.score - a.score)
-          .slice(0, 3);
+          .slice(0, MAX_SHOWN);
+        stats.shown = top.length;
+        console.info(
+          `[alternatives] ${current.barcode} "${current.name}" base=${currentScore} bar=${qualityBarFor(currentScore)}`,
+          stats,
+        );
+
 
 
         if (cancelled) return;
