@@ -334,6 +334,96 @@ serve(async (req) => {
     const cleanName = typeof firstName === 'string' && /^[\p{L} '\-]{1,30}$/u.test(firstName.trim())
       ? firstName.trim()
       : null;
+
+    // ---- Analysis cache -----------------------------------------------
+    // The key represents "same product + same circumstances the engine
+    // computed for it". It never contains profile data: only the factors and
+    // alerts the scoring engine already produced for THIS product, plus the
+    // displayed scores, the language and the product identity.
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    );
+    const NAME_TOKEN = "{{name}}";
+    const normSig = (v: unknown) =>
+      String(v).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+    const sigList = (v: unknown) =>
+      (Array.isArray(v) ? v.map(normSig).filter(Boolean) : []).sort().join("|");
+    const cacheBarcode = typeof product.barcode === "string" && product.barcode && product.barcode !== "photo"
+      ? String(product.barcode)
+      : `nm:${normSig(product.product_name || "")}`;
+    const keySource = [
+      `bc:${cacheBarcode}`,
+      `lg:${String(language ?? "es")}`,
+      `cat:${product.category === "food" ? "food" : "cosmetic"}`,
+      `g:${typeof score === "number" ? Math.round(score) : "none"}`,
+      `p:${typeof personalScore === "number" ? Math.round(personalScore) : "none"}`,
+      `f:${sigList(factors)}`,
+      `a:${sigList(topAlerts)}`,
+      `n:${cleanName ? 1 : 0}`,
+    ].join("::");
+    const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(keySource));
+    const cacheKey = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+
+    const jsonRes = (payloadObj: unknown, status = 200) =>
+      new Response(JSON.stringify(payloadObj), {
+        status,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
+    const MAX_AGE_MS = 90 * 24 * 60 * 60 * 1000;
+    let cachedRow: { id: string; analysis: string; hits: number; created_at: string } | null = null;
+    try {
+      const { data } = await admin
+        .from("mira_cache")
+        .select("id, analysis, hits, created_at")
+        .eq("cache_key", cacheKey)
+        .maybeSingle();
+      if (data && Date.now() - new Date(data.created_at).getTime() < MAX_AGE_MS) {
+        cachedRow = data as typeof cachedRow;
+      }
+    } catch (e) {
+      console.error("[mira-cache] lookup failed", e);
+    }
+
+    if (cachedRow) {
+      admin
+        .from("mira_cache")
+        .update({ hits: (cachedRow.hits ?? 0) + 1, last_used_at: new Date().toISOString() })
+        .eq("id", cachedRow.id)
+        .then(undefined, (e: unknown) => console.error("[mira-cache] hit update failed", e));
+      const text = cleanName
+        ? cachedRow.analysis.split(NAME_TOKEN).join(cleanName)
+        : cachedRow.analysis.split(NAME_TOKEN).join("").replace(/^[\s,–—-]+/, "");
+      return jsonRes({ cached: true, analysis: text });
+    }
+
+    if (mode === "peek") return jsonRes({ cached: false });
+
+    // ---- Daily safety cap (cached answers are free and never counted) ----
+    const subject = (isUserToken && payload?.sub ? `u:${payload.sub}` : quotaSubject ? `s:${quotaSubject}` : null);
+    const DAILY_LIMIT = 30;
+    if (subject) {
+      const today = new Date().toISOString().slice(0, 10);
+      try {
+        const { data: q } = await admin
+          .from("mira_quota")
+          .select("id, count")
+          .eq("subject", subject)
+          .eq("day", today)
+          .maybeSingle();
+        if (q && (q.count ?? 0) >= DAILY_LIMIT) {
+          return jsonRes({ cached: false, error: "quota_exceeded" }, 429);
+        }
+        if (q) {
+          await admin.from("mira_quota").update({ count: (q.count ?? 0) + 1, updated_at: new Date().toISOString() }).eq("id", q.id);
+        } else {
+          await admin.from("mira_quota").insert({ subject, day: today, count: 1 });
+        }
+      } catch (e) {
+        console.error("[mira-quota] check failed", e);
+      }
+    }
     const nameLine = cleanName ? `Nombre del usuario: ${cleanName}\n` : '';
     const personalLine = typeof personalScore === 'number'
       ? `Nota personal: ${Math.round(personalScore)}/100\n`
