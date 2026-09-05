@@ -38,7 +38,7 @@ const RED_BOTH = ['paraben', 'bha', 'bht'];
 const COSMETIC_SENSITIZERS_REGULATED = [
   // p-Phenylenediamine (PPD) and relatives
   'p-phenylenediamine', 'ppd', 'para-phenylenediamine', 'p-fenilendiamina',
-  'toluene-2,5-diamine', 'toluene 2 5 diamine', 'toluene-2,5-diamine sulfate',
+  'toluene-2,5-diamine', 'toluene-2.5-diamine', 'toluene 2 5 diamine', 'toluene-2,5-diamine sulfate', 'toluene-2.5-diamine sulfate',
   // Resorcinol — EU restricted sensitizer
   'resorcinol', 'resorcina',
   // Cocamide DEA — IARC group 2B
@@ -1121,7 +1121,7 @@ export function calculateScoreBreakdown(
     // Regulated sensitizers typical of hair dyes: inform, don't alarm.
     const dyeTerm = findAny(rawText, [
       'p-phenylenediamine', 'ppd', 'para-phenylenediamine', 'p-fenilendiamina',
-      'toluene-2,5-diamine', 'toluene 2 5 diamine', 'toluene-2,5-diamine sulfate',
+      'toluene-2,5-diamine', 'toluene-2.5-diamine', 'toluene 2 5 diamine', 'toluene-2,5-diamine sulfate', 'toluene-2.5-diamine sulfate',
       'resorcinol', 'resorcina',
     ]);
     if (dyeTerm) {
