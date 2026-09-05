@@ -638,7 +638,7 @@ export const Alternatives = ({ current, currentScore, profile: profileProp, cons
         stats.shown = top.length;
         console.info(
           `[alternatives] ${current.barcode} "${current.name}" base=${currentScore} bar=${qualityBarFor(currentScore)}`,
-          stats,
+          JSON.stringify(stats),
         );
 
 
