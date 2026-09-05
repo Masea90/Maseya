@@ -140,6 +140,8 @@ const COPY = {
     shoot: 'Disparar',
     flip: 'Girar cámara',
     unnamedProduct: 'Producto fotografiado',
+    onlyMissingHeading: 'Solo falta la tabla nutricional',
+    onlyMissingSub: 'Fotografíala y completamos el análisis de este producto',
 
   },
   en: {
