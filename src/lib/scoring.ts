@@ -697,10 +697,12 @@ export function isAlcoholicFood(p: ProductData): boolean {
 export function calculateScoreBreakdown(
   p: ProductData,
   flagged: FlaggedIngredient[],
+  language?: string,
 ): ScoreBreakdown {
   const isOrganic = p.labels_tags.some(t => t.includes('organic') || t.includes('bio'));
   const rawText = (p.ingredients_text || '').trim();
   const factors: ScoreFactor[] = [];
+  const expLang = pregLang(language);
 
   // EFSA additive risk: compute once, de-duplicate against RED/ORANGE keyword
   // counters so the same E-number can't penalise twice.
@@ -710,6 +712,8 @@ export function calculateScoreBreakdown(
   const orangesEff = flagged.filter(f => f.level === 'caution' && !isEfsaCoveredChip(f.name, efsaCovered)).length;
   const reds = redsEff;
   const oranges = orangesEff;
+  const redsRaw = flagged.filter(f => f.level === 'avoid').length;
+  const orangesRaw = flagged.filter(f => f.level === 'caution').length;
 
   const applyEfsaAdditives = (score: number, nutriGrade?: string): number => {
     if (additiveRisks.length === 0) return score;
