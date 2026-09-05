@@ -516,7 +516,58 @@ Explícame si este cosmético es adecuado para mi piel específicamente y por qu
       console.error("[candidates] skipped", e);
     }
 
-    return new Response(upstream.body, {
+    // Tee the stream: the user gets it live, and a copy is accumulated so the
+    // finished analysis can be stored for the next person with the same key.
+    const [toClient, toCache] = upstream.body.tee();
+    const persist = (async () => {
+      try {
+        const reader = toCache.getReader();
+        const decoder = new TextDecoder();
+        let buf = "";
+        let acc = "";
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          const lines = buf.split("\n");
+          buf = lines.pop() || "";
+          for (const line of lines) {
+            const t = line.trim();
+            if (!t.startsWith("data:")) continue;
+            const p = t.slice(5).trim();
+            if (!p || p === "[DONE]") continue;
+            try {
+              const obj = JSON.parse(p);
+              const delta = obj.choices?.[0]?.delta?.content;
+              if (delta) acc += delta;
+            } catch { /* ignore partial chunks */ }
+          }
+        }
+        const finalText = acc.trim();
+        if (finalText.length < 20) return;
+        // Never store a real first name: it is replaced by a token and
+        // re-injected per user when the entry is served.
+        const stored = cleanName ? finalText.split(cleanName).join(NAME_TOKEN) : finalText;
+        await admin.from("mira_cache").upsert(
+          {
+            cache_key: cacheKey,
+            barcode: cacheBarcode.slice(0, 120),
+            language: String(language ?? "es"),
+            analysis: stored,
+            hits: 0,
+            created_at: new Date().toISOString(),
+            last_used_at: new Date().toISOString(),
+          },
+          { onConflict: "cache_key" },
+        );
+      } catch (e) {
+        console.error("[mira-cache] store failed", e);
+      }
+    })();
+    const rt2 = (globalThis as { EdgeRuntime?: { waitUntil: (p: Promise<unknown>) => void } }).EdgeRuntime;
+    if (rt2?.waitUntil) rt2.waitUntil(persist);
+
+    return new Response(toClient, {
 
       status: 200,
       headers: {
@@ -524,6 +575,7 @@ Explícame si este cosmético es adecuado para mi piel específicamente y por qu
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",
         Connection: "keep-alive",
+        "X-Mira-Cached": "false",
       },
     });
   } catch (e) {
