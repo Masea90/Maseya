@@ -331,6 +331,7 @@ const ScannerPage = () => {
     if (!stream) throw new Error('camera_unavailable');
     activeStreamRef.current = stream;
     facingRef.current = isRearStream(stream) ? 'environment' : 'user';
+    console.info('[scanner] camera started', { requested: want, using: describeStream(stream) });
     return stream;
   };
 
