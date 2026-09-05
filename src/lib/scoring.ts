@@ -1551,16 +1551,18 @@ const pregLang = (l?: string): PregLang =>
  * users could not tell why one sugary product is "not suitable" and another
  * one only "regular". Say the threshold out loud.
  */
+const decSep = (g: string, l: PregLang) => (l === 'en' ? g : g.replace('.', ','));
+
 const NO_SUGAR_WARN_TEXT: Record<PregLang, (g: string, term: string) => string> = {
-  es: (g, term) => `Contiene azúcar (${g} g/100 g, detectado: "${term}") pero por debajo del umbral de bloqueo (22,5 g/100 g y sin azúcar añadido entre los 3 primeros ingredientes): te avisamos sin marcarlo como no apto`,
+  es: (g, term) => `Contiene azúcar (${decSep(g, 'es')} g/100 g, detectado: "${term}") pero por debajo del umbral de bloqueo (22,5 g/100 g y sin azúcar añadido entre los 3 primeros ingredientes): te avisamos sin marcarlo como no apto`,
   en: (g, term) => `Contains sugar (${g} g/100 g, found: "${term}") but below the blocking threshold (22.5 g/100 g and no added sugar among the first 3 ingredients): we warn you without marking it as unsuitable`,
-  fr: (g, term) => `Contient du sucre (${g} g/100 g, détecté : « ${term} ») mais sous le seuil de blocage (22,5 g/100 g et pas de sucre ajouté parmi les 3 premiers ingrédients) : on te prévient sans le marquer comme non adapté`,
+  fr: (g, term) => `Contient du sucre (${decSep(g, 'fr')} g/100 g, détecté : « ${term} ») mais sous le seuil de blocage (22,5 g/100 g et pas de sucre ajouté parmi les 3 premiers ingrédients) : on te prévient sans le marquer comme non adapté`,
 };
 
 const NO_SUGAR_NATURAL_TEXT: Record<PregLang, (g: string) => string> = {
-  es: (g) => `Azúcares naturales presentes (${g} g/100 g), por debajo del umbral de bloqueo: es un aviso, no un descarte`,
+  es: (g) => `Azúcares naturales presentes (${decSep(g, 'es')} g/100 g), por debajo del umbral de bloqueo: es un aviso, no un descarte`,
   en: (g) => `Naturally occurring sugars (${g} g/100 g), below the blocking threshold: this is a warning, not a rejection`,
-  fr: (g) => `Sucres naturellement présents (${g} g/100 g), sous le seuil de blocage : c’est un avertissement, pas un rejet`,
+  fr: (g) => `Sucres naturellement présents (${decSep(g, 'fr')} g/100 g), sous le seuil de blocage : c’est un avertissement, pas un rejet`,
 };
 
 
