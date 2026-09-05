@@ -161,9 +161,13 @@ const HistoryPage = () => {
   const { currentUser } = useAuth();
   const c = COPY[user.language] ?? COPY.es;
   const [items, setItems] = useState<HistoryItem[]>([]);
+  const [favItems, setFavItems] = useState<HistoryItem[]>([]);
+  const [favLoading, setFavLoading] = useState(true);
+  const [tab, setTab] = useState<'history' | 'favorites'>('history');
   const [loading, setLoading] = useState(true);
   const [healthProfile, setHealthProfile] = useState<Record<string, unknown> | null>(null);
   const [healthConsent, setHealthConsent] = useState<boolean>(() => hasHealthDataConsent());
+
 
   // Consent is hydrated DB→localStorage asynchronously after sign-in, so read
   // it reactively instead of once at mount.
