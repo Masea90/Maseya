@@ -191,6 +191,8 @@ const COPY = {
     shoot: 'Shoot',
     flip: 'Flip camera',
     unnamedProduct: 'Photographed product',
+    onlyMissingHeading: 'Only the nutrition table is missing',
+    onlyMissingSub: 'Photograph it and we complete this product analysis',
 
   },
   fr: {
