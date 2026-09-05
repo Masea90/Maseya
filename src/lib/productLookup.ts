@@ -21,6 +21,12 @@ export interface ProductData {
   allergens_tags: string[];
   /** Structured trace-allergen tags from OFF/OBF (e.g. "en:milk"). Empty for maseya/photo sources. */
   traces_tags: string[];
+  /**
+   * Language code of the ingredient text we ended up showing ('es' | 'en' |
+   * 'fr' | any OFF language code), or null when unknown. Used to warn the user
+   * when the list is in the packaging language instead of theirs.
+   */
+  ingredients_lang?: string | null;
   raw: Record<string, unknown>;
 }
 
