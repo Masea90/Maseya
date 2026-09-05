@@ -138,7 +138,7 @@ const subgroupByTags = (cats: string[]): SubGroup | null => {
 // The NAME wins over the tags: OFF/OBF community tags are frequently wrong
 // (real case: a "Sanex" shower gel tagged en:shampoos surfacing as an
 // alternative to a shampoo). The label on the bottle is the reliable signal.
-const subgroupOf = (cats: string[], name: string): SubGroup | null =>
+export const subgroupOf = (cats: string[], name: string): SubGroup | null =>
   subgroupByName(name) ?? subgroupByTags(cats);
 
 
@@ -154,7 +154,7 @@ const sourceForCategory = (category: 'food' | 'cosmetic'): ProductData['source']
 // Returns the full category hierarchy from OFF/OBF, ordered most-specific → broadest.
 // This lets us try the tightest match first (e.g. "cocoa-powders") and progressively
 // broaden (e.g. "cocoas" → "sweet-snacks") until we find enough alternatives.
-const pickCategoryTags = (raw: Record<string, unknown>): string[] => {
+export const pickCategoryTags = (raw: Record<string, unknown>): string[] => {
   const tags = (raw as { categories_tags?: string[] })?.categories_tags;
   if (!Array.isArray(tags) || tags.length === 0) return [];
   // OFF orders from most-general to most-specific; reverse so specific is first.
@@ -225,7 +225,7 @@ const toCatalogProductData = (item: CatalogItem): ProductData | null => {
 };
 
 
-const toProductData = (
+export const toProductData = (
   item: SearchItem,
   source: ProductData['source'],
   category: 'food' | 'cosmetic',
@@ -264,7 +264,7 @@ const loadProfile = (): Record<string, unknown> | null => {
  * Cosmetics need a REAL, parseable INCI list (high confidence); food needs a
  * Nutri-Score and a usable label.
  */
-const passesDataFloor = (
+export const passesDataFloor = (
   pd: ProductData,
   flaggedList: ReturnType<typeof flagIngredients>,
 ): boolean => {
@@ -287,7 +287,7 @@ const passesDataFloor = (
  * anything whose own category doesn't match what we searched for.
  * Applied to EVERY route (OFF search, OBF search, local catalog).
  */
-const isDisallowedCandidate = (
+export const isDisallowedCandidate = (
   pd: ProductData,
   cat: 'food' | 'cosmetic',
   tagSet: Set<string>,
