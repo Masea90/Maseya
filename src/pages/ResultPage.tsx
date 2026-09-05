@@ -662,7 +662,7 @@ const ResultPage = () => {
               <ArrowLeft className="w-5 h-5" />
             </button>
             <h1 className="font-display text-lg font-semibold">
-              {isBookOrPress ? c.fueraDeAmbito : c.productoNoEncontrado}
+              {isBookOrPress ? c.fueraDeAmbito : c.noEstaEnBaseTitle}
             </h1>
           </div>
         </header>
@@ -670,7 +670,7 @@ const ResultPage = () => {
           <p className="text-muted-foreground">
             {isBookOrPress
               ? c.fueraDeAmbitoBody
-              : c.noInfoBody}
+              : c.noEstaEnBaseBody}
           </p>
           {isBookOrPress ? (
             <Button onClick={() => navigate('/scan', { replace: true })} className="w-full h-12 rounded-2xl">
@@ -678,7 +678,8 @@ const ResultPage = () => {
             </Button>
           ) : (
             <Button onClick={() => navigate(barcode && barcode !== 'photo' ? `/scan/photo?barcode=${barcode}` : '/scan/photo', { replace: true })} className="w-full h-12 rounded-2xl">
-              {c.fotografiarIngredientes}
+              <Camera className="w-4 h-4 mr-2" />
+              {c.fotografiarProducto}
             </Button>
           )}
         </div>
