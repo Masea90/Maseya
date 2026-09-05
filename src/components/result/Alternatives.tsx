@@ -474,29 +474,34 @@ export const Alternatives = ({ current, currentScore, profile: profileProp, cons
           return;
         }
 
-        const attempts: string[] = tagCandidates.map(buildUrl);
-
-        let products: SearchItem[] = [];
-        for (const url of attempts) {
+        const fetchTag = async (
+          tag: string,
+          pageSize = 24,
+          sort = 'unique_scans_n',
+        ): Promise<SearchItem[]> => {
           try {
-            const res = await fetch(url, { signal: controller.signal });
-            if (!res.ok) continue;
+            const res = await fetch(buildUrl(tag, pageSize, sort), { signal: controller.signal });
+            if (!res.ok) return [];
             const json = (await res.json()) as { products?: SearchItem[] };
             // Strict client-side safety net: candidate MUST declare
             // countries_tags AND include en:spain. Previously we accepted
             // products without countries_tags, which let non-Spanish items
             // through (e.g. Argentine "La Serenísima").
-            const spanish = (json.products || []).filter(
+            return (json.products || []).filter(
               p => Array.isArray(p.countries_tags) && p.countries_tags.includes(COUNTRY_TAG)
             );
-            if (spanish.length > 0) {
-              products = spanish;
-              break;
-            }
           } catch (e) {
             if (controller.signal.aborted) throw e;
+            return [];
           }
+        };
+
+        let products: SearchItem[] = [];
+        for (const tag of tagCandidates) {
+          const found = await fetchTag(tag);
+          if (found.length > 0) { products = found; break; }
         }
+
 
         const consent = consentProp ?? hasHealthDataConsent();
         const profile = consent ? (profileProp ?? loadProfile()) : null;
