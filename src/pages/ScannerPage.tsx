@@ -346,6 +346,22 @@ const ScannerPage = () => {
     ) {
       return;
     }
+
+    // Double-read confirmation: a single decode can carry flipped digits on a
+    // blurry/curved label and open a completely unrelated product. Require the
+    // SAME code twice in a row (costs a couple of frames, ~0.2 s).
+    if (pendingCodeRef.current !== decodedText) {
+      pendingCodeRef.current = decodedText;
+      pendingCountRef.current = 1;
+      console.info('[scanner] first read, waiting for confirmation', decodedText);
+      return;
+    }
+    pendingCountRef.current += 1;
+    if (pendingCountRef.current < CONFIRM_READS) return;
+    pendingCodeRef.current = null;
+    pendingCountRef.current = 0;
+    console.info('[scanner] confirmed barcode', decodedText);
+
     lastDecodedRef.current = decodedText;
     lastDecodedAtRef.current = Date.now();
     try {
