@@ -28,6 +28,23 @@ export interface OnboardingProfile {
 // Split the lists so food products don't get red-flagged for keywords that
 // only make sense in cosmetics, and vice versa.
 const RED_BOTH = ['paraben', 'bha', 'bht'];
+
+/**
+ * Strong contact sensitizers regulated in the EU, typical of HAIR DYES
+ * (PPD family, resorcinol) plus Cocamide DEA (IARC group 2B).
+ * They are normal "avoid" ingredients: they penalise, but they are NOT in the
+ * banned list (cap 20) reserved for Lilial / MCI-MI.
+ */
+const COSMETIC_SENSITIZERS_REGULATED = [
+  // p-Phenylenediamine (PPD) and relatives
+  'p-phenylenediamine', 'ppd', 'para-phenylenediamine', 'p-fenilendiamina',
+  'toluene-2,5-diamine', 'toluene 2 5 diamine', 'toluene-2,5-diamine sulfate',
+  // Resorcinol — EU restricted sensitizer
+  'resorcinol', 'resorcina',
+  // Cocamide DEA — IARC group 2B
+  'cocamide dea', 'cocamide diethanolamine', 'coco diethanolamide',
+];
+
 const RED_COSMETIC = [
   'sulfate', 'sulphate', 'phthalate', 'formaldehyde', 'triclosan',
   'mineral oil', 'paraffinum liquidum',
@@ -39,7 +56,10 @@ const RED_COSMETIC = [
   'butylphenyl methylpropional', 'lilial', 'bmhca',
   // Isothiazolinone preservatives — strongly restricted contact sensitizers
   'methylchloroisothiazolinone', 'methylisothiazolinone', 'mci/mi', 'cmit/mit',
+  // Regulated sensitizers (hair dyes) + Cocamide DEA
+  ...COSMETIC_SENSITIZERS_REGULATED,
 ];
+
 
 const RED_FOOD = [
   'nitrite', 'aspartame', 'tartrazine', 'e102',
