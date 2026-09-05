@@ -32,6 +32,7 @@ import { toast } from '@/hooks/use-toast';
 import { hasHealthDataConsent, getStoredConsent, saveConsent } from '@/components/consent/ConsentModal';
 import { buildActiveProfile } from '@/lib/activeProfile';
 import { SignupInvite } from '@/components/onboarding/SignupInvite';
+import { FavoriteButton } from '@/components/favorites/FavoriteButton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { HeartPulse } from 'lucide-react';
 
