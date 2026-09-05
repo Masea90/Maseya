@@ -639,9 +639,11 @@ export const Alternatives = ({ current, currentScore, profile: profileProp, cons
           .slice(0, MAX_SHOWN);
         stats.shown = top.length;
         console.info(
-          `[alternatives] ${current.barcode} "${current.name}" base=${currentScore} bar=${qualityBarFor(currentScore)}`,
+          `[alternatives] ${current.barcode} "${current.name}" base=${currentScore} bar=${qualityBarFor(currentScore)}` +
+            ` tags=${tagCandidates.join('+')} used=${usedTag ?? 'none'} firstPass=${products.length}`,
           JSON.stringify(stats),
         );
+
 
 
 
