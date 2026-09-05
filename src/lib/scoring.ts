@@ -474,7 +474,11 @@ export function flagIngredients(p: ProductData): FlaggedIngredient[] {
   const fromTags = p.ingredients_tags
     .map(t => t.replace(/^[a-z]{2}:/, '').replace(/-/g, ' '))
     .filter(Boolean);
-  const cleanedText = cleanIngredientsText(p.ingredients_text || '');
+  // Protect INCI names that legitimately contain a comma from the splitter
+  // (e.g. "TOLUENE-2,5-DIAMINE" would become "TOLUENE-2" + "5-DIAMINE").
+  const cleanedText = cleanIngredientsText(p.ingredients_text || '')
+    .replace(/toluene\s*-?\s*2\s*,\s*5\s*-?\s*diamine/gi, 'toluene-2.5-diamine');
+
   const fromText = cleanedText
     .split(/[,;()\n\r]|\s[-–—•·]\s/)
     .map(s => s.trim())
