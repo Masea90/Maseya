@@ -638,7 +638,7 @@ export const Alternatives = ({ current, currentScore, profile: profileProp, cons
           .sort((a, b) => b.score - a.score)
           .slice(0, MAX_SHOWN);
         stats.shown = top.length;
-        console.info(
+        console.debug(
           `[alternatives] ${current.barcode} "${current.name}" base=${currentScore} bar=${qualityBarFor(currentScore)}` +
             ` tags=${tagCandidates.join('+')} used=${usedTag ?? 'none'} firstPass=${products.length}`,
           JSON.stringify(stats),
