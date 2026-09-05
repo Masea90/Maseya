@@ -259,10 +259,12 @@ const ScannerPage = () => {
   };
 
   /**
-   * Robust camera acquisition chain (iOS Safari friendly):
+   * Robust camera acquisition chain (iOS Safari + Android Chrome):
    *   1. facingMode preference (NEVER `exact` — Safari throws OverconstrainedError)
-   *   2. if the opened camera is not the rear one, silently reopen by deviceId
-   *   3. plain `video: true` as last resort
+   *   2. verify what actually opened; if it is the front camera, reopen by the
+   *      deviceId of the first REAR camera (Android labels: "camera2 0, facing back")
+   *   3. plain `video: true` as last resort — and verify that one too, because
+   *      the default camera on many Android phones is the front one.
    * Each candidate stream must paint frames within ~2.5s or we move on.
    */
   const acquireWorkingStream = async (want: 'environment' | 'user'): Promise<MediaStream> => {
@@ -287,30 +289,41 @@ const ScannerPage = () => {
       return stream;
     };
 
-    // 1. Preference, not requirement.
-    let stream = await tryStream({ video: { ...base, facingMode: want }, audio: false });
-
-    // 2. Verify we got the camera we asked for; otherwise switch by deviceId.
-    if (stream && want === 'environment' && !isRearStream(stream)) {
-      console.warn('[scanner] front camera opened, switching to rear by deviceId');
-      try {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const cams = devices.filter((d) => d.kind === 'videoinput');
-        const rear = cams.find((d) => REAR_LABEL.test(d.label))
-          ?? (cams.length > 1 ? cams[cams.length - 1] : undefined);
-        if (rear) {
-          stopStream(stream);
-          stream = null;
-          stream = await tryStream({ video: { ...base, deviceId: { exact: rear.deviceId } }, audio: false });
-        }
-      } catch (e) {
-        console.warn('[scanner] enumerateDevices failed', e);
+    /**
+     * Runs after EVERY successful acquisition path (not only the first one):
+     * that is what was missing on Android, where the plain `video: true`
+     * fallback silently opened the selfie camera.
+     */
+    const ensureRear = async (stream: MediaStream | null): Promise<MediaStream | null> => {
+      if (!stream || want !== 'environment') return stream;
+      const got = describeStream(stream);
+      if (got.facing !== 'user') {
+        console.info('[scanner] camera ok', { requested: want, got });
+        return stream;
       }
-    }
+      console.warn('[scanner] front camera opened, correcting by deviceId', got);
+      const rearId = await findRearDeviceId(got.deviceId || undefined);
+      if (!rearId) {
+        console.warn('[scanner] no rear camera found, keeping', got);
+        return stream;
+      }
+      stopStream(stream);
+      const fixed = await tryStream({ video: { ...base, deviceId: { exact: rearId } }, audio: false });
+      if (!fixed) {
+        console.warn('[scanner] reopen by deviceId failed, retrying default');
+        return null;
+      }
+      console.info('[scanner] camera corrected', { requested: want, got: describeStream(fixed), corrected: true });
+      return fixed;
+    };
 
-    // 3. Anything that works beats a black screen.
-    if (!stream) stream = await tryStream({ video: base, audio: false });
-    if (!stream) stream = await tryStream({ video: true, audio: false });
+    // 1. Preference, not requirement. 2. Verify + correct.
+    let stream = await ensureRear(await tryStream({ video: { ...base, facingMode: want }, audio: false }));
+
+    // 3. Anything that works beats a black screen — but still verify it.
+    if (!stream) stream = await ensureRear(await tryStream({ video: base, audio: false }));
+    if (!stream) stream = await ensureRear(await tryStream({ video: true, audio: false }));
+
 
     // Release any earlier candidates we are not using.
     tried.filter((s) => s !== stream).forEach(stopStream);
