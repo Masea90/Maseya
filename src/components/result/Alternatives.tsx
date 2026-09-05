@@ -39,10 +39,34 @@ interface Candidate {
 // v15: single ordered pipeline. Subgroups now cover the main food staples and
 // a candidate must prove its subgroup BY NAME (community tags are unreliable:
 // a Sanex shower gel tagged en:shampoos kept surfacing for shampoos).
-const CACHE_PREFIX = 'maseya_alts_v15::';
+const CACHE_PREFIX = 'maseya_alts_v16::';
 const FETCH_TIMEOUT_MS = 8000;
-/** Absolute quality floor, applied to the GENERAL (objective) score. */
-const MIN_SCORE = 50;
+/**
+ * Meaningful-improvement rule (v16). An alternative is only worth showing when
+ * it is clearly better AND good on its own:
+ *  - at least +15 points over the scanned product (1-10 is noise),
+ *  - at least 60/100 on its own general score,
+ *  - and if the scanned product already scores >= 60, the bar rises to 75.
+ */
+const MIN_IMPROVEMENT = 15;
+const MIN_QUALITY = 60;
+const GOOD_BASE = 60;
+const MIN_QUALITY_WHEN_GOOD = 75;
+const MAX_SHOWN = 4;
+
+/** Quality bar a candidate must clear given the scanned product's score. */
+export const qualityBarFor = (currentScore: number): number =>
+  currentScore >= GOOD_BASE ? MIN_QUALITY_WHEN_GOOD : MIN_QUALITY;
+
+/** Does this candidate deserve to be recommended over the scanned product? */
+export const isMeaningfulAlternative = (
+  candidateShown: number,
+  candidateGeneral: number,
+  currentScore: number,
+): boolean =>
+  candidateGeneral >= qualityBarFor(currentScore) &&
+  candidateShown >= currentScore + MIN_IMPROVEMENT;
+
 // TODO: derive country from user locale/settings when we expand beyond Spain.
 const COUNTRY_TAG = 'en:spain';
 
