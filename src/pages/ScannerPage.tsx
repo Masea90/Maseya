@@ -95,18 +95,64 @@ const buildAdvancedConstraints = (capabilities: ExtendedMediaTrackCapabilities) 
   return advanced.length ? { advanced } : null;
 };
 
-const isRearStream = (stream: MediaStream) => {
+/**
+ * What camera did we actually get?
+ *   'environment' → rear, 'user' → front, 'unknown' → cannot tell (desktop).
+ * Android Chrome labels look like "camera2 0, facing back"; iOS Safari
+ * reports facingMode but sometimes only after the track goes live.
+ */
+const streamFacing = (stream: MediaStream): 'environment' | 'user' | 'unknown' => {
   const track = stream.getVideoTracks()[0];
-  if (!track) return false;
+  if (!track) return 'unknown';
   const settings = (track.getSettings?.() ?? {}) as MediaTrackSettings & { facingMode?: string };
-  if (settings.facingMode) return settings.facingMode === 'environment';
-  if (track.label) {
-    if (REAR_LABEL.test(track.label)) return true;
-    if (FRONT_LABEL.test(track.label)) return false;
+  if (settings.facingMode === 'environment' || settings.facingMode === 'user') return settings.facingMode;
+  const label = track.label || '';
+  if (label) {
+    if (FRONT_LABEL.test(label)) return 'user';
+    if (REAR_LABEL.test(label)) return 'environment';
   }
-  // Unknown (desktop webcams don't report facingMode) → accept it.
-  return true;
+  return 'unknown';
 };
+
+const describeStream = (stream: MediaStream | null) => {
+  const track = stream?.getVideoTracks()[0];
+  if (!track) return { label: '(no track)', facing: 'unknown', deviceId: '' };
+  const settings = (track.getSettings?.() ?? {}) as MediaTrackSettings & { facingMode?: string };
+  return {
+    label: track.label || '(unlabelled)',
+    facing: streamFacing(stream),
+    reported: settings.facingMode ?? '(none)',
+    deviceId: settings.deviceId ?? '',
+  };
+};
+
+/** Unknown (desktop webcams don't report facingMode) counts as acceptable. */
+const isRearStream = (stream: MediaStream) => streamFacing(stream) !== 'user';
+
+/**
+ * First REAR camera reported by the device.
+ * Android phones expose several rear lenses (wide, tele, macro); the first
+ * "back" entry is the main one, which is what a barcode scanner wants.
+ */
+const findRearDeviceId = async (currentDeviceId?: string): Promise<string | null> => {
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const cams = devices.filter((d) => d.kind === 'videoinput');
+    console.info('[scanner] cameras', cams.map((d) => ({ id: d.deviceId.slice(0, 8), label: d.label })));
+    const rears = cams.filter((d) => REAR_LABEL.test(d.label) && !FRONT_LABEL.test(d.label));
+    const pick = rears.find((d) => d.deviceId !== currentDeviceId) ?? rears[0];
+    if (pick) return pick.deviceId;
+    // No labels (permission granted but labels hidden) → last entry is the
+    // rear camera on most Android devices when more than one is present.
+    const other = cams.filter((d) => d.deviceId !== currentDeviceId);
+    if (cams.length > 1 && other.length) return other[other.length - 1].deviceId;
+    return null;
+  } catch (e) {
+    console.warn('[scanner] enumerateDevices failed', e);
+    return null;
+  }
+};
+
 
 /** Same barcode re-detected within this window right after returning: ignore. */
 const RESCAN_COOLDOWN_MS = 4000;
