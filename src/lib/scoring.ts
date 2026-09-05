@@ -1290,9 +1290,18 @@ const PREGNANCY_FOOD_RULES: PregRule[] = [
     keywords: [
       'chorizo', 'salchichón', 'salchichon', 'salami', 'jamón curado', 'jamon curado',
       'jamón serrano', 'jamon serrano', 'jamón ibérico', 'jamon iberico', 'fuet',
-      'lomo embuchado', 'sobrasada', 'cecina', 'mortadela', 'pepperoni',
+      'lomo embuchado', 'sobrasada', 'cecina', 'pepperoni',
     ],
     tags: ['en:dry-sausages'],
+    // Cooked deli meats are heat-treated: no toxoplasmosis risk. The more
+    // specific match ("jamón cocido") always beats the generic one ("jamón").
+    excludes: [
+      'mortadela', 'mortadella', 'jamón cocido', 'jamon cocido', 'jamón york', 'jamon york',
+      'jamón de york', 'jamon de york', 'pavo cocido', 'pechuga de pavo', 'pechuga de pollo',
+      'fiambre de pollo', 'fiambre de pavo', 'salchichas cocidas', 'salchicha cocida',
+      'frankfurt', 'chopped', 'cooked ham', 'jambon cuit',
+    ],
+    excludeTags: ['en:cooked-hams', 'en:mortadella', 'en:hot-dogs', 'en:cooked-poultry'],
     text: {
       es: 'Embutido curado crudo: riesgo de toxoplasmosis; es seguro si se cocina a más de 70 °C',
       en: 'Raw cured meat: toxoplasmosis risk; it is safe if cooked above 70 °C',
@@ -1302,10 +1311,27 @@ const PREGNANCY_FOOD_RULES: PregRule[] = [
   {
     id: 'pate',
     level: 'B',
-    keywords: ['paté', 'pate', 'foie gras', 'mousse de hígado', 'mousse de higado'],
-    // "pâte(s)" in French means dough/pasta — never a pâté.
-    excludes: ['pate a tartiner', 'pate de fruit', 'pate feuilletee', 'pate brisee', 'pate sablee', 'pate sucree', 'pates alimentaires', 'pate de cacao', 'pate d amande'],
-
+    // Unambiguous pâté wordings only.
+    keywords: [
+      'foie gras', 'mousse de hígado', 'mousse de higado', 'paté de hígado', 'pate de higado',
+      'paté de campaña', 'pate de campana', 'pâté de campagne', 'pate de campagne',
+      'liver pate', 'liver pâté', 'paté de foie', 'pate de foie',
+    ],
+    tags: ['en:pates', 'en:liver-pates'],
+    // A bare "paté"/"pâte" is meaningless on its own: French "pâte(s)" is
+    // dough/pasta and Spanish "pasta de …" is a spread.
+    weakKeywords: ['paté', 'pate'],
+    context: [
+      'hígado', 'higado', 'foie', 'liver', 'cerdo', 'porc', 'pork', 'ave', 'aves',
+      'pollo', 'chicken', 'pato', 'duck', 'oca', 'ganso', 'volaille',
+    ],
+    excludes: [
+      'pasta', 'pastas', 'pate a pizza', 'pate a tartiner', 'pate de fruit', 'pate feuilletee',
+      'pate brisee', 'pate sablee', 'pate sucree', 'pates alimentaires', 'pate de cacao',
+      'pate d amande', 'pasta de datiles', 'pasta de dátiles', 'pasta de coco',
+      'pasta de cacahuete', 'pasta de almendra', 'pasta quebrada', 'pasta filo',
+      'pasta brisa', 'masa de pizza', 'masa quebrada',
+    ],
     text: {
       es: 'Patés y foie refrigerados: se desaconsejan en el embarazo por el riesgo de listeriosis',
       en: 'Chilled pâté and foie gras: not advised during pregnancy due to listeriosis risk',
@@ -1315,9 +1341,12 @@ const PREGNANCY_FOOD_RULES: PregRule[] = [
   {
     id: 'raw-egg',
     level: 'B',
+    // Industrial mousse, meringue and Caesar dressing use pasteurized egg by
+    // law — the salmonella risk lives in homemade preparations.
     keywords: [
-      'huevo crudo', 'mayonesa casera', 'mousse', 'tiramisú', 'tiramisu',
-      'merengue', 'salsa césar', 'salsa cesar',
+      'huevo crudo', 'huevos crudos', 'huevo sin pasteurizar', 'raw egg', 'raw eggs',
+      'oeuf cru', 'œuf cru', 'oeufs crus', 'mayonesa casera', 'homemade mayonnaise',
+      'mayonnaise maison',
     ],
     text: {
       es: 'Puede contener huevo crudo: riesgo de salmonelosis; mejor con huevo pasteurizado o cocinado',
@@ -1325,6 +1354,7 @@ const PREGNANCY_FOOD_RULES: PregRule[] = [
       fr: 'Peut contenir de l’œuf cru : risque de salmonellose ; préfère l’œuf pasteurisé ou cuit',
     },
   },
+
   {
     id: 'ready-to-eat',
     level: 'B',
