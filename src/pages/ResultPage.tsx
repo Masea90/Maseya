@@ -57,6 +57,8 @@ const COPY = {
     cosmetica: 'Cosmética',
     anadidoBaseDatos: 'Añadido a nuestra base de datos',
     guardadoDispositivo: 'Análisis guardado en tu dispositivo',
+    sinNotaComplemento: 'Sin nota (complemento alimenticio)',
+    sinNotaAlcohol: 'Sin nota (bebida alcohólica)',
     complementoWarning: 'Los complementos alimenticios no se evalúan con criterios de alimentos (Nutriscore no aplica). Consulta a un profesional sanitario antes de tomarlos.',
     alcoholWarning: 'Maseya no puntúa bebidas alcohólicas — el Nutri-Score no aplica a este tipo de producto.',
     ingredientesTitle: 'Ingredientes',
@@ -133,6 +135,8 @@ const COPY = {
     cosmetica: 'Cosmetics',
     anadidoBaseDatos: 'Added to our database',
     guardadoDispositivo: 'Analysis saved on your device',
+    sinNotaComplemento: 'No score (dietary supplement)',
+    sinNotaAlcohol: 'No score (alcoholic drink)',
     complementoWarning: 'Dietary supplements are not evaluated with food criteria (Nutriscore does not apply). Consult a healthcare professional before taking them.',
     alcoholWarning: "Maseya doesn't score alcoholic drinks — Nutri-Score doesn't apply to this type of product.",
     ingredientesTitle: 'Ingredients',
@@ -209,6 +213,8 @@ const COPY = {
     cosmetica: 'Cosmétique',
     anadidoBaseDatos: 'Ajouté à notre base de données',
     guardadoDispositivo: 'Analyse enregistrée sur ton appareil',
+    sinNotaComplemento: 'Sans note (complément alimentaire)',
+    sinNotaAlcohol: 'Sans note (boisson alcoolisée)',
     complementoWarning: "Les compléments alimentaires ne sont pas évalués avec les critères des aliments (le Nutriscore ne s'applique pas). Consulte un professionnel de santé avant d'en prendre.",
     alcoholWarning: "Maseya ne note pas les boissons alcoolisées — le Nutri-Score ne s'applique pas à ce type de produit.",
     ingredientesTitle: 'Ingrédients',
@@ -811,11 +817,17 @@ const ResultPage = () => {
 
         {nonScorable ? (
           <>
-            <div className="rounded-2xl border border-[#F4A261]/50 bg-[#F4A261]/10 p-4 text-sm text-[#8a4a1e] leading-relaxed">
-              {supplement
-                ? c.complementoWarning
-                : c.alcoholWarning}
+            <div className="rounded-2xl border border-[#F4A261]/50 bg-[#F4A261]/10 p-4 text-sm text-[#8a4a1e] leading-relaxed space-y-1">
+              <p className="font-semibold">
+                {supplement ? c.sinNotaComplemento : c.sinNotaAlcohol}
+              </p>
+              <p>
+                {supplement
+                  ? c.complementoWarning
+                  : c.alcoholWarning}
+              </p>
             </div>
+
             {voiceLine && (
               <p className="text-center text-xs italic text-muted-foreground">{voiceLine}</p>
             )}
@@ -1247,8 +1259,8 @@ const ResultPage = () => {
         extraContext={{
           barcode: product.barcode,
           product_name: product.name,
-          score_general: score,
-          score_personal: personalScore,
+          score_general: nonScorable ? null : score,
+          score_personal: nonScorable ? null : personalScore,
           from: 'result_page_link',
         }}
       />

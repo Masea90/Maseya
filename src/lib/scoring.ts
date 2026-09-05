@@ -1679,39 +1679,73 @@ export function nutritionGoalFindings(
 /**
  * Detect dietary supplements — they must NOT be scored with food criteria
  * (Nutriscore doesn't apply, sugars/salt/fat rules make no sense on capsules).
+ *
+ * Design (after three real false positives: "Yayitas" biscuits, "Bebida de
+ * soja Omega 3", a probiotic fruit shot):
+ *  - A clear FOOD category always wins: a biscuit or a plant drink is never a
+ *    supplement, no matter what the AI or a community tag suggests.
+ *  - Marketing claims ("omega 3", "probiótico", "vitaminas", "digestiva") are
+ *    normal on ordinary food, so they never classify on their own.
+ *  - Only unequivocal signals classify: the words "complemento alimenticio"
+ *    (and translations), a pharmaceutical format (capsules, tablets, vials,
+ *    single-dose sachets) with no per-100 g table, or a %VRN/%NRV table on a
+ *    product that has no per-100 g nutrition table and no food category.
  */
 const SUPPLEMENT_CATEGORY_TAGS = new Set<string>([
   'en:dietary-supplements', 'en:food-supplements', 'en:supplements',
-  'en:vitamins', 'en:mineral-supplements', 'en:plant-based-supplements',
+  'en:mineral-supplements', 'en:plant-based-supplements',
   'en:herbal-supplements',
 ]);
 const SUPPLEMENT_CATEGORY_SUBSTRINGS = [
-  'dietary-supplement', 'food-supplement', 'supplement', 'vitamin',
+  'dietary-supplement', 'food-supplement',
 ];
+/** Category tags that identify ordinary food — they veto the supplement branch. */
+const FOOD_CATEGORY_TAG_HINTS = [
+  'biscuit', 'cookie', 'cake', 'pastr', 'snack', 'chocolate', 'candy', 'confectioner',
+  'beverage', 'drink', 'juice', 'nectar', 'water', 'soda', 'coffee', 'tea',
+  'plant-based-beverage', 'soy-milk', 'soy-based-drink', 'milk-substitute',
+  'dairy-substitute', 'plant-based-milk', 'milk', 'dairy', 'yogurt', 'yoghurt', 'cheese',
+  'breakfast', 'cereal', 'bread', 'pasta', 'rice', 'legume', 'meat', 'fish', 'seafood',
+  'fruit', 'vegetable', 'nut', 'seed', 'sauce', 'condiment', 'soup', 'meal', 'dessert',
+  'ice-cream', 'spread', 'oil', 'butter', 'egg', 'flour', 'sugar', 'honey', 'jam',
+  'crisps', 'chips', 'pizza', 'sandwich', 'salad', 'charcuterie', 'ham',
+];
+/** Pharma-like presentations: unequivocal when there is no per-100 g table. */
+const SUPPLEMENT_FORMAT_KEYWORDS = [
+  'cápsulas', 'capsulas', 'capsules', 'cápsula', 'capsula',
+  'comprimidos', 'comprimido', 'tabletas', 'tablets', 'gummies', 'gomitas',
+  'viales', 'vial', 'ampollas', 'sobres monodosis', 'monodosis', 'softgel', 'perlas',
+];
+/** Names that suggest a supplement but only count without a per-100 g table. */
 const SUPPLEMENT_NAME_KEYWORDS = [
   'suplemento', 'supplement', 'complemento aliment', 'complemento nutricional',
-  'cápsulas', 'capsulas', 'capsules', 'cápsula', 'capsula',
-  'comprimidos', 'comprimido', 'tabletas', 'gummies', 'gomitas',
   'ashwagandha', 'ksm-66', 'ginseng', 'maca ',
   'colágeno hidrolizado', 'multivitamin', 'multivitamínico', 'multivitaminico',
-  'melatonina', 'melatonin', 'magnesio', 'omega 3', 'omega-3', 'omega3',
+  'melatonina', 'melatonin', 'magnesio',
 ];
-const SUPPLEMENT_NAME_TOKENS = ['forte', 'memory', 'omega', 'magnesio', 'melatonina'];
-/**
- * Text signals of a food supplement (es/pt/en/fr). Requires one STRONG signal
- * ("complemento alimenticio", "VRN"…) or at least two weak ones, so that a
- * normal food mentioning "dosis" or "comprimido" is not flagged.
- */
+const SUPPLEMENT_NAME_TOKENS = ['forte', 'memory', 'melatonina', 'magnesio'];
+/** Unequivocal label wording (es/pt/en/fr). */
 const SUPPLEMENT_STRONG_SIGNALS = [
   'complemento alimenticio', 'complementos alimenticios', 'suplemento alimentar',
   'food supplement', 'complement alimentaire', 'complément alimentaire',
-  'valor de referencia de nutriente', 'vrn', 'nrv',
   'no deben utilizarse como sustitutos de una dieta variada',
+];
+/** %VRN / %NRV table wording: strong only when there's no per-100 g table. */
+const SUPPLEMENT_NRV_SIGNALS = [
+  'valor de referencia de nutriente', 'vrn', 'nrv',
 ];
 const SUPPLEMENT_WEAK_SIGNALS = [
   'dosis diaria', 'toma diaria', 'daily dose', 'dose journalière', 'dose journaliere',
   'comprimido efervescente', 'comprimidos efervescentes', 'comprimidos recubiertos',
   'cápsulas', 'capsulas', 'capsules', 'no sobrepasar la cantidad diaria recomendada',
+];
+/** Whole-food words: a "supplement" whose ingredients are these is really food. */
+const ORDINARY_FOOD_INGREDIENTS = [
+  'zumo', 'jugo', 'juice', 'puré', 'pure', 'leche', 'milk', 'agua', 'water',
+  'harina', 'flour', 'azúcar', 'azucar', 'sugar', 'aceite', 'oil', 'sal', 'salt',
+  'cacao', 'cocoa', 'trigo', 'wheat', 'avena', 'oats', 'arroz', 'rice',
+  'fruta', 'fruit', 'tomate', 'manzana', 'naranja', 'mango', 'piña', 'melocotón',
+  'yogur', 'nata', 'mantequilla', 'huevo', 'egg', 'soja', 'soy', 'almendra',
 ];
 function hasWordSignal(hay: string, needle: string): boolean {
   const esc = needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -1724,27 +1758,73 @@ export function hasSupplementTextSignals(text: string | null | undefined): boole
   return SUPPLEMENT_WEAK_SIGNALS.filter(k => hasWordSignal(t, k)).length >= 2;
 }
 
+/** True when the product carries a real per-100 g/100 ml nutrition table. */
+function hasPer100gNutrition(p: ProductData): boolean {
+  const raw = (p.raw || {}) as Record<string, unknown>;
+  const nutri = (raw.nutriments && typeof raw.nutriments === 'object')
+    ? (raw.nutriments as Record<string, unknown>)
+    : null;
+  if (!nutri) return false;
+  const keys = Object.keys(nutri).filter(k => k.endsWith('_100g'));
+  return keys.length >= 3;
+}
+
+/** A "supplement" whose ingredient list is made of ordinary foods is food. */
+function looksLikeOrdinaryFood(p: ProductData): boolean {
+  const txt = (p.ingredients_text || '').toLowerCase();
+  if (!txt) return false;
+  const hits = ORDINARY_FOOD_INGREDIENTS.filter(w => txt.includes(w));
+  return hits.length >= 2;
+}
+
 export function isSupplement(p: ProductData): boolean {
   const raw = (p.raw || {}) as Record<string, unknown>;
   const cats = Array.isArray(raw.categories_tags) ? (raw.categories_tags as string[]) : [];
   const catsLc = cats.map(t => String(t).toLowerCase());
-  if (catsLc.some(t => SUPPLEMENT_CATEGORY_TAGS.has(t))) return true;
-  if (catsLc.some(t => SUPPLEMENT_CATEGORY_SUBSTRINGS.some(s => t.includes(s)))) return true;
   const name = `${p.name || ''} ${p.brand || ''}`.toLowerCase();
-  for (const kw of SUPPLEMENT_NAME_KEYWORDS) {
-    if (name.includes(kw)) return true;
-  }
-  // Word-boundary match for short supplement-signal tokens (forte, memory…)
-  // when the product name has no clear food context.
+  const text = `${name} ${(p.ingredients_text || '').toLowerCase()}`;
+
+  // 1. Unequivocal label wording wins over everything.
+  if (SUPPLEMENT_STRONG_SIGNALS.some(k => hasWordSignal(text, k))) return true;
+
+  const per100 = hasPer100gNutrition(p);
+
+  // 2. Pharmaceutical format without a per-100 g table.
+  const pharmaFormat = SUPPLEMENT_FORMAT_KEYWORDS.some(k => name.includes(k));
+  if (pharmaFormat && !per100) return true;
+
+  // 3. A clear FOOD category vetoes everything below (a biscuit, a plant
+  //    drink or a juice is never a supplement, whatever the tags say).
+  const isFoodCategory = catsLc.some(t =>
+    !SUPPLEMENT_CATEGORY_TAGS.has(t)
+    && !SUPPLEMENT_CATEGORY_SUBSTRINGS.some(s => t.includes(s))
+    && FOOD_CATEGORY_TAG_HINTS.some(h => t.includes(h)));
+  if (isFoodCategory) return false;
+
+  // 4. A complete per-100 g table is typical of ordinary food: only the
+  //    unequivocal signals above may classify such a product.
+  if (per100) return false;
+
+  // 5. Explicit supplement category — unless the ingredient list is plainly
+  //    ordinary food (real case: a fruit-juice shot tagged as a supplement).
+  const explicitTag = catsLc.some(t =>
+    SUPPLEMENT_CATEGORY_TAGS.has(t) || SUPPLEMENT_CATEGORY_SUBSTRINGS.some(s => t.includes(s)));
+  if (explicitTag) return !looksLikeOrdinaryFood(p);
+
+  if (looksLikeOrdinaryFood(p)) return false;
+
+  // 6. Supplement-style naming or a %VRN-based table.
+  if (SUPPLEMENT_NAME_KEYWORDS.some(kw => name.includes(kw))) return true;
   const tokens = name.split(/[^a-záéíóúñ0-9]+/i).filter(Boolean);
   if (tokens.some(t => SUPPLEMENT_NAME_TOKENS.includes(t))) return true;
+  if (SUPPLEMENT_NRV_SIGNALS.some(k => hasWordSignal(text, k))) return true;
   if (hasSupplementTextSignals(p.ingredients_text)) return true;
-  // "vitamina X" + cápsula format
   if (/vitamina\s+[a-z0-9]/i.test(name) && /(cáps|caps|comprim|tablet|pastill)/i.test(name)) {
     return true;
   }
   return false;
 }
+
 
 function topIngredients(text: string, n: number): string[] {
   if (!text) return [];
