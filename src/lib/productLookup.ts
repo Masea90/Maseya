@@ -297,6 +297,7 @@ function mergeMaseyaIntoPublic(publicHit: ProductData, maseya: ProductData): Pro
   return {
     ...publicHit,
     ingredients_text: publicHit.ingredients_text || maseya.ingredients_text || null,
+    ingredients_lang: publicHit.ingredients_text ? publicHit.ingredients_lang ?? null : null,
     image: publicHit.image || maseya.image || null,
     raw,
   };

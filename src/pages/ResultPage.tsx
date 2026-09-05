@@ -541,7 +541,7 @@ const ResultPage = () => {
 
     let cancelled = false;
     (async () => {
-      const data = await lookupProduct(barcode);
+      const data = await lookupProduct(barcode, user.language);
       if (cancelled) return;
       if (data) {
         track('scan_success', { barcode, source: data.source, category: data.category });
@@ -562,7 +562,7 @@ const ResultPage = () => {
         console.error('[result] enrich error', e);
       }
       if (cancelled) return;
-      const retry = await lookupProduct(barcode);
+      const retry = await lookupProduct(barcode, user.language);
       if (cancelled) return;
       setEnriching(false);
       if (!retry) {
