@@ -497,10 +497,12 @@ export const Alternatives = ({ current, currentScore, profile: profileProp, cons
         };
 
         let products: SearchItem[] = [];
+        let usedTag: string | null = null;
         for (const tag of tagCandidates) {
           const found = await fetchTag(tag);
-          if (found.length > 0) { products = found; break; }
+          if (found.length > 0) { products = found; usedTag = tag; break; }
         }
+
 
 
         const consent = consentProp ?? hasHealthDataConsent();
