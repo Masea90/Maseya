@@ -768,6 +768,12 @@ const ResultPage = () => {
     dataConfidence.level === 'high' && dataConfidence.cap == null,
   );
   const rawText = (product.ingredients_text || '').trim();
+  // Ingredient list shown in a language the user did not choose (OFF stores
+  // the list per language and the generic field can be in any of them).
+  const uiLang = (user.language || 'es').slice(0, 2).toLowerCase();
+  const ingLang = (product.ingredients_lang || '').slice(0, 2).toLowerCase();
+  const nonLatinScript = /[\u0600-\u06FF\u0400-\u04FF\u0370-\u03FF\u4E00-\u9FFF\u3040-\u30FF\u0590-\u05FF]/.test(rawText);
+  const ingredientsForeign = rawText.length > 0 && (nonLatinScript || (!!ingLang && ingLang !== uiLang));
   const hasIngredientData = product.category === 'cosmetic'
     ? flagged.length >= 3
     : (flagged.length >= 1 || (rawText.length > 0 && !isNutritionalData(rawText)));
@@ -1125,6 +1131,11 @@ const ResultPage = () => {
                           );
                         })}
                       </div>
+                    )}
+                    {hasIngredientData && ingredientsForeign && (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {c.ingredientesOtroIdioma}
+                      </p>
                     )}
                   </div>
                 </CollapsibleContent>
