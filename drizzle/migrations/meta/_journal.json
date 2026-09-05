@@ -15,6 +15,13 @@
       "when": 1788617602643,
       "tag": "0001_create_mira_cache",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788620792846,
+      "tag": "0002_lock_down_mira_quota_access",
+      "breakpoints": true
     }
   ]
 }
