@@ -448,11 +448,12 @@ export const Alternatives = ({ current, currentScore, profile: profileProp, cons
         // Strict Spain filter — we intentionally do NOT fall back to a
         // no-country query, otherwise we surface products not sold in Spain
         // (previous bug: French/Moroccan waters appearing as alternatives).
-        const buildUrl = (tag: string) =>
+        const buildUrl = (tag: string, pageSize = 24, sort = 'unique_scans_n') =>
           `https://${host}/api/v2/search` +
           `?categories_tags=${encodeURIComponent(tag)}` +
           `&countries_tags=${encodeURIComponent(COUNTRY_TAG)}` +
-          `&sort_by=unique_scans_n&page_size=24&fields=${fields}`;
+          `&sort_by=${sort}&page_size=${pageSize}&fields=${fields}`;
+
 
         const tagCandidates: string[] = [];
         const seenTags = new Set<string>();
