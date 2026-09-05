@@ -521,8 +521,16 @@ const PhotoCapturePage = () => {
     }
   };
 
-  const stepNumber = addImageFor ? 1 : (step === 'front' ? 1 : 2);
-  const showProgress = !nutritionOnly && (step === 'front' || step === 'ingredients');
+  // The flow announces exactly what each step is: 1 front, 2 ingredients,
+  // 3 (optional) nutrition table.
+  const totalSteps = 3;
+  const stepNumber = addImageFor
+    ? 1
+    : step === 'front'
+      ? 1
+      : (step === 'nutrition-offer' || step === 'nutrition-capture') ? 3 : 2;
+  const showProgress = !nutritionOnly
+    && (step === 'front' || step === 'ingredients' || step === 'nutrition-offer' || step === 'nutrition-capture');
 
 
   const goBack = () => {
