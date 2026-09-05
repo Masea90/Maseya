@@ -689,12 +689,31 @@ const ResultPage = () => {
   const nat = naturalness(product, flagged);
   const dataConfidence = evaluateDataConfidence(product);
   // What's actually missing — drives the single "incomplete analysis" notice.
-  // (Spanish strings come from evaluateDataConfidence; detect by category-agnostic
-  //  substring so the message matches reality instead of always saying "Nutriscore".)
-  const missingIngredients = dataConfidence.missing.some(m => m.toLowerCase().includes('ingrediente'));
-  const missingNutrition = product.category === 'food'
-    && dataConfidence.missing.some(m => !m.toLowerCase().includes('ingrediente'));
-  const needsPhoto = dataConfidence.level === 'low' || dataConfidence.level === 'medium';
+  // IMPORTANT: this must NOT be derived from dataConfidence.level. A product with
+  // no ingredients and no nutrition returns level 'none' (cap 40), and a food with
+  // a Nutri-Score grade but no per-100 g table returns level 'high' with an empty
+  // `missing` list — both cases left the user without any photo CTA (real reports:
+  // "Atún en aceite de girasol" 40/40, unnamed product 40/40).
+  // Rule: if the ingredient list OR the nutrition table is missing, always warn.
+  const rawNutriments = ((product.raw || {}) as Record<string, unknown>).nutriments;
+  const nutrimentsObj = (rawNutriments && typeof rawNutriments === 'object')
+    ? rawNutriments as Record<string, unknown>
+    : {};
+  const hasNutrimentValue = (...keys: string[]) =>
+    keys.some(k => {
+      const v = nutrimentsObj[k];
+      const n = typeof v === 'string' ? Number(v.replace(',', '.')) : v;
+      return typeof n === 'number' && Number.isFinite(n);
+    });
+  const hasNutritionTable = hasNutrimentValue('energy-kcal_100g', 'energy-kj_100g')
+    && hasNutrimentValue('saturated-fat_100g')
+    && hasNutrimentValue('sugars_100g')
+    && hasNutrimentValue('salt_100g', 'sodium_100g');
+  const missingIngredients = product.category === 'cosmetic'
+    ? dataConfidence.level !== 'high'
+    : !hasIngredientDataEarly;
+  const missingNutrition = product.category === 'food' && !hasNutritionTable;
+  const needsPhoto = missingIngredients || missingNutrition;
   const profile = loadOnboarding();
   // The personal layer is a registered-user feature. Anonymous users who already
   // had a local profile from before this gate keep working exactly as before.
