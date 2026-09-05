@@ -524,18 +524,20 @@ export const Alternatives = ({ current, currentScore, profile: profileProp, cons
         }
 
 
-        // Quality floor: a candidate is only valid if its score is >= 50
-        // AND strictly better than the current product. Never surface a
-        // red/regular product as a "better" alternative.
+        // Quality floor. The absolute floor applies to the GENERAL score
+        // (objective quality); the comparison "must be better" applies to the
+        // score we actually show. A strict profile used to push every personal
+        // score below 50 and empty the list even when clearly better products
+        // existed (real case: "Campurrianas" with no alternatives at all).
         const eligible = scored
-          .filter(c => c.score >= MIN_SCORE && c.score > currentScore)
+          .filter(c => c.general >= MIN_SCORE && c.score > currentScore)
           .sort((a, b) => b.score - a.score);
 
         // Score parity with the product page: the search payload can still be
         // partial, so refetch the FULL record for the finalists and rescore
         // exactly like ResultPage does (real case: a jam shown at 95 on the
         // card and 65 once opened, because additives were missing).
-        const finalists = eligible.slice(0, 4);
+        const finalists = eligible.slice(0, 6);
         await Promise.all(finalists.map(async (c) => {
           if (c.data.source !== 'off' && c.data.source !== 'obf') return;
           try {
@@ -552,11 +554,13 @@ export const Alternatives = ({ current, currentScore, profile: profileProp, cons
             // Re-validate with the FULL record: the search payload can hide the
             // real category/name (this is how a shower gel slipped through as a
             // shampoo alternative) and the real ingredient list.
-            if (isDisallowedCandidate(full, cat, tagSet, currentGroup)) { c.score = -1; return; }
-            if (!passesDataFloor(full, fl)) { c.score = -1; return; }
+            if (isDisallowedCandidate(full, cat, tagSet, currentGroup)) { c.score = -1; c.general = -1; return; }
+            if (!passesDataFloor(full, fl)) { c.score = -1; c.general = -1; return; }
+            const rescored = scoreOf(full, fl);
             c.data = full;
             c.flagged = fl;
-            c.score = scoreOf(full, fl);
+            c.score = rescored.shown;
+            c.general = rescored.general;
             c.label = scoreLabel(c.score);
           } catch {
             /* keep the search-based score */
@@ -564,9 +568,10 @@ export const Alternatives = ({ current, currentScore, profile: profileProp, cons
         }));
 
         const top = finalists
-          .filter(c => c.score >= MIN_SCORE && c.score > currentScore)
+          .filter(c => c.general >= MIN_SCORE && c.score > currentScore)
           .sort((a, b) => b.score - a.score)
           .slice(0, 3);
+
 
         if (cancelled) return;
         try { sessionStorage.setItem(cacheKey, JSON.stringify(top)); } catch {}
