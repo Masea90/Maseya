@@ -433,6 +433,17 @@ const ResultPage = () => {
 
 
   useEffect(() => {
+    // Clear the previous product BEFORE looking up the new barcode. Without
+    // this, scanning a second code kept the previous sheet on screen while the
+    // new lookup was in flight, which read as "this product has nothing to do
+    // with what I scanned".
+    setProduct(null);
+    setNotFound(false);
+    setEnriching(false);
+    setFromPhoto(false);
+    setPhotoSaved(false);
+    setLoading(true);
+
     if (!barcode) {
       setLoading(false);
       setNotFound(true);
