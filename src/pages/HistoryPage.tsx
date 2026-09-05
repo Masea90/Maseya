@@ -64,6 +64,13 @@ const COPY = {
     deleted: 'Escaneo eliminado',
     clearedAll: 'Historial vaciado',
     stale: 'nota guardada',
+    tabHistory: 'Historial',
+    tabFavorites: 'Favoritos',
+    favEmpty: 'Aún no tienes favoritos. Pulsa el corazón en cualquier producto para guardarlo aquí.',
+    favRemove: 'Quitar de favoritos',
+    favRemoved: 'Quitado de favoritos',
+    favError: 'No se ha podido quitar. Inténtalo de nuevo.',
+    favAnon: 'Crea tu cuenta para guardar tus productos favoritos.',
   },
   en: {
     title: 'History',
@@ -79,6 +86,13 @@ const COPY = {
     deleted: 'Scan deleted',
     clearedAll: 'History cleared',
     stale: 'saved score',
+    tabHistory: 'History',
+    tabFavorites: 'Favorites',
+    favEmpty: 'No favorites yet. Tap the heart on any product to save it here.',
+    favRemove: 'Remove from favorites',
+    favRemoved: 'Removed from favorites',
+    favError: "Couldn't remove it. Please try again.",
+    favAnon: 'Create your account to save your favorite products.',
   },
   fr: {
     title: 'Historique',
@@ -94,8 +108,16 @@ const COPY = {
     deleted: 'Scan supprimé',
     clearedAll: 'Historique vidé',
     stale: 'note enregistrée',
+    tabHistory: 'Historique',
+    tabFavorites: 'Favoris',
+    favEmpty: "Pas encore de favoris. Appuie sur le cœur d'un produit pour l'enregistrer ici.",
+    favRemove: 'Retirer des favoris',
+    favRemoved: 'Retiré des favoris',
+    favError: "Impossible de le retirer. Réessaie.",
+    favAnon: 'Crée ton compte pour enregistrer tes produits favoris.',
   },
 };
+
 
 const ANON_KEY = 'maseya_anon_history';
 
