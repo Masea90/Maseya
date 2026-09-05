@@ -1414,9 +1414,16 @@ export function pregnancyFoodFindings(p: ProductData, language?: string): Pregna
   const out: PregnancyFinding[] = [];
   for (const rule of PREGNANCY_FOOD_RULES) {
     if (rule.excludes && firstTerm(haystack, rule.excludes)) continue;
-    const term = firstTerm(haystack, rule.keywords);
-
+    if (rule.excludeTags && rule.excludeTags.some(t => catsTags.includes(t))) continue;
     const tagHit = rule.tags ? rule.tags.some(t => catsTags.includes(t)) : false;
+
+    let term = firstTerm(haystack, rule.keywords);
+    // Ambiguous words need a second signal before they can warn.
+    if (!term && !tagHit && rule.weakKeywords) {
+      const weak = firstTerm(haystack, rule.weakKeywords);
+      if (weak && rule.context && firstTerm(haystack, rule.context)) term = weak;
+    }
+
     if (!term && !tagHit) continue;
     const detail = term ? PREG_DETECTED[lang](term) : '';
     out.push({
@@ -1427,6 +1434,7 @@ export function pregnancyFoodFindings(p: ProductData, language?: string): Pregna
   }
   return out;
 }
+
 
 // ===========================================================================
 // Vegetarian diet layer (own rules, more permissive than vegan: dairy, eggs
