@@ -39,10 +39,34 @@ interface Candidate {
 // v15: single ordered pipeline. Subgroups now cover the main food staples and
 // a candidate must prove its subgroup BY NAME (community tags are unreliable:
 // a Sanex shower gel tagged en:shampoos kept surfacing for shampoos).
-const CACHE_PREFIX = 'maseya_alts_v15::';
+const CACHE_PREFIX = 'maseya_alts_v16::';
 const FETCH_TIMEOUT_MS = 8000;
-/** Absolute quality floor, applied to the GENERAL (objective) score. */
-const MIN_SCORE = 50;
+/**
+ * Meaningful-improvement rule (v16). An alternative is only worth showing when
+ * it is clearly better AND good on its own:
+ *  - at least +15 points over the scanned product (1-10 is noise),
+ *  - at least 60/100 on its own general score,
+ *  - and if the scanned product already scores >= 60, the bar rises to 75.
+ */
+const MIN_IMPROVEMENT = 15;
+const MIN_QUALITY = 60;
+const GOOD_BASE = 60;
+const MIN_QUALITY_WHEN_GOOD = 75;
+const MAX_SHOWN = 4;
+
+/** Quality bar a candidate must clear given the scanned product's score. */
+export const qualityBarFor = (currentScore: number): number =>
+  currentScore >= GOOD_BASE ? MIN_QUALITY_WHEN_GOOD : MIN_QUALITY;
+
+/** Does this candidate deserve to be recommended over the scanned product? */
+export const isMeaningfulAlternative = (
+  candidateShown: number,
+  candidateGeneral: number,
+  currentScore: number,
+): boolean =>
+  candidateGeneral >= qualityBarFor(currentScore) &&
+  candidateShown >= currentScore + MIN_IMPROVEMENT;
+
 // TODO: derive country from user locale/settings when we expand beyond Spain.
 const COUNTRY_TAG = 'en:spain';
 
@@ -424,11 +448,12 @@ export const Alternatives = ({ current, currentScore, profile: profileProp, cons
         // Strict Spain filter — we intentionally do NOT fall back to a
         // no-country query, otherwise we surface products not sold in Spain
         // (previous bug: French/Moroccan waters appearing as alternatives).
-        const buildUrl = (tag: string) =>
+        const buildUrl = (tag: string, pageSize = 24, sort = 'unique_scans_n') =>
           `https://${host}/api/v2/search` +
           `?categories_tags=${encodeURIComponent(tag)}` +
           `&countries_tags=${encodeURIComponent(COUNTRY_TAG)}` +
-          `&sort_by=unique_scans_n&page_size=24&fields=${fields}`;
+          `&sort_by=${sort}&page_size=${pageSize}&fields=${fields}`;
+
 
         const tagCandidates: string[] = [];
         const seenTags = new Set<string>();
@@ -449,29 +474,36 @@ export const Alternatives = ({ current, currentScore, profile: profileProp, cons
           return;
         }
 
-        const attempts: string[] = tagCandidates.map(buildUrl);
-
-        let products: SearchItem[] = [];
-        for (const url of attempts) {
+        const fetchTag = async (
+          tag: string,
+          pageSize = 24,
+          sort = 'unique_scans_n',
+        ): Promise<SearchItem[]> => {
           try {
-            const res = await fetch(url, { signal: controller.signal });
-            if (!res.ok) continue;
+            const res = await fetch(buildUrl(tag, pageSize, sort), { signal: controller.signal });
+            if (!res.ok) return [];
             const json = (await res.json()) as { products?: SearchItem[] };
             // Strict client-side safety net: candidate MUST declare
             // countries_tags AND include en:spain. Previously we accepted
             // products without countries_tags, which let non-Spanish items
             // through (e.g. Argentine "La Serenísima").
-            const spanish = (json.products || []).filter(
+            return (json.products || []).filter(
               p => Array.isArray(p.countries_tags) && p.countries_tags.includes(COUNTRY_TAG)
             );
-            if (spanish.length > 0) {
-              products = spanish;
-              break;
-            }
           } catch (e) {
             if (controller.signal.aborted) throw e;
+            return [];
           }
+        };
+
+        let products: SearchItem[] = [];
+        let usedTag: string | null = null;
+        for (const tag of tagCandidates) {
+          const found = await fetchTag(tag);
+          if (found.length > 0) { products = found; usedTag = tag; break; }
         }
+
+
 
         const consent = consentProp ?? hasHealthDataConsent();
         const profile = consent ? (profileProp ?? loadProfile()) : null;
@@ -491,19 +523,29 @@ export const Alternatives = ({ current, currentScore, profile: profileProp, cons
           return { general, shown };
         };
 
+        // Diagnostics: how many candidates each stage removes. Logged once per
+        // product so we can tell "no good alternative exists" apart from
+        // "a filter is eating legitimate candidates".
+        const stats = {
+          raw: 0, dupe: 0, incompatible: 0, dataFloor: 0,
+          scored: 0, revalidation: 0, notMeaningful: 0, shown: 0, widened: false,
+        };
+
         const scored: Candidate[] = [];
         const seenCodes = new Set<string>([current.barcode]);
         const addCandidate = (pd: ProductData | null) => {
           if (!pd) return;
-          if (!pd.barcode || seenCodes.has(pd.barcode)) return;
-          if (isDisallowedCandidate(pd, cat, tagSet, currentGroup)) return;
+          stats.raw += 1;
+          if (!pd.barcode || seenCodes.has(pd.barcode)) { stats.dupe += 1; return; }
+          if (isDisallowedCandidate(pd, cat, tagSet, currentGroup)) { stats.incompatible += 1; return; }
           // Data floor per candidate: food needs a nutriscore, cosmetic needs
-          // at least 3 parseable ingredients. Prevents empty "shell" entries
-          // from scoring 100 and drowning real products.
+          // a real parseable INCI list. Prevents empty "shell" entries from
+          // scoring 100 and drowning real products.
           const candidateFlagged = flagIngredients(pd);
-          if (!passesDataFloor(pd, candidateFlagged)) return;
+          if (!passesDataFloor(pd, candidateFlagged)) { stats.dataFloor += 1; return; }
           seenCodes.add(pd.barcode);
           const { general, shown } = scoreOf(pd, candidateFlagged);
+          stats.scored += 1;
           scored.push({ data: pd, score: shown, general, label: scoreLabel(shown), flagged: candidateFlagged });
         };
 
@@ -536,21 +578,30 @@ export const Alternatives = ({ current, currentScore, profile: profileProp, cons
           }
         }
 
+        // Meaningful-improvement rule: clearly better AND good on its own.
+        const meaningful = (c: Candidate) =>
+          isMeaningfulAlternative(c.score, c.general, currentScore);
 
-        // Quality floor. The absolute floor applies to the GENERAL score
-        // (objective quality); the comparison "must be better" applies to the
-        // score we actually show. A strict profile used to push every personal
-        // score below 50 and empty the list even when clearly better products
-        // existed (real case: "Campurrianas" with no alternatives at all).
-        const eligible = scored
-          .filter(c => c.general >= MIN_SCORE && c.score > currentScore)
-          .sort((a, b) => b.score - a.score);
+        // Second, wider sweep inside the SAME subgroup before giving up: the
+        // first pass only reads the 24 most-scanned products of the tightest
+        // tag, which often contains no product good enough to recommend.
+        if (scored.filter(meaningful).length < 2) {
+          stats.widened = true;
+          for (const tag of tagCandidates) {
+            const wider = await fetchTag(tag, 100, 'popularity_key');
+            for (const raw of wider) addCandidate(toProductData(raw, candidateSource, cat));
+            if (scored.filter(meaningful).length >= 4) break;
+          }
+        }
+
+        const eligible = scored.filter(meaningful).sort((a, b) => b.score - a.score);
+        stats.notMeaningful = scored.length - eligible.length;
 
         // Score parity with the product page: the search payload can still be
         // partial, so refetch the FULL record for the finalists and rescore
         // exactly like ResultPage does (real case: a jam shown at 95 on the
         // card and 65 once opened, because additives were missing).
-        const finalists = eligible.slice(0, 6);
+        const finalists = eligible.slice(0, 8);
         await Promise.all(finalists.map(async (c) => {
           if (c.data.source !== 'off' && c.data.source !== 'obf') return;
           try {
@@ -580,10 +631,20 @@ export const Alternatives = ({ current, currentScore, profile: profileProp, cons
           }
         }));
 
+        stats.revalidation = finalists.filter(c => c.general < 0).length;
+
         const top = finalists
-          .filter(c => c.general >= MIN_SCORE && c.score > currentScore)
+          .filter(c => c.general >= 0 && meaningful(c))
           .sort((a, b) => b.score - a.score)
-          .slice(0, 3);
+          .slice(0, MAX_SHOWN);
+        stats.shown = top.length;
+        console.debug(
+          `[alternatives] ${current.barcode} "${current.name}" base=${currentScore} bar=${qualityBarFor(currentScore)}` +
+            ` tags=${tagCandidates.join('+')} used=${usedTag ?? 'none'} firstPass=${products.length}`,
+          JSON.stringify(stats),
+        );
+
+
 
 
         if (cancelled) return;
