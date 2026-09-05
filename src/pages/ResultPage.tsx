@@ -32,6 +32,7 @@ import { toast } from '@/hooks/use-toast';
 import { hasHealthDataConsent, getStoredConsent, saveConsent } from '@/components/consent/ConsentModal';
 import { buildActiveProfile } from '@/lib/activeProfile';
 import { SignupInvite } from '@/components/onboarding/SignupInvite';
+import { FavoriteButton } from '@/components/favorites/FavoriteButton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { HeartPulse } from 'lucide-react';
 
@@ -845,8 +846,12 @@ const ResultPage = () => {
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <p className="font-display font-semibold leading-tight">{product.name}</p>
+            <div className="flex items-start gap-1">
+              <p className="font-display font-semibold leading-tight flex-1 min-w-0">{product.name}</p>
+              {product.barcode && <FavoriteButton barcode={product.barcode} className="-mt-1 -mr-1" />}
+            </div>
             {product.brand && <p className="text-xs text-muted-foreground mt-1 truncate">{product.brand}</p>}
+
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-2">
               {supplement ? c.complemento
                 : alcoholic ? c.bebidaAlcoholica

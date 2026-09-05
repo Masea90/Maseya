@@ -1,0 +1,21 @@
+CREATE TABLE public.favorites (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  barcode text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT favorites_user_barcode_unique UNIQUE (user_id, barcode)
+);
+
+GRANT SELECT, INSERT, DELETE ON public.favorites TO authenticated;
+GRANT ALL ON public.favorites TO service_role;
+
+ALTER TABLE public.favorites ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "own favorites select" ON public.favorites
+  FOR SELECT TO authenticated USING (auth.uid() = user_id);
+CREATE POLICY "own favorites insert" ON public.favorites
+  FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "own favorites delete" ON public.favorites
+  FOR DELETE TO authenticated USING (auth.uid() = user_id);
+
+CREATE INDEX favorites_user_created_idx ON public.favorites (user_id, created_at DESC);

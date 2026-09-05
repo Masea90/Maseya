@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useUser } from '@/contexts/UserContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { History as HistoryIcon, Trash2 } from 'lucide-react';
+import { History as HistoryIcon, Trash2, Heart } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import {
@@ -30,6 +30,7 @@ import {
 } from '@/lib/scoring';
 import { hasHealthDataConsent } from '@/components/consent/ConsentModal';
 import { buildActiveProfile } from '@/lib/activeProfile';
+import { track } from '@/lib/analytics';
 
 interface ScanRow {
   id: string;
@@ -64,6 +65,13 @@ const COPY = {
     deleted: 'Escaneo eliminado',
     clearedAll: 'Historial vaciado',
     stale: 'nota guardada',
+    tabHistory: 'Historial',
+    tabFavorites: 'Favoritos',
+    favEmpty: 'Aún no tienes favoritos. Pulsa el corazón en cualquier producto para guardarlo aquí.',
+    favRemove: 'Quitar de favoritos',
+    favRemoved: 'Quitado de favoritos',
+    favError: 'No se ha podido quitar. Inténtalo de nuevo.',
+    favAnon: 'Crea tu cuenta para guardar tus productos favoritos.',
   },
   en: {
     title: 'History',
@@ -79,6 +87,13 @@ const COPY = {
     deleted: 'Scan deleted',
     clearedAll: 'History cleared',
     stale: 'saved score',
+    tabHistory: 'History',
+    tabFavorites: 'Favorites',
+    favEmpty: 'No favorites yet. Tap the heart on any product to save it here.',
+    favRemove: 'Remove from favorites',
+    favRemoved: 'Removed from favorites',
+    favError: "Couldn't remove it. Please try again.",
+    favAnon: 'Create your account to save your favorite products.',
   },
   fr: {
     title: 'Historique',
@@ -94,8 +109,16 @@ const COPY = {
     deleted: 'Scan supprimé',
     clearedAll: 'Historique vidé',
     stale: 'note enregistrée',
+    tabHistory: 'Historique',
+    tabFavorites: 'Favoris',
+    favEmpty: "Pas encore de favoris. Appuie sur le cœur d'un produit pour l'enregistrer ici.",
+    favRemove: 'Retirer des favoris',
+    favRemoved: 'Retiré des favoris',
+    favError: "Impossible de le retirer. Réessaie.",
+    favAnon: 'Crée ton compte pour enregistrer tes produits favoris.',
   },
 };
+
 
 const ANON_KEY = 'maseya_anon_history';
 
@@ -139,9 +162,13 @@ const HistoryPage = () => {
   const { currentUser } = useAuth();
   const c = COPY[user.language] ?? COPY.es;
   const [items, setItems] = useState<HistoryItem[]>([]);
+  const [favItems, setFavItems] = useState<HistoryItem[]>([]);
+  const [favLoading, setFavLoading] = useState(true);
+  const [tab, setTab] = useState<'history' | 'favorites'>('history');
   const [loading, setLoading] = useState(true);
   const [healthProfile, setHealthProfile] = useState<Record<string, unknown> | null>(null);
   const [healthConsent, setHealthConsent] = useState<boolean>(() => hasHealthDataConsent());
+
 
   // Consent is hydrated DB→localStorage asynchronously after sign-in, so read
   // it reactively instead of once at mount.
@@ -176,7 +203,7 @@ const HistoryPage = () => {
       loadOnboarding() as unknown as Record<string, unknown>,
     );
     const map = new Map<string, { value: number | undefined; stale: boolean }>();
-    for (const s of items) {
+    for (const s of [...items, ...favItems]) {
       const saved = typeof s.scores?.global === 'number' ? s.scores.global : undefined;
       let entry = { value: saved, stale: saved !== undefined };
       try {
@@ -208,7 +235,7 @@ const HistoryPage = () => {
       map.set(s.id, entry);
     }
     return map;
-  }, [items, healthProfile, healthConsent]);
+  }, [items, favItems, healthProfile, healthConsent]);
 
 
   const scoreFor = (s: HistoryItem) =>
@@ -258,6 +285,84 @@ const HistoryPage = () => {
       });
   }, [currentUser?.id]);
 
+  // Favorites: saved barcodes + the latest scan row of each one, so the card
+  // shows the same data and the SAME recomputed score as the history list.
+  const loadFavorites = useCallback(async () => {
+    if (!currentUser?.id) { setFavItems([]); setFavLoading(false); return; }
+    setFavLoading(true);
+    const { data: favs, error } = await supabase
+      .from('favorites')
+      .select('barcode, created_at')
+      .eq('user_id', currentUser.id)
+      .order('created_at', { ascending: false })
+      .limit(200);
+    if (error) {
+      console.error('[favorites] load', error);
+      setFavItems([]);
+      setFavLoading(false);
+      return;
+    }
+    const barcodes = (favs ?? []).map((f) => f.barcode);
+    if (barcodes.length === 0) { setFavItems([]); setFavLoading(false); return; }
+
+    const { data: scans } = await supabase
+      .from('scan_history')
+      .select('id,barcode,product_name,product_image,category,source,scanned_at,scores,product_data')
+      .eq('user_id', currentUser.id)
+      .in('barcode', barcodes)
+      .order('scanned_at', { ascending: false })
+      .limit(500);
+    const latest = new Map<string, ScanRow>();
+    for (const row of (scans as ScanRow[] | null) ?? []) {
+      if (row.barcode && !latest.has(row.barcode)) latest.set(row.barcode, row);
+    }
+    const rows: HistoryItem[] = (favs ?? []).map((f) => {
+      const scan = latest.get(f.barcode);
+      return {
+        id: `fav:${f.barcode}`,
+        barcode: f.barcode,
+        product_name: scan?.product_name ?? null,
+        product_image: scan?.product_image ?? null,
+        category: scan?.category ?? null,
+        source: scan?.source ?? null,
+        scanned_at: f.created_at,
+        scores: scan?.scores ?? null,
+        product_data: scan?.product_data,
+        scanCount: 1,
+        groupIds: [],
+      };
+    });
+    setFavItems(rows);
+    setFavLoading(false);
+  }, [currentUser?.id]);
+
+  useEffect(() => {
+    void loadFavorites();
+    const refresh = () => { void loadFavorites(); };
+    window.addEventListener('maseya:favorites-updated', refresh);
+    return () => window.removeEventListener('maseya:favorites-updated', refresh);
+  }, [loadFavorites]);
+
+  const removeFavorite = async (barcode: string) => {
+    if (!currentUser?.id) return;
+    const prev = favItems;
+    setFavItems((cur) => cur.filter((f) => f.barcode !== barcode));
+    const { error } = await supabase
+      .from('favorites')
+      .delete()
+      .eq('user_id', currentUser.id)
+      .eq('barcode', barcode);
+    if (error) {
+      console.error('[favorites] remove', error);
+      setFavItems(prev);
+      toast({ title: c.favError, variant: 'destructive' });
+      return;
+    }
+    track('favorite_removed', { barcode });
+    toast({ title: c.favRemoved });
+  };
+
+
   const deleteGroup = async (item: HistoryItem) => {
     const prev = items;
     setItems((cur) => cur.filter((i) => i.id !== item.id));
@@ -300,10 +405,90 @@ const HistoryPage = () => {
     toast({ title: c.clearedAll });
   };
 
+  const tabBtn = (id: 'history' | 'favorites', label: string) => (
+    <button
+      key={id}
+      type="button"
+      onClick={() => setTab(id)}
+      aria-pressed={tab === id}
+      className={`flex-1 h-9 rounded-xl text-sm font-medium transition-colors ${
+        tab === id ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground'
+      }`}
+    >
+      {label}
+    </button>
+  );
+
   return (
     <AppLayout title={c.title}>
       <div className="px-4 py-6 space-y-3">
+        <div className="flex gap-1 p-1 rounded-2xl bg-muted">
+          {tabBtn('history', c.tabHistory)}
+          {tabBtn('favorites', c.tabFavorites)}
+        </div>
+
+        {tab === 'favorites' ? (
+          favLoading ? (
+            <HistorySkeleton />
+          ) : !currentUser?.id ? (
+            <div className="px-4 py-12 flex flex-col items-center text-center">
+              <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-4">
+                <Heart className="w-10 h-10 text-muted-foreground/60" />
+              </div>
+              <p className="text-sm text-muted-foreground max-w-xs">{c.favAnon}</p>
+            </div>
+          ) : favItems.length === 0 ? (
+            <div className="px-4 py-12 flex flex-col items-center text-center">
+              <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-4">
+                <Heart className="w-10 h-10 text-muted-foreground/60" />
+              </div>
+              <p className="text-sm text-muted-foreground max-w-xs">{c.favEmpty}</p>
+            </div>
+          ) : (
+            favItems.map((s) => (
+              <div
+                key={s.id}
+                className="bg-card border border-border rounded-2xl p-3 flex gap-3 items-center hover:bg-muted/50 transition-colors"
+              >
+                <Link
+                  to={s.barcode ? `/result/${encodeURIComponent(s.barcode)}` : '#'}
+                  state={{ skipHistory: true }}
+                  className="flex-1 flex gap-3 items-center min-w-0"
+                >
+                  {s.product_image ? (
+                    <img src={s.product_image} alt="" className="w-14 h-14 rounded-xl object-cover bg-muted shrink-0" />
+                  ) : (
+                    <div className="w-14 h-14 rounded-xl bg-muted shrink-0" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{s.product_name || s.barcode}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(s.scanned_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                  {typeof scoreFor(s).value === 'number' && (
+                    <div className="shrink-0 text-right">
+                      <div className="text-sm font-bold text-primary">{scoreFor(s).value}</div>
+                      {scoreFor(s).stale && (
+                        <div className="text-[9px] text-muted-foreground">{c.stale}</div>
+                      )}
+                    </div>
+                  )}
+                </Link>
+                <button
+                  aria-label={c.favRemove}
+                  onClick={() => s.barcode && removeFavorite(s.barcode)}
+                  className="p-2 rounded-lg text-primary hover:bg-primary/10 transition-colors shrink-0"
+                >
+                  <Heart className="w-4 h-4" fill="currentColor" />
+                </button>
+              </div>
+            ))
+          )
+        ) : (
+        <>
         {!loading && items.length > 0 && (
+
           <div className="flex items-center justify-end">
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -414,7 +599,11 @@ const HistoryPage = () => {
             </div>
           ))
         )}
+        </>
+        )}
       </div>
+
+
     </AppLayout>
   );
 };

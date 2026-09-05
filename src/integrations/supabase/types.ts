@@ -41,6 +41,27 @@ export type Database = {
         }
         Relationships: []
       }
+      favorites: {
+        Row: {
+          barcode: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          barcode: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          barcode?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       feedback: {
         Row: {
           context: Json | null
