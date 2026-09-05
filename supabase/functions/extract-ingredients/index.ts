@@ -9,8 +9,8 @@ const corsHeaders = {
 
 const SYSTEM_PROMPT = `You are an expert at reading product labels. Extract the following and return ONLY valid JSON:
 {
-  "product_name": "full product name as shown",
-  "brand": "brand name",
+  "product_name": "commercial product name exactly as printed on the FRONT of the pack, or null",
+  "brand": "brand exactly as printed on the FRONT of the pack, or null",
   "category": "food or cosmetic or other",
   "ingredients_text": "complete ingredient list",
   "category_tag": "most specific Open Food Facts / Open Beauty Facts category tag",
