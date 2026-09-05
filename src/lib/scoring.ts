@@ -1449,12 +1449,30 @@ export function pregnancyFoodFindings(p: ProductData, language?: string): Pregna
     }
 
     if (!term && !tagHit) continue;
+
+    // Raw milk inside an aged hard cheese: informational, not a hard fail.
+    if (
+      rule.id === 'raw-milk' &&
+      firstTerm(haystack, PREG_HARD_CHEESE) &&
+      !firstTerm(haystack, PREG_SOFT_CHEESE_SIGNAL) &&
+      !catsTags.includes('en:soft-cheeses') &&
+      !catsTags.includes('en:mould-ripened-cheeses')
+    ) {
+      out.push({
+        id: 'raw-milk-hard-cheese',
+        level: 'C',
+        text: `${PREG_HARD_CHEESE_TEXT[lang]}. ${PREG_AESAN_NOTE[lang]}`,
+      });
+      continue;
+    }
+
     const detail = term ? PREG_DETECTED[lang](term) : '';
     out.push({
       id: rule.id,
       level: rule.level,
       text: `${rule.text[lang]}${detail}. ${PREG_AESAN_NOTE[lang]}`,
     });
+
   }
   return out;
 }
