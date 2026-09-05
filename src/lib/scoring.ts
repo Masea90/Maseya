@@ -1114,6 +1114,27 @@ export function calculateScoreBreakdown(
       score = 20;
     }
 
+    // Regulated sensitizers typical of hair dyes: inform, don't alarm.
+    const dyeTerm = findAny(rawText, [
+      'p-phenylenediamine', 'ppd', 'para-phenylenediamine', 'p-fenilendiamina',
+      'toluene-2,5-diamine', 'toluene 2 5 diamine', 'toluene-2,5-diamine sulfate',
+      'resorcinol', 'resorcina',
+    ]);
+    if (dyeTerm) {
+      factors.push({
+        label: `${dyeTerm}: sensibilizante frecuente en tintes capilares, permitido con límites en la UE. Se recomienda prueba de alergia previa`,
+        delta: null,
+        tone: 'neutral',
+      });
+    }
+    const cocamideTerm = findAny(rawText, ['cocamide dea', 'cocamide diethanolamine', 'coco diethanolamide']);
+    if (cocamideTerm) {
+      factors.push({
+        label: `${cocamideTerm}: clasificado por la IARC como posible carcinógeno (grupo 2B)`,
+        delta: null,
+        tone: 'neutral',
+      });
+    }
 
 
     // Floor: without any "avoid" ingredient, an ordinary formula can never be
