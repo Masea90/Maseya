@@ -1393,8 +1393,28 @@ const PREGNANCY_FOOD_RULES: PregRule[] = [
   },
 ];
 
+// Aged hard cheeses (Parmigiano, Manchego curado, Grana Padano…) are legally
+// made from raw milk but their long ripening and very low moisture make them
+// low risk: AESAN's raw-milk warning targets fresh and soft cheeses. On these
+// the raw-milk rule becomes informational instead of a hard fail.
+const PREG_HARD_CHEESE = [
+  'parmesano', 'parmigiano', 'grana padano', 'pecorino', 'manchego', 'idiazabal',
+  'zamorano', 'emmental', 'gruyere', 'gruyère', 'comte', 'comté', 'cheddar curado',
+  'queso curado', 'queso viejo', 'queso añejo', 'queso anejo', 'curado', 'semicurado',
+];
+const PREG_SOFT_CHEESE_SIGNAL = [
+  'queso fresco', 'camembert', 'brie', 'roquefort', 'gorgonzola', 'queso azul',
+  'cabrales', 'burrata', 'mozzarella fresca', 'feta', 'torta', 'requeson', 'requesón',
+];
+const PREG_HARD_CHEESE_TEXT: Record<PregLang, string> = {
+  es: 'Queso curado elaborado con leche cruda: por su larga maduración el riesgo es bajo, pero si prefieres máxima prudencia tómalo cocinado',
+  en: 'Aged cheese made with raw milk: the long ripening makes the risk low, but eat it cooked if you prefer maximum caution',
+  fr: 'Fromage affiné au lait cru : l’affinage long rend le risque faible, mais consomme-le cuit si tu préfères être prudente',
+};
+
 const pregLang = (l?: string): PregLang =>
   l === 'en' || l === 'fr' ? l : 'es';
+
 
 export interface PregnancyFinding {
   id: string;
