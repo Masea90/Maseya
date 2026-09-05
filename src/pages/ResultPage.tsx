@@ -1048,7 +1048,7 @@ const ResultPage = () => {
                             const bc = barcode && barcode !== 'photo' ? barcode : (product.barcode !== 'photo' ? product.barcode : '');
                             // Nutrition-only gap → jump straight to the nutrition step.
                             if (missingNutrition && !missingIngredients && bc && !bc.startsWith('photo_')) {
-                              navigate(`/scan/photo?step=nutrition&barcode=${bc}`);
+                              navigate(`/scan/photo?step=nutrition&barcode=${bc}&name=${encodeURIComponent(product.name || '')}`);
                             } else {
                               navigate(bc ? `/scan/photo?barcode=${bc}` : '/scan/photo');
                             }
