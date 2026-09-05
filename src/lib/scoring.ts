@@ -1183,12 +1183,24 @@ type PregLang = 'es' | 'en' | 'fr';
 interface PregRule {
   id: string;
   level: PregnancyLevel;
+  /** Keywords that on their own imply a real AESAN risk. */
   keywords: string[];
+  /** OFF category tags that on their own imply the risk. */
   tags?: string[];
+  /** Phrases that cancel the rule (safe products that share vocabulary). */
   excludes?: string[];
+  /** OFF category tags that cancel the rule. */
+  excludeTags?: string[];
+  /**
+   * Ambiguous words that appear in plenty of safe products: they only fire
+   * when a second signal from `context` is present in the same product.
+   */
+  weakKeywords?: string[];
+  context?: string[];
 
   text: Record<PregLang, string>;
 }
+
 
 const PREG_AESAN_NOTE: Record<PregLang, string> = {
   es: 'Recomendación de AESAN. Consulta con tu matrona o médico.',
