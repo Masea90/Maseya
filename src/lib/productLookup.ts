@@ -219,11 +219,45 @@ function isRichPublicHit(pd: ProductData): boolean {
   return ing.length > 0 || hasNutri;
 }
 
-/** Merge maseya ingredients (and nutriments) into a rich public hit that lacks ingredients. */
+const NUTRITION_TABLE_KEYS: string[][] = [
+  ['energy-kcal_100g', 'energy-kj_100g'],
+  ['saturated-fat_100g'],
+  ['sugars_100g'],
+  ['salt_100g', 'sodium_100g'],
+];
+
+function nutrimentsHaveTable(n: unknown): boolean {
+  if (!n || typeof n !== 'object') return false;
+  const obj = n as Record<string, unknown>;
+  return NUTRITION_TABLE_KEYS.every(group => group.some(k => {
+    const v = obj[k];
+    const num = typeof v === 'string' ? Number(v.replace(',', '.')) : v;
+    return typeof num === 'number' && Number.isFinite(num);
+  }));
+}
+
+/** Does a public hit already carry a usable per-100 g table? */
+function publicHasNutritionTable(pd: ProductData): boolean {
+  return nutrimentsHaveTable((pd.raw as Record<string, unknown> | undefined)?.nutriments);
+}
+
+/** Merge maseya ingredients (and nutriments) into a public hit. */
 function mergeMaseyaIntoPublic(publicHit: ProductData, maseya: ProductData): ProductData {
   const raw: Record<string, unknown> = { ...publicHit.raw };
   const mRaw = maseya.raw as Record<string, unknown>;
-  if (mRaw?.nutriments && !raw.nutriments) raw.nutriments = mRaw.nutriments;
+  const mNutr = mRaw?.nutriments;
+  if (mNutr && typeof mNutr === 'object') {
+    // Fill in only the values the public source is missing, so a photographed
+    // table completes (never overwrites) OFF data.
+    const pubNutr = (raw.nutriments && typeof raw.nutriments === 'object')
+      ? raw.nutriments as Record<string, unknown>
+      : {};
+    const merged: Record<string, unknown> = { ...pubNutr };
+    for (const [k, v] of Object.entries(mNutr as Record<string, unknown>)) {
+      if (merged[k] === undefined || merged[k] === null || merged[k] === '') merged[k] = v;
+    }
+    raw.nutriments = merged;
+  }
   return {
     ...publicHit,
     ingredients_text: publicHit.ingredients_text || maseya.ingredients_text || null,
@@ -273,11 +307,24 @@ export async function lookupProduct(barcode: string): Promise<ProductData | null
   const publicRich = !!publicHit && isRichPublicHit(publicHit);
   const publicHasIngredients = !!publicHit && (publicHit.ingredients_text || '').trim().length > 0;
 
-  // Fast path: rich public with ingredients → return it directly.
-  if (publicRich && publicHasIngredients) return publicHit!;
+  // Fast path: rich public with ingredients → return it directly, BUT only if
+  // the public source already carries a usable per-100 g table. Otherwise we
+  // must still read maseya_products: that is where a nutrition table the user
+  // photographed lives, and skipping it made the result keep asking for a
+  // photo the user had already taken (real reports: "Clara de huevo
+  // pasteurizada", "Queso en polvo especial pasta").
+  if (publicRich && publicHasIngredients && publicHasNutritionTable(publicHit!)) {
+    return publicHit!;
+  }
 
   const maseya = await fetchFromMaseya(barcode);
   const maseyaHasIngredients = !!maseya && (maseya.ingredients_text || '').trim().length > 0;
+
+  // Rich public with ingredients but no nutrition table → keep the public data
+  // and graft the photographed nutriments (and image) on top.
+  if (publicHit && publicRich && publicHasIngredients && maseya) {
+    return mergeMaseyaIntoPublic(publicHit, maseya);
+  }
 
   // Rich public but no ingredients + maseya has ingredients → merge symmetrically.
   if (publicHit && publicRich && !publicHasIngredients && maseyaHasIngredients) {

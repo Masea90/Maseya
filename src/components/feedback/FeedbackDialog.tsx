@@ -133,7 +133,8 @@ export const FeedbackDialog = ({ open, onOpenChange, extraContext }: FeedbackDia
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md mx-auto rounded-3xl">
+      {/* Fits a 390x844 screen with iOS safe areas; body scrolls if needed. */}
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-md mx-auto rounded-3xl max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-2rem)] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle className="font-display">{c.title}</DialogTitle>
           <DialogDescription>{c.subtitle}</DialogDescription>
@@ -158,7 +159,7 @@ export const FeedbackDialog = ({ open, onOpenChange, extraContext }: FeedbackDia
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder={c.messagePlaceholder}
-              rows={5}
+              rows={4}
               maxLength={2000}
               className="rounded-xl resize-none"
             />

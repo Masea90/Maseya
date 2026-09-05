@@ -9,8 +9,8 @@ const corsHeaders = {
 
 const SYSTEM_PROMPT = `You are an expert at reading product labels. Extract the following and return ONLY valid JSON:
 {
-  "product_name": "full product name as shown",
-  "brand": "brand name",
+  "product_name": "commercial product name exactly as printed on the FRONT of the pack, or null",
+  "brand": "brand exactly as printed on the FRONT of the pack, or null",
   "category": "food or cosmetic or other",
   "ingredients_text": "complete ingredient list",
   "category_tag": "most specific Open Food Facts / Open Beauty Facts category tag",
@@ -25,6 +25,9 @@ Rules for "category_tag":
 - Choose the MOST SPECIFIC reasonable category (e.g. "en:coconut-oils" not just "en:vegetable-oils"; "en:face-creams" not just "en:cosmetics").
 - Examples: "en:vegetable-oils", "en:coconut-oils", "en:biscuits", "en:yogurts", "en:breakfast-cereals", "en:shampoos", "en:face-creams", "en:body-lotions", "en:toothpastes".
 - If unsure, fall back to a more generic valid category. Never invent tags.
+Rules for "product_name" and "brand":
+- Read them from the FRONT image of the pack, exactly as written (keep accents and capitalisation, drop marketing slogans and net weight).
+- If they cannot be read clearly, return null. NEVER invent, guess or translate a name.
 Rules for "is_supplement" (boolean):
 - true when the label shows unambiguous FOOD SUPPLEMENT signals in any language (es/pt/en/fr): "complemento alimenticio", "complementos alimenticios", "suplemento alimentar", "food supplement", "complément alimentaire", "no sobrepasar la cantidad diaria recomendada", "dosis diaria", "toma diaria", "VRN", "Valor de Referencia de Nutriente", "% NRV", "comprimido efervescente", "cápsulas", "comprimidos recubiertos", "no deben utilizarse como sustitutos de una dieta variada".
 - true when the product format is clearly capsules / tablets / vials / supplement sachets.
@@ -437,24 +440,39 @@ serve(async (req) => {
         if (supplement) return json({ error: "supplement_detected" }, 422);
         return json({ error: "nutrition_rejected", reason: result.reason }, 422);
       }
-      // Persist
+      // Persist. UPSERT, not UPDATE: products found in OFF/OBF have no row in
+      // maseya_products, so the previous UPDATE matched 0 rows and the table
+      // the user photographed was silently dropped — the result page kept
+      // asking for the same photo forever.
+      let persisted = false;
       try {
         const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
         const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
         if (serviceKey && supabaseUrl) {
           const admin = createClient(supabaseUrl, serviceKey);
           const { data: existing } = await admin
-            .from("maseya_products").select("verified").eq("barcode", rawBarcode).maybeSingle();
+            .from("maseya_products")
+            .select("verified, product_name, category")
+            .eq("barcode", rawBarcode).maybeSingle();
           if (!existing?.verified) {
+            const bodyName = typeof body.product_name === "string" ? body.product_name.trim() : "";
+            const payload: Record<string, unknown> = {
+              barcode: rawBarcode,
+              nutriments: result.nutriments,
+              product_name: existing?.product_name || bodyName || "Producto fotografiado",
+              category: existing?.category || "food",
+            };
+            if (!existing) payload.source = "photo_nutrition";
             const { error: upErr } = await admin
               .from("maseya_products")
-              .update({ nutriments: result.nutriments })
-              .eq("barcode", rawBarcode);
-            if (upErr) console.error("[extract] nutriments update failed", upErr.message);
-          }
+              .upsert(payload, { onConflict: "barcode" });
+            if (upErr) console.error("[extract] nutriments upsert failed", upErr.message);
+            else persisted = true;
+          } else persisted = true;
         }
       } catch (e) { console.error("[extract] nutrition persist error", e); }
-      return json({ ok: true, nutriments: result.nutriments }, 200);
+      console.log("[extract] nutrition-only persisted:", persisted);
+      return json({ ok: true, nutriments: result.nutriments, persisted }, 200);
     }
 
     // -------- Standard ingredient extraction ---------------------------------

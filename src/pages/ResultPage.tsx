@@ -43,6 +43,9 @@ const COPY = {
     analizando: 'Analizando producto...',
     enrichingHint: 'Estamos consultando bases de datos internacionales para encontrar este producto.',
     fueraDeAmbito: 'Fuera de ámbito',
+    noEstaEnBaseTitle: 'Este producto no está en nuestra base',
+    noEstaEnBaseBody: 'Añádelo con unas fotos y lo analizamos al momento (y ayudas a quien lo escanee después).',
+    fotografiarProducto: 'Fotografiar el producto',
     productoNoEncontrado: 'Producto no encontrado',
     fueraDeAmbitoBody: 'Maseya analiza alimentación y cosmética 📚 — este código corresponde a otro tipo de producto.',
     noInfoBody: 'No tenemos información de este producto en nuestras bases.',
@@ -121,6 +124,9 @@ const COPY = {
     analizando: 'Analyzing product...',
     enrichingHint: "We're checking international databases to find this product.",
     fueraDeAmbito: 'Out of scope',
+    noEstaEnBaseTitle: "This product isn't in our database",
+    noEstaEnBaseBody: 'Add it with a few photos and we analyze it right away (and help whoever scans it next).',
+    fotografiarProducto: 'Photograph the product',
     productoNoEncontrado: 'Product not found',
     fueraDeAmbitoBody: 'Maseya analyzes food and cosmetics 📚 — this barcode belongs to another type of product.',
     noInfoBody: "We don't have information on this product in our databases.",
@@ -199,6 +205,9 @@ const COPY = {
     analizando: 'Analyse du produit...',
     enrichingHint: 'Nous consultons des bases de données internationales pour trouver ce produit.',
     fueraDeAmbito: 'Hors périmètre',
+    noEstaEnBaseTitle: "Ce produit n'est pas dans notre base",
+    noEstaEnBaseBody: "Ajoute-le avec quelques photos et on l'analyse tout de suite (et tu aides la prochaine personne qui le scanne).",
+    fotografiarProducto: 'Photographier le produit',
     productoNoEncontrado: 'Produit non trouvé',
     fueraDeAmbitoBody: 'Maseya analyse l’alimentation et les cosmétiques 📚 — ce code correspond à un autre type de produit.',
     noInfoBody: "Nous n'avons pas d'informations sur ce produit dans nos bases.",
@@ -653,7 +662,7 @@ const ResultPage = () => {
               <ArrowLeft className="w-5 h-5" />
             </button>
             <h1 className="font-display text-lg font-semibold">
-              {isBookOrPress ? c.fueraDeAmbito : c.productoNoEncontrado}
+              {isBookOrPress ? c.fueraDeAmbito : c.noEstaEnBaseTitle}
             </h1>
           </div>
         </header>
@@ -661,7 +670,7 @@ const ResultPage = () => {
           <p className="text-muted-foreground">
             {isBookOrPress
               ? c.fueraDeAmbitoBody
-              : c.noInfoBody}
+              : c.noEstaEnBaseBody}
           </p>
           {isBookOrPress ? (
             <Button onClick={() => navigate('/scan', { replace: true })} className="w-full h-12 rounded-2xl">
@@ -669,7 +678,8 @@ const ResultPage = () => {
             </Button>
           ) : (
             <Button onClick={() => navigate(barcode && barcode !== 'photo' ? `/scan/photo?barcode=${barcode}` : '/scan/photo', { replace: true })} className="w-full h-12 rounded-2xl">
-              {c.fotografiarIngredientes}
+              <Camera className="w-4 h-4 mr-2" />
+              {c.fotografiarProducto}
             </Button>
           )}
         </div>
@@ -689,12 +699,32 @@ const ResultPage = () => {
   const nat = naturalness(product, flagged);
   const dataConfidence = evaluateDataConfidence(product);
   // What's actually missing — drives the single "incomplete analysis" notice.
-  // (Spanish strings come from evaluateDataConfidence; detect by category-agnostic
-  //  substring so the message matches reality instead of always saying "Nutriscore".)
-  const missingIngredients = dataConfidence.missing.some(m => m.toLowerCase().includes('ingrediente'));
-  const missingNutrition = product.category === 'food'
-    && dataConfidence.missing.some(m => !m.toLowerCase().includes('ingrediente'));
-  const needsPhoto = dataConfidence.level === 'low' || dataConfidence.level === 'medium';
+  // IMPORTANT: this must NOT be derived from dataConfidence.level. A product with
+  // no ingredients and no nutrition returns level 'none' (cap 40), and a food with
+  // a Nutri-Score grade but no per-100 g table returns level 'high' with an empty
+  // `missing` list — both cases left the user without any photo CTA (real reports:
+  // "Atún en aceite de girasol" 40/40, unnamed product 40/40).
+  // Rule: if the ingredient list OR the nutrition table is missing, always warn.
+  const rawNutriments = ((product.raw || {}) as Record<string, unknown>).nutriments;
+  const nutrimentsObj = (rawNutriments && typeof rawNutriments === 'object')
+    ? rawNutriments as Record<string, unknown>
+    : {};
+  const hasNutrimentValue = (...keys: string[]) =>
+    keys.some(k => {
+      const v = nutrimentsObj[k];
+      const n = typeof v === 'string' ? Number(v.replace(',', '.')) : v;
+      return typeof n === 'number' && Number.isFinite(n);
+    });
+  const hasNutritionTable = hasNutrimentValue('energy-kcal_100g', 'energy-kj_100g')
+    && hasNutrimentValue('saturated-fat_100g')
+    && hasNutrimentValue('sugars_100g')
+    && hasNutrimentValue('salt_100g', 'sodium_100g');
+  const ingredientsRawText = (product.ingredients_text || '').trim();
+  const missingIngredients = product.category === 'cosmetic'
+    ? dataConfidence.level !== 'high'
+    : !(ingredientsRawText.length > 0 && !isNutritionalData(ingredientsRawText));
+  const missingNutrition = product.category === 'food' && !hasNutritionTable;
+  const needsPhoto = missingIngredients || missingNutrition;
   const profile = loadOnboarding();
   // The personal layer is a registered-user feature. Anonymous users who already
   // had a local profile from before this gate keep working exactly as before.
@@ -1018,7 +1048,7 @@ const ResultPage = () => {
                             const bc = barcode && barcode !== 'photo' ? barcode : (product.barcode !== 'photo' ? product.barcode : '');
                             // Nutrition-only gap → jump straight to the nutrition step.
                             if (missingNutrition && !missingIngredients && bc && !bc.startsWith('photo_')) {
-                              navigate(`/scan/photo?step=nutrition&barcode=${bc}`);
+                              navigate(`/scan/photo?step=nutrition&barcode=${bc}&name=${encodeURIComponent(product.name || '')}`);
                             } else {
                               navigate(bc ? `/scan/photo?barcode=${bc}` : '/scan/photo');
                             }

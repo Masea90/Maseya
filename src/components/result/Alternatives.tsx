@@ -287,6 +287,13 @@ export const passesDataFloor = (
  * anything whose own category doesn't match what we searched for.
  * Applied to EVERY route (OFF search, OBF search, local catalog).
  */
+/** Names that mean "we don't actually know this product's name". */
+const PLACEHOLDER_NAMES = new Set([
+  'producto', 'producto sin nombre', 'producto fotografiado',
+  'photographed product', 'product', 'produit', 'produit photographie',
+  'sin nombre', 'unknown', 'desconocido',
+]);
+
 export const isDisallowedCandidate = (
   pd: ProductData,
   cat: 'food' | 'cosmetic',
@@ -298,6 +305,12 @@ export const isDisallowedCandidate = (
     : []
   ).filter((t): t is string => typeof t === 'string').map(t => t.toLowerCase());
   const name = normTxt(pd.name || '');
+
+  // 0. No usable name → out, for FOOD as well as cosmetics. A nameless row
+  //    cannot prove its subgroup by name (this is exactly how the nameless
+  //    Sanex shower gel tagged en:shampoos surfaced as a shampoo alternative),
+  //    and we would show the user a card with no product to buy.
+  if (PLACEHOLDER_NAMES.has(name) || name.length < 3) return true;
 
   // 1. Household / cleaning products are never an alternative.
   if (cats.some(t => HOUSEHOLD_TAG_HINTS.some(h => t.includes(h)))) return true;

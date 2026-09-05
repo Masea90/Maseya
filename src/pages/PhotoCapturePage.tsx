@@ -96,21 +96,21 @@ const COPY = {
   es: {
     title: 'Añadir producto',
     back: 'Volver',
-    stepOf: (n: number) => `Paso ${n} de 2`,
+    stepOf: (n: number, total: number) => `Paso ${n} de ${total}`,
     front: {
-      heading: 'Fotografía el frontal del producto',
-      sub: 'Apunta a la parte delantera',
+      heading: 'Paso 1: foto del frontal',
+      sub: 'Para identificar el producto (nombre y marca)',
       tip: 'Incluye el nombre y la marca',
       cta: 'Fotografiar el frontal',
     },
     ingredients: {
-      heading: 'Fotografía los ingredientes',
+      heading: 'Paso 2: foto de los ingredientes',
       sub: 'Lista de ingredientes (parte trasera o lateral)',
       hint: 'Busca «Ingredients:» o «Ingredientes:»',
       cta: 'Fotografiar los ingredientes',
     },
     nutrition: {
-      heading: '¿Añadir la tabla nutricional?',
+      heading: 'Paso 3 (opcional): tabla nutricional',
       sub: 'Desbloquea la nota completa del producto',
       hint: 'Busca la columna «por 100 g»',
       capture: 'Fotografiar tabla',
@@ -127,7 +127,7 @@ const COPY = {
     errorUnexpected: 'Error inesperado. Reintenta en unos segundos',
     errorNutritional: 'Parece que fotografiaste la tabla nutricional. Fotografía la lista de ingredientes.',
     errorTooLarge: 'La foto es demasiado grande. Reintenta acercándote al producto.',
-    nutritionRejected: 'No pudimos leer la tabla con seguridad — puedes reintentarlo.',
+    nutritionRejected: 'No hemos podido leer la tabla: asegúrate de que se vean los valores por 100 g y vuelve a intentarlo.',
     supplementDetected: 'Este producto es un complemento alimenticio: no se puntúa con el Nutri-Score.',
     loginCta: 'Iniciar sesión',
     retry: 'Reintentar',
@@ -140,26 +140,28 @@ const COPY = {
     shoot: 'Disparar',
     flip: 'Girar cámara',
     unnamedProduct: 'Producto fotografiado',
+    onlyMissingHeading: 'Solo falta la tabla nutricional',
+    onlyMissingSub: 'Fotografíala y completamos el análisis de este producto',
 
   },
   en: {
     title: 'Add product',
     back: 'Back',
-    stepOf: (n: number) => `Step ${n} of 2`,
+    stepOf: (n: number, total: number) => `Step ${n} of ${total}`,
     front: {
-      heading: 'Photograph the product front',
-      sub: 'Aim at the front of the product',
+      heading: 'Step 1: photo of the front',
+      sub: 'To identify the product (name and brand)',
       tip: 'Include the name and brand',
       cta: 'Photograph the front',
     },
     ingredients: {
-      heading: 'Photograph the ingredients',
+      heading: 'Step 2: photo of the ingredients',
       sub: 'Ingredient list (back or side)',
       hint: 'Look for "Ingredients:"',
       cta: 'Photograph the ingredients',
     },
     nutrition: {
-      heading: 'Add the nutrition table?',
+      heading: 'Step 3 (optional): nutrition table',
       sub: 'Unlock the full product score',
       hint: 'Look for the "per 100 g" column',
       capture: 'Photograph table',
@@ -176,7 +178,7 @@ const COPY = {
     errorUnexpected: 'Unexpected error. Try again in a few seconds',
     errorNutritional: 'Looks like you photographed the nutrition table. Photograph the ingredient list instead.',
     errorTooLarge: 'Photo is too large. Try getting closer to the product.',
-    nutritionRejected: "We couldn't read the table reliably — you can try again.",
+    nutritionRejected: "We couldn't read the table: make sure the per-100 g values are visible and try again.",
     supplementDetected: 'This product is a food supplement: it is not scored with the Nutri-Score.',
     loginCta: 'Log in',
     retry: 'Try again',
@@ -189,26 +191,28 @@ const COPY = {
     shoot: 'Shoot',
     flip: 'Flip camera',
     unnamedProduct: 'Photographed product',
+    onlyMissingHeading: 'Only the nutrition table is missing',
+    onlyMissingSub: 'Photograph it and we complete this product analysis',
 
   },
   fr: {
     title: 'Ajouter un produit',
     back: 'Retour',
-    stepOf: (n: number) => `Étape ${n} sur 2`,
+    stepOf: (n: number, total: number) => `Étape ${n} sur ${total}`,
     front: {
-      heading: 'Photographiez le devant',
-      sub: "Visez l'avant du produit",
+      heading: 'Étape 1 : photo du devant',
+      sub: 'Pour identifier le produit (nom et marque)',
       tip: 'Incluez le nom et la marque',
       cta: 'Photographier le devant',
     },
     ingredients: {
-      heading: 'Photographiez les ingrédients',
+      heading: 'Étape 2 : photo des ingrédients',
       sub: "Liste d'ingrédients (arrière ou côté)",
       hint: 'Cherchez « Ingrédients »',
       cta: 'Photographier les ingrédients',
     },
     nutrition: {
-      heading: 'Ajouter le tableau nutritionnel ?',
+      heading: 'Étape 3 (facultatif) : tableau nutritionnel',
       sub: 'Débloquez la note complète du produit',
       hint: 'Cherchez la colonne « pour 100 g »',
       capture: 'Photographier le tableau',
@@ -225,7 +229,7 @@ const COPY = {
     errorUnexpected: 'Erreur inattendue. Réessayez dans quelques secondes',
     errorNutritional: "Il semble que vous ayez photographié le tableau nutritionnel. Photographiez la liste d'ingrédients.",
     errorTooLarge: 'La photo est trop grande. Essayez de vous rapprocher du produit.',
-    nutritionRejected: "Nous n'avons pas pu lire le tableau avec certitude — vous pouvez réessayer.",
+    nutritionRejected: "Nous n'avons pas pu lire le tableau : assurez-vous que les valeurs pour 100 g soient visibles et réessayez.",
     supplementDetected: "Ce produit est un complément alimentaire : il n'est pas noté avec le Nutri-Score.",
     loginCta: 'Se connecter',
     retry: 'Réessayer',
@@ -238,6 +242,8 @@ const COPY = {
     shoot: 'Déclencher',
     flip: 'Changer de caméra',
     unnamedProduct: 'Produit photographié',
+    onlyMissingHeading: 'Il ne manque que le tableau nutritionnel',
+    onlyMissingSub: "Photographie-le et nous complétons l'analyse de ce produit",
 
   },
 };
@@ -253,6 +259,7 @@ const PhotoCapturePage = () => {
   const addImageFor = searchParams.get('addImageFor');
   const realBarcode = searchParams.get('barcode');
   const nutritionOnly = searchParams.get('step') === 'nutrition';
+  const nutritionOnlyName = (searchParams.get('name') || '').trim();
   const c = COPY[user.language] ?? COPY.es;
 
   const [step, setStep] = useState<Step>(nutritionOnly ? 'nutrition-capture' : 'front');
@@ -361,7 +368,13 @@ const PhotoCapturePage = () => {
     setStep('analyzing-nutrition');
     // Deep-link nutrition-only mode (from result CTA): POST just the table.
     if (nutritionOnly && realBarcode) {
-      const res = await postExtract({ nutrition_image: nutritionImage, barcode: realBarcode });
+      const res = await postExtract({
+        nutrition_image: nutritionImage,
+        barcode: realBarcode,
+        // Sent so the server can create the row when the product only exists
+        // in OFF/OBF (otherwise the table had nowhere to be saved).
+        product_name: nutritionOnlyName || undefined,
+      });
       if (res.ok === false && res.code === 'supplement_detected') {
         // Supplement table ("por dosis diaria / %VRN") → straight to the
         // supplement branch of the result, no retry loop.
@@ -521,8 +534,16 @@ const PhotoCapturePage = () => {
     }
   };
 
-  const stepNumber = addImageFor ? 1 : (step === 'front' ? 1 : 2);
-  const showProgress = !nutritionOnly && (step === 'front' || step === 'ingredients');
+  // The flow announces exactly what each step is: 1 front, 2 ingredients,
+  // 3 (optional) nutrition table.
+  const totalSteps = 3;
+  const stepNumber = addImageFor
+    ? 1
+    : step === 'front'
+      ? 1
+      : (step === 'nutrition-offer' || step === 'nutrition-capture') ? 3 : 2;
+  const showProgress = !nutritionOnly
+    && (step === 'front' || step === 'ingredients' || step === 'nutrition-offer' || step === 'nutrition-capture');
 
 
   const goBack = () => {
@@ -539,7 +560,15 @@ const PhotoCapturePage = () => {
   };
 
 
-  const heading = step === 'front' ? c.front : step === 'nutrition-capture' ? c.nutrition : c.ingredients;
+  const heading = step === 'front'
+    ? c.front
+    : step === 'nutrition-capture'
+      // Deep link from the result CTA: only the missing piece is requested,
+      // so the copy must not talk about "step 3 of the add-product flow".
+      ? (nutritionOnly
+          ? { ...c.nutrition, heading: c.onlyMissingHeading, sub: c.onlyMissingSub }
+          : c.nutrition)
+      : c.ingredients;
   const isCaptureStep = step === 'front' || step === 'ingredients' || step === 'nutrition-capture';
 
 
@@ -562,13 +591,13 @@ const PhotoCapturePage = () => {
           <div className="w-full sm:max-w-lg sm:mx-auto px-4 pb-3">
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-[11px] font-medium text-primary uppercase tracking-wider">
-                {c.stepOf(stepNumber)}
+                {c.stepOf(stepNumber, totalSteps)}
               </span>
             </div>
             <div className="h-1.5 rounded-full bg-primary/15 overflow-hidden">
               <div
                 className="h-full bg-primary transition-all duration-300"
-                style={{ width: stepNumber === 1 ? '50%' : '100%' }}
+                style={{ width: `${Math.round((stepNumber / totalSteps) * 100)}%` }}
               />
             </div>
           </div>
