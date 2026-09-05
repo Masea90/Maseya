@@ -287,6 +287,13 @@ export const passesDataFloor = (
  * anything whose own category doesn't match what we searched for.
  * Applied to EVERY route (OFF search, OBF search, local catalog).
  */
+/** Names that mean "we don't actually know this product's name". */
+const PLACEHOLDER_NAMES = new Set([
+  'producto', 'producto sin nombre', 'producto fotografiado',
+  'photographed product', 'product', 'produit', 'produit photographie',
+  'sin nombre', 'unknown', 'desconocido',
+]);
+
 export const isDisallowedCandidate = (
   pd: ProductData,
   cat: 'food' | 'cosmetic',
