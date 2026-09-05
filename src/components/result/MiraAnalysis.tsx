@@ -1,12 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { personalAlerts } from '@/lib/scoring';
 import { useUser } from '@/contexts/UserContext';
+import { track, analyticsAllowed, getSessionId } from '@/lib/analytics';
 import type { Language } from '@/lib/i18n';
 
 const COPY: Record<Language, {
   noData: string; general: string; analyzing: string;
+  cta: string; ctaHint: string; quota: string;
   good: (n: string) => string; ok: (n: string) => string; bad: (n: string) => string;
   fallbackName: string;
 }> = {
@@ -14,6 +16,9 @@ const COPY: Record<Language, {
     noData: 'Fotografía la etiqueta para obtener un análisis completo de este producto.',
     general: 'Análisis general del producto. Activa la personalización para ver si es adecuado para tu perfil.',
     analyzing: 'Mira está analizando...',
+    cta: 'Ver análisis de Mira',
+    ctaHint: 'Análisis personalizado con IA sobre este producto',
+    quota: 'Has alcanzado el máximo de análisis de hoy.',
     good: n => `${n} parece una buena opción según tu perfil.`,
     ok: n => `${n} es aceptable, aunque no destaca para tu perfil.`,
     bad: n => `${n} no es ideal según tu perfil — revisa los ingredientes destacados.`,
@@ -23,6 +28,9 @@ const COPY: Record<Language, {
     noData: 'Photograph the label to get a full analysis of this product.',
     general: 'General product analysis. Turn on personalization to see if it suits your profile.',
     analyzing: 'Mira is analyzing...',
+    cta: "See Mira's analysis",
+    ctaHint: 'Personalized AI analysis of this product',
+    quota: "You've reached today's maximum number of analyses.",
     good: n => `${n} looks like a good option for your profile.`,
     ok: n => `${n} is acceptable, though it does not stand out for your profile.`,
     bad: n => `${n} is not ideal for your profile — check the highlighted ingredients.`,
@@ -32,12 +40,16 @@ const COPY: Record<Language, {
     noData: "Photographie l'étiquette pour obtenir une analyse complète de ce produit.",
     general: 'Analyse générale du produit. Active la personnalisation pour voir si ce produit te convient.',
     analyzing: 'Mira analyse...',
+    cta: "Voir l'analyse de Mira",
+    ctaHint: 'Analyse personnalisée par IA de ce produit',
+    quota: "Tu as atteint le maximum d'analyses pour aujourd'hui.",
     good: n => `${n} semble une bonne option pour ton profil.`,
     ok: n => `${n} est acceptable, mais ne se distingue pas pour ton profil.`,
     bad: n => `${n} n'est pas idéal pour ton profil — vérifie les ingrédients signalés.`,
     fallbackName: 'Ce produit',
   },
 };
+
 
 
 interface Props {
