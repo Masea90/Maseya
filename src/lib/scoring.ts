@@ -28,6 +28,23 @@ export interface OnboardingProfile {
 // Split the lists so food products don't get red-flagged for keywords that
 // only make sense in cosmetics, and vice versa.
 const RED_BOTH = ['paraben', 'bha', 'bht'];
+
+/**
+ * Strong contact sensitizers regulated in the EU, typical of HAIR DYES
+ * (PPD family, resorcinol) plus Cocamide DEA (IARC group 2B).
+ * They are normal "avoid" ingredients: they penalise, but they are NOT in the
+ * banned list (cap 20) reserved for Lilial / MCI-MI.
+ */
+const COSMETIC_SENSITIZERS_REGULATED = [
+  // p-Phenylenediamine (PPD) and relatives
+  'p-phenylenediamine', 'ppd', 'para-phenylenediamine', 'p-fenilendiamina',
+  'toluene-2,5-diamine', 'toluene-2.5-diamine', 'toluene 2 5 diamine', 'toluene-2,5-diamine sulfate', 'toluene-2.5-diamine sulfate',
+  // Resorcinol — EU restricted sensitizer
+  'resorcinol', 'resorcina',
+  // Cocamide DEA — IARC group 2B
+  'cocamide dea', 'cocamide diethanolamine', 'coco diethanolamide',
+];
+
 const RED_COSMETIC = [
   'sulfate', 'sulphate', 'phthalate', 'formaldehyde', 'triclosan',
   'mineral oil', 'paraffinum liquidum',
@@ -39,7 +56,10 @@ const RED_COSMETIC = [
   'butylphenyl methylpropional', 'lilial', 'bmhca',
   // Isothiazolinone preservatives — strongly restricted contact sensitizers
   'methylchloroisothiazolinone', 'methylisothiazolinone', 'mci/mi', 'cmit/mit',
+  // Regulated sensitizers (hair dyes) + Cocamide DEA
+  ...COSMETIC_SENSITIZERS_REGULATED,
 ];
+
 
 const RED_FOOD = [
   'nitrite', 'aspartame', 'tartrazine', 'e102',
@@ -454,7 +474,11 @@ export function flagIngredients(p: ProductData): FlaggedIngredient[] {
   const fromTags = p.ingredients_tags
     .map(t => t.replace(/^[a-z]{2}:/, '').replace(/-/g, ' '))
     .filter(Boolean);
-  const cleanedText = cleanIngredientsText(p.ingredients_text || '');
+  // Protect INCI names that legitimately contain a comma from the splitter
+  // (e.g. "TOLUENE-2,5-DIAMINE" would become "TOLUENE-2" + "5-DIAMINE").
+  const cleanedText = cleanIngredientsText(p.ingredients_text || '')
+    .replace(/toluene\s*-?\s*2\s*,\s*5\s*-?\s*diamine/gi, 'toluene-2.5-diamine');
+
   const fromText = cleanedText
     .split(/[,;()\n\r]|\s[-–—•·]\s/)
     .map(s => s.trim())
@@ -1094,6 +1118,27 @@ export function calculateScoreBreakdown(
       score = 20;
     }
 
+    // Regulated sensitizers typical of hair dyes: inform, don't alarm.
+    const dyeTerm = findAny(rawText, [
+      'p-phenylenediamine', 'ppd', 'para-phenylenediamine', 'p-fenilendiamina',
+      'toluene-2,5-diamine', 'toluene-2.5-diamine', 'toluene 2 5 diamine', 'toluene-2,5-diamine sulfate', 'toluene-2.5-diamine sulfate',
+      'resorcinol', 'resorcina',
+    ]);
+    if (dyeTerm) {
+      factors.push({
+        label: `${dyeTerm}: sensibilizante frecuente en tintes capilares, permitido con límites en la UE. Se recomienda prueba de alergia previa`,
+        delta: null,
+        tone: 'neutral',
+      });
+    }
+    const cocamideTerm = findAny(rawText, ['cocamide dea', 'cocamide diethanolamine', 'coco diethanolamide']);
+    if (cocamideTerm) {
+      factors.push({
+        label: `${cocamideTerm}: clasificado por la IARC como posible carcinógeno (grupo 2B)`,
+        delta: null,
+        tone: 'neutral',
+      });
+    }
 
 
     // Floor: without any "avoid" ingredient, an ordinary formula can never be
@@ -2016,6 +2061,9 @@ const CONTACT_ALLERGENS: Array<{ label: string; keywords: string[] }> = [
   { label: 'benzoato de bencilo', keywords: ['benzyl benzoate'] },
   { label: 'alcohol bencílico', keywords: ['benzyl alcohol'] },
   { label: 'citronelol', keywords: ['citronellol', 'citronelol'] },
+  { label: 'hidroxicitronelal', keywords: ['hydroxycitronellal', 'hidroxicitronelal'] },
+  { label: 'eugenol', keywords: ['eugenol', 'isoeugenol', 'isoeugenol'] },
+
   // Photosensitising citrus oils (furocoumarins) — personal layer only.
   {
     label: 'aceite de limón (fotosensibilizante)',
