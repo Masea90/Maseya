@@ -286,6 +286,12 @@ export async function lookupProduct(barcode: string): Promise<ProductData | null
   const maseya = await fetchFromMaseya(barcode);
   const maseyaHasIngredients = !!maseya && (maseya.ingredients_text || '').trim().length > 0;
 
+  // Rich public with ingredients but no nutrition table → keep the public data
+  // and graft the photographed nutriments (and image) on top.
+  if (publicHit && publicRich && publicHasIngredients && maseya) {
+    return mergeMaseyaIntoPublic(publicHit, maseya);
+  }
+
   // Rich public but no ingredients + maseya has ingredients → merge symmetrically.
   if (publicHit && publicRich && !publicHasIngredients && maseyaHasIngredients) {
     return mergeMaseyaIntoPublic(publicHit, maseya!);
