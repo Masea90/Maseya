@@ -57,7 +57,6 @@ const RED_COSMETIC = [
   // Isothiazolinone preservatives — strongly restricted contact sensitizers
   'methylchloroisothiazolinone', 'methylisothiazolinone', 'mci/mi', 'cmit/mit',
   // Regulated sensitizers (hair dyes) + Cocamide DEA
-  ...COSMETIC_SENSITIZERS_REGULATED,
 ];
 
 
@@ -2057,8 +2056,6 @@ const CONTACT_ALLERGENS: Array<{ label: string; keywords: string[] }> = [
   { label: 'benzoato de bencilo', keywords: ['benzyl benzoate'] },
   { label: 'alcohol bencílico', keywords: ['benzyl alcohol'] },
   { label: 'citronelol', keywords: ['citronellol', 'citronelol'] },
-  { label: 'hidroxicitronelal', keywords: ['hydroxycitronellal', 'hidroxicitronelal'] },
-  { label: 'eugenol', keywords: ['eugenol', 'isoeugenol', 'isoeugenol'] },
 
   // Photosensitising citrus oils (furocoumarins) — personal layer only.
   {
