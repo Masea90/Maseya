@@ -1278,6 +1278,10 @@ const PREGNANCY_FOOD_RULES: PregRule[] = [
       'brique fondante',
     ],
     tags: ['en:blue-cheeses', 'en:soft-cheeses', 'en:mould-ripened-cheeses'],
+    // Heat-treated / stirred cheeses are not ripened soft cheeses.
+    excludes: ['queso fresco batido', 'queso batido', 'queso fundido', 'queso curado rallado'],
+    excludeTags: ['en:processed-cheeses'],
+
     text: {
       es: 'Queso blando o de corteza enmohecida: aunque esté pasteurizado, la Listeria puede crecer durante la maduración; se recomienda tomarlo solo cocinado a más de 70 °C',
       en: 'Soft or mould-ripened cheese: even when pasteurized, Listeria can grow during ripening; it is advised to eat it only cooked above 70 °C',
