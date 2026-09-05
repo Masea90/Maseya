@@ -472,9 +472,10 @@ export const Alternatives = ({ current, currentScore, profile: profileProp, cons
 
         const scoreOf = (pd: ProductData, fl: ReturnType<typeof flagIngredients>) => {
           const general = calculateScore(pd, fl);
-          return consent && profile
+          const shown = consent && profile
             ? calculatePersonalScore(pd, fl, profile, general)
             : general;
+          return { general, shown };
         };
 
         const scored: Candidate[] = [];
@@ -489,9 +490,10 @@ export const Alternatives = ({ current, currentScore, profile: profileProp, cons
           const candidateFlagged = flagIngredients(pd);
           if (!passesDataFloor(pd, candidateFlagged)) return;
           seenCodes.add(pd.barcode);
-          const score = scoreOf(pd, candidateFlagged);
-          scored.push({ data: pd, score, label: scoreLabel(score), flagged: candidateFlagged });
+          const { general, shown } = scoreOf(pd, candidateFlagged);
+          scored.push({ data: pd, score: shown, general, label: scoreLabel(shown), flagged: candidateFlagged });
         };
+
 
         for (const raw of products) {
           addCandidate(toProductData(raw, candidateSource, cat));
