@@ -96,21 +96,21 @@ const COPY = {
   es: {
     title: 'Añadir producto',
     back: 'Volver',
-    stepOf: (n: number) => `Paso ${n} de 2`,
+    stepOf: (n: number, total: number) => `Paso ${n} de ${total}`,
     front: {
-      heading: 'Fotografía el frontal del producto',
-      sub: 'Apunta a la parte delantera',
+      heading: 'Paso 1: foto del frontal',
+      sub: 'Para identificar el producto (nombre y marca)',
       tip: 'Incluye el nombre y la marca',
       cta: 'Fotografiar el frontal',
     },
     ingredients: {
-      heading: 'Fotografía los ingredientes',
+      heading: 'Paso 2: foto de los ingredientes',
       sub: 'Lista de ingredientes (parte trasera o lateral)',
       hint: 'Busca «Ingredients:» o «Ingredientes:»',
       cta: 'Fotografiar los ingredientes',
     },
     nutrition: {
-      heading: '¿Añadir la tabla nutricional?',
+      heading: 'Paso 3 (opcional): tabla nutricional',
       sub: 'Desbloquea la nota completa del producto',
       hint: 'Busca la columna «por 100 g»',
       capture: 'Fotografiar tabla',
