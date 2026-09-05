@@ -1183,12 +1183,24 @@ type PregLang = 'es' | 'en' | 'fr';
 interface PregRule {
   id: string;
   level: PregnancyLevel;
+  /** Keywords that on their own imply a real AESAN risk. */
   keywords: string[];
+  /** OFF category tags that on their own imply the risk. */
   tags?: string[];
+  /** Phrases that cancel the rule (safe products that share vocabulary). */
   excludes?: string[];
+  /** OFF category tags that cancel the rule. */
+  excludeTags?: string[];
+  /**
+   * Ambiguous words that appear in plenty of safe products: they only fire
+   * when a second signal from `context` is present in the same product.
+   */
+  weakKeywords?: string[];
+  context?: string[];
 
   text: Record<PregLang, string>;
 }
+
 
 const PREG_AESAN_NOTE: Record<PregLang, string> = {
   es: 'Recomendación de AESAN. Consulta con tu matrona o médico.',
@@ -1228,9 +1240,14 @@ const PREGNANCY_FOOD_RULES: PregRule[] = [
     id: 'high-mercury-fish',
     level: 'A',
     keywords: [
-      'pez espada', 'emperador', 'atún rojo', 'atun rojo', 'tiburón', 'tiburon',
-      'cazón', 'cazon', 'marrajo', 'lucio', 'swordfish', 'bluefin tuna', 'shark', 'pike',
+      'pez espada', 'atún rojo', 'atun rojo', 'tiburón', 'tiburon',
+      'cazón', 'cazon', 'marrajo', 'swordfish', 'bluefin tuna', 'shark',
     ],
+    // "emperador", "lucio" and "pike" also name biscuits, brands and people:
+    // they only count with an explicit fish context.
+    weakKeywords: ['emperador', 'lucio', 'pike'],
+    context: ['pescado', 'pescados', 'poisson', 'fish', 'peix', 'filete', 'filetes', 'lomo', 'lomos', 'pesca'],
+
     text: {
       es: 'Pescado con alto contenido en mercurio: AESAN recomienda evitarlo en el embarazo y la lactancia',
       en: 'High-mercury fish: AESAN advises avoiding it during pregnancy and breastfeeding',
@@ -1261,6 +1278,10 @@ const PREGNANCY_FOOD_RULES: PregRule[] = [
       'brique fondante',
     ],
     tags: ['en:blue-cheeses', 'en:soft-cheeses', 'en:mould-ripened-cheeses'],
+    // Heat-treated / stirred cheeses are not ripened soft cheeses.
+    excludes: ['queso fresco batido', 'queso batido', 'queso fundido', 'queso curado rallado'],
+    excludeTags: ['en:processed-cheeses'],
+
     text: {
       es: 'Queso blando o de corteza enmohecida: aunque esté pasteurizado, la Listeria puede crecer durante la maduración; se recomienda tomarlo solo cocinado a más de 70 °C',
       en: 'Soft or mould-ripened cheese: even when pasteurized, Listeria can grow during ripening; it is advised to eat it only cooked above 70 °C',
@@ -1273,9 +1294,18 @@ const PREGNANCY_FOOD_RULES: PregRule[] = [
     keywords: [
       'chorizo', 'salchichón', 'salchichon', 'salami', 'jamón curado', 'jamon curado',
       'jamón serrano', 'jamon serrano', 'jamón ibérico', 'jamon iberico', 'fuet',
-      'lomo embuchado', 'sobrasada', 'cecina', 'mortadela', 'pepperoni',
+      'lomo embuchado', 'sobrasada', 'cecina', 'pepperoni',
     ],
     tags: ['en:dry-sausages'],
+    // Cooked deli meats are heat-treated: no toxoplasmosis risk. The more
+    // specific match ("jamón cocido") always beats the generic one ("jamón").
+    excludes: [
+      'mortadela', 'mortadella', 'jamón cocido', 'jamon cocido', 'jamón york', 'jamon york',
+      'jamón de york', 'jamon de york', 'pavo cocido', 'pechuga de pavo', 'pechuga de pollo',
+      'fiambre de pollo', 'fiambre de pavo', 'salchichas cocidas', 'salchicha cocida',
+      'frankfurt', 'chopped', 'cooked ham', 'jambon cuit',
+    ],
+    excludeTags: ['en:cooked-hams', 'en:mortadella', 'en:hot-dogs', 'en:cooked-poultry'],
     text: {
       es: 'Embutido curado crudo: riesgo de toxoplasmosis; es seguro si se cocina a más de 70 °C',
       en: 'Raw cured meat: toxoplasmosis risk; it is safe if cooked above 70 °C',
@@ -1285,10 +1315,27 @@ const PREGNANCY_FOOD_RULES: PregRule[] = [
   {
     id: 'pate',
     level: 'B',
-    keywords: ['paté', 'pate', 'foie gras', 'mousse de hígado', 'mousse de higado'],
-    // "pâte(s)" in French means dough/pasta — never a pâté.
-    excludes: ['pate a tartiner', 'pate de fruit', 'pate feuilletee', 'pate brisee', 'pate sablee', 'pate sucree', 'pates alimentaires', 'pate de cacao', 'pate d amande'],
-
+    // Unambiguous pâté wordings only.
+    keywords: [
+      'foie gras', 'mousse de hígado', 'mousse de higado', 'paté de hígado', 'pate de higado',
+      'paté de campaña', 'pate de campana', 'pâté de campagne', 'pate de campagne',
+      'liver pate', 'liver pâté', 'paté de foie', 'pate de foie',
+    ],
+    tags: ['en:pates', 'en:liver-pates'],
+    // A bare "paté"/"pâte" is meaningless on its own: French "pâte(s)" is
+    // dough/pasta and Spanish "pasta de …" is a spread.
+    weakKeywords: ['paté', 'pate'],
+    context: [
+      'hígado', 'higado', 'foie', 'liver', 'cerdo', 'porc', 'pork', 'ave', 'aves',
+      'pollo', 'chicken', 'pato', 'duck', 'oca', 'ganso', 'volaille',
+    ],
+    excludes: [
+      'pasta', 'pastas', 'pate a pizza', 'pate a tartiner', 'pate de fruit', 'pate feuilletee',
+      'pate brisee', 'pate sablee', 'pate sucree', 'pates alimentaires', 'pate de cacao',
+      'pate d amande', 'pasta de datiles', 'pasta de dátiles', 'pasta de coco',
+      'pasta de cacahuete', 'pasta de almendra', 'pasta quebrada', 'pasta filo',
+      'pasta brisa', 'masa de pizza', 'masa quebrada',
+    ],
     text: {
       es: 'Patés y foie refrigerados: se desaconsejan en el embarazo por el riesgo de listeriosis',
       en: 'Chilled pâté and foie gras: not advised during pregnancy due to listeriosis risk',
@@ -1298,9 +1345,12 @@ const PREGNANCY_FOOD_RULES: PregRule[] = [
   {
     id: 'raw-egg',
     level: 'B',
+    // Industrial mousse, meringue and Caesar dressing use pasteurized egg by
+    // law — the salmonella risk lives in homemade preparations.
     keywords: [
-      'huevo crudo', 'mayonesa casera', 'mousse', 'tiramisú', 'tiramisu',
-      'merengue', 'salsa césar', 'salsa cesar',
+      'huevo crudo', 'huevos crudos', 'huevo sin pasteurizar', 'raw egg', 'raw eggs',
+      'oeuf cru', 'œuf cru', 'oeufs crus', 'mayonesa casera', 'homemade mayonnaise',
+      'mayonnaise maison',
     ],
     text: {
       es: 'Puede contener huevo crudo: riesgo de salmonelosis; mejor con huevo pasteurizado o cocinado',
@@ -1308,6 +1358,7 @@ const PREGNANCY_FOOD_RULES: PregRule[] = [
       fr: 'Peut contenir de l’œuf cru : risque de salmonellose ; préfère l’œuf pasteurisé ou cuit',
     },
   },
+
   {
     id: 'ready-to-eat',
     level: 'B',
@@ -1342,8 +1393,28 @@ const PREGNANCY_FOOD_RULES: PregRule[] = [
   },
 ];
 
+// Aged hard cheeses (Parmigiano, Manchego curado, Grana Padano…) are legally
+// made from raw milk but their long ripening and very low moisture make them
+// low risk: AESAN's raw-milk warning targets fresh and soft cheeses. On these
+// the raw-milk rule becomes informational instead of a hard fail.
+const PREG_HARD_CHEESE = [
+  'parmesano', 'parmigiano', 'grana padano', 'pecorino', 'manchego', 'idiazabal',
+  'zamorano', 'emmental', 'gruyere', 'gruyère', 'comte', 'comté', 'cheddar curado',
+  'queso curado', 'queso viejo', 'queso añejo', 'queso anejo', 'curado', 'semicurado',
+];
+const PREG_SOFT_CHEESE_SIGNAL = [
+  'queso fresco', 'camembert', 'brie', 'roquefort', 'gorgonzola', 'queso azul',
+  'cabrales', 'burrata', 'mozzarella fresca', 'feta', 'torta', 'requeson', 'requesón',
+];
+const PREG_HARD_CHEESE_TEXT: Record<PregLang, string> = {
+  es: 'Queso curado elaborado con leche cruda: por su larga maduración el riesgo es bajo, pero si prefieres máxima prudencia tómalo cocinado',
+  en: 'Aged cheese made with raw milk: the long ripening makes the risk low, but eat it cooked if you prefer maximum caution',
+  fr: 'Fromage affiné au lait cru : l’affinage long rend le risque faible, mais consomme-le cuit si tu préfères être prudente',
+};
+
 const pregLang = (l?: string): PregLang =>
   l === 'en' || l === 'fr' ? l : 'es';
+
 
 export interface PregnancyFinding {
   id: string;
@@ -1367,19 +1438,45 @@ export function pregnancyFoodFindings(p: ProductData, language?: string): Pregna
   const out: PregnancyFinding[] = [];
   for (const rule of PREGNANCY_FOOD_RULES) {
     if (rule.excludes && firstTerm(haystack, rule.excludes)) continue;
-    const term = firstTerm(haystack, rule.keywords);
-
+    if (rule.excludeTags && rule.excludeTags.some(t => catsTags.includes(t))) continue;
     const tagHit = rule.tags ? rule.tags.some(t => catsTags.includes(t)) : false;
+
+    let term = firstTerm(haystack, rule.keywords);
+    // Ambiguous words need a second signal before they can warn.
+    if (!term && !tagHit && rule.weakKeywords) {
+      const weak = firstTerm(haystack, rule.weakKeywords);
+      if (weak && rule.context && firstTerm(haystack, rule.context)) term = weak;
+    }
+
     if (!term && !tagHit) continue;
+
+    // Raw milk inside an aged hard cheese: informational, not a hard fail.
+    if (
+      rule.id === 'raw-milk' &&
+      firstTerm(haystack, PREG_HARD_CHEESE) &&
+      !firstTerm(haystack, PREG_SOFT_CHEESE_SIGNAL) &&
+      !catsTags.includes('en:soft-cheeses') &&
+      !catsTags.includes('en:mould-ripened-cheeses')
+    ) {
+      out.push({
+        id: 'raw-milk-hard-cheese',
+        level: 'C',
+        text: `${PREG_HARD_CHEESE_TEXT[lang]}. ${PREG_AESAN_NOTE[lang]}`,
+      });
+      continue;
+    }
+
     const detail = term ? PREG_DETECTED[lang](term) : '';
     out.push({
       id: rule.id,
       level: rule.level,
       text: `${rule.text[lang]}${detail}. ${PREG_AESAN_NOTE[lang]}`,
     });
+
   }
   return out;
 }
+
 
 // ===========================================================================
 // Vegetarian diet layer (own rules, more permissive than vegan: dairy, eggs
