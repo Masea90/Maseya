@@ -121,6 +121,10 @@ export const MiraAnalysis = ({ product, profile, score, hasIngredientData = true
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // No cached analysis for this product+circumstances → we do NOT call the
+  // model automatically; the user asks for it with one tap.
+  const [showButton, setShowButton] = useState(false);
+  const [quotaReached, setQuotaReached] = useState(false);
   // Identity of the analysis in flight — resets when the product changes so
   // navigating to an alternative doesn't keep showing the previous product's
   // Mira analysis.
@@ -138,6 +142,88 @@ export const MiraAnalysis = ({ product, profile, score, hasIngredientData = true
   // `product`/`profile` object refs) does NOT kill an in-flight Mira stream.
   const cancelRef = useRef<{ id: string; cancel: () => void } | null>(null);
 
+  // Latest request payload, so the button handler never uses stale props.
+  const payloadRef = useRef<Record<string, unknown>>({});
+  payloadRef.current = { product, profile, score, firstName, personalScore, topAlerts, factors, nutriments, flaggedIngredients, language };
+
+  const callMira = useCallback(async (mode: 'peek' | 'generate') => {
+    const { data: sess } = await supabase.auth.getSession();
+    const token = sess.session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    const url = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/mira-analyze`;
+    const sessionId = analyticsAllowed() ? getSessionId() : null;
+    return fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ ...payloadRef.current, mode, sessionId }),
+    });
+  }, []);
+
+  const generate = useCallback(async () => {
+    const identity = startedForRef.current;
+    let cancelled = false;
+    cancelRef.current = { id: identity ?? '', cancel: () => { cancelled = true; } };
+    setShowButton(false);
+    setQuotaReached(false);
+    setLoading(true);
+    setText('');
+    setError(null);
+    track('mira_button_click', { barcode: product.barcode ?? null });
+    try {
+      const res = await callMira('generate');
+      if (cancelled) return;
+      const ct = res.headers.get('Content-Type') || '';
+      if (ct.includes('application/json')) {
+        const json = await res.json().catch(() => null);
+        if (json?.cached && typeof json.analysis === 'string') {
+          setText(json.analysis);
+        } else if (json?.error === 'quota_exceeded') {
+          setQuotaReached(true);
+        } else {
+          setError(null);
+        }
+        setLoading(false);
+        return;
+      }
+      if (!res.ok || !res.body) {
+        setError(null);
+        setLoading(false);
+        return;
+      }
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = '';
+      let acc = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (cancelled) { try { await reader.cancel(); } catch { /* ignore */ } return; }
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const lines = buf.split('\n');
+        buf = lines.pop() || '';
+        for (const line of lines) {
+          const t = line.trim();
+          if (!t.startsWith('data:')) continue;
+          const payload = t.slice(5).trim();
+          if (!payload || payload === '[DONE]') continue;
+          try {
+            const obj = JSON.parse(payload);
+            const delta = obj.choices?.[0]?.delta?.content;
+            if (delta) {
+              acc += delta;
+              setText(acc);
+            }
+          } catch { /* partial chunk */ }
+        }
+      }
+      if (!cancelled) setLoading(false);
+    } catch (e) {
+      if (cancelled) return;
+      console.error('[mira] stream error', e);
+      setError(null);
+      setLoading(false);
+    }
+  }, [callMira, product.barcode]);
+
   useEffect(() => {
     // Identity keyed on barcode when available so navigating between products
     // with the same name (or empty ingredient text) never reuses the previous
@@ -152,10 +238,11 @@ export const MiraAnalysis = ({ product, profile, score, hasIngredientData = true
     // text so users never see a stale analysis while the new one loads.
     cancelRef.current?.cancel();
     setText('');
+    setShowButton(false);
+    setQuotaReached(false);
 
     if (!hasIngredientData) {
       startedForRef.current = identity;
-      setText('');
       setLoading(false);
       setError(null);
       return;
@@ -164,66 +251,33 @@ export const MiraAnalysis = ({ product, profile, score, hasIngredientData = true
     let cancelled = false;
     cancelRef.current = { id: identity, cancel: () => { cancelled = true; } };
     setLoading(true);
-    setText('');
     setError(null);
 
     (async () => {
       try {
-        const { data: sess } = await supabase.auth.getSession();
-        const token = sess.session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-        const url = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/mira-analyze`;
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ product, profile, score, firstName, personalScore, topAlerts, factors, nutriments, flaggedIngredients, language }),
-        });
+        const res = await callMira('peek');
         if (cancelled) return;
-        if (!res.ok || !res.body) {
-          setError(null);
-          setLoading(false);
-          return;
+        const json = await res.json().catch(() => null);
+        if (cancelled) return;
+        setLoading(false);
+        if (json?.cached && typeof json.analysis === 'string') {
+          setText(json.analysis);
+          track('mira_shown_cached', { barcode: product.barcode ?? null });
+        } else {
+          setShowButton(true);
+          track('mira_button_shown', { barcode: product.barcode ?? null });
         }
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let buf = '';
-        let acc = '';
-        while (true) {
-          const { done, value } = await reader.read();
-          if (cancelled) { try { await reader.cancel(); } catch {} return; }
-          if (done) break;
-          buf += decoder.decode(value, { stream: true });
-          const lines = buf.split('\n');
-          buf = lines.pop() || '';
-          for (const line of lines) {
-            const t = line.trim();
-            if (!t.startsWith('data:')) continue;
-            const payload = t.slice(5).trim();
-            if (!payload || payload === '[DONE]') continue;
-            try {
-              const obj = JSON.parse(payload);
-              const delta = obj.choices?.[0]?.delta?.content;
-              if (delta) {
-                acc += delta;
-                setText(acc);
-              }
-            } catch {}
-          }
-        }
-        if (!cancelled) setLoading(false);
       } catch (e) {
         if (cancelled) return;
-        console.error('[mira] stream error', e);
-        setError(null);
+        console.error('[mira] peek error', e);
         setLoading(false);
+        setShowButton(true);
       }
     })();
     // NOTE: no cleanup that unconditionally cancels — a parent re-render
     // must not abort an in-flight analysis. Cancellation happens above only
     // when the product identity actually changes.
-  }, [product, profile, score, hasIngredientData, personalScore, language]);
+  }, [product, profile, score, hasIngredientData, personalScore, language, callMira]);
 
   const displayText = text || basicSummary;
 
@@ -241,7 +295,24 @@ export const MiraAnalysis = ({ product, profile, score, hasIngredientData = true
         ) : (
           <p className="text-sm leading-relaxed whitespace-pre-wrap">{displayText}</p>
         )}
+        {quotaReached && (
+          <p className="text-xs text-muted-foreground mt-2">{c.quota}</p>
+        )}
+        {showButton && !loading && (
+          <div className="mt-3">
+            <button
+              type="button"
+              onClick={generate}
+              className="inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground text-sm font-medium px-4 py-2"
+            >
+              <Sparkles className="w-4 h-4" />
+              {c.cta}
+            </button>
+            <p className="text-[11px] text-muted-foreground mt-1.5">{c.ctaHint}</p>
+          </div>
+        )}
       </div>
     </div>
   );
 };
+
