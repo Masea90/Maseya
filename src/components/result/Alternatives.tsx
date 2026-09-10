@@ -39,7 +39,7 @@ interface Candidate {
 // v15: single ordered pipeline. Subgroups now cover the main food staples and
 // a candidate must prove its subgroup BY NAME (community tags are unreliable:
 // a Sanex shower gel tagged en:shampoos kept surfacing for shampoos).
-const CACHE_PREFIX = 'maseya_alts_v16::';
+const CACHE_PREFIX = 'maseya_alts_v17::';
 const FETCH_TIMEOUT_MS = 8000;
 /**
  * Meaningful-improvement rule (v16). An alternative is only worth showing when
@@ -133,22 +133,40 @@ const SUBGROUPS: SubGroup[] = [
   { id: 'chocolate', family: 'staples', tags: ['en:chocolates', 'en:dark-chocolates', 'en:milk-chocolates', 'en:chocolate-bars'], names: ['chocolate', 'cacao'] },
   // Cosmetics
   { id: 'shampoo', family: 'cosmetic', tags: ['en:shampoos', 'en:shampoo'], names: ['champu', 'shampoo', 'shampooing'] },
+  { id: 'hair-treatment', family: 'cosmetic', tags: ['en:hair-oils', 'en:hair-serums', 'en:leave-in-conditioners'], names: ['aceite capilar', 'serum capilar', 'sin aclarado', 'leave-in', 'hair oil'] },
   { id: 'conditioner', family: 'cosmetic', tags: ['en:hair-conditioners', 'en:conditioners', 'en:hair-masks'], names: ['acondicionador', 'conditioner', 'mascarilla capilar'] },
   { id: 'shower', family: 'cosmetic', tags: ['en:shower-gels', 'en:body-washes', 'en:soaps'], names: ['gel de ducha', 'gel de bano', 'shower gel', 'jabon', 'body wash', 'dermo protector', 'higiene corporal'] },
   { id: 'sunscreen', family: 'cosmetic', tags: ['en:sunscreens', 'en:sun-care', 'en:sun-protection'], names: ['protector solar', 'proteccion solar', 'sunscreen', 'spf', 'solar'] },
+  { id: 'eye-care', family: 'cosmetic', tags: ['en:eye-creams', 'en:eye-contour', 'en:eye-care'], names: ['contorno de ojos', 'contorno ojos', 'eye cream', 'eye contour'] },
+  { id: 'serum', family: 'cosmetic', tags: ['en:serums', 'en:face-serums', 'en:facial-serums'], names: ['serum', 'serum facial', 'suero facial', 'ampolla', 'concentrado facial'] },
+  { id: 'cleanser', family: 'cosmetic', tags: ['en:facial-cleansers', 'en:cleansers', 'en:face-washes', 'en:micellar-waters', 'en:makeup-removers'], names: ['limpiador', 'limpiadora', 'agua micelar', 'desmaquillante', 'gel limpiador', 'espuma limpiadora', 'cleanser', 'micellar'] },
+  { id: 'face-mask', family: 'cosmetic', tags: ['en:face-masks', 'en:facial-masks'], names: ['mascarilla facial', 'face mask'] },
   { id: 'face-cream', family: 'cosmetic', tags: ['en:face-creams', 'en:moisturizers', 'en:face-moisturizers', 'en:day-creams', 'en:night-creams'], names: ['crema facial', 'hidratante facial', 'face cream', 'moisturizer'] },
+  { id: 'body-lotion', family: 'cosmetic', tags: ['en:body-lotions', 'en:body-milks', 'en:body-creams', 'en:moisturizing-body-lotions'], names: ['leche corporal', 'crema corporal', 'body lotion', 'body milk', 'hidratante corporal'] },
+  { id: 'deodorant', family: 'cosmetic', tags: ['en:deodorants', 'en:antiperspirants'], names: ['desodorante', 'deodorant', 'antitranspirante'] },
+  { id: 'toothpaste', family: 'cosmetic', tags: ['en:toothpastes', 'en:dentifrices'], names: ['pasta de dientes', 'dentifrico', 'toothpaste'] },
   { id: 'toner', family: 'cosmetic', tags: ['en:toners', 'en:face-toners', 'en:lotions-toniques'], names: ['tonico', 'toner'] },
+
+];
+
+// Cosmetic hints are checked BEFORE food ones: several cosmetic names contain
+// a food word ("Leche limpiadora" → leche, "Agua micelar" → agua) and would
+// otherwise be classified as milk/water and accept absurd alternatives.
+const NAME_MATCH_ORDER: SubGroup[] = [
+  ...SUBGROUPS.filter(g => g.family === 'cosmetic'),
+  ...SUBGROUPS.filter(g => g.family !== 'cosmetic'),
 ];
 
 /** Subgroup deduced from the product NAME only — the reliable signal. */
 const subgroupByName = (name: string): SubGroup | null => {
   const n = normTxt(name || '');
   if (!n) return null;
-  for (const g of SUBGROUPS) {
+  for (const g of NAME_MATCH_ORDER) {
     if (g.names.some(h => n.includes(h))) return g;
   }
   return null;
 };
+
 
 /** Subgroup deduced from community category tags — unreliable on its own. */
 const subgroupByTags = (cats: string[]): SubGroup | null => {
