@@ -474,6 +474,9 @@ const PhotoCapturePage = () => {
         const finalBarcode = realBarcode || `photo_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
         const image = front;
 
+        // The badge must reflect what actually happened: the server may not
+        // have stored the row, but our own saveToMaseya call may well have.
+        let savedOk = serverSaved;
         if (!serverSaved) {
           const saveRes = await saveToMaseya({
             barcode: finalBarcode, product_name, brand, category,
@@ -482,9 +485,10 @@ const PhotoCapturePage = () => {
           if (!saveRes.ok && saveRes.error !== 'not_authenticated') {
             console.error('[photo-capture] saveToMaseya failed', saveRes.error);
           }
+          savedOk = serverSaved || saveRes.ok;
         }
 
-        setPendingProduct({ finalBarcode, product_name, brand, category, category_tag, ingredients_text, image, serverSaved });
+        setPendingProduct({ finalBarcode, product_name, brand, category, category_tag, ingredients_text, image, serverSaved: savedOk });
 
         // The server may have already read the nutrition table from the photos
         // we sent (it's often printed next to the ingredients). In that case we
@@ -495,7 +499,7 @@ const PhotoCapturePage = () => {
         if (autoNutriments) {
           localStorage.setItem('maseya_photo_product', JSON.stringify({
             barcode: finalBarcode, product_name, brand, category, category_tag,
-            ingredients_text, image, saved: serverSaved, savedAt: Date.now(),
+            ingredients_text, image, saved: savedOk, savedAt: Date.now(),
             nutriments: autoNutriments,
           }));
           localStorage.removeItem('maseya_photo_front');
@@ -519,7 +523,7 @@ const PhotoCapturePage = () => {
         // Non-food or no real barcode → finalize immediately.
         localStorage.setItem('maseya_photo_product', JSON.stringify({
           barcode: finalBarcode, product_name, brand, category, category_tag,
-          ingredients_text, image, saved: serverSaved, savedAt: Date.now(),
+          ingredients_text, image, saved: savedOk, savedAt: Date.now(),
         }));
         localStorage.removeItem('maseya_photo_front');
         track('photo_flow_success', { category, has_nutriments: false });
