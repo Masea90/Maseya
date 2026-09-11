@@ -1161,13 +1161,33 @@ export function calculateScoreBreakdown(
   const isSevereAvoid = (name: string) => findAny(name, SEVERE_AVOID) !== null;
   let hasSevereAvoid = false;
 
+  // MCI and MI are sold as one commercial mixture (CMIT/MIT). When both appear
+  // in the same INCI list they are ONE preservative system, not two problems.
+  const ISOTHIAZOLINONE_PAIR = ['methylchloroisothiazolinone', 'methylisothiazolinone', 'mci/mi', 'cmit/mit'];
+  const isIsothiazolinone = (name: string) => findAny(name, ISOTHIAZOLINONE_PAIR) !== null;
+
+  // Position weighting for severe ingredients: in the last third of the INCI
+  // list the concentration is residual, so the penalty is halved. Coherent with
+  // the boost already applied to the first positions for the other levels.
+  const severePositionWeight = (name: string): number => {
+    const base = positionWeight(name);
+    if (!inciOrder || inciOrder.length < 3) return base;
+    const i = inciOrder.indexOf(canonicalKey(name));
+    if (i < 0) return base;
+    return i >= Math.ceil((inciOrder.length * 2) / 3) ? base * 0.5 : base;
+  };
+
   let redPenalty: number;
   let orangePenalty: number;
   if (p.category === 'cosmetic') {
     const avoidItems = flagged.filter(
       f => f.level === 'avoid' && !isEfsaCoveredChip(f.name, efsaCovered)
     );
-    const severeW = avoidItems.filter(f => isSevereAvoid(f.name)).map(f => positionWeight(f.name));
+    const severeItems = avoidItems.filter(f => isSevereAvoid(f.name));
+    const isoW = severeItems.filter(f => isIsothiazolinone(f.name)).map(f => severePositionWeight(f.name));
+    const severeW = severeItems.filter(f => !isIsothiazolinone(f.name)).map(f => severePositionWeight(f.name));
+    // The whole isothiazolinone pair counts once, with its strongest position.
+    if (isoW.length > 0) severeW.push(Math.max(...isoW));
     const mildW = avoidItems.filter(f => !isSevereAvoid(f.name)).map(f => positionWeight(f.name));
     hasSevereAvoid = severeW.length > 0;
     const severeSum = severeW.reduce((s, w) => s + w, 0);
@@ -1297,6 +1317,15 @@ export function calculateScoreBreakdown(
         tone: 'positive',
       });
       score = 40;
+    } else if (hasSevereAvoid && !bannedTerm && score < 20) {
+      // Secondary floor: severe but legal ingredients. A 0 is reserved for
+      // products carrying something actually banned or severely restricted.
+      factors.push({
+        label: 'Sin ingredientes prohibidos en la UE: la nota no baja de 20',
+        delta: 20 - score,
+        tone: 'positive',
+      });
+      score = 20;
     }
   }
 
