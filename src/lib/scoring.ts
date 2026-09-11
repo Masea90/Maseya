@@ -1317,6 +1317,15 @@ export function calculateScoreBreakdown(
         tone: 'positive',
       });
       score = 40;
+    } else if (hasSevereAvoid && !bannedTerm && score < 20) {
+      // Secondary floor: severe but legal ingredients. A 0 is reserved for
+      // products carrying something actually banned or severely restricted.
+      factors.push({
+        label: 'Sin ingredientes prohibidos en la UE: la nota no baja de 20',
+        delta: 20 - score,
+        tone: 'positive',
+      });
+      score = 20;
     }
   }
 
