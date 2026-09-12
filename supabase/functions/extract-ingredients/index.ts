@@ -595,8 +595,18 @@ serve(async (req) => {
     }
 
     const ingredients = (extracted.ingredients_text || "").trim();
+    const category = rawCategory === "food" ? "food" : "cosmetic";
+    const product_name = (extracted.product_name || "").trim() || "Producto fotografiado";
+    const brand = (extracted.brand || "").trim();
+    const rawTag = (extracted.category_tag || "").trim().toLowerCase();
+    let category_tag = /^en:[a-z0-9-]+$/.test(rawTag) ? rawTag : null;
+    const identity = { product_name, brand, category, category_tag };
+
     if (!ingredients || ingredients.length < 5) {
-      return json({ error: "no_ingredients" }, 422);
+      // Point 7: keep what was read well (name, brand, category, front image)
+      // so the sheet exists as "insufficient data" — never an ingredient list.
+      const saved = isRealBarcode ? await persistContribution(rawBarcode, front, identity, {}) : false;
+      return json({ error: "no_ingredients", saved, ...identity }, 422);
     }
     if (isNutritionalData(ingredients)) {
       console.log("[classify] REJECTED as nutrition table. Text head:", ingredients.slice(0, 160));
@@ -606,11 +616,24 @@ serve(async (req) => {
       }, 422);
     }
 
-    const category = rawCategory === "food" ? "food" : "cosmetic";
-    const product_name = (extracted.product_name || "").trim() || "Producto fotografiado";
-    const brand = (extracted.brand || "").trim();
-    const rawTag = (extracted.category_tag || "").trim().toLowerCase();
-    let category_tag = /^en:[a-z0-9-]+$/.test(rawTag) ? rawTag : null;
+    // Plausibility gate (server-side) + the model's own self-assessment as a
+    // second net. A text that cannot be a legal ingredient list is never
+    // persisted as one.
+    const inci = looksLikeInciList(ingredients, category);
+    const modelConf = toNum(extracted.ingredients_confidence);
+    const modelDoubt = extracted.is_full_inci_list === false && modelConf !== null && modelConf < 0.5;
+    if (!inci.ok || modelDoubt) {
+      console.log("[classify] REJECTED as partial/claim. reason:", inci.reason ?? "model_doubt",
+        "segments:", inci.segments, "conf:", modelConf, "head:", ingredients.slice(0, 120));
+      const saved = isRealBarcode ? await persistContribution(rawBarcode, front, identity, {}) : false;
+      return json({
+        error: "ingredients_too_short",
+        segments: inci.segments,
+        reason: inci.reason ?? "model_doubt",
+        saved,
+        ...identity,
+      }, 422);
+    }
 
     // Food supplements: never scored with Nutri-Score, so we must not ask for
     // a nutrition table. Persisted by forcing category_tag to
