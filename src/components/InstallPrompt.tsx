@@ -23,6 +23,7 @@ const COPY = {
     inAppBody: 'Estás viendo la web dentro de otra app. Pulsa el menú (•••) y elige “Abrir en Safari” para poder añadirla a tu pantalla de inicio.',
     inAppCta: 'Copiar enlace',
     inAppCopied: 'Enlace copiado',
+    manualBody: 'Abre el menú ⋮ de tu navegador y elige «Añadir a pantalla de inicio».',
     dismiss: 'Cerrar',
   },
   en: {
@@ -36,6 +37,7 @@ const COPY = {
     inAppBody: "You're viewing the site inside another app. Tap the menu (•••) and choose “Open in Safari” to add it to your home screen.",
     inAppCta: 'Copy link',
     inAppCopied: 'Link copied',
+    manualBody: 'Open your browser’s ⋮ menu and choose “Add to Home screen”.',
     dismiss: 'Close',
   },
   fr: {
@@ -49,6 +51,7 @@ const COPY = {
     inAppBody: 'Tu vois le site dans une autre app. Appuie sur le menu (•••) et choisis « Ouvrir dans Safari » pour l’ajouter à ton écran d’accueil.',
     inAppCta: 'Copier le lien',
     inAppCopied: 'Lien copié',
+    manualBody: 'Ouvre le menu ⋮ de ton navigateur et choisis « Ajouter à l’écran d’accueil ».',
     dismiss: 'Fermer',
   },
 };
@@ -99,20 +102,25 @@ export const InstallPrompt = () => {
   const [deferred, setDeferred] = useState<BIPEvent | null>(null);
   const [iosHint, setIosHint] = useState(false);
   const [inApp, setInApp] = useState(false);
+  const [manual, setManual] = useState(false);
   const [copied, setCopied] = useState(false);
+  const deferredRef = useRef<BIPEvent | null>(null);
 
   useEffect(() => {
     if (isStandalone() || isDismissedRecently()) return;
 
     const onBIP = (e: Event) => {
       e.preventDefault();
+      deferredRef.current = e as BIPEvent;
       setDeferred(e as BIPEvent);
+      setManual(false); // upgrade manual instructions to the native prompt
       setVisible(true);
     };
     window.addEventListener('beforeinstallprompt', onBIP);
 
     const t = setTimeout(() => {
       if (isStandalone() || isDismissedRecently()) return;
+      if (deferredRef.current) return; // native prompt already available
       // iOS in-app browser (Instagram, WhatsApp, etc.) — can't install here.
       if (isIOS() && isInAppBrowser()) {
         setInApp(true);
@@ -124,8 +132,15 @@ export const InstallPrompt = () => {
       if (isIOSSafari() || isIOS()) {
         setIosHint(true);
         setVisible(true);
+        return;
       }
-    }, 600);
+      // Android/desktop browsers where Chrome hasn't fired beforeinstallprompt:
+      // show manual Add-to-Home-Screen instructions as a fallback.
+      if (!isInAppBrowser()) {
+        setManual(true);
+        setVisible(true);
+      }
+    }, 2000);
 
     return () => {
       window.removeEventListener('beforeinstallprompt', onBIP);
@@ -137,8 +152,9 @@ export const InstallPrompt = () => {
   useEffect(() => {
     if (!visible || shownTracked.current) return;
     shownTracked.current = true;
-    track('install_prompt_shown', { variant: inApp ? 'in_app' : iosHint ? 'ios_hint' : 'native' });
-  }, [visible, inApp, iosHint]);
+    const variant = inApp ? 'inapp' : iosHint ? 'ios' : deferred ? 'native' : 'manual';
+    track('install_prompt_shown', { variant });
+  }, [visible, inApp, iosHint, deferred]);
 
   const dismiss = () => {
     track('install_prompt_dismissed');
@@ -200,6 +216,8 @@ export const InstallPrompt = () => {
               {c.iosStep3}
               <Plus className="w-3.5 h-3.5 inline align-[-2px] ml-1 text-primary" />
             </p>
+          ) : manual && !deferred ? (
+            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{c.manualBody}</p>
           ) : (
             <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{c.subtitle}</p>
           )}
