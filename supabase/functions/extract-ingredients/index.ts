@@ -44,60 +44,90 @@ Rules for "is_supplement" (boolean):
 Use empty string if any field is not found.`;
 
 // ---------- Ingredient-list plausibility ------------------------------------
-// The model reads whatever it is shown. Real case (PROTEO C, 8436542250160):
-// the user photographed the actives claim ("Vitamina C, Ginkgo Biloba,
-// Phytoproteoglycanos® y DMAE.") and it was stored as the INCI list, so the
-// sheet asked for the same photo forever. Reject text that cannot be a legal
-// ingredient list BEFORE persisting it.
-const INCI_TERMS_RE = /\b(aqua|water|glycerin|glycerol|sodium|potassium|acid|acidum|extract|extractum|alcohol|parfum|fragrance|phenoxyethanol|ethylhexylglycerin|glycol|butylene|propylene|caprylic|capric|triglyceride|tocopherol|tocopheryl|citric|benzoate|sorbate|cetearyl|cetyl|stearyl|stearate|palmitate|laurate|sulfate|sulphate|cocamidopropyl|betaine|dimethicone|siloxane|panthenol|niacinamide|hyaluronate|hyaluronic|xanthan|carbomer|edta|polysorbate|peg-\d+|ppg-\d+|ci\s?\d{5}|linalool|limonene|citronellol|geraniol|coumarin|benzyl|hexyl|urea|allantoin|bisabolol|squalane|lecithin|oil|olea|butyrospermum|prunus|helianthus|simmondsia|cocos|argania|aloe|camellia|chamomilla|rosa|lavandula|citrus|oxide|dioxide|hydroxide|chloride|silica|talc|mica|kaolin|starch|amylopectin|gluconate|lactate|ceramide|peptide|retinol|ascorb|salicyl|mentha|menthol)\b/i;
+// GUIDING PRINCIPLE: the server does NOT decide whether a list is *good*, only
+// whether it IS a list. We reject only on positive evidence that the text is
+// not an ingredient list (nutrition table, gibberish, marketing claim). A
+// single-ingredient list ("Almendras", "Prunus Amygdalus Dulcis Oil") is a
+// legitimate list; quality is handled by the confidence system on the sheet.
+// Real case that motivated the gate (PROTEO C, 8436542250160): the actives
+// claim "Vitamina C, Ginkgo Biloba, Phytoproteoglycanos® y DMAE." was stored
+// as the INCI list. Real cases that the first, stricter gate wrongly blocked:
+// "Almendras sin piel" (food, one ingredient) and short artisan INCI lists.
+const INCI_TERMS_RE = /\b(aqua|water|glycerin|glycerol|sodium|potassium|acid|acidum|extract|extractum|alcohol|parfum|fragrance|phenoxyethanol|ethylhexylglycerin|glycol|butylene|propylene|caprylic|capric|triglyceride|tocopherol|tocopheryl|citric|benzoate|sorbate|cetearyl|cetyl|stearyl|stearate|palmitate|laurate|sulfate|sulphate|cocamidopropyl|betaine|dimethicone|siloxane|panthenol|niacinamide|hyaluronate|hyaluronic|xanthan|carbomer|edta|polysorbate|peg-\d+|ppg-\d+|ci\s?\d{5}|linalool|limonene|citronellol|geraniol|coumarin|benzyl|hexyl|urea|allantoin|bisabolol|squalane|lecithin|oil|olea|butyrospermum|prunus|helianthus|simmondsia|cocos|argania|aloe|camellia|chamomilla|rosa|lavandula|citrus|oxide|dioxide|hydroxide|chloride|silica|talc|mica|kaolin|starch|amylopectin|gluconate|lactate|ceramide|peptide|retinol|ascorb|salicyl|mentha|menthol|olivate|cocoate|palmate|cera|wax|butter|seed|leaf|flower|root|fruit|juice|powder|vinegar|honey|mel|clay|salt|sal|charcoal|carbon)\b/i;
+// Latin binomial endings (botanical INCI names: "Simmondsia Chinensis",
+// "Rosa Damascena", "Calendula Officinalis", "Ginkgo Biloba").
+const LATIN_ENDING_RE = /\b\p{L}{3,}(us|um|is|ae|ii|ata|ica|osa|ensis|alis|aris|ella|ina|ola|ana|iana|oides|ifera|folia|flora|ba)\b/iu;
 const STARTS_WITH_WATER_RE = /^\s*(ingredients?|ingredientes|ingrédients|inci)?\s*[:.\-]?\s*(aqua|water|eau|agua|wasser)\b/i;
+// Marketing-claim signature (used ONLY together with the model's own
+// is_full_inci_list=false judgement — never on its own).
+const CLAIM_SIGNATURE_RE = /[®™]|^\s*(con|with|avec|enriquecido|enrichi|enriched|rico en|rich in|riche en|contiene|contains|contient)\b/i;
 
-// Food: ported from src/lib/junkRecord.ts (edge functions cannot import src/).
-const FOOD_INGREDIENT_MARKERS = [
-  "ingredient", "ingrédient", "ingrediente",
-  "agua", "aqua", "water", "eau",
-  "azúcar", "azucar", "sugar", "sucre",
-  "sal", "salt", "sel", "sodium",
-  "aceite", "oil", "huile", "oleum",
-  "harina", "flour", "farine",
-  "leche", "milk", "lait", "lactis",
-  "trigo", "wheat", "triticum",
-  "glycerin", "parfum", "alcohol", "acid", "ácido", "acide",
-  "extract", "extracto", "extrait",
-  "potassium", "citrate", "oxide", "stearate", "glycol",
-  "proteina", "proteína", "protein", "almidón", "almidon", "starch",
-  "cacao", "tomate", "tomato", "arroz", "rice", "maíz", "maiz", "corn",
-  "huevo", "egg", "oeuf", "queso", "cheese", "fromage",
-  "oliva", "olive", "girasol", "sunflower", "tournesol",
-];
+const splitSegments = (text: string) =>
+  text.split(/[,;\n\r]|\s[-–—•·]\s/).map((s) => s.trim()).filter((s) => s.length > 1);
+const countSegments = (text: string) => splitSegments(text).length;
 
-const countSegments = (text: string) =>
-  text.split(/[,;\n\r]|\s[-–—•·]\s/).map((s) => s.trim()).filter((s) => s.length > 1).length;
+// One INCI item looks like an INCI/Latin term? ("Prunus Amygdalus Dulcis Oil",
+// "Sodium Olivate", "Cera Alba" → yes; "Vitamina C", "DMAE" → no).
+const segmentLooksInci = (seg: string) => {
+  const s = seg.replace(/[.*]+$/g, "").trim();
+  if (!s) return false;
+  if (INCI_TERMS_RE.test(s)) return true;
+  if (/^\d*[a-z]?\s*$/i.test(s)) return false;
+  return LATIN_ENDING_RE.test(s) && /\p{L}{3,}\s+\p{L}{3,}/u.test(s);
+};
+
+// Gibberish detector, ported from src/lib/junkRecord.ts (edge functions
+// cannot import src/), relaxed so that 1–3 word lists are NOT gibberish:
+// "Almendras", "Té verde", "Café tostado molido" are real single-ingredient
+// lists. Positive gibberish: "POR AQUI 4 QUEIJOS QUEIJOS a AS".
+const isGibberish = (rawText: string): boolean => {
+  const words = rawText.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  if (words.length === 0) return true;
+  if (words.length < 4) return !words.some((w) => /\p{L}{3,}/u.test(w));
+  const unique = new Set(words);
+  const repetitionRatio = 1 - unique.size / words.length;
+  const shortWords = words.filter((w) => w.length <= 2).length / words.length;
+  return repetitionRatio >= 0.25 || shortWords >= 0.4;
+};
 
 export interface InciCheck { ok: boolean; segments: number; reason?: string }
 
-export function looksLikeInciList(rawText: string, category: "food" | "cosmetic"): InciCheck {
+/**
+ * @param modelFullList the model's own `is_full_inci_list` (null when absent).
+ *   Only used to confirm a marketing claim; it never rejects a short list.
+ */
+export function looksLikeInciList(
+  rawText: string,
+  category: "food" | "cosmetic",
+  modelFullList: boolean | null = null,
+): InciCheck {
   const text = (rawText || "").trim();
-  const segments = countSegments(text);
+  const segs = splitSegments(text);
+  const segments = segs.length;
   if (!text) return { ok: false, segments: 0, reason: "empty" };
+  if (isGibberish(text)) return { ok: false, segments, reason: "gibberish" };
 
   if (category === "cosmetic") {
-    // ® / ™ with a handful of items is the signature of an actives claim.
-    if (/[®™]/.test(text) && segments <= 4) return { ok: false, segments, reason: "trademark_claim" };
-    if (segments < 5) return { ok: false, segments, reason: "too_few_segments" };
-    if (text.length < 40) return { ok: false, segments, reason: "too_short" };
+    // ® / ™ (or "con X") with a handful of items is the signature of an actives
+    // claim — but only when the model ALSO judged it is not the legal list.
+    if (modelFullList === false && segments <= 4 && CLAIM_SIGNATURE_RE.test(text)) {
+      return { ok: false, segments, reason: "trademark_claim" };
+    }
+    if (segments < 1) return { ok: false, segments, reason: "too_few_segments" };
+    if (segments < 5) {
+      // Short list (pure oil, artisan soap, lip balm): every item must look
+      // like an INCI / Latin term. Otherwise it is a claim, not a list.
+      if (!segs.every(segmentLooksInci)) return { ok: false, segments, reason: "no_inci_terms" };
+      return { ok: true, segments };
+    }
     const inciHits = (text.match(new RegExp(INCI_TERMS_RE.source, "gi")) || []).length;
     if (!STARTS_WITH_WATER_RE.test(text) && inciHits < 2) return { ok: false, segments, reason: "no_inci_terms" };
     return { ok: true, segments };
   }
 
-  // Food: a short legitimate list ("Agua, sal") is fine when it names food.
-  const lower = text.toLowerCase();
-  const hasMarker = FOOD_INGREDIENT_MARKERS.some((m) => lower.includes(m)) || /\be\s?\d{3}[a-z]?\b/i.test(lower);
-  const separators = (text.match(/[,;]/g) || []).length;
-  if (separators >= 3 && text.length >= 25) return { ok: true, segments };
-  if (hasMarker) return { ok: true, segments };
-  return { ok: false, segments, reason: "no_food_markers" };
+  // Food: no dictionary. Anything that is not a nutrition table (checked by
+  // the caller) nor gibberish IS a list — including one ingredient.
+  return { ok: true, segments };
 }
 
 const NUTRITION_SYSTEM_PROMPT = `You extract nutrition facts from a product label photo. Labels may be a classic column table OR a Spanish/European front-of-pack "GDA" layout with circles/bubbles (e.g. "1/6 PARTE DEL ENVASE (35 g) CONTIENE: ENERGÍA 420 kJ/101 kcal · GRASAS 7,5 g · GRASAS SATURADAS 0,7 g · AZÚCARES 1,4 g · SAL 0,63 g"), often with a small separate line like "Energía por 100 g: 1199 kJ / 289 kcal". Read ALL of these formats.
