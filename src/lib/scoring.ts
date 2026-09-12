@@ -1336,7 +1336,9 @@ export function calculateScoreBreakdown(
 
     // Floor: without any "avoid" ingredient, an ordinary formula can never be
     // the worst possible product. Accumulated "caution" hits alone stop at 40.
-    if (!hasSevereAvoid && score < 40) {
+    if (bannedTerm) {
+      // An Annex II banned ingredient overrides every floor.
+    } else if (!hasSevereAvoid && score < 40) {
       factors.push({
         label: 'Sin ingredientes de alto riesgo: la nota no baja de 40',
         delta: 40 - score,
