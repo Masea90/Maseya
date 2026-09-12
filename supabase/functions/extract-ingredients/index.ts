@@ -572,7 +572,11 @@ serve(async (req) => {
     const data = await response.json();
     const raw: string = data.choices?.[0]?.message?.content || "";
 
-    let extracted: { product_name?: string; brand?: string; category?: string; ingredients_text?: string; category_tag?: string; is_supplement?: boolean } = {};
+    let extracted: {
+      product_name?: string; brand?: string; category?: string; ingredients_text?: string;
+      category_tag?: string; is_supplement?: boolean;
+      ingredients_confidence?: number | string | null; is_full_inci_list?: boolean;
+    } = {};
     const tryParse = (s: string) => { try { return JSON.parse(s); } catch { return null; } };
     const cleaned = raw.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim();
     let parsed = tryParse(cleaned);
