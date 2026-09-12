@@ -69,10 +69,23 @@ const RED_FOOD = [
   'e320', 'e321',
 ];
 
-// Banned (CMR 1B, EU 2022) or severely restricted cosmetic ingredients.
+// Cosmetic ingredients BANNED in the EU. Criterion: Annex II of Regulation
+// (EC) No 1223/2009 (substances prohibited in cosmetic products). Ingredients
+// merely restricted or allowed with limits (Annexes III-V), such as the
+// MCI/MI preservative mixture (Annex V, entries 39/57) or formaldehyde
+// releasers like DMDM hydantoin (Annex V), do NOT belong here — they
+// penalize via SEVERE_AVOID subject to the secondary floor of 20 instead.
 const EU_BANNED_COSMETIC = [
+  // Butylphenyl methylpropional (Lilial): banned 2022, CMR 1B.
   'butylphenyl methylpropional', 'lilial', 'bmhca',
-  'methylchloroisothiazolinone', 'methylisothiazolinone', 'mci/mi', 'cmit/mit',
+  // Formaldehyde: Annex II entry 1577, banned as such by Reg. (EU) 2022/1181.
+  'formaldehyde', 'formaldehido', 'formalin', 'methanal',
+  // Hydroquinone: Annex II (only allowed narrowly for artificial nail systems).
+  'hydroquinone', 'hidroquinona',
+  // Mercury and its compounds: Annex II entries 16-221 area.
+  'mercury', 'thimerosal', 'phenylmercuric acetate', 'phenylmercuric',
+  // Hydroxyisohexyl 3-cyclohexene carboxaldehyde (Lyral / HICC): banned 2021.
+  'hydroxyisohexyl 3-cyclohexene carboxaldehyde', 'lyral', 'hicc',
 ];
 
 const ORANGE_BOTH: string[] = [];
@@ -1283,6 +1296,19 @@ export function calculateScoreBreakdown(
         tone: 'negative',
       });
       score = 20;
+    }
+
+    // Formaldehyde releasers: allowed preservatives (Annex V) but Reg. (EU)
+    // 2022/1181 requires the "releases formaldehyde" warning above 0.001%.
+    const releaserTerm = findAny(rawText, [
+      'dmdm hydantoin', 'imidazolidinyl urea', 'diazolidinyl urea', 'quaternium-15',
+    ]);
+    if (releaserTerm) {
+      factors.push({
+        label: `${releaserTerm}: conservante permitido en la UE que libera formaldehído (etiquetado obligatorio por encima de 0,001 %)`,
+        delta: null,
+        tone: 'neutral',
+      });
     }
 
     // Regulated sensitizers typical of hair dyes: inform, don't alarm.
