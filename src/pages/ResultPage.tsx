@@ -860,8 +860,11 @@ const ResultPage = () => {
   const ingLang = (product.ingredients_lang || '').slice(0, 2).toLowerCase();
   const nonLatinScript = /[\u0600-\u06FF\u0400-\u04FF\u0370-\u03FF\u4E00-\u9FFF\u3040-\u30FF\u0590-\u05FF]/.test(rawText);
   const ingredientsForeign = rawText.length > 0 && (nonLatinScript || (!!ingLang && ingLang !== uiLang));
+  // Cosmetics: a short INCI that the confidence system already considers
+  // complete (pure oil, artisan soap) must score too — otherwise the sheet
+  // kept asking for a photo of the list we already had.
   const hasIngredientData = product.category === 'cosmetic'
-    ? flagged.length >= 3
+    ? (flagged.length >= 3 || (flagged.length >= 1 && dataConfidence.level === 'high'))
     : (flagged.length >= 1 || (rawText.length > 0 && !isNutritionalData(rawText)));
   const hasNutriscore = product.category === 'food' && !!product.nutriscore_grade;
   const showScore = !nonScorable && (product.category === 'cosmetic'

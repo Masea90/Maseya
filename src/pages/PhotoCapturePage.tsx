@@ -112,7 +112,7 @@ const COPY = {
     nutrition: {
       heading: 'Paso 3 (opcional): tabla nutricional',
       sub: 'Desbloquea la nota completa del producto',
-      hint: 'Busca la columna «por 100 g»',
+      hint: 'Busca la columna «por 100 g» o «por 100 ml»',
       capture: 'Fotografiar tabla',
       skip: 'Omitir',
       cta: 'Fotografiar la tabla nutricional',
@@ -127,10 +127,12 @@ const COPY = {
     errorUnexpected: 'Error inesperado. Reintenta en unos segundos',
     errorNutritional: 'Parece que fotografiaste la tabla nutricional. Fotografía la lista de ingredientes.',
     errorTooLarge: 'La foto es demasiado grande. Reintenta acercándote al producto.',
-    errorPartial: (n: number) => n > 0
-      ? `Solo hemos leído ${n} ingrediente${n === 1 ? '' : 's'}: no es la lista completa. La lista legal va en letra pequeña tras «Ingredientes» (en cosmética suele empezar por Aqua). Acércate y encuadra toda la lista, no los activos destacados de la portada.`
-      : 'Ese texto no parece una lista de ingredientes. La lista legal va en letra pequeña tras «Ingredientes» (en cosmética suele empezar por Aqua). Acércate y encuadra toda la lista, no los activos destacados de la portada.',
-    nutritionRejected: 'No hemos podido leer la tabla: asegúrate de que se vean los valores por 100 g y vuelve a intentarlo.',
+    errorPartial: (n: number, category: 'food' | 'cosmetic') => category === 'cosmetic'
+      ? (n > 0
+        ? `Solo hemos leído ${n} elemento${n === 1 ? '' : 's'} y no parecen la lista de ingredientes. La lista legal (INCI) va en letra pequeña tras «Ingredients» y suele empezar por Aqua. Acércate y encuadra toda la lista, no los activos destacados de la portada.`
+        : 'Ese texto no parece una lista de ingredientes. La lista legal (INCI) va en letra pequeña tras «Ingredients» y suele empezar por Aqua. Acércate y encuadra toda la lista, no los activos destacados de la portada.')
+      : 'No hemos reconocido una lista de ingredientes en la foto. Busca el texto que sigue a «Ingredientes:» en el envase (puede ser un solo ingrediente), acércate y encuadra el texto completo con buena luz.',
+    nutritionRejected: 'No hemos podido leer la tabla: asegúrate de que se vean los valores por 100 g o 100 ml y vuelve a intentarlo.',
     supplementDetected: 'Este producto es un complemento alimenticio: no se puntúa con el Nutri-Score.',
     loginCta: 'Iniciar sesión',
     retry: 'Reintentar',
@@ -166,7 +168,7 @@ const COPY = {
     nutrition: {
       heading: 'Step 3 (optional): nutrition table',
       sub: 'Unlock the full product score',
-      hint: 'Look for the "per 100 g" column',
+      hint: 'Look for the "per 100 g" or "per 100 ml" column',
       capture: 'Photograph table',
       skip: 'Skip',
       cta: 'Photograph the nutrition table',
@@ -181,10 +183,12 @@ const COPY = {
     errorUnexpected: 'Unexpected error. Try again in a few seconds',
     errorNutritional: 'Looks like you photographed the nutrition table. Photograph the ingredient list instead.',
     errorTooLarge: 'Photo is too large. Try getting closer to the product.',
-    errorPartial: (n: number) => n > 0
-      ? `We only read ${n} ingredient${n === 1 ? '' : 's'}: that is not the full list. The legal list is in small print after "Ingredients" (on cosmetics it usually starts with Aqua). Get closer and frame the whole list, not the highlighted actives on the front.`
-      : 'That text does not look like an ingredient list. The legal list is in small print after "Ingredients" (on cosmetics it usually starts with Aqua). Get closer and frame the whole list, not the highlighted actives on the front.',
-    nutritionRejected: "We couldn't read the table: make sure the per-100 g values are visible and try again.",
+    errorPartial: (n: number, category: 'food' | 'cosmetic') => category === 'cosmetic'
+      ? (n > 0
+        ? `We only read ${n} item${n === 1 ? '' : 's'} and they do not look like the ingredient list. The legal (INCI) list is in small print after "Ingredients" and usually starts with Aqua. Get closer and frame the whole list, not the highlighted actives on the front.`
+        : 'That text does not look like an ingredient list. The legal (INCI) list is in small print after "Ingredients" and usually starts with Aqua. Get closer and frame the whole list, not the highlighted actives on the front.')
+      : 'We could not recognise an ingredient list in the photo. Look for the text after "Ingredients:" on the pack (it may be a single ingredient), get closer and frame the whole text in good light.',
+    nutritionRejected: "We couldn't read the table: make sure the per-100 g or per-100 ml values are visible and try again.",
     supplementDetected: 'This product is a food supplement: it is not scored with the Nutri-Score.',
     loginCta: 'Log in',
     retry: 'Try again',
@@ -220,7 +224,7 @@ const COPY = {
     nutrition: {
       heading: 'Étape 3 (facultatif) : tableau nutritionnel',
       sub: 'Débloquez la note complète du produit',
-      hint: 'Cherchez la colonne « pour 100 g »',
+      hint: 'Cherchez la colonne « pour 100 g » ou « pour 100 ml »',
       capture: 'Photographier le tableau',
       skip: 'Ignorer',
       cta: 'Photographier le tableau nutritionnel',
@@ -235,10 +239,12 @@ const COPY = {
     errorUnexpected: 'Erreur inattendue. Réessayez dans quelques secondes',
     errorNutritional: "Il semble que vous ayez photographié le tableau nutritionnel. Photographiez la liste d'ingrédients.",
     errorTooLarge: 'La photo est trop grande. Essayez de vous rapprocher du produit.',
-    errorPartial: (n: number) => n > 0
-      ? `Nous n'avons lu que ${n} ingrédient${n === 1 ? '' : 's'} : ce n'est pas la liste complète. La liste légale est en petits caractères après « Ingrédients » (en cosmétique, elle commence en général par Aqua). Rapproche-toi et cadre toute la liste, pas les actifs mis en avant sur le devant.`
-      : "Ce texte ne ressemble pas à une liste d'ingrédients. La liste légale est en petits caractères après « Ingrédients » (en cosmétique, elle commence en général par Aqua). Rapproche-toi et cadre toute la liste, pas les actifs mis en avant sur le devant.",
-    nutritionRejected: "Nous n'avons pas pu lire le tableau : assurez-vous que les valeurs pour 100 g soient visibles et réessayez.",
+    errorPartial: (n: number, category: 'food' | 'cosmetic') => category === 'cosmetic'
+      ? (n > 0
+        ? `Nous n'avons lu que ${n} élément${n === 1 ? '' : 's'} et ils ne ressemblent pas à la liste d'ingrédients. La liste légale (INCI) est en petits caractères après « Ingredients » et commence en général par Aqua. Rapproche-toi et cadre toute la liste, pas les actifs mis en avant sur le devant.`
+        : "Ce texte ne ressemble pas à une liste d'ingrédients. La liste légale (INCI) est en petits caractères après « Ingredients » et commence en général par Aqua. Rapproche-toi et cadre toute la liste, pas les actifs mis en avant sur le devant.")
+      : "Nous n'avons pas reconnu de liste d'ingrédients sur la photo. Cherche le texte qui suit « Ingrédients : » sur l'emballage (il peut s'agir d'un seul ingrédient), rapproche-toi et cadre tout le texte avec une bonne lumière.",
+    nutritionRejected: "Nous n'avons pas pu lire le tableau : assurez-vous que les valeurs pour 100 g ou 100 ml soient visibles et réessayez.",
     supplementDetected: "Ce produit est un complément alimentaire : il n'est pas noté avec le Nutri-Score.",
     loginCta: 'Se connecter',
     retry: 'Réessayer',
@@ -276,6 +282,7 @@ const PhotoCapturePage = () => {
   useEffect(() => { track('photo_flow_start', { step: 'front' }); }, []);
   const [errorKind, setErrorKind] = useState<ErrorKind>('lighting');
   const [partialSegments, setPartialSegments] = useState(0);
+  const [partialCategory, setPartialCategory] = useState<'food' | 'cosmetic'>('cosmetic');
   const [serverErrorMessage, setServerErrorMessage] = useState<string | null>(null);
   const [frontPhoto, setFrontPhoto] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null); // freshly captured, awaiting confirm
@@ -472,6 +479,9 @@ const PhotoCapturePage = () => {
           setErrorKind(res.kind);
           const segs = typeof res.data?.segments === 'number' ? res.data.segments : 0;
           setPartialSegments(segs);
+          // Category comes back in the 422 payload: the food message must not
+          // talk about INCI / Aqua (real case: "Almendras sin piel").
+          setPartialCategory(res.data?.category === 'food' ? 'food' : 'cosmetic');
           // Point 7: the server may have created the sheet WITHOUT an
           // ingredient list (name/brand/image only). Leave a local mark so the
           // result page badge can say exactly that instead of claiming a full
@@ -753,7 +763,7 @@ const PhotoCapturePage = () => {
             errorKind === 'payment' ? c.errorPayment :
             errorKind === 'too_large' ? c.errorTooLarge :
             errorKind === 'nutritional' ? (serverErrorMessage ?? c.errorNutritional) :
-            errorKind === 'partial' ? c.errorPartial(partialSegments) :
+            errorKind === 'partial' ? c.errorPartial(partialSegments, partialCategory) :
             serverErrorMessage ? serverErrorMessage :
             errorKind === 'unexpected' ? c.errorUnexpected :
             c.error;

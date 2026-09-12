@@ -625,6 +625,17 @@ export function evaluateDataConfidence(p: ProductData): DataConfidence {
 
     const count = segments.length;
     if (count >= 5) return { level: 'high', cap: null, missing: [] };
+    // Short INCI lists are COMPLETE when every item is an INCI / Latin term:
+    // pure oils ("Prunus Amygdalus Dulcis Oil"), artisan soaps ("Sodium
+    // Olivate, Sodium Cocoate, Aqua, Glycerin"), lip balms. The server only
+    // stores short lists that pass this same shape check (and rejects
+    // marketing claims via the model's is_full_inci_list); without this the
+    // sheet asked for a photo of a list we already had, forever.
+    const inciTerm = /\b(aqua|water|glycerin|glycerol|sodium|potassium|acid|extract|alcohol|parfum|fragrance|glycol|tocopherol|tocopheryl|citric|stearate|palmitate|laurate|sulfate|oil|olea|butyrospermum|prunus|helianthus|simmondsia|cocos|argania|aloe|camellia|chamomilla|rosa|lavandula|citrus|oxide|dioxide|chloride|silica|talc|mica|kaolin|starch|olivate|cocoate|palmate|cera|wax|butter|seed|leaf|flower|root|fruit|juice|powder|honey|mel|clay|salt|charcoal|squalane|lecithin|urea|allantoin|bisabolol|panthenol|menthol|mentha)\b/i;
+    const latinBinomial = /\b\p{L}{3,}(us|um|is|ae|ii|ata|ica|osa|ensis|alis|aris|ella|ina|ola|ana|iana|oides|ifera|folia|flora|ba)\b/iu;
+    const looksInci = (s: string) =>
+      inciTerm.test(s) || (latinBinomial.test(s) && /\p{L}{3,}\s+\p{L}{3,}/u.test(s));
+    if (count >= 1 && segments.every(looksInci)) return { level: 'high', cap: null, missing: [] };
     if (count >= 3) return { level: 'medium', cap: 85, missing: ['lista de ingredientes completa'] };
     return { level: 'none', cap: null, missing: ['lista de ingredientes'] };
   }
