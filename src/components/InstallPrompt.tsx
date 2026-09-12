@@ -23,6 +23,7 @@ const COPY = {
     inAppBody: 'Estás viendo la web dentro de otra app. Pulsa el menú (•••) y elige “Abrir en Safari” para poder añadirla a tu pantalla de inicio.',
     inAppCta: 'Copiar enlace',
     inAppCopied: 'Enlace copiado',
+    manualBody: 'Abre el menú ⋮ de tu navegador y elige «Añadir a pantalla de inicio».',
     dismiss: 'Cerrar',
   },
   en: {
@@ -36,6 +37,7 @@ const COPY = {
     inAppBody: "You're viewing the site inside another app. Tap the menu (•••) and choose “Open in Safari” to add it to your home screen.",
     inAppCta: 'Copy link',
     inAppCopied: 'Link copied',
+    manualBody: 'Open your browser’s ⋮ menu and choose “Add to Home screen”.',
     dismiss: 'Close',
   },
   fr: {
@@ -49,6 +51,7 @@ const COPY = {
     inAppBody: 'Tu vois le site dans une autre app. Appuie sur le menu (•••) et choisis « Ouvrir dans Safari » pour l’ajouter à ton écran d’accueil.',
     inAppCta: 'Copier le lien',
     inAppCopied: 'Lien copié',
+    manualBody: 'Ouvre le menu ⋮ de ton navigateur et choisis « Ajouter à l’écran d’accueil ».',
     dismiss: 'Fermer',
   },
 };
