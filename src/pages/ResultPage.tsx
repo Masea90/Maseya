@@ -97,6 +97,7 @@ const COPY = {
     whyPersonal: '¿Por qué tu nota personal?',
     incompleteBold: 'Análisis incompleto:',
     incompleteIngredientsRest: ' esta nota se basa solo en los valores nutricionales. Fotografía la lista de ingredientes para completarlo.',
+    incompleteIngredientsCosmeticRest: ' solo hemos podido leer parte de la lista de ingredientes. Fotografía la lista INCI completa (suele empezar por Aqua) para completarlo.',
     incompleteNutritionRest: ' falta la información nutricional. Fotografía la tabla nutricional para completarlo.',
     incompleteBothRest: ' faltan la lista de ingredientes y la información nutricional. Completa el análisis con fotos.',
     sinDatos: 'Sin datos',
@@ -182,6 +183,7 @@ const COPY = {
     whyPersonal: 'Why your personal score?',
     incompleteBold: 'Incomplete analysis:',
     incompleteIngredientsRest: ' this score is based only on nutrition values. Photograph the ingredient list to complete it.',
+    incompleteIngredientsCosmeticRest: ' we could only read part of the ingredient list. Photograph the full INCI list (it usually starts with Aqua) to complete it.',
     incompleteNutritionRest: ' nutrition information is missing. Photograph the nutrition table to complete it.',
     incompleteBothRest: ' the ingredient list and nutrition information are missing. Complete the analysis with photos.',
     sinDatos: 'No data',
@@ -267,6 +269,7 @@ const COPY = {
     whyPersonal: 'Pourquoi ta note personnelle ?',
     incompleteBold: 'Analyse incomplète :',
     incompleteIngredientsRest: " cette note repose uniquement sur les valeurs nutritionnelles. Photographie la liste des ingrédients pour la compléter.",
+    incompleteIngredientsCosmeticRest: " nous n'avons pu lire qu'une partie de la liste d'ingrédients. Photographie la liste INCI complète (elle commence en général par Aqua) pour la compléter.",
     incompleteNutritionRest: " les informations nutritionnelles manquent. Photographie le tableau nutritionnel pour le compléter.",
     incompleteBothRest: " la liste des ingrédients et les informations nutritionnelles manquent. Complète l'analyse avec des photos.",
     sinDatos: 'Aucune donnée',
@@ -1148,7 +1151,9 @@ const ResultPage = () => {
                             ? c.incompleteBothRest
                             : missingNutrition
                               ? c.incompleteNutritionRest
-                              : c.incompleteIngredientsRest}
+                              : product.category === 'cosmetic'
+                                ? c.incompleteIngredientsCosmeticRest
+                                : c.incompleteIngredientsRest}
                         </p>
                         <Button
                           size="sm"
