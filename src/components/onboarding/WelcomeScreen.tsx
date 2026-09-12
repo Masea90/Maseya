@@ -103,13 +103,23 @@ export const WelcomeScreen = () => {
         <p className="text-[11px] text-white/60">{c.trust}</p>
       </div>
 
-      {/* CTA + secondary links */}
-      <div className="w-full max-w-sm space-y-3">
+      {/* Actions */}
+      <div className="w-full max-w-sm space-y-2.5">
+        <div>
+          <Button
+            onClick={handleSignup}
+            className="w-full h-14 text-base font-semibold rounded-2xl bg-white text-primary hover:bg-white/95 shadow-warm-lg leading-tight"
+          >
+            {c.signup}
+          </Button>
+          <p className="mt-1.5 text-[11px] text-white/75">{c.signupHint}</p>
+        </div>
         <Button
           onClick={handleScan}
-          className="w-full h-14 text-base font-semibold rounded-2xl bg-white text-primary hover:bg-white/95 shadow-warm-lg leading-tight"
+          variant="outline"
+          className="w-full h-14 text-base font-semibold rounded-2xl border-white/70 bg-transparent text-white hover:bg-white/10 hover:text-white leading-tight"
         >
-          {c.cta}
+          {c.scanNoAccount}
         </Button>
         <button
           onClick={() => navigate('/login')}
@@ -117,19 +127,18 @@ export const WelcomeScreen = () => {
         >
           {c.haveAccount}
         </button>
-        <button
-          onClick={() => navigate('/como-funciona')}
-          className="block mx-auto text-xs text-white/70 underline-offset-4 hover:underline"
-        >
+      </div>
+
+      {/* Discreet footer */}
+      <p className="text-[10px] text-white/50 space-x-2">
+        <button onClick={() => navigate('/como-funciona')} className="underline-offset-4 hover:underline">
           {c.howItWorks}
         </button>
-        <button
-          onClick={() => navigate('/aviso-legal')}
-          className="block mx-auto text-[11px] text-white/60 underline-offset-4 hover:underline"
-        >
+        <span aria-hidden>·</span>
+        <button onClick={() => navigate('/aviso-legal')} className="underline-offset-4 hover:underline">
           Aviso legal
         </button>
-      </div>
+      </p>
     </div>
   );
 };
