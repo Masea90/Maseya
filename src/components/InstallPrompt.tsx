@@ -216,6 +216,8 @@ export const InstallPrompt = () => {
               {c.iosStep3}
               <Plus className="w-3.5 h-3.5 inline align-[-2px] ml-1 text-primary" />
             </p>
+          ) : manual && !deferred ? (
+            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{c.manualBody}</p>
           ) : (
             <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{c.subtitle}</p>
           )}
