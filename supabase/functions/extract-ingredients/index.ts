@@ -438,6 +438,82 @@ async function extractNutrition(image: string, apiKey: string): Promise<Nutritio
   }
 }
 
+// ---------- Persistence ----------------------------------------------------
+
+interface ContributionIdentity {
+  product_name: string;
+  brand: string;
+  category: "food" | "cosmetic";
+  category_tag: string | null;
+}
+
+/**
+ * Upsert a photo contribution into maseya_products (service role, bypasses
+ * RLS) unless the row is already verified. `extra` carries the fields we
+ * actually trust for this call (ingredients_text, nutriments). When the
+ * extraction failed the plausibility gate, `extra` is EMPTY: name, brand,
+ * category and front image are still stored, but the ingredients_text key is
+ * simply not written — a new row gets NULL and an existing list is left as is.
+ * Returns true when the row exists after the call (created or updated).
+ */
+async function persistContribution(
+  barcode: string,
+  front: string | undefined,
+  identity: ContributionIdentity,
+  extra: Record<string, unknown>,
+): Promise<boolean> {
+  try {
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    if (!serviceKey || !supabaseUrl) return false;
+    const admin = createClient(supabaseUrl, serviceKey);
+
+    let imageUrl: string | null = null;
+    if (front) {
+      try {
+        const b64 = front.startsWith("data:") ? front.slice(front.indexOf(",") + 1) : front;
+        const bin = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+        const path = `contrib/${barcode}-${Date.now()}.jpg`;
+        const { error: upErr } = await admin.storage
+          .from("product-images")
+          .upload(path, bin, { contentType: "image/jpeg", upsert: true });
+        if (upErr) console.warn("[extract] storage upload failed:", upErr.message);
+        else {
+          const { data: signed } = await admin.storage
+            .from("product-images")
+            .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+          imageUrl = signed?.signedUrl ?? null;
+        }
+      } catch (e) { console.warn("[extract] image processing failed:", e); }
+    }
+
+    const { data: existing } = await admin
+      .from("maseya_products").select("verified").eq("barcode", barcode).maybeSingle();
+    if (existing?.verified) return false;
+
+    const payload: Record<string, unknown> = {
+      barcode,
+      product_name: identity.product_name,
+      brand: identity.brand || null,
+      category: identity.category,
+      category_tag: identity.category_tag,
+      source: "photo", verified: false, submitted_by: null,
+      ...extra,
+    };
+    if (imageUrl) payload.image_url = imageUrl;
+    const { error: upsertErr } = await admin
+      .from("maseya_products").upsert(payload, { onConflict: "barcode" });
+    if (upsertErr) {
+      console.error("[extract] maseya_products upsert failed:", upsertErr.message);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.error("[extract] contribution error:", e);
+    return false;
+  }
+}
+
 // ---------- Handler --------------------------------------------------------
 
 serve(async (req) => {
