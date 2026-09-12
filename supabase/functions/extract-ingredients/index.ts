@@ -314,7 +314,13 @@ interface NutritionValidation {
   reason?: string;
   nutriments?: Record<string, number>;
   basis?: string;
+  /** Non-blocking issues (e.g. energy_macros_incoherent). Table is kept. */
+  warnings?: string[];
 }
+
+/** Numeric flag stored inside `nutriments` (JSON, numbers only) so the sheet
+ *  can tell the table was accepted with LOW confidence. Never read by Nutri-Score. */
+const NUTRITION_LOW_CONFIDENCE_KEY = "nutrition-confidence-low";
 
 const SUPPLEMENT_STRONG = [
   "complemento alimenticio", "complementos alimenticios", "suplemento alimentar",
@@ -416,11 +422,17 @@ function validateNutrition(raw: NutritionRaw): NutritionValidation {
   if (sat !== null && fat !== null && sat > fat + 0.2) return { ok: false, reason: "sat_gt_fat" };
   if (sugars !== null && carbs !== null && sugars > carbs + 0.5) return { ok: false, reason: "sugars_gt_carbs" };
 
+  // Energy vs macros coherence: a WARNING, never a rejection. The 4/9/4
+  // formula ignores alcohol (7 kcal/g), fibre (2 kcal/g) and polyols, so wine,
+  // beer or sugar-free gum are "incoherent" while being perfectly real. An odd
+  // value hurts one score; a rejection kills the whole sheet and loops the
+  // user ("photograph the table again"). Real case: Eroski rosé, 64 kcal/100 ml.
+  const warnings: string[] = [];
   if (kcal !== null && fat !== null && carbs !== null && proteins !== null) {
     const est = fat * 9 + carbs * 4 + proteins * 4;
     if (est > 0 && kcal > 20) {
       const ratio = kcal / est;
-      if (ratio < 0.75 || ratio > 1.25) return { ok: false, reason: "energy_macros_incoherent" };
+      if (ratio < 0.75 || ratio > 1.25) warnings.push("energy_macros_incoherent");
     }
   }
 
@@ -441,7 +453,11 @@ function validateNutrition(raw: NutritionRaw): NutritionValidation {
   set("proteins_100g", proteins);
   set("salt_100g", salt);
   set("sodium_100g", sodium);
-  return { ok: true, nutriments, basis };
+  if (warnings.length) {
+    nutriments[NUTRITION_LOW_CONFIDENCE_KEY] = 1;
+    console.log("[nutrition] accepted with LOW confidence:", warnings.join(","));
+  }
+  return { ok: true, nutriments, basis, warnings: warnings.length ? warnings : undefined };
 }
 
 async function extractNutrition(image: string, apiKey: string): Promise<NutritionValidation & { rawResponse?: string }> {
@@ -646,7 +662,7 @@ serve(async (req) => {
         }
       } catch (e) { console.error("[extract] nutrition persist error", e); }
       console.log("[extract] nutrition-only persisted:", persisted);
-      return json({ ok: true, nutriments: result.nutriments, persisted }, 200);
+      return json({ ok: true, nutriments: result.nutriments, persisted, nutrition_warnings: result.warnings ?? [] }, 200);
     }
 
     // -------- Standard ingredient extraction ---------------------------------
@@ -740,9 +756,14 @@ serve(async (req) => {
     // Plausibility gate (server-side) + the model's own self-assessment as a
     // second net. A text that cannot be a legal ingredient list is never
     // persisted as one.
-    const inci = looksLikeInciList(ingredients, category);
+    const modelFull = typeof extracted.is_full_inci_list === "boolean" ? extracted.is_full_inci_list : null;
+    const inci = looksLikeInciList(ingredients, category, modelFull);
     const modelConf = toNum(extracted.ingredients_confidence);
-    const modelDoubt = extracted.is_full_inci_list === false && modelConf !== null && modelConf < 0.5;
+    // The model's doubt is ONLY a marketing-claim signal (low confidence AND a
+    // claim signature on a handful of items). A short legitimate list is never
+    // rejected because the model hesitated.
+    const modelDoubt = modelFull === false && modelConf !== null && modelConf < 0.5
+      && inci.segments <= 4 && CLAIM_SIGNATURE_RE.test(ingredients);
     if (!inci.ok || modelDoubt) {
       console.log("[classify] REJECTED as partial/claim. reason:", inci.reason ?? "model_doubt",
         "segments:", inci.segments, "conf:", modelConf, "head:", ingredients.slice(0, 120));
@@ -812,8 +833,10 @@ serve(async (req) => {
       ingredients_text: ingredients, saved, is_supplement,
     };
     if (nutritionResult) {
-      if (nutritionResult.ok) responsePayload.nutriments = nutritionResult.nutriments;
-      else responsePayload.nutrition_rejected = nutritionResult.reason;
+      if (nutritionResult.ok) {
+        responsePayload.nutriments = nutritionResult.nutriments;
+        if (nutritionResult.warnings?.length) responsePayload.nutrition_warnings = nutritionResult.warnings;
+      } else responsePayload.nutrition_rejected = nutritionResult.reason;
     }
     return json(responsePayload, 200);
 
