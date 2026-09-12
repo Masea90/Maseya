@@ -461,7 +461,7 @@ const ResultPage = () => {
     setNotFound(false);
     setEnriching(false);
     setFromPhoto(false);
-    setPhotoSaved(false);
+    setPhotoSaved('none');
     setLoading(true);
 
     if (!barcode) {
