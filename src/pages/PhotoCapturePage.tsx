@@ -753,6 +753,7 @@ const PhotoCapturePage = () => {
             errorKind === 'payment' ? c.errorPayment :
             errorKind === 'too_large' ? c.errorTooLarge :
             errorKind === 'nutritional' ? (serverErrorMessage ?? c.errorNutritional) :
+            errorKind === 'partial' ? c.errorPartial(partialSegments) :
             serverErrorMessage ? serverErrorMessage :
             errorKind === 'unexpected' ? c.errorUnexpected :
             c.error;
