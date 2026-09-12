@@ -686,6 +686,13 @@ serve(async (req) => {
       // Point 7: keep what was read well (name, brand, category, front image)
       // so the sheet exists as "insufficient data" — never an ingredient list.
       const saved = isRealBarcode ? await persistContribution(rawBarcode, front, identity, {}) : false;
+      // The model explicitly judged the photo (is_full_inci_list=false) and
+      // returned no list: it saw claims/actives, not the legal list. Tell the
+      // user what to photograph instead of a generic lighting hint.
+      if (extracted.is_full_inci_list === false) {
+        console.log("[classify] REJECTED: model saw no legal list (claims only). name:", product_name);
+        return json({ error: "ingredients_too_short", segments: 0, reason: "model_claims_only", saved, ...identity }, 422);
+      }
       return json({ error: "no_ingredients", saved, ...identity }, 422);
     }
     if (isNutritionalData(ingredients)) {
