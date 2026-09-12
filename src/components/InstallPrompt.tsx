@@ -102,20 +102,25 @@ export const InstallPrompt = () => {
   const [deferred, setDeferred] = useState<BIPEvent | null>(null);
   const [iosHint, setIosHint] = useState(false);
   const [inApp, setInApp] = useState(false);
+  const [manual, setManual] = useState(false);
   const [copied, setCopied] = useState(false);
+  const deferredRef = useRef<BIPEvent | null>(null);
 
   useEffect(() => {
     if (isStandalone() || isDismissedRecently()) return;
 
     const onBIP = (e: Event) => {
       e.preventDefault();
+      deferredRef.current = e as BIPEvent;
       setDeferred(e as BIPEvent);
+      setManual(false); // upgrade manual instructions to the native prompt
       setVisible(true);
     };
     window.addEventListener('beforeinstallprompt', onBIP);
 
     const t = setTimeout(() => {
       if (isStandalone() || isDismissedRecently()) return;
+      if (deferredRef.current) return; // native prompt already available
       // iOS in-app browser (Instagram, WhatsApp, etc.) — can't install here.
       if (isIOS() && isInAppBrowser()) {
         setInApp(true);
@@ -127,8 +132,15 @@ export const InstallPrompt = () => {
       if (isIOSSafari() || isIOS()) {
         setIosHint(true);
         setVisible(true);
+        return;
       }
-    }, 600);
+      // Android/desktop browsers where Chrome hasn't fired beforeinstallprompt:
+      // show manual Add-to-Home-Screen instructions as a fallback.
+      if (!isInAppBrowser()) {
+        setManual(true);
+        setVisible(true);
+      }
+    }, 2000);
 
     return () => {
       window.removeEventListener('beforeinstallprompt', onBIP);
@@ -140,8 +152,9 @@ export const InstallPrompt = () => {
   useEffect(() => {
     if (!visible || shownTracked.current) return;
     shownTracked.current = true;
-    track('install_prompt_shown', { variant: inApp ? 'in_app' : iosHint ? 'ios_hint' : 'native' });
-  }, [visible, inApp, iosHint]);
+    const variant = inApp ? 'inapp' : iosHint ? 'ios' : deferred ? 'native' : 'manual';
+    track('install_prompt_shown', { variant });
+  }, [visible, inApp, iosHint, deferred]);
 
   const dismiss = () => {
     track('install_prompt_dismissed');
