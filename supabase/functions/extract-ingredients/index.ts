@@ -105,7 +105,9 @@ export function looksLikeInciList(
   const segs = splitSegments(text);
   const segments = segs.length;
   if (!text) return { ok: false, segments: 0, reason: "empty" };
-  if (isGibberish(text)) return { ok: false, segments, reason: "gibberish" };
+  // Only texts WITHOUT list structure are screened for gibberish: a long INCI
+  // legitimately repeats words (sodium, extract, oil) and would trip the ratio.
+  if (segments <= 2 && isGibberish(text)) return { ok: false, segments, reason: "gibberish" };
 
   if (category === "cosmetic") {
     // ® / ™ (or "con X") with a handful of items is the signature of an actives
