@@ -22,6 +22,11 @@ export const WelcomeScreen = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const handleSignup = () => {
+    track('welcome_signup_cta', { language: user.language });
+    navigate('/login?mode=signup');
+  };
+
   const handleScan = () => {
     // Same effect the old "continue without signing up" had: let anonymous users
     // through the onboarding gate. We flag the skip locally (no quiz answers).
