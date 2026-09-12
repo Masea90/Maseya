@@ -12,10 +12,19 @@ const SYSTEM_PROMPT = `You are an expert at reading product labels. Extract the 
   "product_name": "commercial product name exactly as printed on the FRONT of the pack, or null",
   "brand": "brand exactly as printed on the FRONT of the pack, or null",
   "category": "food or cosmetic or other",
-  "ingredients_text": "complete ingredient list",
+  "ingredients_text": "complete LEGAL ingredient list",
+  "ingredients_confidence": number between 0 and 1,
+  "is_full_inci_list": true or false,
   "category_tag": "most specific Open Food Facts / Open Beauty Facts category tag",
   "is_supplement": true or false
 }
+Rules for "ingredients_text":
+- Extract ONLY the LEGAL ingredient list: the text after "Ingredients" / "Ingredientes" / "Ingrédients" / "INCI". On cosmetics it is the INCI list, usually in small print and usually starting with "Aqua" or "Water".
+- NEVER return marketing claims or highlighted actives (e.g. "con Vitamina C, Ginkgo Biloba y DMAE", "enriched with argan oil", "0% parabens"). Those are NOT the ingredient list.
+- If only claims/actives are visible and the legal list is not readable, return an EMPTY string for ingredients_text.
+- Include ALL ingredients exactly as written, in order, comma-separated.
+Rules for "ingredients_confidence" (0-1): your own estimate that ingredients_text is the complete, correctly read legal list. Use <= 0.4 when the text is cut, blurry or looks like a claim.
+Rules for "is_full_inci_list" (boolean): true only when ingredients_text is the complete legal list (all items visible, none cut off). false when it is partial, unreadable or a marketing claim.
 Rules for "category":
 - "food" for edible products (drinks, snacks, groceries…)
 - "cosmetic" for personal care / beauty products
@@ -32,7 +41,64 @@ Rules for "is_supplement" (boolean):
 - true when the label shows unambiguous FOOD SUPPLEMENT signals in any language (es/pt/en/fr): "complemento alimenticio", "complementos alimenticios", "suplemento alimentar", "food supplement", "complément alimentaire", "no sobrepasar la cantidad diaria recomendada", "dosis diaria", "toma diaria", "VRN", "Valor de Referencia de Nutriente", "% NRV", "comprimido efervescente", "cápsulas", "comprimidos recubiertos", "no deben utilizarse como sustitutos de una dieta variada".
 - true when the product format is clearly capsules / tablets / vials / supplement sachets.
 - false for ordinary food and cosmetics.
-Use empty string if any field is not found. Include ALL ingredients exactly as written.`;
+Use empty string if any field is not found.`;
+
+// ---------- Ingredient-list plausibility ------------------------------------
+// The model reads whatever it is shown. Real case (PROTEO C, 8436542250160):
+// the user photographed the actives claim ("Vitamina C, Ginkgo Biloba,
+// Phytoproteoglycanos® y DMAE.") and it was stored as the INCI list, so the
+// sheet asked for the same photo forever. Reject text that cannot be a legal
+// ingredient list BEFORE persisting it.
+const INCI_TERMS_RE = /\b(aqua|water|glycerin|glycerol|sodium|potassium|acid|acidum|extract|extractum|alcohol|parfum|fragrance|phenoxyethanol|ethylhexylglycerin|glycol|butylene|propylene|caprylic|capric|triglyceride|tocopherol|tocopheryl|citric|benzoate|sorbate|cetearyl|cetyl|stearyl|stearate|palmitate|laurate|sulfate|sulphate|cocamidopropyl|betaine|dimethicone|siloxane|panthenol|niacinamide|hyaluronate|hyaluronic|xanthan|carbomer|edta|polysorbate|peg-\d+|ppg-\d+|ci\s?\d{5}|linalool|limonene|citronellol|geraniol|coumarin|benzyl|hexyl|urea|allantoin|bisabolol|squalane|lecithin|oil|olea|butyrospermum|prunus|helianthus|simmondsia|cocos|argania|aloe|camellia|chamomilla|rosa|lavandula|citrus|oxide|dioxide|hydroxide|chloride|silica|talc|mica|kaolin|starch|amylopectin|gluconate|lactate|ceramide|peptide|retinol|ascorb|salicyl|mentha|menthol)\b/i;
+const STARTS_WITH_WATER_RE = /^\s*(ingredients?|ingredientes|ingrédients|inci)?\s*[:.\-]?\s*(aqua|water|eau|agua|wasser)\b/i;
+
+// Food: ported from src/lib/junkRecord.ts (edge functions cannot import src/).
+const FOOD_INGREDIENT_MARKERS = [
+  "ingredient", "ingrédient", "ingrediente",
+  "agua", "aqua", "water", "eau",
+  "azúcar", "azucar", "sugar", "sucre",
+  "sal", "salt", "sel", "sodium",
+  "aceite", "oil", "huile", "oleum",
+  "harina", "flour", "farine",
+  "leche", "milk", "lait", "lactis",
+  "trigo", "wheat", "triticum",
+  "glycerin", "parfum", "alcohol", "acid", "ácido", "acide",
+  "extract", "extracto", "extrait",
+  "potassium", "citrate", "oxide", "stearate", "glycol",
+  "proteina", "proteína", "protein", "almidón", "almidon", "starch",
+  "cacao", "tomate", "tomato", "arroz", "rice", "maíz", "maiz", "corn",
+  "huevo", "egg", "oeuf", "queso", "cheese", "fromage",
+  "oliva", "olive", "girasol", "sunflower", "tournesol",
+];
+
+const countSegments = (text: string) =>
+  text.split(/[,;\n\r]|\s[-–—•·]\s/).map((s) => s.trim()).filter((s) => s.length > 1).length;
+
+export interface InciCheck { ok: boolean; segments: number; reason?: string }
+
+export function looksLikeInciList(rawText: string, category: "food" | "cosmetic"): InciCheck {
+  const text = (rawText || "").trim();
+  const segments = countSegments(text);
+  if (!text) return { ok: false, segments: 0, reason: "empty" };
+
+  if (category === "cosmetic") {
+    // ® / ™ with a handful of items is the signature of an actives claim.
+    if (/[®™]/.test(text) && segments <= 4) return { ok: false, segments, reason: "trademark_claim" };
+    if (segments < 5) return { ok: false, segments, reason: "too_few_segments" };
+    if (text.length < 40) return { ok: false, segments, reason: "too_short" };
+    const inciHits = (text.match(new RegExp(INCI_TERMS_RE.source, "gi")) || []).length;
+    if (!STARTS_WITH_WATER_RE.test(text) && inciHits < 2) return { ok: false, segments, reason: "no_inci_terms" };
+    return { ok: true, segments };
+  }
+
+  // Food: a short legitimate list ("Agua, sal") is fine when it names food.
+  const lower = text.toLowerCase();
+  const hasMarker = FOOD_INGREDIENT_MARKERS.some((m) => lower.includes(m)) || /\be\s?\d{3}[a-z]?\b/i.test(lower);
+  const separators = (text.match(/[,;]/g) || []).length;
+  if (separators >= 3 && text.length >= 25) return { ok: true, segments };
+  if (hasMarker) return { ok: true, segments };
+  return { ok: false, segments, reason: "no_food_markers" };
+}
 
 const NUTRITION_SYSTEM_PROMPT = `You extract nutrition facts from a product label photo. Labels may be a classic column table OR a Spanish/European front-of-pack "GDA" layout with circles/bubbles (e.g. "1/6 PARTE DEL ENVASE (35 g) CONTIENE: ENERGÍA 420 kJ/101 kcal · GRASAS 7,5 g · GRASAS SATURADAS 0,7 g · AZÚCARES 1,4 g · SAL 0,63 g"), often with a small separate line like "Energía por 100 g: 1199 kJ / 289 kcal". Read ALL of these formats.
 
@@ -372,6 +438,82 @@ async function extractNutrition(image: string, apiKey: string): Promise<Nutritio
   }
 }
 
+// ---------- Persistence ----------------------------------------------------
+
+interface ContributionIdentity {
+  product_name: string;
+  brand: string;
+  category: "food" | "cosmetic";
+  category_tag: string | null;
+}
+
+/**
+ * Upsert a photo contribution into maseya_products (service role, bypasses
+ * RLS) unless the row is already verified. `extra` carries the fields we
+ * actually trust for this call (ingredients_text, nutriments). When the
+ * extraction failed the plausibility gate, `extra` is EMPTY: name, brand,
+ * category and front image are still stored, but the ingredients_text key is
+ * simply not written — a new row gets NULL and an existing list is left as is.
+ * Returns true when the row exists after the call (created or updated).
+ */
+async function persistContribution(
+  barcode: string,
+  front: string | undefined,
+  identity: ContributionIdentity,
+  extra: Record<string, unknown>,
+): Promise<boolean> {
+  try {
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    if (!serviceKey || !supabaseUrl) return false;
+    const admin = createClient(supabaseUrl, serviceKey);
+
+    let imageUrl: string | null = null;
+    if (front) {
+      try {
+        const b64 = front.startsWith("data:") ? front.slice(front.indexOf(",") + 1) : front;
+        const bin = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+        const path = `contrib/${barcode}-${Date.now()}.jpg`;
+        const { error: upErr } = await admin.storage
+          .from("product-images")
+          .upload(path, bin, { contentType: "image/jpeg", upsert: true });
+        if (upErr) console.warn("[extract] storage upload failed:", upErr.message);
+        else {
+          const { data: signed } = await admin.storage
+            .from("product-images")
+            .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+          imageUrl = signed?.signedUrl ?? null;
+        }
+      } catch (e) { console.warn("[extract] image processing failed:", e); }
+    }
+
+    const { data: existing } = await admin
+      .from("maseya_products").select("verified").eq("barcode", barcode).maybeSingle();
+    if (existing?.verified) return false;
+
+    const payload: Record<string, unknown> = {
+      barcode,
+      product_name: identity.product_name,
+      brand: identity.brand || null,
+      category: identity.category,
+      category_tag: identity.category_tag,
+      source: "photo", verified: false, submitted_by: null,
+      ...extra,
+    };
+    if (imageUrl) payload.image_url = imageUrl;
+    const { error: upsertErr } = await admin
+      .from("maseya_products").upsert(payload, { onConflict: "barcode" });
+    if (upsertErr) {
+      console.error("[extract] maseya_products upsert failed:", upsertErr.message);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.error("[extract] contribution error:", e);
+    return false;
+  }
+}
+
 // ---------- Handler --------------------------------------------------------
 
 serve(async (req) => {
@@ -506,7 +648,11 @@ serve(async (req) => {
     const data = await response.json();
     const raw: string = data.choices?.[0]?.message?.content || "";
 
-    let extracted: { product_name?: string; brand?: string; category?: string; ingredients_text?: string; category_tag?: string; is_supplement?: boolean } = {};
+    let extracted: {
+      product_name?: string; brand?: string; category?: string; ingredients_text?: string;
+      category_tag?: string; is_supplement?: boolean;
+      ingredients_confidence?: number | string | null; is_full_inci_list?: boolean;
+    } = {};
     const tryParse = (s: string) => { try { return JSON.parse(s); } catch { return null; } };
     const cleaned = raw.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim();
     let parsed = tryParse(cleaned);
@@ -519,6 +665,8 @@ serve(async (req) => {
       return json({ error: "parse_failed" }, 422);
     }
     extracted = parsed as typeof extracted;
+    console.log("[classify] model self-assessment → confidence:", extracted.ingredients_confidence,
+      "is_full_inci_list:", extracted.is_full_inci_list, "len:", (extracted.ingredients_text || "").length);
 
     const rawCategory = String(extracted.category || "").toLowerCase();
     if (rawCategory === "other") {
@@ -529,8 +677,25 @@ serve(async (req) => {
     }
 
     const ingredients = (extracted.ingredients_text || "").trim();
+    const category = rawCategory === "food" ? "food" : "cosmetic";
+    const product_name = (extracted.product_name || "").trim() || "Producto fotografiado";
+    const brand = (extracted.brand || "").trim();
+    const rawTag = (extracted.category_tag || "").trim().toLowerCase();
+    let category_tag = /^en:[a-z0-9-]+$/.test(rawTag) ? rawTag : null;
+    const identity = { product_name, brand, category, category_tag };
+
     if (!ingredients || ingredients.length < 5) {
-      return json({ error: "no_ingredients" }, 422);
+      // Point 7: keep what was read well (name, brand, category, front image)
+      // so the sheet exists as "insufficient data" — never an ingredient list.
+      const saved = isRealBarcode ? await persistContribution(rawBarcode, front, identity, {}) : false;
+      // The model explicitly judged the photo (is_full_inci_list=false) and
+      // returned no list: it saw claims/actives, not the legal list. Tell the
+      // user what to photograph instead of a generic lighting hint.
+      if (extracted.is_full_inci_list === false) {
+        console.log("[classify] REJECTED: model saw no legal list (claims only). name:", product_name);
+        return json({ error: "ingredients_too_short", segments: 0, reason: "model_claims_only", saved, ...identity }, 422);
+      }
+      return json({ error: "no_ingredients", saved, ...identity }, 422);
     }
     if (isNutritionalData(ingredients)) {
       console.log("[classify] REJECTED as nutrition table. Text head:", ingredients.slice(0, 160));
@@ -540,11 +705,24 @@ serve(async (req) => {
       }, 422);
     }
 
-    const category = rawCategory === "food" ? "food" : "cosmetic";
-    const product_name = (extracted.product_name || "").trim() || "Producto fotografiado";
-    const brand = (extracted.brand || "").trim();
-    const rawTag = (extracted.category_tag || "").trim().toLowerCase();
-    let category_tag = /^en:[a-z0-9-]+$/.test(rawTag) ? rawTag : null;
+    // Plausibility gate (server-side) + the model's own self-assessment as a
+    // second net. A text that cannot be a legal ingredient list is never
+    // persisted as one.
+    const inci = looksLikeInciList(ingredients, category);
+    const modelConf = toNum(extracted.ingredients_confidence);
+    const modelDoubt = extracted.is_full_inci_list === false && modelConf !== null && modelConf < 0.5;
+    if (!inci.ok || modelDoubt) {
+      console.log("[classify] REJECTED as partial/claim. reason:", inci.reason ?? "model_doubt",
+        "segments:", inci.segments, "conf:", modelConf, "head:", ingredients.slice(0, 120));
+      const saved = isRealBarcode ? await persistContribution(rawBarcode, front, identity, {}) : false;
+      return json({
+        error: "ingredients_too_short",
+        segments: inci.segments,
+        reason: inci.reason ?? "model_doubt",
+        saved,
+        ...identity,
+      }, 422);
+    }
 
     // Food supplements: never scored with Nutri-Score, so we must not ask for
     // a nutrition table. Persisted by forcing category_tag to
@@ -591,54 +769,11 @@ serve(async (req) => {
       }
     }
 
-    let saved = false;
-    if (isRealBarcode) {
-      try {
-        const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-        const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-        if (serviceKey && supabaseUrl) {
-          const admin = createClient(supabaseUrl, serviceKey);
-
-          let imageUrl: string | null = null;
-          if (front) {
-            try {
-              const b64 = front.startsWith("data:") ? front.slice(front.indexOf(",") + 1) : front;
-              const bin = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-              const path = `contrib/${rawBarcode}-${Date.now()}.jpg`;
-              const { error: upErr } = await admin.storage
-                .from("product-images")
-                .upload(path, bin, { contentType: "image/jpeg", upsert: true });
-              if (upErr) console.warn("[extract] storage upload failed:", upErr.message);
-              else {
-                const { data: signed } = await admin.storage
-                  .from("product-images")
-                  .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
-                imageUrl = signed?.signedUrl ?? null;
-              }
-            } catch (e) { console.warn("[extract] image processing failed:", e); }
-          }
-
-          const { data: existing } = await admin
-            .from("maseya_products").select("verified").eq("barcode", rawBarcode).maybeSingle();
-          if (!existing?.verified) {
-            const payload: Record<string, unknown> = {
-              barcode: rawBarcode,
-              product_name, brand: brand || null, category,
-              category_tag, ingredients_text: ingredients,
-              source: "photo", verified: false, submitted_by: null,
-            };
-            if (imageUrl) payload.image_url = imageUrl;
-            if (nutritionResult?.ok && nutritionResult.nutriments) {
-              payload.nutriments = nutritionResult.nutriments;
-            }
-            const { error: upsertErr } = await admin
-              .from("maseya_products").upsert(payload, { onConflict: "barcode" });
-            if (upsertErr) console.error("[extract] maseya_products upsert failed:", upsertErr.message);
-            else saved = true;
-          }
-        }
-      } catch (e) { console.error("[extract] contribution error:", e); }
-    }
+    const fullPayload: Record<string, unknown> = { ingredients_text: ingredients };
+    if (nutritionResult?.ok && nutritionResult.nutriments) fullPayload.nutriments = nutritionResult.nutriments;
+    const saved = isRealBarcode
+      ? await persistContribution(rawBarcode, front, { product_name, brand, category, category_tag }, fullPayload)
+      : false;
 
     const responsePayload: Record<string, unknown> = {
       product_name, brand, category, category_tag,

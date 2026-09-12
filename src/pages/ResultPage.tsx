@@ -63,6 +63,7 @@ const COPY = {
     alimentacion: 'Alimentación',
     cosmetica: 'Cosmética',
     anadidoBaseDatos: 'Producto añadido a nuestra base de datos',
+    fichaSinIngredientes: 'Ficha creada sin lista de ingredientes',
     guardadoDispositivo: 'Guardado solo en tu dispositivo',
     sinNotaComplemento: 'Sin nota (complemento alimenticio)',
     sinNotaAlcohol: 'Sin nota (bebida alcohólica)',
@@ -96,6 +97,7 @@ const COPY = {
     whyPersonal: '¿Por qué tu nota personal?',
     incompleteBold: 'Análisis incompleto:',
     incompleteIngredientsRest: ' esta nota se basa solo en los valores nutricionales. Fotografía la lista de ingredientes para completarlo.',
+    incompleteIngredientsCosmeticRest: ' solo hemos podido leer parte de la lista de ingredientes. Fotografía la lista INCI completa (suele empezar por Aqua) para completarlo.',
     incompleteNutritionRest: ' falta la información nutricional. Fotografía la tabla nutricional para completarlo.',
     incompleteBothRest: ' faltan la lista de ingredientes y la información nutricional. Completa el análisis con fotos.',
     sinDatos: 'Sin datos',
@@ -147,6 +149,7 @@ const COPY = {
     alimentacion: 'Food',
     cosmetica: 'Cosmetics',
     anadidoBaseDatos: 'Product added to our database',
+    fichaSinIngredientes: 'Sheet created without ingredient list',
     guardadoDispositivo: 'Saved on your device only',
     sinNotaComplemento: 'No score (dietary supplement)',
     sinNotaAlcohol: 'No score (alcoholic drink)',
@@ -180,6 +183,7 @@ const COPY = {
     whyPersonal: 'Why your personal score?',
     incompleteBold: 'Incomplete analysis:',
     incompleteIngredientsRest: ' this score is based only on nutrition values. Photograph the ingredient list to complete it.',
+    incompleteIngredientsCosmeticRest: ' we could only read part of the ingredient list. Photograph the full INCI list (it usually starts with Aqua) to complete it.',
     incompleteNutritionRest: ' nutrition information is missing. Photograph the nutrition table to complete it.',
     incompleteBothRest: ' the ingredient list and nutrition information are missing. Complete the analysis with photos.',
     sinDatos: 'No data',
@@ -231,6 +235,7 @@ const COPY = {
     alimentacion: 'Alimentation',
     cosmetica: 'Cosmétique',
     anadidoBaseDatos: 'Produit ajouté à notre base de données',
+    fichaSinIngredientes: "Fiche créée sans liste d'ingrédients",
     guardadoDispositivo: 'Enregistré uniquement sur ton appareil',
     sinNotaComplemento: 'Sans note (complément alimentaire)',
     sinNotaAlcohol: 'Sans note (boisson alcoolisée)',
@@ -264,6 +269,7 @@ const COPY = {
     whyPersonal: 'Pourquoi ta note personnelle ?',
     incompleteBold: 'Analyse incomplète :',
     incompleteIngredientsRest: " cette note repose uniquement sur les valeurs nutritionnelles. Photographie la liste des ingrédients pour la compléter.",
+    incompleteIngredientsCosmeticRest: " nous n'avons pu lire qu'une partie de la liste d'ingrédients. Photographie la liste INCI complète (elle commence en général par Aqua) pour la compléter.",
     incompleteNutritionRest: " les informations nutritionnelles manquent. Photographie le tableau nutritionnel pour le compléter.",
     incompleteBothRest: " la liste des ingrédients et les informations nutritionnelles manquent. Complète l'analyse avec des photos.",
     sinDatos: 'Aucune donnée',
@@ -343,7 +349,9 @@ const ResultPage = () => {
   
 
   const [fromPhoto, setFromPhoto] = useState(false);
-  const [photoSaved, setPhotoSaved] = useState(false);
+  // 'full' = sheet + ingredient list stored · 'partial' = sheet created but the
+  // list was rejected (name/brand/image only) · 'none' = device only.
+  const [photoSaved, setPhotoSaved] = useState<'full' | 'partial' | 'none'>('none');
 
   const [healthProfile, setHealthProfile] = useState<any>(null);
   const [healthConsent, setHealthConsent] = useState<boolean>(() => hasHealthDataConsent());
@@ -453,7 +461,7 @@ const ResultPage = () => {
     setNotFound(false);
     setEnriching(false);
     setFromPhoto(false);
-    setPhotoSaved(false);
+    setPhotoSaved('none');
     setLoading(true);
 
     if (!barcode) {
@@ -494,7 +502,7 @@ const ResultPage = () => {
         });
 
         setFromPhoto(true);
-        setPhotoSaved(p.saved === true);
+        setPhotoSaved(p.saved === true ? 'full' : 'none');
         setLoading(false);
 
         return true;
@@ -546,10 +554,30 @@ const ResultPage = () => {
       ['producto sin nombre', 'unknown product', 'sin nombre', 'produit sans nom']
         .includes(n.trim().toLowerCase());
 
+    // A contribution whose ingredient list was rejected by the server: the
+    // sheet exists (name/brand/image) but carries NO list. Only the badge
+    // reads it — it never feeds the product data.
+    const readPartialPhotoMark = (matchBarcode: string): boolean => {
+      try {
+        const raw = localStorage.getItem('maseya_photo_product');
+        if (!raw) return false;
+        const p = JSON.parse(raw);
+        return !!p && p.barcode === matchBarcode && p.partial === true && p.saved === true;
+      } catch {
+        return false;
+      }
+    };
+
     const mergeFreshPhoto = (data: ProductData): ProductData => {
       try {
         const p = readFreshPhoto(data.barcode) as Record<string, any> | null;
-        if (!p) return data;
+        if (!p) {
+          if (readPartialPhotoMark(data.barcode)) {
+            setFromPhoto(true);
+            setPhotoSaved('partial');
+          }
+          return data;
+        }
         const freshIng = typeof p.ingredients_text === 'string' ? p.ingredients_text.trim() : '';
         const currentIng = (data.ingredients_text || '').trim();
         const rawObj: Record<string, unknown> = { ...data.raw };
@@ -558,7 +586,7 @@ const ResultPage = () => {
         }
         const useFresh = freshIng.length > currentIng.length;
         setFromPhoto(true);
-        setPhotoSaved(p.saved === true);
+        setPhotoSaved(p.saved === true ? 'full' : 'none');
         const photoName = typeof p.product_name === 'string' ? p.product_name : '';
         const photoCat = p.category === 'food' || p.category === 'cosmetic' ? p.category : null;
         return {
@@ -916,8 +944,10 @@ const ResultPage = () => {
             </p>
             {fromPhoto && (
               <div className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                {photoSaved ? (
+                {photoSaved === 'full' ? (
                   <><span>✅</span><span>{c.anadidoBaseDatos}</span></>
+                ) : photoSaved === 'partial' ? (
+                  <><span>📝</span><span>{c.fichaSinIngredientes}</span></>
                 ) : (
                   <><span>📱</span><span>{c.guardadoDispositivo}</span></>
                 )}
@@ -1121,7 +1151,9 @@ const ResultPage = () => {
                             ? c.incompleteBothRest
                             : missingNutrition
                               ? c.incompleteNutritionRest
-                              : c.incompleteIngredientsRest}
+                              : product.category === 'cosmetic'
+                                ? c.incompleteIngredientsCosmeticRest
+                                : c.incompleteIngredientsRest}
                         </p>
                         <Button
                           size="sm"

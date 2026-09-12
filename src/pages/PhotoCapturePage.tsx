@@ -106,7 +106,7 @@ const COPY = {
     ingredients: {
       heading: 'Paso 2: foto de los ingredientes',
       sub: 'Lista de ingredientes (parte trasera o lateral)',
-      hint: 'Busca «Ingredients:» o «Ingredientes:»',
+      hint: 'Busca «Ingredientes:» — en cosmética, la lista INCI que empieza por Aqua, no los activos de la portada',
       cta: 'Fotografiar los ingredientes',
     },
     nutrition: {
@@ -127,6 +127,9 @@ const COPY = {
     errorUnexpected: 'Error inesperado. Reintenta en unos segundos',
     errorNutritional: 'Parece que fotografiaste la tabla nutricional. Fotografía la lista de ingredientes.',
     errorTooLarge: 'La foto es demasiado grande. Reintenta acercándote al producto.',
+    errorPartial: (n: number) => n > 0
+      ? `Solo hemos leído ${n} ingrediente${n === 1 ? '' : 's'}: no es la lista completa. La lista legal va en letra pequeña tras «Ingredientes» (en cosmética suele empezar por Aqua). Acércate y encuadra toda la lista, no los activos destacados de la portada.`
+      : 'Ese texto no parece una lista de ingredientes. La lista legal va en letra pequeña tras «Ingredientes» (en cosmética suele empezar por Aqua). Acércate y encuadra toda la lista, no los activos destacados de la portada.',
     nutritionRejected: 'No hemos podido leer la tabla: asegúrate de que se vean los valores por 100 g y vuelve a intentarlo.',
     supplementDetected: 'Este producto es un complemento alimenticio: no se puntúa con el Nutri-Score.',
     loginCta: 'Iniciar sesión',
@@ -157,7 +160,7 @@ const COPY = {
     ingredients: {
       heading: 'Step 2: photo of the ingredients',
       sub: 'Ingredient list (back or side)',
-      hint: 'Look for "Ingredients:"',
+      hint: 'Look for "Ingredients:" — on cosmetics, the INCI list starting with Aqua, not the actives on the front',
       cta: 'Photograph the ingredients',
     },
     nutrition: {
@@ -178,6 +181,9 @@ const COPY = {
     errorUnexpected: 'Unexpected error. Try again in a few seconds',
     errorNutritional: 'Looks like you photographed the nutrition table. Photograph the ingredient list instead.',
     errorTooLarge: 'Photo is too large. Try getting closer to the product.',
+    errorPartial: (n: number) => n > 0
+      ? `We only read ${n} ingredient${n === 1 ? '' : 's'}: that is not the full list. The legal list is in small print after "Ingredients" (on cosmetics it usually starts with Aqua). Get closer and frame the whole list, not the highlighted actives on the front.`
+      : 'That text does not look like an ingredient list. The legal list is in small print after "Ingredients" (on cosmetics it usually starts with Aqua). Get closer and frame the whole list, not the highlighted actives on the front.',
     nutritionRejected: "We couldn't read the table: make sure the per-100 g values are visible and try again.",
     supplementDetected: 'This product is a food supplement: it is not scored with the Nutri-Score.',
     loginCta: 'Log in',
@@ -208,7 +214,7 @@ const COPY = {
     ingredients: {
       heading: 'Étape 2 : photo des ingrédients',
       sub: "Liste d'ingrédients (arrière ou côté)",
-      hint: 'Cherchez « Ingrédients »',
+      hint: 'Cherchez « Ingrédients » — en cosmétique, la liste INCI qui commence par Aqua, pas les actifs du devant',
       cta: 'Photographier les ingrédients',
     },
     nutrition: {
@@ -229,6 +235,9 @@ const COPY = {
     errorUnexpected: 'Erreur inattendue. Réessayez dans quelques secondes',
     errorNutritional: "Il semble que vous ayez photographié le tableau nutritionnel. Photographiez la liste d'ingrédients.",
     errorTooLarge: 'La photo est trop grande. Essayez de vous rapprocher du produit.',
+    errorPartial: (n: number) => n > 0
+      ? `Nous n'avons lu que ${n} ingrédient${n === 1 ? '' : 's'} : ce n'est pas la liste complète. La liste légale est en petits caractères après « Ingrédients » (en cosmétique, elle commence en général par Aqua). Rapproche-toi et cadre toute la liste, pas les actifs mis en avant sur le devant.`
+      : "Ce texte ne ressemble pas à une liste d'ingrédients. La liste légale est en petits caractères après « Ingrédients » (en cosmétique, elle commence en général par Aqua). Rapproche-toi et cadre toute la liste, pas les actifs mis en avant sur le devant.",
     nutritionRejected: "Nous n'avons pas pu lire le tableau : assurez-vous que les valeurs pour 100 g soient visibles et réessayez.",
     supplementDetected: "Ce produit est un complément alimentaire : il n'est pas noté avec le Nutri-Score.",
     loginCta: 'Se connecter',
@@ -249,7 +258,7 @@ const COPY = {
 };
 
 
-type ErrorKind = 'lighting' | 'session' | 'rate' | 'payment' | 'nutritional' | 'too_large' | 'unexpected';
+type ErrorKind = 'lighting' | 'partial' | 'session' | 'rate' | 'payment' | 'nutritional' | 'too_large' | 'unexpected';
 type Step = 'front' | 'ingredients' | 'nutrition-offer' | 'nutrition-capture' | 'analyzing' | 'analyzing-nutrition' | 'error' | 'image-saved';
 
 const PhotoCapturePage = () => {
@@ -266,6 +275,7 @@ const PhotoCapturePage = () => {
 
   useEffect(() => { track('photo_flow_start', { step: 'front' }); }, []);
   const [errorKind, setErrorKind] = useState<ErrorKind>('lighting');
+  const [partialSegments, setPartialSegments] = useState(0);
   const [serverErrorMessage, setServerErrorMessage] = useState<string | null>(null);
   const [frontPhoto, setFrontPhoto] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null); // freshly captured, awaiting confirm
@@ -313,7 +323,7 @@ const PhotoCapturePage = () => {
   const onRetake = () => { setPreview(null); };
 
 
-  const postExtract = async (body: Record<string, unknown>): Promise<{ ok: true; data: any } | { ok: false; kind: ErrorKind; msg?: string | null; code?: string }> => {
+  const postExtract = async (body: Record<string, unknown>): Promise<{ ok: true; data: any } | { ok: false; kind: ErrorKind; msg?: string | null; code?: string; data?: any }> => {
     const { data: sess } = await supabase.auth.getSession();
     const token = sess.session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
     const url = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/extract-ingredients`;
@@ -338,8 +348,9 @@ const PhotoCapturePage = () => {
       else if (res.status === 413 || data?.error === 'image_too_large') kind = 'too_large';
       else if (res.status === 402) kind = 'payment';
       else if (data?.error === 'nutritional_table_detected') kind = 'nutritional';
+      else if (data?.error === 'ingredients_too_short') kind = 'partial';
       else if (data?.error === 'no_ingredients' || data?.error === 'parse_failed') kind = 'lighting';
-      return { ok: false, kind, msg, code: typeof data?.error === 'string' ? data.error : undefined };
+      return { ok: false, kind, msg, code: typeof data?.error === 'string' ? data.error : undefined, data };
     }
     return { ok: true, data };
   };
@@ -459,7 +470,23 @@ const PhotoCapturePage = () => {
         if (res.ok === false) {
           setServerErrorMessage(res.msg ?? null);
           setErrorKind(res.kind);
-          track('photo_flow_error', { kind: res.kind });
+          const segs = typeof res.data?.segments === 'number' ? res.data.segments : 0;
+          setPartialSegments(segs);
+          // Point 7: the server may have created the sheet WITHOUT an
+          // ingredient list (name/brand/image only). Leave a local mark so the
+          // result page badge can say exactly that instead of claiming a full
+          // contribution or none at all.
+          if ((res.kind === 'partial' || res.kind === 'lighting') && realBarcode && res.data?.saved === true) {
+            localStorage.setItem('maseya_photo_product', JSON.stringify({
+              barcode: realBarcode,
+              product_name: (res.data.product_name as string) || c.unnamedProduct,
+              brand: (res.data.brand as string) || '',
+              category: res.data.category === 'food' ? 'food' : 'cosmetic',
+              category_tag: typeof res.data.category_tag === 'string' ? res.data.category_tag : null,
+              ingredients_text: '', image: front, saved: true, partial: true, savedAt: Date.now(),
+            }));
+          }
+          track('photo_flow_error', { kind: res.kind, segments: segs });
           setStep('error');
           return;
         }
@@ -726,6 +753,7 @@ const PhotoCapturePage = () => {
             errorKind === 'payment' ? c.errorPayment :
             errorKind === 'too_large' ? c.errorTooLarge :
             errorKind === 'nutritional' ? (serverErrorMessage ?? c.errorNutritional) :
+            errorKind === 'partial' ? c.errorPartial(partialSegments) :
             serverErrorMessage ? serverErrorMessage :
             errorKind === 'unexpected' ? c.errorUnexpected :
             c.error;
