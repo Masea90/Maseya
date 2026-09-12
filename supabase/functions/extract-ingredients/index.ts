@@ -657,54 +657,11 @@ serve(async (req) => {
       }
     }
 
-    let saved = false;
-    if (isRealBarcode) {
-      try {
-        const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-        const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-        if (serviceKey && supabaseUrl) {
-          const admin = createClient(supabaseUrl, serviceKey);
-
-          let imageUrl: string | null = null;
-          if (front) {
-            try {
-              const b64 = front.startsWith("data:") ? front.slice(front.indexOf(",") + 1) : front;
-              const bin = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-              const path = `contrib/${rawBarcode}-${Date.now()}.jpg`;
-              const { error: upErr } = await admin.storage
-                .from("product-images")
-                .upload(path, bin, { contentType: "image/jpeg", upsert: true });
-              if (upErr) console.warn("[extract] storage upload failed:", upErr.message);
-              else {
-                const { data: signed } = await admin.storage
-                  .from("product-images")
-                  .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
-                imageUrl = signed?.signedUrl ?? null;
-              }
-            } catch (e) { console.warn("[extract] image processing failed:", e); }
-          }
-
-          const { data: existing } = await admin
-            .from("maseya_products").select("verified").eq("barcode", rawBarcode).maybeSingle();
-          if (!existing?.verified) {
-            const payload: Record<string, unknown> = {
-              barcode: rawBarcode,
-              product_name, brand: brand || null, category,
-              category_tag, ingredients_text: ingredients,
-              source: "photo", verified: false, submitted_by: null,
-            };
-            if (imageUrl) payload.image_url = imageUrl;
-            if (nutritionResult?.ok && nutritionResult.nutriments) {
-              payload.nutriments = nutritionResult.nutriments;
-            }
-            const { error: upsertErr } = await admin
-              .from("maseya_products").upsert(payload, { onConflict: "barcode" });
-            if (upsertErr) console.error("[extract] maseya_products upsert failed:", upsertErr.message);
-            else saved = true;
-          }
-        }
-      } catch (e) { console.error("[extract] contribution error:", e); }
-    }
+    const fullPayload: Record<string, unknown> = { ingredients_text: ingredients };
+    if (nutritionResult?.ok && nutritionResult.nutriments) fullPayload.nutriments = nutritionResult.nutriments;
+    const saved = isRealBarcode
+      ? await persistContribution(rawBarcode, front, { product_name, brand, category, category_tag }, fullPayload)
+      : false;
 
     const responsePayload: Record<string, unknown> = {
       product_name, brand, category, category_tag,
