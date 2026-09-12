@@ -558,6 +558,7 @@ const ResultPage = () => {
         }
         const useFresh = freshIng.length > currentIng.length;
         setFromPhoto(true);
+        setPhotoSaved(p.saved === true);
         const photoName = typeof p.product_name === 'string' ? p.product_name : '';
         const photoCat = p.category === 'food' || p.category === 'cosmetic' ? p.category : null;
         return {
