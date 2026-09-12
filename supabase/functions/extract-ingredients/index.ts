@@ -665,6 +665,8 @@ serve(async (req) => {
       return json({ error: "parse_failed" }, 422);
     }
     extracted = parsed as typeof extracted;
+    console.log("[classify] model self-assessment → confidence:", extracted.ingredients_confidence,
+      "is_full_inci_list:", extracted.is_full_inci_list, "len:", (extracted.ingredients_text || "").length);
 
     const rawCategory = String(extracted.category || "").toLowerCase();
     if (rawCategory === "other") {
