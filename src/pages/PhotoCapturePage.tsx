@@ -258,7 +258,7 @@ const COPY = {
 };
 
 
-type ErrorKind = 'lighting' | 'session' | 'rate' | 'payment' | 'nutritional' | 'too_large' | 'unexpected';
+type ErrorKind = 'lighting' | 'partial' | 'session' | 'rate' | 'payment' | 'nutritional' | 'too_large' | 'unexpected';
 type Step = 'front' | 'ingredients' | 'nutrition-offer' | 'nutrition-capture' | 'analyzing' | 'analyzing-nutrition' | 'error' | 'image-saved';
 
 const PhotoCapturePage = () => {
@@ -275,6 +275,7 @@ const PhotoCapturePage = () => {
 
   useEffect(() => { track('photo_flow_start', { step: 'front' }); }, []);
   const [errorKind, setErrorKind] = useState<ErrorKind>('lighting');
+  const [partialSegments, setPartialSegments] = useState(0);
   const [serverErrorMessage, setServerErrorMessage] = useState<string | null>(null);
   const [frontPhoto, setFrontPhoto] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null); // freshly captured, awaiting confirm
@@ -322,7 +323,7 @@ const PhotoCapturePage = () => {
   const onRetake = () => { setPreview(null); };
 
 
-  const postExtract = async (body: Record<string, unknown>): Promise<{ ok: true; data: any } | { ok: false; kind: ErrorKind; msg?: string | null; code?: string }> => {
+  const postExtract = async (body: Record<string, unknown>): Promise<{ ok: true; data: any } | { ok: false; kind: ErrorKind; msg?: string | null; code?: string; data?: any }> => {
     const { data: sess } = await supabase.auth.getSession();
     const token = sess.session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
     const url = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/extract-ingredients`;
@@ -347,8 +348,9 @@ const PhotoCapturePage = () => {
       else if (res.status === 413 || data?.error === 'image_too_large') kind = 'too_large';
       else if (res.status === 402) kind = 'payment';
       else if (data?.error === 'nutritional_table_detected') kind = 'nutritional';
+      else if (data?.error === 'ingredients_too_short') kind = 'partial';
       else if (data?.error === 'no_ingredients' || data?.error === 'parse_failed') kind = 'lighting';
-      return { ok: false, kind, msg, code: typeof data?.error === 'string' ? data.error : undefined };
+      return { ok: false, kind, msg, code: typeof data?.error === 'string' ? data.error : undefined, data };
     }
     return { ok: true, data };
   };
@@ -468,7 +470,23 @@ const PhotoCapturePage = () => {
         if (res.ok === false) {
           setServerErrorMessage(res.msg ?? null);
           setErrorKind(res.kind);
-          track('photo_flow_error', { kind: res.kind });
+          const segs = typeof res.data?.segments === 'number' ? res.data.segments : 0;
+          setPartialSegments(segs);
+          // Point 7: the server may have created the sheet WITHOUT an
+          // ingredient list (name/brand/image only). Leave a local mark so the
+          // result page badge can say exactly that instead of claiming a full
+          // contribution or none at all.
+          if ((res.kind === 'partial' || res.kind === 'lighting') && realBarcode && res.data?.saved === true) {
+            localStorage.setItem('maseya_photo_product', JSON.stringify({
+              barcode: realBarcode,
+              product_name: (res.data.product_name as string) || c.unnamedProduct,
+              brand: (res.data.brand as string) || '',
+              category: res.data.category === 'food' ? 'food' : 'cosmetic',
+              category_tag: typeof res.data.category_tag === 'string' ? res.data.category_tag : null,
+              ingredients_text: '', image: front, saved: true, partial: true, savedAt: Date.now(),
+            }));
+          }
+          track('photo_flow_error', { kind: res.kind, segments: segs });
           setStep('error');
           return;
         }
