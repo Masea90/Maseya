@@ -22,24 +22,24 @@ export const RecoveryEmail = ({
   siteName,
   confirmationUrl,
 }: RecoveryEmailProps) => (
-  <Html lang="en" dir="ltr">
+  <Html lang="es" dir="ltr">
     <Head>
       <style>{darkModeCss}</style>
     </Head>
-    <Preview>Reset your password for {siteName}</Preview>
+    <Preview>Restablece tu contraseña de {siteName}</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Heading style={h1}>Reset your password</Heading>
+        <Heading style={h1}>Restablece tu contraseña</Heading>
         <Text style={text}>
-          We received a request to reset your password for {siteName}. Click
-          the button below to choose a new password.
+          Hemos recibido una solicitud para restablecer tu contraseña de{' '}
+          {siteName}. Haz clic en el botón para elegir una nueva contraseña.
         </Text>
         <Button className="dm-btn" style={button} href={confirmationUrl}>
-          Reset Password
+          Restablecer contraseña
         </Button>
         <Text style={footer}>
-          If you didn't request a password reset, you can safely ignore this
-          email. Your password will not be changed.
+          Si no has solicitado este cambio, puedes ignorar este email. Tu
+          contraseña no se modificará.
         </Text>
       </Container>
     </Body>
@@ -48,26 +48,26 @@ export const RecoveryEmail = ({
 
 export default RecoveryEmail
 
-const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, sans-serif' }
+const main = { backgroundColor: '#ffffff', fontFamily: 'Inter, system-ui, sans-serif' }
 const container = { padding: '20px 25px' }
 const h1 = {
   fontSize: '22px',
   fontWeight: 'bold' as const,
-  color: '#000000',
+  color: '#1B1B1B',
   margin: '0 0 20px',
 }
 const text = {
   fontSize: '14px',
-  color: '#55575d',
+  color: '#5E6762',
   lineHeight: '1.5',
   margin: '0 0 25px',
 }
 const button = {
-  backgroundColor: '#000000',
+  backgroundColor: '#2D6C4F',
   color: '#ffffff',
   fontSize: '14px',
-  border: '1px solid #000000',
-  borderRadius: '8px',
+  border: '1px solid #2D6C4F',
+  borderRadius: '16px',
   padding: '12px 20px',
   textDecoration: 'none',
 }
