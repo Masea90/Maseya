@@ -88,6 +88,60 @@ const EU_BANNED_COSMETIC = [
   'hydroxyisohexyl 3-cyclohexene carboxaldehyde', 'lyral', 'hicc',
 ];
 
+// Legal forms that CONTAIN a banned word but are NOT the banned substance.
+// Tosylamide/Formaldehyde Resin (nail polish) is a cured polymer, permitted in
+// the EU; it is not free formaldehyde. Formaldehyde RELEASERS (DMDM hydantoin,
+// imidazolidinyl/diazolidinyl urea, quaternium-15, polyoxymethylene urea,
+// methylene glycol) are deliberately NOT excluded here — they keep their own
+// treatment as severe/informative ingredients.
+const BANNED_EXCLUSION_PHRASES = [
+  'tosylamide/formaldehyde resin', 'tosylamide formaldehyde resin',
+  'toluenesulfonamide/formaldehyde resin', 'toluenesulfonamide formaldehyde resin',
+  'formaldehyde resin',
+];
+
+// "Free of X" claims must never trigger the alert for X.
+const BANNED_NEGATION_PREFIXES = [
+  'sin ', 'no ', 'nada de ', 'libre de ', 'libres de ', 'exento de ', 'exenta de ',
+  'sans ', 'free of ', 'free from ', 'without ', '0% ', '0 % ', 'zero ', 'cero ',
+];
+const BANNED_NEGATION_SUFFIXES = ['-free', ' free', '-frei', ' gratis'];
+
+/**
+ * Whole-word search of Annex II banned ingredients, skipping legal compound
+ * forms and "free of" negations. Returns the matched term or null.
+ */
+function findBannedCosmetic(text: string): string | null {
+  const t = norm(text);
+  for (const k of EU_BANNED_COSMETIC) {
+    const key = norm(k);
+    if (!key) continue;
+    let from = 0;
+    while (from <= t.length - key.length) {
+      const idx = t.indexOf(key, from);
+      if (idx === -1) break;
+      const end = idx + key.length;
+      const before = idx > 0 ? t[idx - 1] : '';
+      const after = end < t.length ? t[end] : '';
+      if (!isLetterChar(before) && !isLetterChar(after)) {
+        const ctxBefore = t.slice(Math.max(0, idx - 24), idx);
+        const ctxAfter = t.slice(end, end + 12);
+        const inLegalPhrase = BANNED_EXCLUSION_PHRASES.some(ph => {
+          const p = norm(ph);
+          const start = t.lastIndexOf(p, idx);
+          return start !== -1 && start <= idx && start + p.length >= end;
+        });
+        const negated =
+          BANNED_NEGATION_SUFFIXES.some(s => ctxAfter.startsWith(norm(s))) ||
+          BANNED_NEGATION_PREFIXES.some(p => ctxBefore.endsWith(norm(p)));
+        if (!inLegalPhrase && !negated) return t.substring(idx, end);
+      }
+      from = idx + 1;
+    }
+  }
+  return null;
+}
+
 const ORANGE_BOTH: string[] = [];
 const ORANGE_COSMETIC = [
   'alcohol denat', 'fragrance', 'parfum', 'silicone', 'dimethicone',
@@ -1299,12 +1353,14 @@ export function calculateScoreBreakdown(
 
     // Ingredients banned / severely restricted in EU cosmetics: a product that
     // still contains them is a serious signal, so the note is capped very low.
-    const bannedTerm = findAny(rawText, EU_BANNED_COSMETIC);
-    if (bannedTerm && score > 20) {
+    const bannedTerm = findBannedCosmetic(rawText);
+    if (bannedTerm && score !== 20) {
+      // Annex II is an exact cap, not a minimum penalty: the note lands on 20
+      // whether the rest of the formula scored above or below it.
       factors.push({
         label: `Contiene un ingrediente prohibido o muy restringido en la UE (${bannedTerm})`,
         delta: 20 - score,
-        tone: 'negative',
+        tone: score > 20 ? 'negative' : 'positive',
       });
       score = 20;
     }
@@ -1348,7 +1404,7 @@ export function calculateScoreBreakdown(
     // Floor: without any "avoid" ingredient, an ordinary formula can never be
     // the worst possible product. Accumulated "caution" hits alone stop at 40.
     if (bannedTerm) {
-      // An Annex II banned ingredient overrides every floor.
+      // An Annex II banned ingredient fixes the note at 20 (set above).
     } else if (!hasSevereAvoid && score < 40) {
       factors.push({
         label: 'Sin ingredientes de alto riesgo: la nota no baja de 40',
