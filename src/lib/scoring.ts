@@ -1353,12 +1353,14 @@ export function calculateScoreBreakdown(
 
     // Ingredients banned / severely restricted in EU cosmetics: a product that
     // still contains them is a serious signal, so the note is capped very low.
-    const bannedTerm = findAny(rawText, EU_BANNED_COSMETIC);
-    if (bannedTerm && score > 20) {
+    const bannedTerm = findBannedCosmetic(rawText);
+    if (bannedTerm && score !== 20) {
+      // Annex II is an exact cap, not a minimum penalty: the note lands on 20
+      // whether the rest of the formula scored above or below it.
       factors.push({
         label: `Contiene un ingrediente prohibido o muy restringido en la UE (${bannedTerm})`,
         delta: 20 - score,
-        tone: 'negative',
+        tone: score > 20 ? 'negative' : 'positive',
       });
       score = 20;
     }
