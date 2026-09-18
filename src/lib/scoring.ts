@@ -1354,15 +1354,25 @@ export function calculateScoreBreakdown(
     // Ingredients banned / severely restricted in EU cosmetics: a product that
     // still contains them is a serious signal, so the note is capped very low.
     const bannedTerm = findBannedCosmetic(rawText);
-    if (bannedTerm && score !== 20) {
-      // Annex II is an exact cap, not a minimum penalty: the note lands on 20
-      // whether the rest of the formula scored above or below it.
-      factors.push({
-        label: `Contiene un ingrediente prohibido o muy restringido en la UE (${bannedTerm})`,
-        delta: 20 - score,
-        tone: score > 20 ? 'negative' : 'positive',
-      });
-      score = 20;
+    if (bannedTerm) {
+      // Annex II is a CEILING, never a fixed value: a banned ingredient only
+      // lowers the note (cap at 20) and must never raise it. The factor is
+      // always negative; when the note is already at or below 20 it is shown
+      // with delta 0 so the user still sees the substance is there.
+      if (score > 20) {
+        factors.push({
+          label: `Contiene un ingrediente prohibido o muy restringido en la UE (${bannedTerm})`,
+          delta: 20 - score,
+          tone: 'negative',
+        });
+        score = 20;
+      } else {
+        factors.push({
+          label: `Contiene un ingrediente prohibido o muy restringido en la UE (${bannedTerm})`,
+          delta: 0,
+          tone: 'negative',
+        });
+      }
     }
 
     // Formaldehyde releasers: allowed preservatives (Annex V) but Reg. (EU)
