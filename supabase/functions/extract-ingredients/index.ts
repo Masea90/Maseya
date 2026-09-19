@@ -407,8 +407,16 @@ function validateNutrition(raw: NutritionRaw): NutritionValidation {
   console.log("[nutrition] basis:", basis, "serving_g:", servingG, "converted:", converted);
 
   if ([kcal, kj, fat, sat, carbs, sugars, fiber, proteins, salt, sodium].every((v) => v === null)) {
-    return { ok: false, reason: canConvert ? "no_values" : "per_serving_only", basis };
+    // "per_serving_only" must mean exactly that: the model DID read a table but
+    // only per portion and without a usable serving size. When basis is
+    // "unknown" and no per-serving block came back, nothing was read at all —
+    // report "no_values" so the client shows "retake the photo" instead of
+    // sending the user down the food-supplement branch.
+    const reallyPerServing = !canConvert &&
+      (hasServingBlock || basis === "per_serving" || basis === "mixed");
+    return { ok: false, reason: reallyPerServing ? "per_serving_only" : "no_values", basis };
   }
+
 
   const inRange = (v: number | null, lo: number, hi: number) => v === null || (v >= lo && v <= hi);
   if (!inRange(kcal, 0, 900)) return { ok: false, reason: "kcal_out_of_range" };
