@@ -91,7 +91,8 @@ Deno.serve(async (req) => {
       await supabase.from("push_sends").insert({ user_id: userId, tip_id: tip.id, status: "sent" });
     } catch (e) {
       const status = (e as { statusCode?: number }).statusCode;
-      if (status === 404 || status === 410) {
+      // 403 = subscription created with a different VAPID key (also unusable).
+      if (status === 403 || status === 404 || status === 410) {
         // Expired subscription — clean it up so we stop trying.
         await supabase.from("push_subscriptions").delete().eq("id", sub.id);
         removed++;
