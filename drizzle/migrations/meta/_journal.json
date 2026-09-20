@@ -43,6 +43,13 @@
       "when": 1788684451679,
       "tag": "0005_harden_email_queue_functions",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789900780042,
+      "tag": "0006_welcome_email_trigger",
+      "breakpoints": true
     }
   ]
 }
