@@ -50,6 +50,13 @@
       "when": 1789900780042,
       "tag": "0006_welcome_email_trigger",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1789901765198,
+      "tag": "0007_weekly_push_tips",
+      "breakpoints": true
     }
   ]
 }

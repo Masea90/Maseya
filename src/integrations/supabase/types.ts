@@ -599,10 +599,43 @@ export type Database = {
         }
         Relationships: []
       }
+      push_sends: {
+        Row: {
+          id: string
+          sent_at: string
+          status: string
+          tip_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          sent_at?: string
+          status?: string
+          tip_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          sent_at?: string
+          status?: string
+          tip_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_sends_tip_id_fkey"
+            columns: ["tip_id"]
+            isOneToOne: false
+            referencedRelation: "push_tips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       push_subscriptions: {
         Row: {
           auth: string
           created_at: string
+          enabled: boolean
           endpoint: string
           id: string
           p256dh: string
@@ -611,6 +644,7 @@ export type Database = {
         Insert: {
           auth: string
           created_at?: string
+          enabled?: boolean
           endpoint: string
           id?: string
           p256dh: string
@@ -619,10 +653,41 @@ export type Database = {
         Update: {
           auth?: string
           created_at?: string
+          enabled?: boolean
           endpoint?: string
           id?: string
           p256dh?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      push_tips: {
+        Row: {
+          active: boolean
+          body: string
+          created_at: string
+          id: string
+          language: string
+          title: string
+          url: string
+        }
+        Insert: {
+          active?: boolean
+          body: string
+          created_at?: string
+          id?: string
+          language?: string
+          title: string
+          url?: string
+        }
+        Update: {
+          active?: boolean
+          body?: string
+          created_at?: string
+          id?: string
+          language?: string
+          title?: string
+          url?: string
         }
         Relationships: []
       }

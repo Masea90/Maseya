@@ -15,13 +15,7 @@ project_id = "tjimqvdnzjivpgkkyylo"
     verify_jwt = false
   [functions.mira-analyze]
     verify_jwt = false
-  [functions.moderate-post]
-    verify_jwt = false
-  [functions.routine-reminders]
-    verify_jwt = false
-  [functions.send-test-push]
-    verify_jwt = false
-  [functions.translate]
+  [functions.send-weekly-tips]
     verify_jwt = false
   [functions.preview-transactional-email]
     verify_jwt = false
