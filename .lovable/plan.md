@@ -1,99 +1,60 @@
-# MASEYA Rebuild — Personal Product Scanner
+# Avisos semanales «¿Sabías que…?» por notificación
 
-Pivot the app from a beauty/community/routine PWA into a focused **personal product scanner**: scan a barcode → get a 3-layer personalized analysis (general ingredients, naturalness, "is it for you?") powered by Open Food Facts, Open Beauty Facts, and Mira AI.
+## Qué existe de verdad (verificado)
 
-## What we keep
-- Supabase auth + DB + RLS
-- Mira AI chatbot (repurposed: explains scan results, profile-aware)
-- PWA / service worker
-- i18n (EN/ES/FR), Spanish becomes default
-- Existing `profiles` table (extended with new health fields)
+- **Tabla `push_subscriptions`**: existe, 3 filas, la última de abril de 2026. Con permisos por usuario (cada quien ve/crea/borra las suyas). Servible tal cual.
+- **Tabla `notifications`**: 61 filas, todas de un solo tipo (recordatorios de rutina antiguos). Ninguna pantalla de la app la lee hoy.
+- **`get-vapid-key`**: existe y funciona. Las claves VAPID (pública y privada) están guardadas y disponibles.
+- **`send-test-push`, `routine-reminders`, `moderate-post`, `translate`**: aparecen listadas en la configuración pero **ya no existen en el proyecto**. Son restos.
+- **Tarea automática horaria `routine-reminders-hourly`**: activa, llamando cada hora a una función que ya no existe. Es decir, 24 llamadas fallidas al día. Confirmado que nada la usa.
+- **`public/push-sw.js`**: existe y ya gestiona recibir el aviso y abrir la url al tocarlo. Reutilizable casi sin cambios.
+- **Permiso de notificaciones**: confirmado, **la app no lo pide en ningún sitio**. No hay código de suscripción en el frontend.
+- **Aviso de instalación** (`InstallPrompt`): ya detecta iPhone, navegador dentro de otra app, y si la app ya está en la pantalla de inicio. Reutilizable.
+- **Eventos**: ya existe el registro de eventos con consentimiento; `scan_success` se registra en la pantalla de resultado. Buen punto de anclaje para contar escaneos.
 
-## What we remove
-Community (`community_posts`, `post_comments`, `post_likes`, `post_reactions`, `user_follows`, `user_saved_posts`), routines (`routine_completions`, `custom_routine`, `routine-reminders` function, reminder UI), rewards (`point_transactions`, `user_badges`, `useRewards`), affiliates (`product_affiliate_links`, `affiliate_clicks`, admin affiliate pages), wishlist, discover/remedies pages, scan placeholders, onboarding quiz/guide/welcome (replaced).
+## Lo que propongo construir
 
-## New navigation (4 tabs)
-Scan (default) · History · Profile · Mira
+### 1. Tarjeta de permiso (tras el 2º escaneo con éxito)
+Contador local de escaneos con éxito. Al llegar a 2, en la pantalla de resultado aparece una tarjeta suave con el texto pedido y los botones «Sí, avísame» / «Ahora no». «Ahora no» silencia 30 días. Solo «Sí» lanza el diálogo del navegador, y si lo acepta se guarda la suscripción. Nunca al abrir la app.
 
-## New screens
-1. Welcome — "Tu piel, tu cuerpo, tus reglas." → Empezar
-2. Onboarding (2 quick questions, saved to localStorage pre-auth)
-3. Scanner — camera + barcode + "fotografiar ingredientes" fallback + recent scans strip
-4. Result — global score circle + 3 expandable layers + Mira explanation + 3 alternatives
-5. Soft-paywall registration sheet (after first scan; Google + email; "continuar sin cuenta" capped at 3 scans)
-6. Full health profile (skin / hair / nutrition / general health, completion %)
-7. History (filters, search)
-8. Mira chat (profile + scan-history aware, suggested prompts)
+### 2. iPhone
+Con lo que ya hay: si es iOS **y** la app no está en la pantalla de inicio, no se muestra la tarjeta; en su lugar sigue apareciendo el aviso de instalación actual. Una vez instalada y abierta desde el icono, la tarjeta sí aparece. Además se comprueba que el navegador soporte avisos.
 
-## 3-layer scoring
-- **Layer 1 — Ingredientes generales**: parse INCI / ingredients_text, flag known risky additives (parabens, sulfates, synthetic fragrance, EDTA, BHA/BHT, E-numbers blacklist) with green/orange/red.
-- **Layer 2 — ¿Es natural?**: % natural ingredients, NOVA group (food) / processing level, organic certifications detected from labels_tags.
-- **Layer 3 — ¿Es para ti?** (premium for non-trivial cases): cross-references user health profile (atopic skin → flag sulfates/fragrance; celiac → check gluten; pregnancy → flag retinoids/salicylic; allergies → flag matches).
+### 3. Lista de consejos y envío semanal
+Tabla nueva `push_tips` (título, texto, url de destino, activo sí/no, idioma). Tú me pasas los textos y los cargo. Tabla nueva `push_sends` para saber qué consejo recibió cada usuario y cuándo: garantiza **máximo 1 por semana** y rotación sin repetir hasta agotar la lista (cuando se agota, vuelve a empezar). Envío los **martes a las 19:00 hora de Madrid** mediante una tarea semanal única. Al tocar, abre la url del consejo; por defecto `/scan`.
 
-## Data sources
-- Open Food Facts: `https://world.openfoodfacts.org/api/v2/product/{barcode}.json`
-- Open Beauty Facts: `https://world.openbeautyfacts.org/api/v2/product/{barcode}.json`
-- Fallback: photograph ingredients → Mira (Gemini multimodal) extracts INCI + analyzes
-- Alternatives: OFF/OBF category search filtered by score + user profile compat
+### 4. Interruptor en el perfil
+«Consejos semanales (notificaciones)» dentro del perfil. Al desactivar, se borra la suscripción de verdad (en el navegador y en la base de datos), así que deja de recibir. Al activar, pide permiso y vuelve a suscribir.
 
-## Monetization
-Free: 15 scans/mo, layers 1–2, 1 alt, 3-mo history.
-Premium 3.99€/mo or 29.99€/yr: unlimited, layer 3, 3 alts, full history, offline saved, priority Mira.
-Paywall surfaces at free limit or when tapping Layer 3.
+### 5. Anónimos: mi recomendación es **no**
+Técnicamente es posible (guardando la suscripción sin usuario), pero: no podrías desactivarlo desde ningún sitio con garantías, la suscripción se pierde al borrar datos del navegador, y complica el control de «una por semana». Además encaja mejor con tu objetivo: quien no tiene cuenta, primero la crea. Lo dejaría solo para usuarios con cuenta.
 
-→ **Payments**: I'll run `recommend_payment_provider` and use Lovable's built-in payments (Stripe or Paddle) — no API keys to set up.
+### 6. Limpieza (confirmado que nada depende de ello)
+- Eliminar la tarea horaria `routine-reminders-hourly` (llama a algo inexistente).
+- Quitar de la configuración las cuatro entradas de funciones que ya no existen.
+- Las 61 filas antiguas de `notifications`: propongo **dejarlas**; nada las lee y borrarlas no aporta. Dime si prefieres vaciarlas.
 
-## Database changes
-New tables:
-- `health_profiles` (1:1 with user, FKs to user_id) — skin_type[], skin_conditions[], skin_sensitivities[], hair_type, hair_condition, hair_concerns[], allergies[], diet, nutrition_goals[], pregnancy_or_lactation bool, completion_pct.
-- `scan_history` — user_id, barcode, source ('off'|'obf'|'photo'), product_data jsonb, scores jsonb (layer1/2/3 + global), ai_explanation, scanned_at.
-- `products_cache` — barcode PK, source, product_data jsonb, last_updated. Public read, service-role write.
-- `scan_alternatives` — scan_id FK, alt_barcode, alt_data jsonb, reason.
-- `subscriptions` — user_id, tier ('free'|'premium'), period ('monthly'|'yearly'), provider_customer_id, current_period_end.
-- `monthly_scan_counts` — user_id, year_month, count (enforce free 15/mo limit).
+### 7. Eventos
+Se registran los seis que pides: tarjeta mostrada, aceptada, rechazada, permiso denegado, aviso enviado y aviso tocado.
 
-All RLS: users access only own rows; `products_cache` public-read.
+## Detalles técnicos
 
-Removed tables (with cleanup migration): community_posts, post_comments, post_likes, post_reactions, user_follows, user_saved_posts, user_wishlist, routine_completions, point_transactions, user_badges, product_affiliate_links, affiliate_clicks. Drop related triggers/functions/storage policies.
+Archivos nuevos: `src/components/push/PushOptInCard.tsx`, `src/lib/push.ts` (suscribir/desuscribir, conversión de clave VAPID, detección de soporte), función `send-weekly-tips` (envío con web-push y claves VAPID existentes, limpieza de suscripciones caducadas 404/410).
 
-## Edge functions
-- Keep: `chat` (refocused system prompt: scanner expert, profile + history aware), `get-vapid-key`.
-- New: `analyze-product` — takes barcode or photo + user profile, fetches OFF/OBF or runs Gemini vision on photo, computes 3-layer scores, returns analysis + alternatives. Writes to `scan_history` + `products_cache`.
-- Remove: `routine-reminders`, `moderate-post`, `send-test-push`, `translate` (or keep translate if useful for OFF data — TBD).
+Archivos tocados: `src/pages/ResultPage.tsx` (solo montar la tarjeta y contar el escaneo con éxito; sin tocar scoring ni lógica de producto), `src/pages/ProfilePage.tsx` (el interruptor), `public/push-sw.js` (evento de «tocado» y url por defecto `/scan`), `supabase/config.toml` (limpieza + nueva función).
 
-## Design system update
-Repaint tokens in `index.css` + `tailwind.config.ts`:
-- primary `#2D6A4F` (deep green), secondary `#95D5B2` (mint), bg `#F8FAF9`, text `#1B1B1B`
-- 16px radius, Inter font, subtle shadows
-- Default language: Spanish
+Base de datos (migración mínima): crear `push_tips` y `push_sends` con sus permisos y políticas propias; añadir a `push_subscriptions` una marca de activa/desactivada y la zona horaria si hace falta. No se toca ninguna política existente.
 
-## Suggested phasing (each phase ≈ one prompt of work)
+## Riesgos
 
-**Phase 1 — Foundation & cleanup**
-- Migration: drop removed tables/functions/triggers, create new tables + RLS.
-- Strip removed routes/pages/components/hooks/edge functions.
-- Repaint design tokens + set Spanish default.
-- New 4-tab BottomNav, new AppRoutes skeleton.
+- **iPhone**: solo funciona instalada en la pantalla de inicio y con iOS 16.4 o superior. Alcance real limitado al principio.
+- **Las 3 suscripciones de abril** casi con seguridad están caducadas; el primer envío las limpiará. Se empieza prácticamente de cero.
+- **Entrega no garantizada**: el usuario puede tener el permiso bloqueado a nivel de sistema; se registra como denegado y no se insiste.
+- **El service worker solo está activo en la web publicada**, no en la vista previa: las pruebas reales hay que hacerlas en maseya.es.
+- **Fatiga**: un aviso semanal es prudente; si la gente los ignora, conviene bajar la frecuencia antes que subirla.
 
-**Phase 2 — Onboarding + scanner UI shell**
-- Welcome screen, 2-question onboarding (localStorage), Profile screen (full health profile form), Scanner screen with `@zxing/browser` barcode camera + photo fallback (UI only, mock result).
+## Complejidad honesta
 
-**Phase 3 — Scan engine**
-- `analyze-product` edge function: OFF → OBF → photo+Gemini fallback, 3-layer scoring, alternatives query, persist to `scan_history` + `products_cache`.
-- Result screen wired to real data, Mira explanation bubble, alternatives cards.
+Media. Lo más laborioso es el envío y la limpieza de suscripciones caducadas; el resto es trabajo de pantalla acotado. Estimo hacerlo en 2–3 tandas: (1) limpieza + base de datos + suscripción y tarjeta, (2) envío semanal con tus textos, (3) interruptor del perfil y comprobación real en maseya.es.
 
-**Phase 4 — Auth gate, history, Mira refresh**
-- Soft paywall sheet after 1st scan (Google + email), 3-scan anonymous cap.
-- History screen with filters + search.
-- Refocus Mira system prompt (scanner expert, reads profile + scan_history).
-
-**Phase 5 — Monetization + polish**
-- Lovable payments (Stripe/Paddle) for 3.99€/mo and 29.99€/yr, `subscriptions` table, free-tier limit enforcement, Layer 3 paywall trigger, offline saved scans.
-
-## Questions before I start
-1. **Confirm destructive cleanup.** All community posts, comments, follows, wishlists, points, badges, routine completions, and affiliate data will be **permanently deleted**. Profile fields stay; their non-scanner attributes (goals[], hair_type from old quiz, etc.) get migrated where sensible. OK?
-2. **Default language ES?** Switch app default from EN to ES (current users keep their saved preference).
-3. **Anonymous scans before signup**: spec says "no login, direct entry" then soft-paywall after 1st scan with a 3-scan cap. Implementing that needs either (a) anonymous Supabase sessions or (b) localStorage-only scan storage until signup. I'll go with (b) — simpler, no anon-auth complexity, scans migrate to the user record on signup. OK?
-4. **Phase 1 only now, or ship all 5 in sequence?** Recommend phase-by-phase so you can test each step; full rebuild in one go is high-risk.
-
-Reply with answers (or just "go phase 1") and I'll start.
+Necesito de ti: la lista de consejos (título, texto, destino) para cargarla.
