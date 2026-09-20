@@ -25,6 +25,8 @@ import { Alternatives } from '@/components/result/Alternatives';
 import { ScoreBreakdown } from '@/components/result/ScoreBreakdown';
 import { NutritionFacts } from '@/components/result/NutritionFacts';
 import { InstallPrompt } from '@/components/InstallPrompt';
+import { PushOptInCard } from '@/components/push/PushOptInCard';
+import { recordScanSuccess } from '@/lib/push';
 import { ThumbsFeedback } from '@/components/feedback/ThumbsFeedback';
 import { FeedbackDialog } from '@/components/feedback/FeedbackDialog';
 import { toast } from '@/hooks/use-toast';
@@ -1382,6 +1384,9 @@ const ResultPage = () => {
 
         {/* PWA install prompt — shown after the first scan result renders */}
         <InstallPrompt />
+
+        {/* Weekly tips opt-in — only from the 2nd successful scan on */}
+        <PushOptInCard />
 
         {/* Medical / legal disclaimer — always visible on results */}
         <div className="mt-4 rounded-2xl border border-border/70 bg-muted/40 p-4">
