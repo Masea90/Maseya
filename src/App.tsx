@@ -9,12 +9,24 @@ import { UserProvider } from '@/contexts/UserContext';
 import { AppRoutes } from '@/components/AppRoutes';
 import { ConsentModal } from '@/components/consent/ConsentModal';
 import { AutoUpdater } from '@/components/AutoUpdater';
-import { trackAppOpen } from '@/lib/analytics';
+import { trackAppOpen, track } from '@/lib/analytics';
 
 function App() {
   const [queryClient] = useState(() => new QueryClient());
 
-  useEffect(() => { trackAppOpen(); }, []);
+  useEffect(() => {
+    trackAppOpen();
+    // Opened from a weekly tip notification (marker added by the service worker).
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('src') === 'push') {
+        track('push_clicked', { path: window.location.pathname });
+        params.delete('src');
+        const qs = params.toString();
+        window.history.replaceState({}, '', window.location.pathname + (qs ? `?${qs}` : ''));
+      }
+    } catch { /* ignore */ }
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
