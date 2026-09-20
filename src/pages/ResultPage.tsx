@@ -622,6 +622,7 @@ const ResultPage = () => {
           return;
         }
         track('scan_success', { barcode, source: data.source, category: data.category });
+        recordScanSuccess(barcode);
         setProduct(merged);
         setLoading(false);
         return;
@@ -660,6 +661,7 @@ const ResultPage = () => {
         return;
       }
       track('scan_success', { barcode, source: retry.source, category: retry.category });
+      recordScanSuccess(barcode);
       setProduct(mergedRetry);
       setLoading(false);
     })();
