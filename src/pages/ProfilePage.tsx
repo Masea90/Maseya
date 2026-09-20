@@ -13,6 +13,8 @@ import { toast } from 'sonner';
 import { useDevMode } from '@/lib/premium';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { hasHealthDataConsent, setHealthDataConsent, getStoredConsent, setAnalyticsConsent as saveAnalyticsConsent } from '@/components/consent/ConsentModal';
+import { hasActiveSubscription, pushPossibleHere, subscribeToPush, unsubscribeFromPush } from '@/lib/push';
+import { track } from '@/lib/analytics';
 
 interface HealthState {
   skin_type: string[];
@@ -123,6 +125,14 @@ const ProfilePage = () => {
   const [productCount, setProductCount] = useState<number | null>(null);
   const devMode = useDevMode();
   const [showFeedback, setShowFeedback] = useState(false);
+  const [pushOn, setPushOn] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
+  const pushAvailable = pushPossibleHere();
+
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    hasActiveSubscription(currentUser.id).then(setPushOn);
+  }, [currentUser?.id]);
   
   
 
@@ -400,6 +410,43 @@ const ProfilePage = () => {
           </div>
         </Section>
 
+
+        <Section title="Avisos" emoji="🔔">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="font-medium text-sm">Consejos semanales (notificaciones)</p>
+              <p className="text-xs text-muted-foreground">
+                {pushAvailable
+                  ? 'Como mucho un aviso por semana, con un consejo útil sobre etiquetas.'
+                  : 'En iPhone necesitas añadir Maseya a tu pantalla de inicio para recibir avisos.'}
+              </p>
+            </div>
+            <Switch
+              disabled={!pushAvailable || pushBusy}
+              checked={pushOn}
+              onCheckedChange={async (v) => {
+                if (!currentUser?.id) return;
+                setPushBusy(true);
+                if (v) {
+                  const res = await subscribeToPush(currentUser.id);
+                  if (res === 'subscribed') {
+                    setPushOn(true);
+                    toast.success('Avisos semanales activados');
+                  } else {
+                    setPushOn(false);
+                    if (res === 'denied') track('push_permission_denied', {});
+                    toast.error('No se han podido activar los avisos');
+                  }
+                } else {
+                  await unsubscribeFromPush(currentUser.id);
+                  setPushOn(false);
+                  toast.success('Avisos desactivados');
+                }
+                setPushBusy(false);
+              }}
+            />
+          </div>
+        </Section>
 
         <Section title="Idioma / Language / Langue" emoji="🌍">
           <div className="flex items-center justify-between">

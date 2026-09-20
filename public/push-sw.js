@@ -2,18 +2,14 @@
 
 self.addEventListener('push', (event) => {
   const options = {
-    body: 'You have a new notification',
+    body: 'Un consejo útil sobre etiquetas',
     icon: '/favicon.png',
     badge: '/favicon.png',
     vibrate: [100, 50, 100],
     data: {
       dateOfArrival: Date.now(),
-      primaryKey: 1,
+      url: '/scan',
     },
-    actions: [
-      { action: 'open', title: 'Open App' },
-      { action: 'close', title: 'Dismiss' },
-    ],
   };
 
   if (event.data) {
@@ -23,6 +19,9 @@ self.addEventListener('push', (event) => {
       options.title = data.title || 'MASEYA';
       if (data.url) {
         options.data.url = data.url;
+      }
+      if (data.tip_id) {
+        options.data.tip_id = data.tip_id;
       }
     } catch (e) {
       options.body = event.data.text();
@@ -41,16 +40,16 @@ self.addEventListener('notificationclick', (event) => {
     return;
   }
 
-  const urlToOpen = event.notification.data?.url || '/';
+  const base = event.notification.data?.url || '/scan';
+  // Marker so the app can log the click once the page loads.
+  const urlToOpen = base.includes('?') ? `${base}&src=push` : `${base}?src=push`;
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
         if (client.url.includes(self.location.origin) && 'focus' in client) {
           client.focus();
-          if (urlToOpen !== '/') {
-            client.navigate(urlToOpen);
-          }
+          client.navigate(urlToOpen);
           return;
         }
       }
