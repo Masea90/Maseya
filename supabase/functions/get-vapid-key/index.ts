@@ -11,7 +11,8 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY");
+  // Must match the private key used by send-weekly-tips (V2 pair).
+  const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY_V2") ?? Deno.env.get("VAPID_PUBLIC_KEY");
 
   if (!vapidPublicKey) {
     return new Response(

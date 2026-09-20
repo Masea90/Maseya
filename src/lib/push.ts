@@ -116,9 +116,9 @@ const arrayBufferToBase64 = (buffer: ArrayBuffer | null): string => {
   return btoa(binary);
 };
 
+// Always ask the server: the public key must match the private key used when
+// sending, and a stale build-time value would silently break delivery.
 const getVapidKey = async (): Promise<string | null> => {
-  const envKey = import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined;
-  if (envKey) return envKey;
   try {
     const { data, error } = await supabase.functions.invoke('get-vapid-key');
     if (error) return null;

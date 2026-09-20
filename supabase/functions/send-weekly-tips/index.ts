@@ -18,8 +18,9 @@ const json = (body: unknown, status = 200) =>
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  const publicKey = Deno.env.get("VAPID_PUBLIC_KEY");
-  const privateKey = Deno.env.get("VAPID_PRIVATE_KEY");
+  // V2 pair is the valid one; the original stored private key was malformed.
+  const publicKey = Deno.env.get("VAPID_PUBLIC_KEY_V2") ?? Deno.env.get("VAPID_PUBLIC_KEY");
+  const privateKey = Deno.env.get("VAPID_PRIVATE_KEY_V2") ?? Deno.env.get("VAPID_PRIVATE_KEY");
   if (!publicKey || !privateKey) return json({ error: "VAPID keys not configured" }, 500);
   webpush.setVapidDetails("mailto:hola@maseya.es", publicKey, privateKey);
 
