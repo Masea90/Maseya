@@ -57,6 +57,13 @@
       "when": 1789901765198,
       "tag": "0007_weekly_push_tips",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790174770198,
+      "tag": "0008_grant_execute_has_role",
+      "breakpoints": true
     }
   ]
 }

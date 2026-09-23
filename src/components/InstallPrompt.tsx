@@ -189,7 +189,7 @@ export const InstallPrompt = () => {
   if (!visible) return null;
 
   return (
-    <div className="mt-4 rounded-2xl border border-primary/25 bg-primary/5 p-4">
+    <div data-install-prompt="true" className="mt-4 rounded-2xl border border-primary/25 bg-primary/5 p-4">
       <div className="flex items-start gap-3">
         <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0">
           {inApp ? <Compass className="w-5 h-5 text-primary" /> : <Download className="w-5 h-5 text-primary" />}
