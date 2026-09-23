@@ -40,9 +40,9 @@ const COPY = {
 // One prompt per browser session, even across several product pages.
 const SESSION_KEY = 'maseya_push_prompt_session';
 
-// The InstallPrompt card renders a container with this distinctive class.
+// The InstallPrompt card sets data-install-prompt="true" on its root container.
 // We avoid overlapping two prompts on the same screen.
-const INSTALL_PROMPT_SELECTOR = 'div[class*="bg-primary/5"]';
+const INSTALL_PROMPT_SELECTOR = '[data-install-prompt="true"]';
 
 export const PushOptInCard = () => {
   const { user } = useUser();
