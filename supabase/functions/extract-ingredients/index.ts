@@ -441,7 +441,6 @@ interface ContributionIdentity {
 function makeUploader(admin: any, barcode: string, front: string) {
   return async (): Promise<string | null> => {
     try {
-
         const b64 = front.startsWith("data:") ? front.slice(front.indexOf(",") + 1) : front;
         const bin = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
         const path = `contrib/${barcode}-${Date.now()}.jpg`;

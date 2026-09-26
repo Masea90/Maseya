@@ -4,7 +4,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Camera, ArrowLeft, Sparkles, RefreshCw, Check, X } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
 import { supabase } from '@/integrations/supabase/client';
-import { saveToMaseya } from '@/lib/productLookup';
 import { hasSupplementTextSignals } from '@/lib/scoring';
 import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -453,8 +452,9 @@ const PhotoCapturePage = () => {
       setPreview(null);
       if (addImageFor) {
         setStep('analyzing');
-        const { error } = await supabase.from('maseya_products').update({ image_url: preview }).eq('barcode', addImageFor);
-        if (error) console.error('[photo-capture] update image_url failed', error);
+        // Server-side: uploads to storage and applies the catalog write rule.
+        const res = await postExtract({ add_image: true, front_image: preview, barcode: addImageFor });
+        if (res.ok === false) console.error('[photo-capture] add image failed', res.kind);
         setStep('image-saved');
         setTimeout(() => navigate(`/result/${addImageFor}`, { replace: true }), 900);
         return;
@@ -511,19 +511,8 @@ const PhotoCapturePage = () => {
         const finalBarcode = realBarcode || `photo_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
         const image = front;
 
-        // The badge must reflect what actually happened: the server may not
-        // have stored the row, but our own saveToMaseya call may well have.
-        let savedOk = serverSaved;
-        if (!serverSaved) {
-          const saveRes = await saveToMaseya({
-            barcode: finalBarcode, product_name, brand, category,
-            ingredients_text, image_url: image, source: 'photo', verified: false,
-          });
-          if (!saveRes.ok && saveRes.error !== 'not_authenticated') {
-            console.error('[photo-capture] saveToMaseya failed', saveRes.error);
-          }
-          savedOk = serverSaved || saveRes.ok;
-        }
+        // The badge reflects only what the server stored (catalog write rule).
+        const savedOk = serverSaved;
 
         setPendingProduct({ finalBarcode, product_name, brand, category, category_tag, ingredients_text, image, serverSaved: savedOk });
 

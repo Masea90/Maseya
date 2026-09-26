@@ -112,8 +112,9 @@ export type WriteResult = "created" | "updated" | "unchanged" | "denied" | "erro
 
 /**
  * - New barcode: anyone may create (verified=false, submitted_by=uid|null).
- * - Existing row: anon → never; user → only fill empty FILLABLE fields;
- *   admin → unrestricted (verified rows still left alone, as before).
+ * - Existing row: anon → never; verified=true → admin only;
+ *   user → only fill empty FILLABLE fields (never last_enriched_at etc.);
+ *   admin → unrestricted, verified rows included.
  * `fields` = values for an existing/new row; `createOnly` = extra columns used only on insert.
  * `imageUrl` is resolved lazily so no file is uploaded unless it will be stored.
  */
@@ -132,16 +133,17 @@ export async function writeProduct(
   if (!existing) {
     const row: Record<string, unknown> = { barcode, ...createOnly, ...fields, verified: false, submitted_by: caller.uid };
     if (imageUrl) { const u = await imageUrl(); if (u) row.image_url = u; }
-    const { error } = await admin.from("maseya_products").insert(row);
+    const { data: ins, error } = await admin.from("maseya_products")
+      .upsert(row, { onConflict: "barcode", ignoreDuplicates: true }).select("barcode");
     if (error) { console.error("[write] insert failed", error.message); return "error"; }
-    return "created";
+    return ins && ins.length ? "created" : "unchanged";
   }
 
   if (caller.kind === "anon") return "denied";
+  if (existing.verified && !caller.isAdmin) return "denied";
 
   let patch: Record<string, unknown>;
   if (caller.isAdmin) {
-    if (existing.verified) return "unchanged";
     patch = { ...fields };
     if (imageUrl) { const u = await imageUrl(); if (u) patch.image_url = u; }
   } else {
@@ -153,7 +155,6 @@ export async function writeProduct(
     if (imageUrl && isEmpty("image_url", existing.image_url)) {
       const u = await imageUrl(); if (u) patch.image_url = u;
     }
-    if ("last_enriched_at" in fields && Object.keys(patch).length) patch.last_enriched_at = fields.last_enriched_at;
   }
   if (!Object.keys(patch).length) return "unchanged";
   const { error } = await admin.from("maseya_products").update(patch).eq("barcode", barcode);
