@@ -10,8 +10,13 @@ export type Caller =
   | { kind: "anon"; uid: null; isAdmin: false }
   | { kind: "user"; uid: string; isAdmin: boolean };
 
+// The frontend's publishable (legacy anon) key. Public by design; listed so it
+// is recognised even when the runtime env only carries the new-format keys.
+const FRONTEND_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRqaW1xdmRuemppdnBna2t5eWxvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2MjIwMjIsImV4cCI6MjA4MzE5ODAyMn0.EtrB67T7T4gyOZbsLg4JiKz5gM7e05uD-waUnQH6VWw";
+
 const anonKeys = (): string[] => {
   const keys = [
+    FRONTEND_PUBLISHABLE_KEY,
     Deno.env.get("SUPABASE_ANON_KEY"),
     Deno.env.get("SUPABASE_PUBLISHABLE_KEY"),
   ].filter((k): k is string => Boolean(k));
