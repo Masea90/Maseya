@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { resolveCaller, consumeQuota, serviceClient, writeProduct, type Caller } from "../_shared/access.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -174,9 +175,9 @@ STRICT RULES:
 - confidence is your own 0-1 estimate of legibility.`;
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
-const ANON_WINDOW_MS = 24 * 60 * 60 * 1000;
-const ANON_MAX_REQUESTS = 5;
-const anonRequests = new Map<string, { count: number; resetAt: number }>();
+// DB-backed daily limits (usage_quota). Anonymous traffic also counts
+// against a global cap; requests without a reliable IP only count there.
+const QUOTA = { user: 20, ip: 30, globalAnon: 400 };
 
 // STRICT nutrition-table detection. Ingredient lists frequently contain
 // numbers, percentages and isolated nutrient words ("proteínas de leche"),
@@ -216,66 +217,6 @@ const toDataUrl = (img: string) =>
 
 const measure = (img: string) =>
   (img.startsWith("data:") ? img.slice(img.indexOf(",") + 1) : img).length;
-
-const getBearerToken = (req: Request) => {
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) return "";
-  return authHeader.replace("Bearer ", "").trim();
-};
-
-const getAnonKeys = () => {
-  const keys = [
-    Deno.env.get("SUPABASE_ANON_KEY"),
-    Deno.env.get("SUPABASE_PUBLISHABLE_KEY"),
-    Deno.env.get("VITE_SUPABASE_PUBLISHABLE_KEY"),
-  ].filter((key): key is string => Boolean(key));
-  const keyList = Deno.env.get("SUPABASE_PUBLISHABLE_KEYS");
-  if (keyList) {
-    try {
-      const parsed = JSON.parse(keyList);
-      if (Array.isArray(parsed)) keys.push(...parsed.filter((key): key is string => typeof key === "string"));
-    } catch {
-      keys.push(...keyList.split(",").map((key) => key.trim()).filter(Boolean));
-    }
-  }
-  return keys;
-};
-
-const decodeJwtPayload = (token: string): Record<string, unknown> | null => {
-  try {
-    const payload = token.split(".")[1];
-    if (!payload) return null;
-    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
-    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
-    return JSON.parse(atob(padded));
-  } catch {
-    return null;
-  }
-};
-
-const isPublishableToken = (token: string) => {
-  if (getAnonKeys().includes(token)) return true;
-  return decodeJwtPayload(token)?.role === "anon";
-};
-
-const getClientId = (req: Request) =>
-  req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-  req.headers.get("cf-connecting-ip") ||
-  req.headers.get("x-real-ip") ||
-  "anonymous";
-
-const allowAnonymousRequest = (req: Request) => {
-  const now = Date.now();
-  const clientId = getClientId(req);
-  const current = anonRequests.get(clientId);
-  if (!current || current.resetAt <= now) {
-    anonRequests.set(clientId, { count: 1, resetAt: now + ANON_WINDOW_MS });
-    return true;
-  }
-  if (current.count >= ANON_MAX_REQUESTS) return false;
-  current.count += 1;
-  return true;
-};
 
 // ---------- Nutrition extraction + validation ------------------------------
 
@@ -505,19 +446,15 @@ interface ContributionIdentity {
  * Returns true when the row exists after the call (created or updated).
  */
 async function persistContribution(
+  caller: Caller,
   barcode: string,
   front: string | undefined,
   identity: ContributionIdentity,
   extra: Record<string, unknown>,
 ): Promise<boolean> {
   try {
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-    if (!serviceKey || !supabaseUrl) return false;
-    const admin = createClient(supabaseUrl, serviceKey);
-
-    let imageUrl: string | null = null;
-    if (front) {
+    const admin = serviceClient();
+    const uploadImage = front ? async (): Promise<string | null> => {
       try {
         const b64 = front.startsWith("data:") ? front.slice(front.indexOf(",") + 1) : front;
         const bin = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
@@ -525,37 +462,22 @@ async function persistContribution(
         const { error: upErr } = await admin.storage
           .from("product-images")
           .upload(path, bin, { contentType: "image/jpeg", upsert: true });
-        if (upErr) console.warn("[extract] storage upload failed:", upErr.message);
-        else {
-          const { data: signed } = await admin.storage
-            .from("product-images")
-            .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
-          imageUrl = signed?.signedUrl ?? null;
-        }
-      } catch (e) { console.warn("[extract] image processing failed:", e); }
-    }
+        if (upErr) { console.warn("[extract] storage upload failed:", upErr.message); return null; }
+        const { data: signed } = await admin.storage
+          .from("product-images")
+          .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+        return signed?.signedUrl ?? null;
+      } catch (e) { console.warn("[extract] image processing failed:", e); return null; }
+    } : undefined;
 
-    const { data: existing } = await admin
-      .from("maseya_products").select("verified").eq("barcode", barcode).maybeSingle();
-    if (existing?.verified) return false;
-
-    const payload: Record<string, unknown> = {
-      barcode,
-      product_name: identity.product_name,
-      brand: identity.brand || null,
-      category: identity.category,
-      category_tag: identity.category_tag,
-      source: "photo", verified: false, submitted_by: null,
-      ...extra,
-    };
-    if (imageUrl) payload.image_url = imageUrl;
-    const { error: upsertErr } = await admin
-      .from("maseya_products").upsert(payload, { onConflict: "barcode" });
-    if (upsertErr) {
-      console.error("[extract] maseya_products upsert failed:", upsertErr.message);
-      return false;
-    }
-    return true;
+    const res = await writeProduct(
+      admin, caller, barcode,
+      { product_name: identity.product_name, brand: identity.brand || null, ...extra },
+      { category: identity.category, category_tag: identity.category_tag, source: "photo" },
+      uploadImage,
+    );
+    console.log("[extract] contribution write:", res);
+    return res === "created" || res === "updated";
   } catch (e) {
     console.error("[extract] contribution error:", e);
     return false;
@@ -568,21 +490,11 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    const token = getBearerToken(req);
-    if (!token) return json({ error: "Unauthorized" }, 401);
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? "";
-    const isAnonKey = isPublishableToken(token);
-    if (isAnonKey) {
-      if (!allowAnonymousRequest(req)) return json({ error: "rate_limit" }, 429);
-    } else {
-      const supabaseClient = createClient(
-        Deno.env.get("SUPABASE_URL") ?? "",
-        anonKey,
-        { global: { headers: { Authorization: authHeader } } }
-      );
-      const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
-      if (claimsError || !claimsData?.claims) return json({ error: "session_expired" }, 401);
+    const quotaAdmin = serviceClient();
+    const caller = await resolveCaller(req, quotaAdmin);
+    if (!caller) return json({ error: "Unauthorized" }, 401);
+    if (!(await consumeQuota(quotaAdmin, req, caller, "extract-ingredients", QUOTA))) {
+      return json({ error: "rate_limit" }, 429);
     }
 
     const body = await req.json();
@@ -636,30 +548,14 @@ serve(async (req) => {
       // asking for the same photo forever.
       let persisted = false;
       try {
-        const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-        const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-        if (serviceKey && supabaseUrl) {
-          const admin = createClient(supabaseUrl, serviceKey);
-          const { data: existing } = await admin
-            .from("maseya_products")
-            .select("verified, product_name, category")
-            .eq("barcode", rawBarcode).maybeSingle();
-          if (!existing?.verified) {
-            const bodyName = typeof body.product_name === "string" ? body.product_name.trim() : "";
-            const payload: Record<string, unknown> = {
-              barcode: rawBarcode,
-              nutriments: result.nutriments,
-              product_name: existing?.product_name || bodyName || "Producto fotografiado",
-              category: existing?.category || "food",
-            };
-            if (!existing) payload.source = "photo_nutrition";
-            const { error: upErr } = await admin
-              .from("maseya_products")
-              .upsert(payload, { onConflict: "barcode" });
-            if (upErr) console.error("[extract] nutriments upsert failed", upErr.message);
-            else persisted = true;
-          } else persisted = true;
-        }
+        const bodyName = typeof body.product_name === "string" ? body.product_name.trim() : "";
+        const res = await writeProduct(
+          quotaAdmin, caller, rawBarcode,
+          { nutriments: result.nutriments },
+          { product_name: bodyName || "Producto fotografiado", category: "food", source: "photo_nutrition" },
+        );
+        console.log("[extract] nutrition write:", res);
+        persisted = res === "created" || res === "updated";
       } catch (e) { console.error("[extract] nutrition persist error", e); }
       console.log("[extract] nutrition-only persisted:", persisted);
       return json({ ok: true, nutriments: result.nutriments, persisted, nutrition_warnings: result.warnings ?? [] }, 200);
@@ -735,7 +631,7 @@ serve(async (req) => {
     if (!ingredients || ingredients.length < 5) {
       // Point 7: keep what was read well (name, brand, category, front image)
       // so the sheet exists as "insufficient data" — never an ingredient list.
-      const saved = isRealBarcode ? await persistContribution(rawBarcode, front, identity, {}) : false;
+      const saved = isRealBarcode ? await persistContribution(caller, rawBarcode, front, identity, {}) : false;
       // The model explicitly judged the photo (is_full_inci_list=false) and
       // returned no list: it saw claims/actives, not the legal list. Tell the
       // user what to photograph instead of a generic lighting hint.
@@ -767,7 +663,7 @@ serve(async (req) => {
     if (!inci.ok || modelDoubt) {
       console.log("[classify] REJECTED as partial/claim. reason:", inci.reason ?? "model_doubt",
         "segments:", inci.segments, "conf:", modelConf, "head:", ingredients.slice(0, 120));
-      const saved = isRealBarcode ? await persistContribution(rawBarcode, front, identity, {}) : false;
+      const saved = isRealBarcode ? await persistContribution(caller, rawBarcode, front, identity, {}) : false;
       return json({
         error: "ingredients_too_short",
         segments: inci.segments,
@@ -825,7 +721,7 @@ serve(async (req) => {
     const fullPayload: Record<string, unknown> = { ingredients_text: ingredients };
     if (nutritionResult?.ok && nutritionResult.nutriments) fullPayload.nutriments = nutritionResult.nutriments;
     const saved = isRealBarcode
-      ? await persistContribution(rawBarcode, front, { product_name, brand, category, category_tag }, fullPayload)
+      ? await persistContribution(caller, rawBarcode, front, { product_name, brand, category, category_tag }, fullPayload)
       : false;
 
     const responsePayload: Record<string, unknown> = {

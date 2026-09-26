@@ -831,6 +831,30 @@ export type Database = {
         }
         Relationships: []
       }
+      usage_quota: {
+        Row: {
+          count: number
+          day: string
+          fn: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          count?: number
+          day?: string
+          fn: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          count?: number
+          day?: string
+          fn?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -1092,6 +1116,10 @@ export type Database = {
           scan_count: number
           user_id: string
         }[]
+      }
+      consume_usage_quota: {
+        Args: { p_fn: string; p_limits: number[]; p_subjects: string[] }
+        Returns: boolean
       }
       get_public_profile: {
         Args: { p_user_id: string }

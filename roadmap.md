@@ -1,2 +1,3 @@
 
-- [ ] Seguridad: escritura por capas en maseya_products (extract-ingredients, enrich-products), cuotas en BD por usuario/IP, token estricto en mira-analyze, bucket product-images público sin política de listado
+- [ ] Seguridad por capas: código listo; pendiente de tu OK para desplegar funciones + bucket product-images (entorno compartido = producción)
+- [x] Ajustes: tope global anónimo, IP 30/40, IP desconocida solo contra tope global
