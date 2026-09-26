@@ -3,7 +3,7 @@
 // daily, or can be invoked manually from the admin dev panel.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { writeProduct } from "../_shared/access.ts";
+import { writeProduct, consumeQuota } from "../_shared/access.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -156,6 +156,13 @@ Deno.serve(async (req) => {
     }
     const { data: isAdminRole } = await admin.rpc("has_role", { _user_id: uid, _role: "admin" });
     const singleCaller = { kind: "user" as const, uid: uid as string, isAdmin: isAdminRole === true };
+    // Per-user daily quota for the scan-triggered mode (3 external APIs per call).
+    if (singleBarcode && !(await consumeQuota(admin, req, singleCaller, "enrich-products", { user: 60, ip: 0, globalAnon: 0 }))) {
+      return new Response(JSON.stringify({ error: "rate_limit" }), {
+        status: 429,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     if (!singleBarcode) {
       const { data: isAdmin, error: roleErr } = await admin.rpc("has_role", {
         _user_id: uid,

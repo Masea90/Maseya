@@ -436,6 +436,26 @@ interface ContributionIdentity {
   category_tag: string | null;
 }
 
+/** Lazily uploads a base64/data-URL image to product-images; returns its URL. */
+// deno-lint-ignore no-explicit-any
+function makeUploader(admin: any, barcode: string, front: string) {
+  return async (): Promise<string | null> => {
+    try {
+        const b64 = front.startsWith("data:") ? front.slice(front.indexOf(",") + 1) : front;
+        const bin = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+        const path = `contrib/${barcode}-${Date.now()}.jpg`;
+        const { error: upErr } = await admin.storage
+          .from("product-images")
+          .upload(path, bin, { contentType: "image/jpeg", upsert: true });
+        if (upErr) { console.warn("[extract] storage upload failed:", upErr.message); return null; }
+        const { data: signed } = await admin.storage
+          .from("product-images")
+          .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+        return signed?.signedUrl ?? null;
+      } catch (e) { console.warn("[extract] image processing failed:", e); return null; }
+  };
+}
+
 /**
  * Upsert a photo contribution into maseya_products (service role, bypasses
  * RLS) unless the row is already verified. `extra` carries the fields we
@@ -454,21 +474,7 @@ async function persistContribution(
 ): Promise<boolean> {
   try {
     const admin = serviceClient();
-    const uploadImage = front ? async (): Promise<string | null> => {
-      try {
-        const b64 = front.startsWith("data:") ? front.slice(front.indexOf(",") + 1) : front;
-        const bin = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-        const path = `contrib/${barcode}-${Date.now()}.jpg`;
-        const { error: upErr } = await admin.storage
-          .from("product-images")
-          .upload(path, bin, { contentType: "image/jpeg", upsert: true });
-        if (upErr) { console.warn("[extract] storage upload failed:", upErr.message); return null; }
-        const { data: signed } = await admin.storage
-          .from("product-images")
-          .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
-        return signed?.signedUrl ?? null;
-      } catch (e) { console.warn("[extract] image processing failed:", e); return null; }
-    } : undefined;
+    const uploadImage = front ? makeUploader(admin, barcode, front) : undefined;
 
     const res = await writeProduct(
       admin, caller, barcode,
@@ -511,6 +517,18 @@ serve(async (req) => {
         if (typeof i !== "string") return json({ error: "Invalid image" }, 400);
         if (measure(i) > MAX_IMAGE_BYTES) return json({ error: "image_too_large" }, 413);
       }
+    }
+
+    // -------- Add-image mode: front photo for an EXISTING product ------------
+    // Goes through writeProduct: anon never writes, users only fill an empty
+    // image_url, verified rows are admin-only. File is uploaded to the bucket.
+    if (body.add_image === true) {
+      if (!isRealBarcode || !front) return json({ error: "barcode_required" }, 400);
+      const { data: row } = await quotaAdmin.from("maseya_products").select("barcode").eq("barcode", rawBarcode).maybeSingle();
+      if (!row) return json({ ok: true, saved: false }, 200);
+      const res = await writeProduct(quotaAdmin, caller, rawBarcode, {}, {}, makeUploader(quotaAdmin, rawBarcode, front));
+      console.log("[extract] add-image write:", res);
+      return json({ ok: true, saved: res === "updated" }, 200);
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");

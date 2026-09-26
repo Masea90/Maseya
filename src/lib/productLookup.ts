@@ -309,44 +309,6 @@ async function fetchFromMaseya(barcode: string): Promise<ProductData | null> {
 
 
 
-export async function saveToMaseya(input: {
-  barcode: string;
-  product_name: string;
-  brand?: string | null;
-  category: 'food' | 'cosmetic' | 'unknown';
-  ingredients_text: string;
-  image_url?: string | null;
-  source?: string;
-  verified?: boolean;
-}): Promise<{ ok: boolean; error?: string }> {
-  const { data: userData } = await supabase.auth.getUser();
-  const uid = userData.user?.id;
-  if (!uid) {
-    console.warn('[saveToMaseya] skipped: not authenticated');
-    return { ok: false, error: 'not_authenticated' };
-  }
-  console.log('[saveToMaseya] upserting', { barcode: input.barcode, name: input.product_name, source: input.source });
-  const { error } = await supabase
-    .from('maseya_products')
-    .upsert({
-      barcode: input.barcode,
-      product_name: input.product_name,
-      brand: input.brand ?? null,
-      category: input.category,
-      ingredients_text: input.ingredients_text,
-      image_url: input.image_url ?? null,
-      source: input.source ?? 'photo',
-      verified: false,
-      submitted_by: uid,
-    }, { onConflict: 'barcode' });
-  if (error) {
-    console.error('[saveToMaseya] error', error);
-    return { ok: false, error: error.message };
-  }
-  console.log('[saveToMaseya] success for', input.barcode);
-  return { ok: true };
-}
-
 /** A public (OFF/OBF) hit is "rich" when it has usable ingredients OR a real nutriscore. */
 function isRichPublicHit(pd: ProductData): boolean {
   const ing = (pd.ingredients_text || '').trim();
