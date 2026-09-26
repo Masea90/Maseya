@@ -3,6 +3,7 @@
 // daily, or can be invoked manually from the admin dev panel.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { writeProduct } from "../_shared/access.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -153,6 +154,8 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    const { data: isAdminRole } = await admin.rpc("has_role", { _user_id: uid, _role: "admin" });
+    const singleCaller = { kind: "user" as const, uid: uid as string, isAdmin: isAdminRole === true };
     if (!singleBarcode) {
       const { data: isAdmin, error: roleErr } = await admin.rpc("has_role", {
         _user_id: uid,
@@ -223,24 +226,15 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // For single-barcode mode, the row may not exist yet — upsert with sensible defaults
-      if (singleBarcode && !row.product_name && !row.image_url && !row.ingredients_text) {
-        const newRow = {
-          barcode: row.barcode,
-          product_name: patch.product_name || 'Producto sin nombre',
-          brand: patch.brand ?? null,
-          category: patch.category ?? row.category ?? 'unknown',
-          ingredients_text: patch.ingredients_text ?? null,
-          image_url: patch.image_url ?? null,
-          source: 'enrich_lookup',
-          verified: false,
-          last_enriched_at: new Date().toISOString(),
-        };
-        const { error: upErr } = await admin
-          .from("maseya_products")
-          .upsert(newRow, { onConflict: 'barcode' });
-        if (upErr) { console.error("[enrich] insert error", row.barcode, upErr); stillMissing++; }
-        else enriched++;
+      // Single-barcode mode (any signed-in user): catalog write rule —
+      // create if missing, otherwise only fill empty fields (admins unrestricted).
+      if (singleBarcode) {
+        const res = await writeProduct(
+          admin, singleCaller, row.barcode,
+          { ...patch, last_enriched_at: new Date().toISOString() },
+          { product_name: patch.product_name || 'Producto sin nombre', category: row.category ?? 'unknown', source: 'enrich_lookup' },
+        );
+        if (res === "created" || res === "updated") enriched++; else stillMissing++;
         continue;
       }
 
