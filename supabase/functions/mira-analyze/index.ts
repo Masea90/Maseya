@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { resolveCaller, consumeQuota, serviceClient } from "../_shared/access.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -319,56 +320,19 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
+    // Only the exact publishable key (anonymous) or a verified user JWT.
+    const caller = await resolveCaller(req, serviceClient());
+    if (!caller) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const token = authHeader.replace("Bearer ", "").trim();
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-    // Anonymous callers send the project's publishable/anon key. That key is
-    // not always identical to SUPABASE_ANON_KEY (legacy JWT vs new
-    // `sb_publishable_...`), and when it is a JWT it has no `sub` claim, so
-    // getClaims() fails with 403 → we were rejecting valid anonymous calls.
-    // Only validate tokens that actually carry a user identity.
-    const decodePayload = (jwt: string): Record<string, unknown> | null => {
-      const parts = jwt.split(".");
-      if (parts.length !== 3) return null;
-      try {
-        return JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
-      } catch {
-        return null;
-      }
-    };
-    const payload = decodePayload(token);
-    const isUserToken = !!payload && typeof payload.sub === "string" && !!payload.sub;
-    if (token !== anonKey && isUserToken) {
-      const supabaseClient = createClient(
-        Deno.env.get("SUPABASE_URL") ?? "",
-        anonKey,
-        { global: { headers: { Authorization: authHeader } } }
-      );
-      const { data: claimsData, error: claimsError } =
-        await supabaseClient.auth.getClaims(token);
-      if (claimsError || !claimsData?.claims) {
-        return new Response(JSON.stringify({ error: "session_expired" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-    }
-
-
 
     const body = await req.json();
     const { product, profile, score, firstName, personalScore, topAlerts, factors, nutriments, flaggedIngredients, language } = body;
     // "peek" only asks whether a cached analysis exists — it NEVER calls the model.
     const mode = body?.mode === "peek" ? "peek" : "generate";
-    const quotaSubject = typeof body?.sessionId === "string" && body.sessionId
-      ? String(body.sessionId).slice(0, 80)
-      : null;
     // Mira must answer in the user's active app language (defaults to Spanish).
     const LANG_NAME: Record<string, string> = { es: "Spanish", en: "English", fr: "French" };
     const langName = LANG_NAME[String(language)] ?? "Spanish";
@@ -450,29 +414,10 @@ serve(async (req) => {
     if (mode === "peek") return jsonRes({ cached: false });
 
     // ---- Daily safety cap (cached answers are free and never counted) ----
-    const subject = (isUserToken && payload?.sub ? `u:${payload.sub}` : quotaSubject ? `s:${quotaSubject}` : null);
-    const DAILY_LIMIT = 30;
-    if (subject) {
-      const today = new Date().toISOString().slice(0, 10);
-      try {
-        const { data: q } = await admin
-          .from("mira_quota")
-          .select("id, count")
-          .eq("subject", subject)
-          .eq("day", today)
-          .maybeSingle();
-        if (q && (q.count ?? 0) >= DAILY_LIMIT) {
-          return jsonRes({ cached: false, error: "quota_exceeded" }, 429);
-        }
-        if (q) {
-          await admin.from("mira_quota").update({ count: (q.count ?? 0) + 1, updated_at: new Date().toISOString() }).eq("id", q.id);
-        } else {
-          await admin.from("mira_quota").insert({ subject, day: today, count: 1 });
-        }
-      } catch (e) {
-        console.error("[mira-quota] check failed", e);
-      }
-    }
+    // Always enforced: per user with a session, per IP (+ global cap) when
+    // anonymous. Never keyed on client-supplied values such as sessionId.
+    const allowed = await consumeQuota(admin, req, caller, "mira-analyze", { user: 30, ip: 40, globalAnon: 600 });
+    if (!allowed) return jsonRes({ cached: false, error: "quota_exceeded" }, 429);
     const nameLine = cleanName ? `Nombre del usuario: ${cleanName}\n` : '';
     const personalLine = typeof personalScore === 'number'
       ? `Nota personal: ${Math.round(personalScore)}/100\n`
