@@ -142,7 +142,7 @@ const SUBGROUPS: SubGroup[] = [
   { id: 'serum', family: 'cosmetic', tags: ['en:serums', 'en:face-serums', 'en:facial-serums'], names: ['serum', 'serum facial', 'suero facial', 'ampolla', 'concentrado facial'] },
   { id: 'cleanser', family: 'cosmetic', tags: ['en:facial-cleansers', 'en:cleansers', 'en:face-washes', 'en:micellar-waters', 'en:makeup-removers'], names: ['limpiador', 'limpiadora', 'agua micelar', 'desmaquillante', 'gel limpiador', 'espuma limpiadora', 'cleanser', 'micellar'] },
   { id: 'face-mask', family: 'cosmetic', tags: ['en:face-masks', 'en:facial-masks'], names: ['mascarilla facial', 'face mask'] },
-  { id: 'face-cream', family: 'cosmetic', tags: ['en:face-creams', 'en:moisturizers', 'en:face-moisturizers', 'en:day-creams', 'en:night-creams'], names: ['crema facial', 'hidratante facial', 'face cream', 'moisturizer'] },
+  { id: 'face-cream', family: 'cosmetic', tags: ['en:face-creams', 'en:moisturizers', 'en:face-moisturizers', 'en:day-creams', 'en:night-creams'], names: ['crema facial', 'crema de noche', 'night cream', 'hidratante facial', 'face cream', 'moisturizer'] },
   { id: 'body-lotion', family: 'cosmetic', tags: ['en:body-lotions', 'en:body-milks', 'en:body-creams', 'en:moisturizing-body-lotions'], names: ['leche corporal', 'crema corporal', 'body lotion', 'body milk', 'hidratante corporal'] },
   { id: 'deodorant', family: 'cosmetic', tags: ['en:deodorants', 'en:antiperspirants'], names: ['desodorante', 'deodorant', 'antitranspirante'] },
   { id: 'toothpaste', family: 'cosmetic', tags: ['en:toothpastes', 'en:dentifrices'], names: ['pasta de dientes', 'dentifrico', 'toothpaste'] },
@@ -427,6 +427,8 @@ export const Alternatives = ({ current, currentScore, profile: profileProp, cons
     ? guessCategoryTagsFromName(current.name, current.category as 'food' | 'cosmetic')
     : [];
   const hasAnyTag = rawCategoryTags.length > 0 || guessedCategoryTags.length > 0;
+  // No specific tag at all → we cannot even search (distinct from "searched, nothing better").
+  const noCategory = ![...rawCategoryTags, ...guessedCategoryTags].some(t => !isBroadCategoryTag(t));
   // Stable dep keys so the effect doesn't re-run on every render.
   const rawTagsKey = rawCategoryTags.join('|');
   const guessedTagsKey = guessedCategoryTags.join('|');
