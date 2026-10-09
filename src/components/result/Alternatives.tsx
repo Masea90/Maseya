@@ -40,7 +40,7 @@ interface Candidate {
 // a candidate must prove its subgroup BY NAME (community tags are unreliable:
 // a Sanex shower gel tagged en:shampoos kept surfacing for shampoos).
 // v18: catalog checked for every tag, cosmetics may prove subgroup by tag.
-const CACHE_PREFIX = 'maseya_alts_v18::';
+const CACHE_PREFIX = 'maseya_alts_v19::';
 const FETCH_TIMEOUT_MS = 8000;
 /**
  * Meaningful-improvement rule (v16). An alternative is only worth showing when
@@ -245,10 +245,17 @@ const normalizeCategory = (category: string | null): ProductData['category'] => 
   return 'unknown';
 };
 
+// Marks candidates that come from our own catalog (maseya_products), whose
+// category_tag is curated. OBF community tags are not trusted on their own.
+const CATALOG_MARK = '__maseyaCatalog';
+const isFromCatalog = (pd: ProductData): boolean =>
+  (pd.raw as Record<string, unknown>)?.[CATALOG_MARK] === true;
+
 const toCatalogProductData = (item: CatalogItem): ProductData | null => {
   if (!item.barcode) return null;
   const raw: Record<string, unknown> = { ...item };
   if (item.category_tag) raw.categories_tags = [item.category_tag];
+  raw[CATALOG_MARK] = true;
   return {
     barcode: item.barcode,
     source: normalizeSource(item.source),
@@ -342,6 +349,7 @@ export const isDisallowedCandidate = (
   cat: 'food' | 'cosmetic',
   tagSet: Set<string>,
   currentGroup?: SubGroup | null,
+  trustTags: boolean = isFromCatalog(pd),
 ): boolean => {
   const cats = (Array.isArray((pd.raw as { categories_tags?: unknown }).categories_tags)
     ? ((pd.raw as { categories_tags?: string[] }).categories_tags as string[])
@@ -384,9 +392,11 @@ export const isDisallowedCandidate = (
       // Name points clearly to ANOTHER subgroup → out (food and cosmetics).
       if (byName.id !== currentGroup.id) return true;
     } else {
-      // No name evidence: the candidate may prove its subgroup by an exact
-      // subgroup tag, for cosmetics as well as food (real names like
-      // "Rexona Men Invisible Dry" never say "desodorante").
+      // No name evidence. Food may prove its subgroup by tag. Cosmetics only
+      // when the tag comes from our own curated catalog: OBF tags Sanex
+      // shower gels as en:shampoos (+ en:shampoos-shower-gels, never
+      // en:shower-gels, so a "conflicting subgroups" check cannot catch it).
+      if (currentGroup.family === 'cosmetic' && !trustTags) return true;
       const byTags = subgroupByTags(cats);
       if (!byTags || byTags.id !== currentGroup.id) return true;
     }
@@ -638,13 +648,14 @@ export const Alternatives = ({ current, currentScore, profile: profileProp, cons
             if (!res.ok) return;
             const json = (await res.json()) as { product?: SearchItem };
             if (!json.product) return;
+            const fromCatalog = isFromCatalog(c.data);
             const full = toProductData({ ...json.product, code: c.data.barcode }, c.data.source, cat);
             if (!full) return;
             const fl = flagIngredients(full);
             // Re-validate with the FULL record: the search payload can hide the
             // real category/name (this is how a shower gel slipped through as a
             // shampoo alternative) and the real ingredient list.
-            if (isDisallowedCandidate(full, cat, tagSet, currentGroup)) { c.score = -1; c.general = -1; return; }
+            if (isDisallowedCandidate(full, cat, tagSet, currentGroup, fromCatalog)) { c.score = -1; c.general = -1; return; }
             if (!passesDataFloor(full, fl)) { c.score = -1; c.general = -1; return; }
             const rescored = scoreOf(full, fl);
             c.data = full;
