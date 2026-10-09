@@ -39,7 +39,8 @@ interface Candidate {
 // v15: single ordered pipeline. Subgroups now cover the main food staples and
 // a candidate must prove its subgroup BY NAME (community tags are unreliable:
 // a Sanex shower gel tagged en:shampoos kept surfacing for shampoos).
-const CACHE_PREFIX = 'maseya_alts_v17::';
+// v18: catalog checked for every tag, cosmetics may prove subgroup by tag.
+const CACHE_PREFIX = 'maseya_alts_v18::';
 const FETCH_TIMEOUT_MS = 8000;
 /**
  * Meaningful-improvement rule (v16). An alternative is only worth showing when
@@ -141,7 +142,7 @@ const SUBGROUPS: SubGroup[] = [
   { id: 'serum', family: 'cosmetic', tags: ['en:serums', 'en:face-serums', 'en:facial-serums'], names: ['serum', 'serum facial', 'suero facial', 'ampolla', 'concentrado facial'] },
   { id: 'cleanser', family: 'cosmetic', tags: ['en:facial-cleansers', 'en:cleansers', 'en:face-washes', 'en:micellar-waters', 'en:makeup-removers'], names: ['limpiador', 'limpiadora', 'agua micelar', 'desmaquillante', 'gel limpiador', 'espuma limpiadora', 'cleanser', 'micellar'] },
   { id: 'face-mask', family: 'cosmetic', tags: ['en:face-masks', 'en:facial-masks'], names: ['mascarilla facial', 'face mask'] },
-  { id: 'face-cream', family: 'cosmetic', tags: ['en:face-creams', 'en:moisturizers', 'en:face-moisturizers', 'en:day-creams', 'en:night-creams'], names: ['crema facial', 'hidratante facial', 'face cream', 'moisturizer'] },
+  { id: 'face-cream', family: 'cosmetic', tags: ['en:face-creams', 'en:moisturizers', 'en:face-moisturizers', 'en:day-creams', 'en:night-creams'], names: ['crema facial', 'crema de noche', 'night cream', 'hidratante facial', 'face cream', 'moisturizer'] },
   { id: 'body-lotion', family: 'cosmetic', tags: ['en:body-lotions', 'en:body-milks', 'en:body-creams', 'en:moisturizing-body-lotions'], names: ['leche corporal', 'crema corporal', 'body lotion', 'body milk', 'hidratante corporal'] },
   { id: 'deodorant', family: 'cosmetic', tags: ['en:deodorants', 'en:antiperspirants'], names: ['desodorante', 'deodorant', 'antitranspirante'] },
   { id: 'toothpaste', family: 'cosmetic', tags: ['en:toothpastes', 'en:dentifrices'], names: ['pasta de dientes', 'dentifrico', 'toothpaste'] },
@@ -380,11 +381,12 @@ export const isDisallowedCandidate = (
   if (currentGroup) {
     const byName = subgroupByName(pd.name || '');
     if (byName) {
+      // Name points clearly to ANOTHER subgroup → out (food and cosmetics).
       if (byName.id !== currentGroup.id) return true;
     } else {
-      // No name evidence: cosmetics are rejected outright (bottle names are
-      // explicit in this market); food may pass on an exact subgroup tag.
-      if (currentGroup.family === 'cosmetic') return true;
+      // No name evidence: the candidate may prove its subgroup by an exact
+      // subgroup tag, for cosmetics as well as food (real names like
+      // "Rexona Men Invisible Dry" never say "desodorante").
       const byTags = subgroupByTags(cats);
       if (!byTags || byTags.id !== currentGroup.id) return true;
     }
@@ -425,6 +427,8 @@ export const Alternatives = ({ current, currentScore, profile: profileProp, cons
     ? guessCategoryTagsFromName(current.name, current.category as 'food' | 'cosmetic')
     : [];
   const hasAnyTag = rawCategoryTags.length > 0 || guessedCategoryTags.length > 0;
+  // No specific tag at all → we cannot even search (distinct from "searched, nothing better").
+  const noCategory = ![...rawCategoryTags, ...guessedCategoryTags].some(t => !isBroadCategoryTag(t));
   // Stable dep keys so the effect doesn't re-run on every render.
   const rawTagsKey = rawCategoryTags.join('|');
   const guessedTagsKey = guessedCategoryTags.join('|');
@@ -572,14 +576,17 @@ export const Alternatives = ({ current, currentScore, profile: profileProp, cons
           addCandidate(toProductData(raw, candidateSource, cat));
         }
 
+        // Own catalog is queried for EVERY candidate tag, not only the one the
+        // public source accepted: for cosmetics it is richer than OBF-Spain and
+        // for some tags (en:face-serums) it is the only source. A 0 from
+        // OFF/OBF must never discard a tag before we look at home.
         const { data: catalogRows, error: catalogError } = await supabase
           .from('maseya_products')
           .select('barcode, product_name, brand, category, category_tag, ingredients_text, image_url, source')
           .eq('category', cat)
+          .in('category_tag', tagCandidates)
           .neq('barcode', current.barcode)
           .not('barcode', 'like', 'photo\\_%')
-          .not('category_tag', 'is', null)
-          .neq('category_tag', '')
           .not('ingredients_text', 'is', null)
           .order('scan_count', { ascending: false })
           .limit(80);
@@ -592,6 +599,7 @@ export const Alternatives = ({ current, currentScore, profile: profileProp, cons
             // one of the tags we're searching for. Never guess by name for
             // candidates — that's how a cleanser ended up as a toner alt.
             if (!row.category_tag || !tagSet.has(row.category_tag)) continue;
+            if (!usedTag) usedTag = `catalog:${row.category_tag}`;
             addCandidate(toCatalogProductData(row));
           }
         }
@@ -674,7 +682,8 @@ export const Alternatives = ({ current, currentScore, profile: profileProp, cons
       } catch (e) {
         if (!cancelled) {
           console.warn('[alternatives] fetch failed', e);
-          setItems([]);
+          // A failed search is not "no alternatives": show nothing.
+          setItems(null);
         }
       } finally {
         clearTimeout(timeout);
@@ -705,10 +714,25 @@ export const Alternatives = ({ current, currentScore, profile: profileProp, cons
     );
   }
 
-  if (!items || items.length === 0) return null;
-
   const consent = consentProp ?? hasHealthDataConsent();
   const title = consent ? '💡 Alternativas mejores para ti' : '💡 Alternativas mejores';
+
+  // items === null → not resolved / fetch failed: say nothing rather than lie.
+  if (!items) return null;
+
+  if (items.length === 0) {
+    const msg = noCategory
+      ? 'No hemos podido identificar el tipo de producto, así que no podemos buscar alternativas.'
+      : 'Hemos buscado y no hay ninguna alternativa que mejore claramente a este producto.';
+    return (
+      <div>
+        <h3 className="font-display font-semibold mb-3">{title}</h3>
+        <div className="rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground">
+          {msg}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>

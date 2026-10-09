@@ -25,6 +25,12 @@ const COSMETIC_MAP: Array<[string[], string[]]> = [
   [['pasta de dientes', 'pasta dental', 'dentifrico', 'toothpaste'], ['en:toothpastes']],
   [['desodorante', 'deodorant', 'antitranspirante', 'antiperspirant'], ['en:deodorants']],
   [['contorno de ojos', 'eye cream', 'eye contour'], ['en:face-creams']],
+  // Hair serums are NOT face serums: stop here with no tag rather than
+  // matching the generic "serum" entry below.
+  [['serum capilar', 'hair serum'], []],
+  // en:face-serums returns 0 on OBF-Spain but exists in our own catalog.
+  [['serum'], ['en:face-serums']],
+  [['crema de noche', 'night cream'], ['en:face-creams']],
   [['crema facial', 'crema de cara', 'face cream', 'facial cream'], ['en:face-creams', 'en:moisturizers']],
   [['crema corporal', 'body lotion', 'locion corporal', 'locion', 'body moisturizer'], ['en:moisturizers']],
   [['protector solar', 'proteccion solar', 'sunscreen', 'sun cream'], ['en:sunscreens', 'en:sun-care']],
@@ -35,6 +41,7 @@ const COSMETIC_MAP: Array<[string[], string[]]> = [
 ];
 
 const FOOD_MAP: Array<[string[], string[]]> = [
+  [['hummus', 'humus'], ['en:hummus']],
   [['agua mineral', 'mineral water'], ['en:mineral-waters']],
   [['agua', 'water'], ['en:mineral-waters']],
   [['galletas', 'biscuits', 'cookies'], ['en:biscuits']],
@@ -161,6 +168,11 @@ const BROAD_CATEGORY_TAGS = new Set<string>([
   'en:meals',
   'en:desserts',
   'en:condiments',
+  // Patch (acknowledged): intermediate tags behind real absurd pairs —
+  // hummus → tomate frito (en:sauces), stevia → levadura (en:sweeteners).
+  'en:sauces',
+  'en:sweeteners',
+  'en:spreads',
   'en:dairies',
   'en:cosmetics',
   'en:body',
