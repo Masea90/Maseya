@@ -78,6 +78,8 @@ const COPY = {
     buscarMasTarde: 'También puedes buscar este producto más tarde cuando nuestra base de datos lo incluya.',
     general: 'General',
     paraTi: 'Para ti',
+    veredictoParaTi: 'Para ti',
+    veredictoGeneral: 'General',
     bloqueoCtaCuenta: 'Crea tu cuenta gratis para ver tu nota personal',
     bloqueoCtaConsent: 'Activa la personalización para ver tu nota personal',
     comoCalculamos: '¿Cómo calculamos la puntuación?',
@@ -164,6 +166,8 @@ const COPY = {
     buscarMasTarde: 'You can also search for this product later once our database includes it.',
     general: 'General',
     paraTi: 'For you',
+    veredictoParaTi: 'For you',
+    veredictoGeneral: 'Overall',
     bloqueoCtaCuenta: 'Create your free account to see your personal score',
     bloqueoCtaConsent: 'Turn on personalization to see your personal score',
     comoCalculamos: 'How do we calculate the score?',
@@ -250,6 +254,8 @@ const COPY = {
     buscarMasTarde: "Tu peux aussi rechercher ce produit plus tard, une fois qu'il sera intégré à notre base de données.",
     general: 'Général',
     paraTi: 'Pour toi',
+    veredictoParaTi: 'Pour toi',
+    veredictoGeneral: 'Général',
     bloqueoCtaCuenta: "Crée ton compte gratuit pour voir ta note personnelle",
     bloqueoCtaConsent: "Active la personnalisation pour voir ta note personnelle",
     comoCalculamos: 'Comment calculons-nous la note ?',
@@ -1085,7 +1091,7 @@ const ResultPage = () => {
                   )}
 
                   <div className="flex items-center gap-1.5">
-                    <div className="font-display text-lg font-semibold" style={{ color: psl.bg }}>{psl.label}</div>
+                    <div className="font-display text-lg font-semibold" style={{ color: psl.bg }}>{personalizationActive ? c.veredictoParaTi : c.veredictoGeneral}: {psl.label}</div>
                     <Popover>
                       <PopoverTrigger asChild>
                         <button

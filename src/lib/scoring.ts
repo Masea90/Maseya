@@ -10,6 +10,10 @@ export type IngredientLevel = 'safe' | 'caution' | 'avoid';
 export interface FlaggedIngredient {
   name: string;
   level: IngredientLevel;
+  /** 0-based position in the original label list (before the severity sort). */
+  position?: number;
+  /** Ingredients from the printed list, counted before slice(0, 60). */
+  total?: number;
 }
 
 export interface PersonalAlert {
@@ -581,13 +585,20 @@ export function flagIngredients(p: ProductData): FlaggedIngredient[] {
   // sulfates, etc. Tags (which can balloon to 30+ taxonomy entries on OBF)
   // are appended so they never push problematic text ingredients out of
   // the display slice.
+  let textCount = 0;
   for (const name of [...fromText, ...fromTags]) {
     const key = canonicalKey(name);
     if (!key || seen.has(key)) continue;
     seen.add(key);
     all.push(name);
   }
-  const flagged = all.map(name => ({ name, level: classifyIngredient(name, p.category) }));
+  // Items coming from the printed list keep their label position; taxonomy
+  // tags appended afterwards have no position on the pack.
+  {
+    const textKeys = new Set(fromText.map(canonicalKey).filter(Boolean));
+    while (textCount < all.length && textKeys.has(canonicalKey(all[textCount]))) textCount++;
+  }
+  const flagged: FlaggedIngredient[] = all.map((name, i) => ({ name, level: classifyIngredient(name, p.category), position: i < textCount ? i : undefined, total: textCount }));
   // Transparency: additives with an EFSA overexposure risk must ALWAYS be
   // visible as a red (high) / orange (moderate) chip, even when their numeric
   // penalty is attenuated because the Nutri-Score already prices the product
@@ -2881,12 +2892,57 @@ export interface NaturalnessResult {
   organic: boolean;
 }
 
+// Weight of an ingredient by its ORIGINAL label position: labels list
+// ingredients in decreasing quantity, so the first ones weigh more (1, 1/2, 1/3…).
+// Water is excluded: it is the solvent, says nothing about naturalness and
+// would otherwise dominate the first slot of most cosmetics and drinks.
+const positionWeight = (rank: number) => 1 / (rank + 1);
+const WATER_RE = /^(aqua|water|agua|eau|aqua\s*\/\s*water|water\s*\/\s*aqua|agua mineral natural|agua carbonatada|carbonated water|eau gazeifiee)$/;
+// Not ingredients: lot numbers and functional class headers ("colorante (E-150d)").
+const NON_INGREDIENT_RE = /^(\d[\d\s.\-]*|colorantes?|colour|color|colorant|acidulantes?|acidulant|acidifiant|conservantes?|conservador(es)?|preservatives?|conservateurs?|emulgentes?|emulsionantes?|emulsifiers?|emulsifiants?|estabilizantes?|stabilisers?|stabilizers?|stabilisants?|espesantes?|thickeners?|epaississants?|antioxidantes?|antioxidants?|edulcorantes?|sweeteners?|edulcorants?|corrector(es)? de (la )?acidez|acidity regulators?|correcteurs? d'acidite|gasificantes?|potenciador(es)? del sabor|flavou?r enhancers?|exhausteurs? de gout)$/;
+const compactKey = (v: string) => norm(v).replace(/[^a-z0-9]/g, '');
+
 export function naturalness(p: ProductData, flagged: FlaggedIngredient[]): NaturalnessResult {
-  const total = flagged.length || 1;
-  const clean = flagged.filter(f => f.level === 'safe').length;
-  const pct = Math.round((clean / total) * 100);
+  const textTotal = flagged[0]?.total ?? 0;
+  let pct: number;
+  if (textTotal > 0) {
+    const levelAt = new Map<number, IngredientLevel>();
+    const skip = new Set<number>();
+    const posByKey = new Map<string, number>();
+    for (const f of flagged) {
+      if (typeof f.position !== 'number') continue;
+      levelAt.set(f.position, f.level);
+      posByKey.set(compactKey(f.name), f.position);
+      const n = norm(f.name).trim();
+      if (WATER_RE.test(n) || NON_INGREDIENT_RE.test(n)) skip.add(f.position);
+    }
+    // A tag-only flag that is the same additive as a printed one ("e150d"
+    // vs "E-150d") lends its severity to that label position.
+    const rank3 = { safe: 0, caution: 1, avoid: 2 } as const;
+    for (const f of flagged) {
+      if (typeof f.position === 'number' || f.level === 'safe') continue;
+      const pos = posByKey.get(compactKey(f.name));
+      if (pos === undefined) continue;
+      const cur = levelAt.get(pos) ?? 'safe';
+      if (rank3[f.level] > rank3[cur]) levelAt.set(pos, f.level);
+    }
+    let rank = 0, all = 0, clean = 0;
+    for (let i = 0; i < textTotal; i++) {
+      if (skip.has(i)) continue;
+      const w = positionWeight(rank++);
+      all += w;
+      // Positions cut by slice(0, 60) are the safe tail of the severity sort.
+      if ((levelAt.get(i) ?? 'safe') === 'safe') clean += w;
+    }
+    pct = all > 0 ? Math.round((clean / all) * 100) : 100;
+  } else {
+    const total = flagged.length || 1;
+    pct = Math.round((flagged.filter(f => f.level === 'safe').length / total) * 100);
+  }
   const organic = p.labels_tags.some(t => t.includes('organic') || t.includes('bio'));
-  const level: NaturalnessResult['level'] = pct > 80 ? 'Natural' : pct >= 50 ? 'Semi-natural' : 'Sintético';
+  let level: NaturalnessResult['level'] = pct > 80 ? 'Natural' : pct >= 50 ? 'Semi-natural' : 'Sintético';
+  // A red (avoid) ingredient can never be "Natural".
+  if (level === 'Natural' && flagged.some(f => f.level === 'avoid')) level = 'Semi-natural';
   return { pct, level, organic };
 }
 
