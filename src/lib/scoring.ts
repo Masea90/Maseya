@@ -10,6 +10,10 @@ export type IngredientLevel = 'safe' | 'caution' | 'avoid';
 export interface FlaggedIngredient {
   name: string;
   level: IngredientLevel;
+  /** 0-based position in the original label list (before the severity sort). */
+  position?: number;
+  /** Total ingredients identified before the display slice (slice(0, 60)). */
+  total?: number;
 }
 
 export interface PersonalAlert {
@@ -587,7 +591,7 @@ export function flagIngredients(p: ProductData): FlaggedIngredient[] {
     seen.add(key);
     all.push(name);
   }
-  const flagged = all.map(name => ({ name, level: classifyIngredient(name, p.category) }));
+  const flagged: FlaggedIngredient[] = all.map((name, position) => ({ name, level: classifyIngredient(name, p.category), position, total: all.length }));
   // Transparency: additives with an EFSA overexposure risk must ALWAYS be
   // visible as a red (high) / orange (moderate) chip, even when their numeric
   // penalty is attenuated because the Nutri-Score already prices the product
@@ -2881,12 +2885,33 @@ export interface NaturalnessResult {
   organic: boolean;
 }
 
+// Weight of an ingredient by its ORIGINAL label position: labels list
+// ingredients in decreasing quantity, so the first ones weigh more.
+const positionWeight = (pos: number) => 1 / Math.sqrt(pos + 1);
+
 export function naturalness(p: ProductData, flagged: FlaggedIngredient[]): NaturalnessResult {
-  const total = flagged.length || 1;
-  const clean = flagged.filter(f => f.level === 'safe').length;
-  const pct = Math.round((clean / total) * 100);
+  const hasPositions = flagged.length > 0 && flagged.every(f => typeof f.position === 'number');
+  let pct: number;
+  if (hasPositions) {
+    // Positions dropped by slice(0, 60) are the tail of the severity sort,
+    // i.e. safe ingredients: count them as clean so the cut doesn't distort.
+    const total = Math.max(flagged[0].total ?? flagged.length, flagged.length);
+    const nonSafe = new Set(flagged.filter(f => f.level !== 'safe').map(f => f.position as number));
+    let all = 0, clean = 0;
+    for (let i = 0; i < total; i++) {
+      const w = positionWeight(i);
+      all += w;
+      if (!nonSafe.has(i)) clean += w;
+    }
+    pct = Math.round((clean / (all || 1)) * 100);
+  } else {
+    const total = flagged.length || 1;
+    pct = Math.round((flagged.filter(f => f.level === 'safe').length / total) * 100);
+  }
   const organic = p.labels_tags.some(t => t.includes('organic') || t.includes('bio'));
-  const level: NaturalnessResult['level'] = pct > 80 ? 'Natural' : pct >= 50 ? 'Semi-natural' : 'Sintético';
+  let level: NaturalnessResult['level'] = pct > 80 ? 'Natural' : pct >= 50 ? 'Semi-natural' : 'Sintético';
+  // A red (avoid) ingredient can never be "Natural".
+  if (level === 'Natural' && flagged.some(f => f.level === 'avoid')) level = 'Semi-natural';
   return { pct, level, organic };
 }
 
