@@ -2898,31 +2898,42 @@ export interface NaturalnessResult {
 // would otherwise dominate the first slot of most cosmetics and drinks.
 const positionWeight = (rank: number) => 1 / (rank + 1);
 const WATER_RE = /^(aqua|water|agua|eau|aqua\s*\/\s*water|water\s*\/\s*aqua|agua mineral natural|agua carbonatada|carbonated water|eau gazeifiee)$/;
+// Not ingredients: lot numbers and functional class headers ("colorante (E-150d)").
+const NON_INGREDIENT_RE = /^(\d[\d\s.\-]*|colorantes?|colour|color|colorant|acidulantes?|acidulant|acidifiant|conservantes?|conservador(es)?|preservatives?|conservateurs?|emulgentes?|emulsionantes?|emulsifiers?|emulsifiants?|estabilizantes?|stabilisers?|stabilizers?|stabilisants?|espesantes?|thickeners?|epaississants?|antioxidantes?|antioxidants?|edulcorantes?|sweeteners?|edulcorants?|corrector(es)? de (la )?acidez|acidity regulators?|correcteurs? d'acidite|gasificantes?|potenciador(es)? del sabor|flavou?r enhancers?|exhausteurs? de gout)$/;
+const compactKey = (v: string) => norm(v).replace(/[^a-z0-9]/g, '');
 
 export function naturalness(p: ProductData, flagged: FlaggedIngredient[]): NaturalnessResult {
   const textTotal = flagged[0]?.total ?? 0;
   let pct: number;
   if (textTotal > 0) {
     const levelAt = new Map<number, IngredientLevel>();
-    const water = new Set<number>();
-    let tagOnlyBad = 0;
+    const skip = new Set<number>();
+    const posByKey = new Map<string, number>();
     for (const f of flagged) {
-      if (typeof f.position === 'number') {
-        levelAt.set(f.position, f.level);
-        if (WATER_RE.test(norm(f.name).trim())) water.add(f.position);
-      } else if (f.level !== 'safe') tagOnlyBad++;
+      if (typeof f.position !== 'number') continue;
+      levelAt.set(f.position, f.level);
+      posByKey.set(compactKey(f.name), f.position);
+      const n = norm(f.name).trim();
+      if (WATER_RE.test(n) || NON_INGREDIENT_RE.test(n)) skip.add(f.position);
+    }
+    // A tag-only flag that is the same additive as a printed one ("e150d"
+    // vs "E-150d") lends its severity to that label position.
+    const rank3 = { safe: 0, caution: 1, avoid: 2 } as const;
+    for (const f of flagged) {
+      if (typeof f.position === 'number' || f.level === 'safe') continue;
+      const pos = posByKey.get(compactKey(f.name));
+      if (pos === undefined) continue;
+      const cur = levelAt.get(pos) ?? 'safe';
+      if (rank3[f.level] > rank3[cur]) levelAt.set(pos, f.level);
     }
     let rank = 0, all = 0, clean = 0;
     for (let i = 0; i < textTotal; i++) {
-      if (water.has(i)) continue;
+      if (skip.has(i)) continue;
       const w = positionWeight(rank++);
       all += w;
       // Positions cut by slice(0, 60) are the safe tail of the severity sort.
       if ((levelAt.get(i) ?? 'safe') === 'safe') clean += w;
     }
-    // A flagged additive known only from taxonomy tags: lowest weight.
-    const tail = positionWeight(Math.max(rank - 1, 0));
-    clean -= Math.min(clean, tagOnlyBad * tail);
     pct = all > 0 ? Math.round((clean / all) * 100) : 100;
   } else {
     const total = flagged.length || 1;
