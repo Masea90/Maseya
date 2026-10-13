@@ -12,7 +12,7 @@ export interface FlaggedIngredient {
   level: IngredientLevel;
   /** 0-based position in the original label list (before the severity sort). */
   position?: number;
-  /** Total ingredients identified before the display slice (slice(0, 60)). */
+  /** Ingredients from the printed list, counted before slice(0, 60). */
   total?: number;
 }
 
@@ -585,13 +585,20 @@ export function flagIngredients(p: ProductData): FlaggedIngredient[] {
   // sulfates, etc. Tags (which can balloon to 30+ taxonomy entries on OBF)
   // are appended so they never push problematic text ingredients out of
   // the display slice.
+  let textCount = 0;
   for (const name of [...fromText, ...fromTags]) {
     const key = canonicalKey(name);
     if (!key || seen.has(key)) continue;
     seen.add(key);
     all.push(name);
   }
-  const flagged: FlaggedIngredient[] = all.map((name, position) => ({ name, level: classifyIngredient(name, p.category), position, total: all.length }));
+  // Items coming from the printed list keep their label position; taxonomy
+  // tags appended afterwards have no position on the pack.
+  {
+    const textKeys = new Set(fromText.map(canonicalKey).filter(Boolean));
+    while (textCount < all.length && textKeys.has(canonicalKey(all[textCount]))) textCount++;
+  }
+  const flagged: FlaggedIngredient[] = all.map((name, i) => ({ name, level: classifyIngredient(name, p.category), position: i < textCount ? i : undefined, total: textCount }));
   // Transparency: additives with an EFSA overexposure risk must ALWAYS be
   // visible as a red (high) / orange (moderate) chip, even when their numeric
   // penalty is attenuated because the Nutri-Score already prices the product
@@ -2886,24 +2893,37 @@ export interface NaturalnessResult {
 }
 
 // Weight of an ingredient by its ORIGINAL label position: labels list
-// ingredients in decreasing quantity, so the first ones weigh more.
-const positionWeight = (pos: number) => 1 / Math.sqrt(pos + 1);
+// ingredients in decreasing quantity, so the first ones weigh more (1, 1/2, 1/3…).
+// Water is excluded: it is the solvent, says nothing about naturalness and
+// would otherwise dominate the first slot of most cosmetics and drinks.
+const positionWeight = (rank: number) => 1 / (rank + 1);
+const WATER_RE = /^(aqua|water|agua|eau|aqua\s*\/\s*water|water\s*\/\s*aqua|agua mineral natural|agua carbonatada|carbonated water|eau gazeifiee)$/;
 
 export function naturalness(p: ProductData, flagged: FlaggedIngredient[]): NaturalnessResult {
-  const hasPositions = flagged.length > 0 && flagged.every(f => typeof f.position === 'number');
+  const textTotal = flagged[0]?.total ?? 0;
   let pct: number;
-  if (hasPositions) {
-    // Positions dropped by slice(0, 60) are the tail of the severity sort,
-    // i.e. safe ingredients: count them as clean so the cut doesn't distort.
-    const total = Math.max(flagged[0].total ?? flagged.length, flagged.length);
-    const nonSafe = new Set(flagged.filter(f => f.level !== 'safe').map(f => f.position as number));
-    let all = 0, clean = 0;
-    for (let i = 0; i < total; i++) {
-      const w = positionWeight(i);
-      all += w;
-      if (!nonSafe.has(i)) clean += w;
+  if (textTotal > 0) {
+    const levelAt = new Map<number, IngredientLevel>();
+    const water = new Set<number>();
+    let tagOnlyBad = 0;
+    for (const f of flagged) {
+      if (typeof f.position === 'number') {
+        levelAt.set(f.position, f.level);
+        if (WATER_RE.test(norm(f.name).trim())) water.add(f.position);
+      } else if (f.level !== 'safe') tagOnlyBad++;
     }
-    pct = Math.round((clean / (all || 1)) * 100);
+    let rank = 0, all = 0, clean = 0;
+    for (let i = 0; i < textTotal; i++) {
+      if (water.has(i)) continue;
+      const w = positionWeight(rank++);
+      all += w;
+      // Positions cut by slice(0, 60) are the safe tail of the severity sort.
+      if ((levelAt.get(i) ?? 'safe') === 'safe') clean += w;
+    }
+    // A flagged additive known only from taxonomy tags: lowest weight.
+    const tail = positionWeight(Math.max(rank - 1, 0));
+    clean -= Math.min(clean, tagOnlyBad * tail);
+    pct = all > 0 ? Math.round((clean / all) * 100) : 100;
   } else {
     const total = flagged.length || 1;
     pct = Math.round((flagged.filter(f => f.level === 'safe').length / total) * 100);
