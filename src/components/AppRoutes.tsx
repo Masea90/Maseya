@@ -131,7 +131,8 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
   // Anonymous user without onboarding → welcome flow (unless they chose to skip).
   if (!userId && !onboardingDone && !anonymousSkipped) {
     const allowed = ['/welcome', '/onboarding/quiz', '/onboarding/language', '/update-password', '/login', '/reset-password', '/privacy', '/como-funciona', '/cookies', '/aviso-legal'];
-    if (!allowed.includes(path)) {
+    // Shared product links (/result/<barcode>) open directly for new visitors.
+    if (!allowed.includes(path) && !/^\/result\/[^/]+$/.test(path)) {
       return <Navigate to="/welcome" replace />;
     }
     return <>{children}</>;
