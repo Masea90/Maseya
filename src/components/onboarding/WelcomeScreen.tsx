@@ -57,17 +57,34 @@ export const WelcomeScreen = () => {
 
       {/* Headline + subtitle */}
       <div className="w-full max-w-sm">
-        <h1 className="font-display text-3xl sm:text-4xl font-bold leading-tight mb-2">
+        <h1 className="font-display text-2xl sm:text-4xl font-bold leading-tight mb-1">
           {c.titleTop}
         </h1>
-        <p className="text-secondary text-lg font-medium leading-snug">
+        <p className="text-secondary text-base font-medium leading-snug">
           {c.subtitle}
           <span className="font-semibold">{c.subtitleAccent}</span>
         </p>
       </div>
 
+      {/* Demo loop + how it works (3 steps) */}
+      <div className="w-full max-w-sm flex items-center gap-3 text-left">
+        <WelcomeDemo />
+        <div className="flex-1 min-w-0">
+          <p className="text-[11px] uppercase tracking-wide text-white/60 font-semibold mb-1">{c.stepsTitle}</p>
+          <ol className="space-y-1.5">
+            {[c.step1, c.step2, c.step3].map((s, i) => (
+              <li key={i} className="flex items-start gap-2 text-[13px] leading-snug text-white/90">
+                <span className="shrink-0 w-5 h-5 rounded-full bg-white/15 flex items-center justify-center text-[11px] font-bold">{i + 1}</span>
+                <span>{s}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </div>
+
       {/* Visual proof block: same product, two verdicts depending on who you are */}
-      <div className="w-full max-w-sm rounded-2xl bg-white/10 backdrop-blur-sm px-4 py-3.5 space-y-4 text-left">
+      <div className="w-full max-w-sm">
+      <div className="rounded-2xl bg-white/10 backdrop-blur-sm px-4 py-2.5 space-y-2.5 text-left">
         {/* Example 1 — food */}
         <div className="space-y-1">
           <p className="text-[13px] font-semibold text-white">
