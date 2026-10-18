@@ -140,6 +140,7 @@ export const LEGAL_NOTICE_SECTIONS: LegalSection[] = [
     title: 'Origen de los datos y atribución',
     paragraphs: [
       'Parte de la información de los productos procede de Open Food Facts y Open Beauty Facts, bases de datos colaborativas publicadas bajo la licencia Open Database License (ODbL). Maseya reconoce esta atribución y mantiene la información derivada bajo las condiciones de dicha licencia.',
+      'Las imágenes de producto procedentes de Open Food Facts y Open Beauty Facts se publican bajo licencia Creative Commons Reconocimiento-CompartirIgual (CC-BY-SA).',
       'La puntuación general se apoya en el algoritmo Nutri-Score en su versión 2023, en las evaluaciones de aditivos alimentarios de la EFSA (Autoridad Europea de Seguridad Alimentaria) y en las recomendaciones públicas de AESAN (Agencia Española de Seguridad Alimentaria y Nutrición).',
       'Maseya no está afiliada, patrocinada ni respaldada por Open Food Facts, Open Beauty Facts, la EFSA ni AESAN.',
       'Algunas fichas se completan con aportaciones de usuarios mediante fotografías de etiquetas. Al enviar una fotografía aceptas que la información extraída pueda incorporarse a la base de datos de Maseya para beneficio de quienes escaneen el mismo producto.',
