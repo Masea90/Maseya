@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { track } from '@/lib/analytics';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,42 @@ import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { WELCOME_COPY as COPY } from '@/content/welcome';
 
 export const ONBOARDING_SKIP_KEY = 'maseya_onboarding_skipped';
+
+const DEMO_VIDEO = '/maseya_champu_loop.mp4';
+const DEMO_POSTER = '/maseya_champu_loop_poster.jpg';
+
+/** Short muted loop of the app scanning a shampoo. Falls back to the poster
+ *  when reduced motion is requested or the video can't play. */
+const WelcomeDemo = () => {
+  const [reduced, setReduced] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches,
+  );
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+    if (!mq) return;
+    const on = () => setReduced(mq.matches);
+    mq.addEventListener?.('change', on);
+    return () => mq.removeEventListener?.('change', on);
+  }, []);
+  const cls = 'w-[84px] h-[165px] shrink-0 rounded-xl object-cover bg-white/10 shadow-warm-lg';
+  if (reduced || failed) return <img src={DEMO_POSTER} alt="" className={cls} />;
+  return (
+    <video
+      className={cls}
+      src={DEMO_VIDEO}
+      poster={DEMO_POSTER}
+      autoPlay
+      muted
+      loop
+      playsInline
+      preload="metadata"
+      aria-hidden
+      onError={() => setFailed(true)}
+    />
+  );
+};
+
 
 
 export const WelcomeScreen = () => {
@@ -118,11 +154,13 @@ export const WelcomeScreen = () => {
           </div>
         </div>
       </div>
+        <p className="mt-1 text-[10px] text-white/55 text-center">{c.sources}</p>
+      </div>
 
       {/* Scope + trust lines */}
-      <div className="w-full max-w-sm space-y-1">
-        <p className="text-[12px] text-white/75 font-medium">{c.reach}</p>
-        <p className="text-[11px] text-white/60">{c.trust}</p>
+      <div className="w-full max-w-sm">
+        <p className="text-[11px] text-white/75 font-medium">{c.reach}</p>
+        <p className="text-[10.5px] text-white/60">{c.trust}</p>
       </div>
 
       {/* Actions */}
