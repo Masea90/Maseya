@@ -78,6 +78,13 @@
       "when": 1790447195716,
       "tag": "0010_drop_public_read_product_images",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792956056329,
+      "tag": "0011_own_scans_update",
+      "breakpoints": true
     }
   ]
 }
