@@ -16,6 +16,44 @@ import { getStoredConsent } from '@/components/consent/ConsentModal';
 const SID_KEY = 'maseya_sid';
 let memorySid: string | null = null;
 
+const UTM_KEY = 'maseya_utm';
+const UTM_FIELDS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'] as const;
+
+// Capture the landing URL before navigation, even while consent is undecided.
+// This stays in the tab only; track() still sends nothing without consent.
+try {
+  if (sessionStorage.getItem(UTM_KEY) === null) {
+    const params = new URLSearchParams(window.location.search);
+    const attribution: Record<string, string> = {};
+    for (const field of UTM_FIELDS) {
+      const value = params.get(field);
+      if (value) attribution[field] = value.slice(0, 100);
+    }
+    if (Object.keys(attribution).length > 0) {
+      attribution.referrer = document.referrer;
+      attribution.landing_path = window.location.pathname;
+      sessionStorage.setItem(UTM_KEY, JSON.stringify(attribution));
+    }
+  }
+} catch { /* storage blocked — attribution must never affect the app */ }
+
+function sessionAttribution(): Record<string, string> {
+  try {
+    const stored = sessionStorage.getItem(UTM_KEY);
+    if (!stored) return {};
+    const parsed: unknown = JSON.parse(stored);
+    if (!parsed || typeof parsed !== 'object') return {};
+    const attribution: Record<string, string> = {};
+    for (const field of [...UTM_FIELDS, 'referrer', 'landing_path']) {
+      const value = (parsed as Record<string, unknown>)[field];
+      if (typeof value === 'string') {
+        attribution[field] = field.startsWith('utm_') ? value.slice(0, 100) : value;
+      }
+    }
+    return attribution;
+  } catch { return {}; }
+}
+
 const randomId = (): string => {
   try {
     if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -48,6 +86,10 @@ export function track(event: string, props?: Record<string, unknown>): void {
   // No consent → no id is created and nothing is inserted.
   if (!analyticsAllowed()) return;
   try {
+    const attribution = sessionAttribution();
+    const eventProps = Object.keys(attribution).length > 0
+      ? { ...attribution, ...props }
+      : (props ?? null);
     const session_id = getSessionId();
     void (async () => {
       try {
@@ -57,7 +99,7 @@ export function track(event: string, props?: Record<string, unknown>): void {
           session_id,
           user_id,
           event,
-          props: (props ?? null) as never,
+          props: eventProps as never,
         });
       } catch (e) {
         console.debug('[analytics] insert skipped', e);
