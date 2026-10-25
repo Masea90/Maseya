@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Pause, Play } from 'lucide-react';
 import { track } from '@/lib/analytics';
 import { Button } from '@/components/ui/button';
 import { useUser } from '@/contexts/UserContext';
@@ -8,12 +9,14 @@ import { WELCOME_COPY as COPY } from '@/content/welcome';
 
 export const ONBOARDING_SKIP_KEY = 'maseya_onboarding_skipped';
 
-const DEMO_VIDEO = '/maseya_champu_loop.mp4';
-const DEMO_POSTER = '/maseya_champu_loop_poster.jpg';
-
-/** Short muted loop of the app scanning a shampoo. Falls back to the poster
- *  when reduced motion is requested or the video can't play. */
-const WelcomeDemo = () => {
+/** Each clip falls back independently; the shared pause state controls both. */
+const WelcomeDemo = ({ src, poster, label, paused }: {
+  src: string;
+  poster: string;
+  label: string;
+  paused: boolean;
+}) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [reduced, setReduced] = useState(() =>
     typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches,
   );
@@ -25,30 +28,44 @@ const WelcomeDemo = () => {
     mq.addEventListener?.('change', on);
     return () => mq.removeEventListener?.('change', on);
   }, []);
-  const cls = 'w-[84px] h-[165px] shrink-0 rounded-xl object-cover bg-white/10 shadow-warm-lg';
-  if (reduced || failed) return <img src={DEMO_POSTER} alt="" className={cls} />;
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || reduced || failed) return;
+    if (paused) video.pause();
+    else void video.play().catch(() => setFailed(true));
+  }, [paused, reduced, failed]);
+
   return (
-    <video
-      className={cls}
-      src={DEMO_VIDEO}
-      poster={DEMO_POSTER}
-      autoPlay
-      muted
-      loop
-      playsInline
-      preload="metadata"
-      aria-hidden
-      onError={() => setFailed(true)}
-    />
+    <div className="relative min-w-0 h-[330px] overflow-hidden">
+      {reduced || failed ? (
+        <img src={poster} alt="" className="h-full w-full object-cover" />
+      ) : (
+        <video
+          ref={videoRef}
+          className="h-full w-full object-cover"
+          src={src}
+          poster={poster}
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          aria-hidden
+          onError={() => setFailed(true)}
+        />
+      )}
+      <span className="absolute left-2 top-2 rounded-full bg-foreground/70 px-2 py-1 text-xs font-semibold text-primary-foreground">
+        {label}
+      </span>
+    </div>
   );
 };
-
-
 
 export const WelcomeScreen = () => {
   const navigate = useNavigate();
   const { user } = useUser();
   const c = COPY[user.language] ?? COPY.es;
+  const [paused, setPaused] = useState(false);
 
   const viewTracked = useRef(false);
   useEffect(() => {
@@ -64,8 +81,6 @@ export const WelcomeScreen = () => {
   };
 
   const handleScan = () => {
-    // Same effect the old "continue without signing up" had: let anonymous users
-    // through the onboarding gate. We flag the skip locally (no quiz answers).
     try {
       localStorage.setItem(ONBOARDING_SKIP_KEY, '1');
     } catch {
@@ -76,129 +91,82 @@ export const WelcomeScreen = () => {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-gradient-hero flex flex-col items-center justify-between p-6 pt-safe text-center text-white">
-      {/* Top bar: brand + language */}
-      <div className="w-full grid grid-cols-[1fr_auto_1fr] items-center pt-2">
-        <div />
-        <div className="flex items-center justify-center gap-2">
-          <div className="w-9 h-9 rounded-2xl bg-white/15 backdrop-blur flex items-center justify-center">
-            <span className="text-lg">🌿</span>
+    <div className="min-h-[100dvh] bg-gradient-hero text-center text-primary-foreground pt-safe pb-safe">
+      <div className="mx-auto w-full max-w-lg">
+        <header className="px-4 pt-2 pb-2">
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center mb-1.5">
+            <div />
+            <div className="flex items-center justify-center gap-2">
+              <span aria-hidden className="text-lg">🌿</span>
+              <span className="font-display font-bold tracking-normal">{c.brand}</span>
+            </div>
+            <div className="flex justify-end"><LanguageSwitcher variant="light" /></div>
           </div>
-          <span className="font-display font-bold tracking-wide">{c.brand}</span>
-        </div>
-        <div className="flex justify-end">
-          <LanguageSwitcher variant="light" />
-        </div>
-      </div>
+          <h1 className="font-display text-[22px] font-bold leading-[26px] tracking-normal mb-1">
+            {c.titleTop}
+          </h1>
+          <p className="text-xs leading-4 text-primary-foreground/80">{c.personalIntro}</p>
+        </header>
 
-      {/* Headline + subtitle */}
-      <div className="w-full max-w-sm">
-        <h1 className="font-display text-2xl sm:text-4xl font-bold leading-tight mb-1">
-          {c.titleTop}
-        </h1>
-        <p className="text-secondary text-base font-medium leading-snug">
-          {c.subtitle}
-          <span className="font-semibold">{c.subtitleAccent}</span>
-        </p>
-      </div>
-
-      {/* Demo loop + how it works (3 steps) */}
-      <div className="w-full max-w-sm flex items-center gap-3 text-left">
-        <WelcomeDemo />
-        <div className="flex-1 min-w-0">
-          <p className="text-[11px] uppercase tracking-wide text-white/60 font-semibold mb-1">{c.stepsTitle}</p>
-          <ol className="space-y-1.5">
-            {[c.step1, c.step2, c.step3].map((s, i) => (
-              <li key={i} className="flex items-start gap-2 text-[13px] leading-snug text-white/90">
-                <span className="shrink-0 w-5 h-5 rounded-full bg-white/15 flex items-center justify-center text-[11px] font-bold">{i + 1}</span>
-                <span>{s}</span>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </div>
-
-      {/* Visual proof block: same product, two verdicts depending on who you are */}
-      <div className="w-full max-w-sm">
-      <div className="rounded-2xl bg-white/10 backdrop-blur-sm px-4 py-2.5 space-y-2.5 text-left">
-        {/* Example 1 — food */}
-        <div className="space-y-1">
-          <p className="text-[13px] font-semibold text-white">
-            <span className="mr-1.5" aria-hidden>🧀</span>
-            {c.ex1Label}
-          </p>
-          <div className="flex items-baseline justify-between gap-3">
-            <span className="text-[11.5px] text-white/70">{c.ex1aCond}</span>
-            <span className="text-base font-bold text-white/95 tabular-nums">{c.ex1aVerdict}</span>
-          </div>
-          <div className="h-px bg-white/15" aria-hidden />
-          <div className="flex items-baseline justify-between gap-3">
-            <span className="text-[11.5px] text-white/70">{c.ex1bCond}</span>
-            <span className="text-base font-bold text-[hsl(var(--score-bad))]">{c.ex1bVerdict}</span>
-          </div>
-        </div>
-        {/* Example 2 — cosmetic */}
-        <div className="space-y-1">
-          <p className="text-[13px] font-semibold text-white">
-            <span className="mr-1.5" aria-hidden>🧴</span>
-            {c.ex2Label}
-          </p>
-          <div className="flex items-baseline justify-between gap-3">
-            <span className="text-[11.5px] text-white/70">{c.ex2aCond}</span>
-            <span className="text-base font-bold text-white/95 tabular-nums">{c.ex2aVerdict}</span>
-          </div>
-          <div className="h-px bg-white/15" aria-hidden />
-          <div className="flex items-baseline justify-between gap-3">
-            <span className="text-[11.5px] text-white/70">{c.ex2bCond}</span>
-            <span className="text-base font-bold text-[hsl(var(--score-fair))]">{c.ex2bVerdict}</span>
-          </div>
-        </div>
-      </div>
-        <p className="mt-1 text-[10px] text-white/55 text-center">{c.sources}</p>
-      </div>
-
-      {/* Scope + trust lines */}
-      <div className="w-full max-w-sm">
-        <p className="text-[11px] text-white/75 font-medium">{c.reach}</p>
-        <p className="text-[10.5px] text-white/60">{c.trust}</p>
-      </div>
-
-      {/* Actions */}
-      <div className="w-full max-w-sm space-y-2.5">
-        <div>
+        <div className="relative grid grid-cols-2 gap-[2px]">
+          <WelcomeDemo
+            src="/maseya_bienvenida_cosmetica.mp4"
+            poster="/maseya_bienvenida_cosmetica_poster.jpg"
+            label={c.cosmeticsLabel}
+            paused={paused}
+          />
+          <WelcomeDemo
+            src="/maseya_bienvenida_alimentacion.mp4"
+            poster="/maseya_bienvenida_alimentacion_poster.jpg"
+            label={c.foodLabel}
+            paused={paused}
+          />
           <Button
-            onClick={handleSignup}
-            className="w-full h-14 text-base font-semibold rounded-2xl bg-white text-primary hover:bg-white/95 shadow-warm-lg leading-tight"
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="absolute right-2 top-2 h-[30px] w-[30px] rounded-full bg-foreground/70 p-0 text-primary-foreground hover:bg-foreground/90 hover:text-primary-foreground"
+            aria-label={paused ? c.resumeVideos : c.pauseVideos}
+            title={paused ? c.resumeVideos : c.pauseVideos}
+            onClick={() => setPaused(value => !value)}
           >
-            {c.signup}
+            {paused ? <Play /> : <Pause />}
           </Button>
-          <p className="mt-1.5 text-[11px] text-white/75">{c.signupHint}</p>
         </div>
-        <Button
-          onClick={handleScan}
-          variant="outline"
-          className="w-full h-14 text-base font-semibold rounded-2xl border-white/70 bg-transparent text-white hover:bg-white/10 hover:text-white leading-tight"
-        >
-          {c.scanNoAccount}
-        </Button>
-        <button
-          onClick={() => navigate('/login')}
-          className="block mx-auto text-sm text-white/80 underline-offset-4 hover:underline"
-        >
-          {c.haveAccount}
-        </button>
-      </div>
 
-      {/* Discreet footer */}
-      <p className="text-[10px] text-white/50 space-x-2">
-        <button onClick={() => navigate('/como-funciona')} className="underline-offset-4 hover:underline">
-          {c.howItWorks}
-        </button>
-        <span aria-hidden>·</span>
-        <button onClick={() => navigate('/aviso-legal')} className="underline-offset-4 hover:underline">
-          Aviso legal
-        </button>
-      </p>
+        <div className="grid grid-cols-2 gap-[2px] py-1.5 text-xs leading-4 text-primary-foreground/80">
+          <p className="px-3">{c.cosmeticsExplanation}</p>
+          <p className="px-3">{c.foodExplanation}</p>
+        </div>
+
+        <div className="px-4">
+          <div className="space-y-1.5">
+            <Button onClick={handleSignup} className="w-full h-11 text-base font-semibold rounded-2xl bg-primary-foreground text-primary hover:bg-primary-foreground/95 shadow-warm-lg leading-tight">
+              {c.signup}
+            </Button>
+            <Button onClick={handleScan} variant="outline" className="w-full h-11 text-base font-semibold rounded-2xl border-primary-foreground/80 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground leading-tight">
+              {c.scanNoAccount}
+            </Button>
+          </div>
+          <Button onClick={() => navigate('/login')} variant="link" className="h-11 text-sm text-primary-foreground/80">
+            {c.haveAccount}
+          </Button>
+
+          <section className="text-left">
+            <h2 className="text-xs leading-4 font-semibold tracking-normal mb-1">{c.stepsTitle}</h2>
+            <ol className="list-decimal pl-4 text-[12.5px] leading-4 text-primary-foreground/80">
+              <li>{c.step1}</li>
+              <li>{c.step2}</li>
+              <li>{c.step3}</li>
+            </ol>
+          </section>
+
+          <p className="pt-1.5 pb-2 text-[10.5px] leading-[13px] text-primary-foreground/75">
+            {c.sources} ·{' '}
+            <a href="/aviso-legal" className="underline underline-offset-2">{c.legalNotice}</a>
+          </p>
+        </div>
+      </div>
     </div>
   );
 };
