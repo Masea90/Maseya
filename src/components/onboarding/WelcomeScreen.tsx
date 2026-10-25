@@ -36,7 +36,7 @@ const WelcomeDemo = ({ src, poster, label, paused }: {
   }, [paused, reduced, failed]);
 
   return (
-    <div className="relative min-w-0 h-[330px] overflow-hidden">
+    <div className="relative min-w-0 h-[280px] overflow-hidden">
       {reduced || failed ? (
         <img src={poster} alt="" className="h-full w-full object-cover" />
       ) : (
@@ -54,7 +54,7 @@ const WelcomeDemo = ({ src, poster, label, paused }: {
           onError={() => setFailed(true)}
         />
       )}
-      <span className="absolute left-2 top-2 rounded-full bg-foreground/70 px-2 py-1 text-xs font-semibold text-primary-foreground">
+      <span className="absolute left-2 top-2 rounded-full bg-foreground/70 px-2 py-1 text-xs font-semibold text-white">
         {label}
       </span>
     </div>
@@ -91,21 +91,21 @@ export const WelcomeScreen = () => {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-gradient-hero text-center text-primary-foreground pt-safe pb-safe">
+    <div className="min-h-[100dvh] bg-gradient-hero text-center text-white pt-safe pb-safe">
       <div className="mx-auto w-full max-w-lg">
         <header className="px-4 pt-2 pb-2">
           <div className="grid grid-cols-[1fr_auto_1fr] items-center mb-1.5">
             <div />
             <div className="flex items-center justify-center gap-2">
-              <span aria-hidden className="text-lg">🌿</span>
+              <span aria-hidden className="flex h-9 w-9 items-center justify-center rounded-2xl bg-white/15 backdrop-blur text-lg">🌿</span>
               <span className="font-display font-bold tracking-normal">{c.brand}</span>
             </div>
             <div className="flex justify-end"><LanguageSwitcher variant="light" /></div>
           </div>
-          <h1 className="font-display text-[22px] font-bold leading-[26px] tracking-normal mb-1">
+          <h1 className="font-display text-2xl sm:text-4xl font-bold leading-tight tracking-normal mb-1">
             {c.titleTop}
           </h1>
-          <p className="text-xs leading-4 text-primary-foreground/80">{c.personalIntro}</p>
+          <p className="text-xs leading-4 text-white/80">{c.personalIntro}</p>
         </header>
 
         <div className="relative grid grid-cols-2 gap-[2px]">
@@ -125,7 +125,7 @@ export const WelcomeScreen = () => {
             type="button"
             size="icon"
             variant="ghost"
-            className="absolute right-2 top-2 h-[30px] w-[30px] rounded-full bg-foreground/70 p-0 text-primary-foreground hover:bg-foreground/90 hover:text-primary-foreground"
+            className="absolute right-2 top-2 h-[30px] w-[30px] rounded-full bg-foreground/70 p-0 text-white hover:bg-foreground/90 hover:text-white"
             aria-label={paused ? c.resumeVideos : c.pauseVideos}
             title={paused ? c.resumeVideos : c.pauseVideos}
             onClick={() => setPaused(value => !value)}
@@ -134,34 +134,37 @@ export const WelcomeScreen = () => {
           </Button>
         </div>
 
-        <div className="grid grid-cols-2 gap-[2px] py-1.5 text-xs leading-4 text-primary-foreground/80">
+        <div className="grid grid-cols-2 gap-[2px] py-1.5 text-xs leading-4 text-white/80">
           <p className="px-3">{c.cosmeticsExplanation}</p>
           <p className="px-3">{c.foodExplanation}</p>
         </div>
 
         <div className="px-4">
           <div className="space-y-1.5">
-            <Button onClick={handleSignup} className="w-full h-11 text-base font-semibold rounded-2xl bg-primary-foreground text-primary hover:bg-primary-foreground/95 shadow-warm-lg leading-tight">
+            <Button onClick={handleSignup} className="w-full h-14 text-base font-semibold rounded-2xl bg-white text-primary hover:bg-white/95 shadow-warm-lg leading-tight">
               {c.signup}
             </Button>
-            <Button onClick={handleScan} variant="outline" className="w-full h-11 text-base font-semibold rounded-2xl border-primary-foreground/80 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground leading-tight">
+            <Button onClick={handleScan} variant="outline" className="w-full h-14 text-base font-semibold rounded-2xl border-white/70 bg-transparent text-white hover:bg-white/10 hover:text-white leading-tight">
               {c.scanNoAccount}
             </Button>
           </div>
-          <Button onClick={() => navigate('/login')} variant="link" className="h-11 text-sm text-primary-foreground/80">
+          <Button onClick={() => navigate('/login')} variant="link" className="h-11 text-sm text-white/80">
             {c.haveAccount}
           </Button>
 
           <section className="text-left">
             <h2 className="text-xs leading-4 font-semibold tracking-normal mb-1">{c.stepsTitle}</h2>
-            <ol className="list-decimal pl-4 text-[12.5px] leading-4 text-primary-foreground/80">
-              <li>{c.step1}</li>
-              <li>{c.step2}</li>
-              <li>{c.step3}</li>
+            <ol className="text-[12.5px] leading-4 text-white/80">
+              {[c.step1, c.step2, c.step3].map((step, index) => (
+                <li key={index} className="flex items-center gap-2">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/15 text-[11px] font-bold text-white">{index + 1}</span>
+                  <span>{step}</span>
+                </li>
+              ))}
             </ol>
           </section>
 
-          <p className="pt-1.5 pb-2 text-[10.5px] leading-[13px] text-primary-foreground/75">
+          <p className="pt-1.5 pb-2 text-xs leading-4 text-white/80">
             {c.sources} ·{' '}
             <a href="/aviso-legal" className="underline underline-offset-2">{c.legalNotice}</a>
           </p>
