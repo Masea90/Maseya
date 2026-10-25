@@ -363,6 +363,7 @@ const ResultPage = () => {
 
   const [healthProfile, setHealthProfile] = useState<any>(null);
   const [healthConsent, setHealthConsent] = useState<boolean>(() => hasHealthDataConsent());
+  const [historyProfileStatus, setHistoryProfileStatus] = useState<{ userId: string; hasProfile: boolean } | null>(null);
   const [showConsentDialog, setShowConsentDialog] = useState(false);
   const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
   const [showImageLightbox, setShowImageLightbox] = useState(false);
@@ -446,6 +447,7 @@ const ResultPage = () => {
           if (raw) setHealthProfile(JSON.parse(raw));
         } catch {}
       }
+      setHistoryProfileStatus({ userId: currentUser.id, hasProfile: !!data });
     };
     load();
     // Reload when the user updates their profile in another screen — otherwise
@@ -694,6 +696,10 @@ const ResultPage = () => {
   }, [product]);
 
   const persistedRef = useRef<string | null>(null);
+  const historyRowRef = useRef<{ id: string; key: string; scores: { global: number }; updated: boolean } | null>(null);
+  const updateHistoryRef = useRef<(() => void) | null>(null);
+  updateHistoryRef.current = null;
+  useEffect(() => { updateHistoryRef.current?.(); });
   useEffect(() => {
     if (!product) return;
     if (skipHistory) return;
@@ -725,8 +731,12 @@ const ResultPage = () => {
         source: product.source,
         product_data: JSON.parse(JSON.stringify(toSlimProductData(product))),
         scores: { global: score },
-      }]).then(({ error }) => {
+      }]).select('id').single().then(({ data, error }) => {
         if (error) console.error('[scan_history] insert', error);
+        if (data && persistedRef.current === key) {
+          historyRowRef.current = { id: data.id, key, scores: { global: score }, updated: false };
+          updateHistoryRef.current?.();
+        }
       });
     } else {
       const ck = 'maseya_anon_scans';
@@ -849,6 +859,27 @@ const ResultPage = () => {
   // Personalization is active only when a real personal breakdown was computed
   // (consent + allowed profile). Otherwise the "Para ti" circle shows a lock.
   const personalizationActive = !!personalBreakdown;
+  // Enrich only the newly inserted row, after the existing display calculation.
+  // Neither profile loading nor this best-effort write delays the initial insert.
+  updateHistoryRef.current = () => {
+    const row = historyRowRef.current;
+    if (!row || row.updated || skipHistory || !currentUser?.id || !consentReady
+      || historyProfileStatus?.userId !== currentUser.id
+      || row.key !== `${product.barcode}::${currentUser.id}`) return;
+    const hadProfile = historyProfileStatus.hasProfile
+      || profile.skin.length > 0 || profile.allergies.length > 0;
+    row.updated = true;
+    try {
+      void supabase.from('scan_history').update({
+        scores: {
+          ...row.scores,
+          personal: hadProfile && personalizationActive ? personalScore : null,
+          verdict: hadProfile && personalizationActive ? psl.label : null,
+          had_profile: hadProfile,
+        },
+      }).eq('id', row.id).eq('user_id', currentUser.id).then(() => {}, () => {});
+    } catch {}
+  };
   // Session/consent still resolving (or the health profile not loaded yet for a
   // signed-in user) → show a neutral placeholder instead of the lock.
   const personalizationPending = !personalizationActive
