@@ -18,6 +18,7 @@ interface MaseyaRow {
   category: string | null;
   ingredients_text: string | null;
   image_url: string | null;
+  category_tag: string | null;
 }
 
 interface Enriched {
@@ -25,7 +26,14 @@ interface Enriched {
   brand?: string | null;
   ingredients_text?: string | null;
   image_url?: string | null;
+  category_tag?: string | null;
 }
+
+const lastCategoryTag = (product: any): string | null => {
+  const tags = product?.categories_tags;
+  const tag = Array.isArray(tags) ? tags[tags.length - 1] : null;
+  return typeof tag === "string" && /^[a-z]{2}:[a-z0-9-]+$/.test(tag) ? tag : null;
+};
 
 const safeFetchJson = async (url: string, timeoutMs = 6000): Promise<any | null> => {
   const ctrl = new AbortController();
@@ -56,6 +64,7 @@ const fromOFF = async (barcode: string): Promise<Enriched | null> => {
     image_url: p.image_front_url || p.image_url || null,
     ingredients_text:
       p.ingredients_text_es || p.ingredients_text || p.ingredients_text_en || null,
+    category_tag: lastCategoryTag(p),
   };
 };
 
@@ -71,6 +80,7 @@ const fromOBF = async (barcode: string): Promise<Enriched | null> => {
     image_url: p.image_front_url || p.image_url || null,
     ingredients_text:
       p.ingredients_text_es || p.ingredients_text || p.ingredients_text_en || null,
+    category_tag: lastCategoryTag(p),
   };
 };
 
@@ -88,8 +98,12 @@ const fromUpcItemDb = async (barcode: string): Promise<Enriched | null> => {
   };
 };
 
-const merge = (current: MaseyaRow, found: Enriched[]): Partial<MaseyaRow> => {
+const merge = (current: MaseyaRow, found: Enriched[], fillCategoryTag = false): Partial<MaseyaRow> => {
   const out: Partial<MaseyaRow> = {};
+  if (fillCategoryTag && !current.category_tag) {
+    const tag = found.map(f => f.category_tag).find(v => !!v && /^[a-z]{2}:[a-z0-9-]+$/.test(v));
+    if (tag) out.category_tag = tag;
+  }
   if (!current.image_url) {
     const img = found.map(f => f.image_url).find(v => !!v);
     if (img) out.image_url = img;
@@ -124,11 +138,14 @@ Deno.serve(async (req) => {
 
     // Optional single-barcode mode for real-time enrichment on scan
     let singleBarcode: string | null = null;
+    let bulkCursor: string | null = null;
     if (req.method === "POST") {
       try {
         const body = await req.json();
         if (typeof body?.barcode === "string" && body.barcode.trim()) {
           singleBarcode = body.barcode.trim();
+        } else if (typeof body?.cursor === "string" && body.cursor.trim()) {
+          bulkCursor = body.cursor.trim();
         }
       } catch {}
     }
@@ -194,14 +211,16 @@ Deno.serve(async (req) => {
           category: null,
           ingredients_text: null,
           image_url: null,
+          category_tag: null,
         },
       ];
     } else {
-      const { data: rows, error } = await admin
+      let query = admin
         .from("maseya_products")
-        .select("barcode, product_name, brand, category, ingredients_text, image_url")
-        .or("image_url.is.null,ingredients_text.is.null,ingredients_text.eq.")
-        .limit(50);
+        .select("barcode, product_name, brand, category, ingredients_text, image_url, category_tag")
+        .or("image_url.is.null,ingredients_text.is.null,ingredients_text.eq.,category_tag.is.null,category_tag.eq.");
+      if (bulkCursor) query = query.gt("barcode", bulkCursor);
+      const { data: rows, error } = await query.order("barcode").limit(50);
 
       if (error) {
         console.error("[enrich] query error", error);
@@ -215,6 +234,7 @@ Deno.serve(async (req) => {
 
     let enriched = 0;
     let stillMissing = 0;
+    let tagsFilled = 0;
 
     for (const row of products) {
       const found: Enriched[] = [];
@@ -227,7 +247,7 @@ Deno.serve(async (req) => {
         if (upc) found.push(upc);
       }
 
-      const patch = merge(row, found);
+      const patch = merge(row, found, !singleBarcode);
       if (Object.keys(patch).length === 0) {
         stillMissing++;
         continue;
@@ -254,6 +274,25 @@ Deno.serve(async (req) => {
         stillMissing++;
       } else {
         enriched++;
+        if (patch.category_tag) tagsFilled++;
+      }
+    }
+
+    let continuationScheduled = false;
+    if (!singleBarcode && products.length === 50) {
+      const cursor = products[products.length - 1].barcode;
+      const continuation = fetch(`${SUPABASE_URL}/functions/v1/enrich-products`, {
+        method: "POST",
+        headers: { Authorization: authHeader, "Content-Type": "application/json" },
+        body: JSON.stringify({ cursor }),
+      }).then(async (res) => {
+        await res.arrayBuffer();
+        if (!res.ok) console.error("[enrich] continuation error", res.status);
+      }).catch((e) => console.error("[enrich] continuation error", e));
+      const rt = (globalThis as { EdgeRuntime?: { waitUntil: (p: Promise<unknown>) => void } }).EdgeRuntime;
+      if (rt?.waitUntil) {
+        rt.waitUntil(continuation);
+        continuationScheduled = true;
       }
     }
 
@@ -261,6 +300,8 @@ Deno.serve(async (req) => {
       scanned: products.length,
       enriched,
       still_missing: stillMissing,
+      tags_filled: tagsFilled,
+      continuation_scheduled: continuationScheduled,
     };
     console.log("[enrich] result", result);
     return new Response(JSON.stringify(result), {
